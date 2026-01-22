@@ -102,17 +102,14 @@ def serve_dashboard_asset(filename):
     """Serve static assets from the dashboard template directory."""
     import os
     from flask import send_from_directory
+    from mindstack_app.services.template_service import TemplateService
     
-    # Base directory for dashboard templates
-    # This assumes standard structure: mindstack_app/templates/v4/pages/learning/vocabulary/dashboard
-    # We need to construct the absolute path carefully.
-    
-    # option 1: hardcode relative to app root
-    # root = os.path.join(current_app.root_path, 'templates', 'v4', 'pages', 'learning', 'vocabulary', 'dashboard')
-    
-    # option 2: Safer dynamic detection based on version could be complex, sticking to v4 for now as per context
-    # Use template_folder from blueprint if available, but blueprints don't always have one set or it's global.
-    
-    # Let's use current_app.root_path
-    directory = os.path.join(current_app.root_path, 'templates', 'v4', 'pages', 'learning', 'vocabulary', 'dashboard')
+    # Resolve directory dynamically based on active template version
+    version = TemplateService.get_active_version()
+    directory = os.path.join(
+        current_app.root_path, 
+        'templates', 
+        version, 
+        'pages', 'learning', 'vocabulary', 'dashboard'
+    )
     return send_from_directory(directory, filename)

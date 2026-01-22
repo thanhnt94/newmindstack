@@ -1,0 +1,231 @@
+{# Vocabulary Learning Hub - Set Detail View v4.0 #}
+
+{% set _v = template_version %}
+{% extends _v ~ '/base.html' %}
+
+{% block title %}Chi tiết bộ thẻ - MindStack{% endblock %}
+
+{% block head %}
+{{ super() }}
+{% include _v ~ '/includes/assets/_markdown_assets.html' %}
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+<style>
+    :root {
+        --vocab-primary: #4f46e5;
+        --vocab-primary-light: #818cf8;
+        --vocab-primary-dark: #4f46e5;
+    }
+
+    body {
+        font-family: 'Inter', sans-serif;
+        background-color: #f8fafc;
+    }
+
+    /* Responsive view switching - must be first to avoid conflicts */
+    .desktop-only-view {
+        display: none;
+    }
+
+    .mobile-only-view {
+        display: block;
+    }
+
+    @media (min-width: 1024px) {
+        .desktop-only-view {
+            display: block;
+        }
+
+        .mobile-only-view {
+            display: none !important;
+        }
+    }
+
+    /* Steps visibility */
+    .vocab-step {
+        display: none;
+    }
+
+    .vocab-step.active {
+        display: block;
+    }
+
+    /* Desktop layout overrides */
+    @media (min-width: 1024px) {
+        body>main.container {
+            max-width: 100% !important;
+            padding: 0 !important;
+        }
+
+        .desktop-detail-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+    }
+
+    /* Mobile full-screen steps */
+    @media (max-width: 1023px) {
+
+        body>header,
+        body>footer {
+            display: none !important;
+        }
+
+        body>main {
+            padding: 0 !important;
+            margin: 0 !important;
+            max-width: none !important;
+        }
+
+        .vocab-step {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 100;
+            background: #f8fafc;
+            flex-direction: column;
+            overflow-y: auto;
+        }
+
+        .vocab-step.active {
+            display: flex;
+        }
+    }
+
+
+    /* Modal hide by default - but allow inline style override */
+    .vocab-modal:not([style*="flex"]),
+    .edit-modal-overlay:not(.active) {
+        display: none;
+    }
+
+    /* Word List Grid - Override Tailwind */
+    .js-word-list {
+        display: grid !important;
+        grid-template-columns: 1fr !important;
+        gap: 1rem !important;
+    }
+
+    @media (min-width: 768px) {
+        .js-word-list {
+            grid-template-columns: repeat(2, 1fr) !important;
+        }
+    }
+
+    @media (min-width: 1280px) {
+        .js-word-list {
+            grid-template-columns: repeat(3, 1fr) !important;
+        }
+    }
+
+    /* Word Card Fix */
+    .js-word-list>div {
+        margin-bottom: 0 !important;
+    }
+</style>
+<link rel="stylesheet" href="{{ url_for('learning.vocabulary.serve_dashboard_asset', filename='css/dashboard.css') }}">
+<link rel="stylesheet"
+    href="{{ url_for('learning.vocabulary.serve_dashboard_asset', filename='css/dashboard_detail.css') }}">
+<link rel="stylesheet"
+    href="{{ url_for('learning.vocabulary.serve_dashboard_asset', filename='css/dashboard_detail_mobile.css') }}">
+{% endblock %}
+
+
+
+
+
+{% block content %}
+<div id="vocab-detail-wrapper">
+    <!-- STEP 2: Set Detail - Desktop (hidden on mobile via CSS) -->
+    <div id="desktop-view-wrapper" class="desktop-only-view">
+        <div id="step-detail-desktop" class="vocab-step active">
+            {% include _v ~ '/pages/learning/vocabulary/dashboard/components/steps/_detail_desktop.html' %}
+        </div>
+    </div>
+
+    <!-- STEP 2: Set Detail - Mobile (hidden on desktop via CSS) -->
+    <div id="mobile-view-wrapper" class="mobile-only-view">
+        {% include _v ~ '/pages/learning/vocabulary/dashboard/components/steps/_detail_mobile.html' %}
+    </div>
+
+
+
+    <!-- STEP 3: Mode Selector (Mobile only, Desktop redirects or uses index.html/modes) -->
+    <!-- In this detail.html, we support the mobile wizard flow for consistency -->
+    <div id="step-modes" class="vocab-step">
+        {% include _v ~ '/pages/learning/vocabulary/dashboard/components/steps/_modes.html' %}
+        <div class="step-bottom-bar">
+            <button type="button" class="step-continue-btn js-mode-continue" disabled>
+                <span>Tiếp tục</span>
+                <i class="fas fa-arrow-right"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- STEP 4: Flashcard Options -->
+    <div id="step-flashcard-options" class="vocab-step">
+        {% include _v ~ '/pages/learning/vocabulary/dashboard/components/steps/_flashcard_options.html' %}
+    </div>
+
+    <!-- STEP 5: MCQ Options -->
+    <div id="step-mcq-options" class="vocab-step">
+        <div id="mcq-options-container" class="step-content-container">
+            <!-- Content loaded dynamically -->
+        </div>
+    </div>
+</div>
+
+{# Shared Modals #}
+{% include _v ~ '/pages/learning/vocabulary/dashboard/_container_stats_modal.html' %}
+{% include _v ~ '/pages/learning/vocabulary/dashboard/_item_stats_charts.html' %}
+{% include _v ~ '/pages/learning/vocabulary/dashboard/_stats_enhancement.html' %}
+{% include _v ~ '/pages/learning/vocabulary/dashboard/_inject_stats_button.html' %}
+{% include _v ~ '/pages/learning/vocabulary/stats/_modal_stats.html' %}
+
+
+<!-- Flashcard Settings Modal -->
+<div id="flashcard-settings-modal" class="vocab-modal" style="display: none;">
+    <div class="vocab-modal-overlay js-close-settings-modal"></div>
+    <div class="vocab-modal-content" style="max-width: 400px; height: auto; max-height: 80vh;">
+        <button class="vocab-modal-close js-close-settings-modal"><i class="fas fa-times"></i></button>
+        <div class="vocab-modal-body" style="padding: 1.5rem;">
+            <div id="settings-dynamic-content-wrapper">
+                <!-- Redesigned Settings Content from index.html -->
+                {% include _v ~ '/pages/learning/vocabulary/dashboard/components/modals/_flashcard_settings.html' ignore
+                missing %}
+            </div>
+        </div>
+        <div class="p-6 border-t border-slate-100 bg-white flex gap-3">
+            <button
+                class="flex-1 py-3 px-4 rounded-xl text-slate-400 font-bold hover:bg-slate-50 transition-colors js-close-settings-modal">Hủy
+                bỏ</button>
+            <button
+                class="flex-1 py-3 px-4 rounded-xl bg-indigo-600 text-white font-bold hover:bg-indigo-700 shadow-xl transition-all js-save-settings">Lưu
+                cấu hình</button>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Set Modal -->
+<div id="editSetModal" class="edit-modal-overlay">
+    <div class="edit-modal-container">
+        <div class="edit-modal-header">
+            <h3 class="edit-modal-title"><i class="fas fa-edit"></i> Chỉnh sửa bộ thẻ</h3>
+            <button class="edit-modal-close"
+                onclick="document.getElementById('editSetModal').classList.remove('active')"><i
+                    class="fas fa-times"></i></button>
+        </div>
+    </div>
+</div>
+
+<!-- Item Stats Modal -->
+{% include _v ~ '/pages/learning/vocabulary/stats/_modal_stats.html' %}
+{% endblock %}
+
+
+{% block scripts %}
+{{ super() }}
+{# Stats components need their own scripts often or global helpers #}
+<script src="{{ url_for('learning.vocabulary.serve_dashboard_asset', filename='js/dashboard_detail.js') }}"></script>
+{% endblock %}

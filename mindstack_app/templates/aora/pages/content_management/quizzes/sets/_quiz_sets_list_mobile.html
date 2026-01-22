@@ -1,0 +1,111 @@
+{% set _v = template_version %}
+<!-- File: _quiz_sets_list_mobile.html -->
+<!-- Phiên bản: 1.0 -->
+<!-- Mobile version: shown on mobile, hidden on lg+ -->
+
+{% from _v ~ '/includes/search/_search_form.html' import render_search_form %}
+{% from _v ~ '/includes/pagination/_pagination.html' import render_pagination %}
+
+<div class="lg:hidden w-full space-y-4"
+    style="--cm-accent:#e11d48; --cm-accent-soft:rgba(244,63,94,0.15); --cm-accent-strong:rgba(225,29,72,0.18);">
+
+    {% if quiz_sets %}
+    <div class="cm-grid cm-grid--three">
+        {% for set in quiz_sets %}
+        <article class="cm-collection-card">
+            <div class="flex items-start justify-between gap-4">
+                <div class="min-w-0 space-y-2">
+                    <h3 class="truncate text-lg font-semibold text-slate-900">{{ set.title }}</h3>
+                    <p class="line-clamp-2 text-sm text-slate-500">{{ set.description if set.description else 'Chưa có
+                        mô tả cho bộ câu hỏi này.' }}</p>
+                </div>
+                <span class="cm-icon-button" aria-hidden="true">
+                    <i class="fa-solid fa-circle-question"></i>
+                </span>
+            </div>
+
+            <div class="cm-collection-meta">
+                <span class="cm-tag">
+                    <i class="fa-solid fa-tags text-slate-400"></i>
+                    <span class="truncate max-w-[160px]" title="{{ set.tags if set.tags else 'Không có thẻ' }}">{{
+                        set.tags if set.tags else 'Không có thẻ' }}</span>
+                </span>
+                <span class="cm-tag">
+                    <i class="fa-solid fa-layer-group text-slate-400"></i>
+                    <span>{{ set.item_count }} câu hỏi</span>
+                </span>
+                <span class="cm-tag" title="{{ set.creator_display_name }}">
+                    <i class="fa-solid fa-user-pen text-slate-400"></i>
+                    <span>{{ set.creator_display_name }}</span>
+                </span>
+            </div>
+
+            <div class="text-xs text-slate-500 flex items-center gap-2">
+                <i class="fa-solid fa-user-shield text-slate-400"></i>
+                <span class="font-semibold">Cộng tác:</span>
+                <span class="truncate" title="{{ set.editor_display_names | join(', ') }}">{{ set.editor_display_names |
+                    join(', ') }}</span>
+            </div>
+
+            <div class="cm-divider"></div>
+
+            <div class="flex items-center justify-between">
+                <a href="{{ url_for('content_management.content_management_quizzes.list_quiz_items', set_id=set.container_id) }}"
+                    class="cm-link">
+                    <span>Quản lý câu hỏi</span>
+                    <i class="fa-solid fa-arrow-right"></i>
+                </a>
+                <div class="cm-inline-actions">
+                    {% if current_user.user_role == 'admin' or set.creator_user_id == current_user.user_id or
+                    (set.contributors and current_user.user_id in set.contributors|map(attribute='user_id')|list and
+                    'editor' in set.contributors|selectattr('user_id', 'equalto',
+                    current_user.user_id)|map(attribute='permission_level')|list) %}
+                    <a href="{{ url_for('content_management.content_management_quizzes.export_quiz_set', set_id=set.container_id) }}"
+                        class="cm-icon-button" title="Xuất gói ZIP">
+                        <i class="fas fa-file-export"></i>
+                    </a>
+                    <button type="button"
+                        data-modal-url="{{ url_for('content_management.content_management_quizzes.edit_quiz_set', set_id=set.container_id) }}"
+                        class="open-modal-btn cm-icon-button" title="Chỉnh sửa">
+                        <i class="fas fa-pen"></i>
+                    </button>
+                    {% endif %}
+
+                    {% if current_user.user_role != 'free' and (current_user.user_role == 'admin' or set.creator_user_id
+                    == current_user.user_id) %}
+                    <a href="{{ url_for('content_management.manage_contributors', container_id=set.container_id) }}"
+                        class="cm-icon-button" title="Quản lý quyền">
+                        <i class="fas fa-users"></i>
+                    </a>
+                    {% endif %}
+
+                    {% if current_user.user_role == 'admin' or set.creator_user_id == current_user.user_id %}
+                    <form
+                        action="{{ url_for('content_management.content_management_quizzes.delete_quiz_set', set_id=set.container_id) }}"
+                        method="post"
+                        onsubmit="return confirm('Bạn có chắc chắn muốn xóa bộ câu hỏi này và tất cả các câu hỏi của nó?');"
+                        class="inline">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="cm-icon-button" title="Xoá bộ câu hỏi">
+                            <i class="fas fa-trash-alt"></i>
+                        </button>
+                    </form>
+                    {% endif %}
+                </div>
+            </div>
+        </article>
+        {% endfor %}
+    </div>
+    <div class="pt-4">
+        {{ render_pagination(pagination=pagination, search_query=search_query, search_field=search_field) }}
+    </div>
+    {% else %}
+    <div class="cm-empty">
+        <span class="cm-empty-icon">
+            <i class="fas fa-circle-question"></i>
+        </span>
+        <h3 class="text-lg font-semibold text-slate-700">Chưa có bộ câu hỏi nào</h3>
+        <p class="text-sm">Tạo bộ câu hỏi đầu tiên để bắt đầu luyện tập.</p>
+    </div>
+    {% endif %}
+</div>

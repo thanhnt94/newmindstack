@@ -73,7 +73,7 @@ class TemplateService:
             
         versions = []
         for item in os.listdir(templates_root):
-            if os.path.isdir(os.path.join(templates_root, item)) and item.startswith('v'):
+            if os.path.isdir(os.path.join(templates_root, item)) and item != 'admin' and not item.startswith('.'):
                 versions.append(item)
         
         return sorted(versions) if versions else [cls.DEFAULT_VERSION]
@@ -83,20 +83,25 @@ class TemplateService:
         """Get the active GLOBAL version from AppSettings or default."""
         from mindstack_app.models import AppSettings
         
-        # We now use a single global key for the entire site
         key = "global_template_version"
+        version = cls.DEFAULT_VERSION
         
-        # Try to get from runtime config first (if cached)
-        # For now, simplistic DB query as per original design requirement
         try:
             setting = AppSettings.query.get(key)
-            if setting and setting.value:
-                return setting.value
-        except Exception:
-            # Fallback if DB not ready or error
-            pass
+            if setting and setting.value and str(setting.value).strip():
+                version = str(setting.value).strip()
+            else:
+                # Fallback to scanning if DEFAULT_VERSION doesn't exist?
+                # For now, just stick to DEFAULT_VERSION or the first available
+                available = cls.get_available_global_versions()
+                if cls.DEFAULT_VERSION in available:
+                    version = cls.DEFAULT_VERSION
+                elif available:
+                    version = available[0]
+        except Exception as e:
+            current_app.logger.error(f"Error fetching global_template_version: {e}")
             
-        return cls.DEFAULT_VERSION
+        return version
 
     @classmethod
     def set_active_global_version(cls, version: str) -> None:

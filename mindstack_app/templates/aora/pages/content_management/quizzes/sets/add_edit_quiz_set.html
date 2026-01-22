@@ -1,0 +1,17 @@
+<!-- File: newmindstack/mindstack_app/modules/content_management/templates/quizzes/add_edit_quiz_set.html -->
+<!-- Phiên bản: 3.4 -->
+<!-- Mục đích: Hiển thị form để thêm mới hoặc chỉnh sửa một Bộ câu hỏi. -->
+<!--           Đã cập nhật url_for. -->
+<!--           Đã khôi phục cấu trúc form, style, các trường AI prompt và upload Excel từ code gốc. -->
+<!--           ĐÃ SỬA: Luôn kế thừa base.html và nhúng template bare form. -->
+<!--           Thiết kế responsive. -->
+
+{% set _v = template_version %}
+{% extends _v ~ '/base.html' %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+{# Nhúng template bare form vào đây #}
+{% include _v ~ '/pages/content_management/quizzes/sets/_add_edit_quiz_set_bare.html' %}
+{% endblock %}

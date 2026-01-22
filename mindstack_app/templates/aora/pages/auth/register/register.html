@@ -1,0 +1,60 @@
+{% set _v = template_version %}
+{% extends _v ~ '/base.html' %}
+
+{% block title %}Đăng ký - Mindstack{% endblock %}
+
+{% block body_class %} register-page{% endblock %}
+
+{% block content %}
+
+{# Include Mobile Version #}
+{% include _v ~ '/pages/auth/register/_register_mobile.html' %}
+
+{# Include Desktop Version #}
+{% include _v ~ '/pages/auth/register/_register_desktop.html' %}
+
+{% endblock %}
+
+{% block scripts %}
+<style>
+    /* Hide header and footer on register page for mobile */
+    @media (max-width: 1023px) {
+
+        body.register-page>header,
+        body.register-page>footer {
+            display: none !important;
+        }
+
+        body.register-page>main {
+            padding: 0 !important;
+            margin: 0 !important;
+        }
+
+        body.register-page>main>.container {
+            padding: 0 !important;
+            margin: 0 !important;
+            max-width: 100% !important;
+        }
+    }
+
+    /* Hide header and footer on register page for desktop too */
+    @media (min-width: 1024px) {
+
+        body.register-page>header,
+        body.register-page>footer {
+            display: none !important;
+        }
+
+        body.register-page>main {
+            padding: 0 !important;
+            margin: 0 !important;
+        }
+
+        body.register-page>main>.container {
+            padding: 0 !important;
+            margin: 0 !important;
+            max-width: 100% !important;
+        }
+    }
+</style>
+{% endblock %}

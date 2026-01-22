@@ -1,0 +1,107 @@
+{#
+File: mindstack_app/templates/[version]/base.html
+Phiên bản: Dynamic
+Mục đích: Base template - Self-contained, sử dụng template_version động từ context
+#}
+{# Tự động detect version từ context hoặc fallback #}
+{% set _v = template_version or _v or 'aora' %}
+{% from _v ~ '/includes/navbar/_navbar.html' import render_navbar with context %}
+<!doctype html>
+<html lang="vi">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <title>{% block title %}Mindstack App{% endblock %}</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/png" href="/favicon.png">
+
+    {# TAILWIND & CORE SCRIPTS #}
+    <script>
+        (function () {
+            if (typeof window === 'undefined') return;
+            const originalWarn = console.warn.bind(console);
+            window.__TAILWIND_ORIGINAL_WARN__ = originalWarn;
+            console.warn = function (...args) {
+                if (args.length && typeof args[0] === 'string' && args[0].includes('cdn.tailwindcss.com should not be used in production')) {
+                    return;
+                }
+                return originalWarn(...args);
+            };
+        })();
+    </script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        if (window.__TAILWIND_ORIGINAL_WARN__) {
+            console.warn = window.__TAILWIND_ORIGINAL_WARN__;
+            delete window.__TAILWIND_ORIGINAL_WARN__;
+        }
+    </script>
+
+    <!-- Alpine.js for reactive UI components -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
+    {# INCLUDES: CORE STYLES & ASSETS #}
+    {% include _v ~ '/includes/assets/_global_styles.html' %}
+    {% include _v ~ '/includes/assets/_markdown_assets.html' %}
+
+    {% block head %}{% endblock %}
+</head>
+
+<body class="bg-slate-100/80 flex flex-col min-h-screen antialiased {% block body_class %}{% endblock %}">
+
+    {# IMPORT LAYOUT MODES #}
+    {% import _v ~ '/_base_desktop.html' as desktop with context %}
+    {% import _v ~ '/_base_mobile.html' as mobile with context %}
+
+    {# === DESKTOP HEADER === #}
+    {{ desktop.header(current_user, request) }}
+
+    <main class="container mx-auto py-4 px-2 flex-grow relative md:py-4 sm:py-2 sm:px-3">
+        {# Flash Messages #}
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        <div id="flash-messages-container" class="absolute top-4 right-4 z-[200] flex flex-col space-y-2 max-w-sm">
+            {% for category, message in messages %}
+            <div class="flex items-center p-2 rounded-md shadow-lg bg-gray-800 text-white relative text-sm opacity-100 transition-opacity duration-500"
+                data-dismissible>
+                {% if category == 'success' %}<i class="fas fa-check-circle text-green-400 mr-2"></i>
+                {% elif category == 'info' %}<i class="fas fa-info-circle text-blue-400 mr-2"></i>
+                {% elif category == 'danger' %}<i class="fas fa-times-circle text-red-400 mr-2"></i>
+                {% elif category == 'warning' %}<i class="fas fa-exclamation-triangle text-yellow-400 mr-2"></i>
+                {% else %}<i class="fas fa-bell text-gray-400 mr-2"></i>{% endif %}
+                <span class="block sm:inline">{{ message }}</span>
+                <button class="ml-auto pl-2 text-gray-400 hover:text-white" onclick="this.parentNode.remove();">
+                    <span class="sr-only">Đóng</span>
+                    <svg class="w-4 h-4" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none"
+                        viewBox="0 0 14 14">
+                        <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6" />
+                    </svg>
+                </button>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+    </main>
+
+    {# === DESKTOP FOOTER === #}
+    {{ desktop.footer() }}
+
+    {# === MOBILE LOGIC === #}
+    {{ mobile.css_reset() }}
+
+    {# INCLUDES: APP LOGIC & MODALS #}
+    {% include _v ~ '/includes/assets/_app_logic.html' %}
+
+    {% block scripts %}{% endblock %}
+</body>
+
+</html>

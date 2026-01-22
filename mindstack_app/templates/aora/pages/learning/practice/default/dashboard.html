@@ -1,0 +1,738 @@
+{# Practice Flashcard - Wizard-style Dashboard #}
+{% set _v = template_version %}
+{% extends _v ~ '/base.html' %}
+{% block title %}Luyện tập Flashcard - MindStack{% endblock %}
+
+{% block head %}
+{{ super() }}
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+    :root {
+        --practice-primary: #10b981;
+        --practice-primary-light: #34d399;
+        --practice-primary-dark: #059669;
+    }
+
+    body {
+        font-family: 'Inter', sans-serif;
+        background-color: #f8fafc;
+    }
+
+    /* Mobile full-screen steps */
+    @media (max-width: 1023px) {
+
+        body>header,
+        body>footer {
+            display: none !important;
+        }
+
+        body>main {
+            padding: 0 !important;
+            margin: 0 !important;
+            max-width: none !important;
+        }
+
+        .practice-step {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 100;
+            background: #f8fafc;
+            flex-direction: column;
+            overflow-y: auto;
+        }
+
+        .practice-step.active {
+            display: flex;
+        }
+    }
+
+    @media (min-width: 1024px) {
+        .practice-step {
+            display: block !important;
+            position: static !important;
+        }
+
+        #step-modes {
+            display: none !important;
+        }
+
+        #step-modes.active {
+            display: block !important;
+        }
+    }
+
+    /* Header */
+    .practice-header {
+        background: white;
+        padding: 0.75rem 1rem;
+        border-bottom: 1px solid #e2e8f0;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        flex-shrink: 0;
+    }
+
+    .practice-back-btn {
+        width: 36px;
+        height: 36px;
+        border-radius: 0.75rem;
+        background: #f1f5f9;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #64748b;
+        cursor: pointer;
+        transition: all 0.2s;
+        text-decoration: none;
+        border: none;
+    }
+
+    .practice-back-btn:hover {
+        background: #e2e8f0;
+        color: #1e293b;
+    }
+
+    .practice-title {
+        font-weight: 700;
+        color: #1e293b;
+        font-size: 1.125rem;
+        flex: 1;
+    }
+
+    /* Search */
+    .practice-search-wrap {
+        padding: 0.75rem 1rem;
+        background: white;
+        border-bottom: 1px solid #e2e8f0;
+    }
+
+    .practice-search {
+        display: flex;
+        align-items: center;
+        background: #f1f5f9;
+        border-radius: 0.75rem;
+        padding: 0.5rem 0.75rem;
+        gap: 0.5rem;
+    }
+
+    .practice-search i {
+        color: #94a3b8;
+    }
+
+    .practice-search input {
+        border: none;
+        background: transparent;
+        flex: 1;
+        font-size: 0.875rem;
+        outline: none;
+    }
+
+    /* Tabs */
+    .practice-tabs {
+        display: flex;
+        gap: 0.25rem;
+        padding: 0.5rem 1rem;
+        background: white;
+        border-bottom: 1px solid #e2e8f0;
+    }
+
+    .practice-tab {
+        flex: 1;
+        padding: 0.5rem;
+        text-align: center;
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: #64748b;
+        border-radius: 0.5rem;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .practice-tab.active {
+        background: var(--practice-primary);
+        color: white;
+    }
+
+    /* Grid */
+    .practice-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.75rem;
+        padding: 1rem;
+    }
+
+    @media (min-width: 640px) {
+        .practice-grid {
+            grid-template-columns: repeat(3, 1fr);
+        }
+    }
+
+    @media (min-width: 1024px) {
+        .practice-grid {
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1rem;
+        }
+    }
+
+    /* Set Card */
+    .practice-set-card {
+        background: white;
+        border-radius: 1rem;
+        overflow: hidden;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        cursor: pointer;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        border: 2px solid transparent;
+    }
+
+    .practice-set-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 12px 28px rgba(16, 185, 129, 0.15);
+    }
+
+    .practice-set-card.selected {
+        border-color: var(--practice-primary);
+        background: #ecfdf5;
+    }
+
+    .practice-set-card.selected::after {
+        content: '';
+        position: absolute;
+        top: 0.5rem;
+        right: 0.5rem;
+        width: 24px;
+        height: 24px;
+        background: var(--practice-primary);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .practice-set-cover {
+        height: 100px;
+        background: linear-gradient(135deg, #10b981 0%, #06b6d4 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+    }
+
+    .practice-set-cover i {
+        font-size: 2rem;
+        color: rgba(255, 255, 255, 0.85);
+    }
+
+    .practice-set-check {
+        position: absolute;
+        top: 0.5rem;
+        right: 0.5rem;
+        width: 28px;
+        height: 28px;
+        background: var(--practice-primary);
+        border-radius: 50%;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 0.875rem;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    }
+
+    .practice-set-card.selected .practice-set-check {
+        display: flex;
+    }
+
+    .practice-set-info {
+        padding: 0.75rem;
+    }
+
+    .practice-set-title {
+        font-weight: 700;
+        color: #1e293b;
+        font-size: 0.875rem;
+        margin-bottom: 0.25rem;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+
+    .practice-set-count {
+        font-size: 0.75rem;
+        color: #64748b;
+    }
+
+    /* Scroll */
+    .practice-scroll {
+        flex: 1;
+        overflow-y: auto;
+        padding-bottom: 120px;
+    }
+
+    /* Footer */
+    .practice-footer {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        padding: 1rem;
+        padding-bottom: calc(1rem + env(safe-area-inset-bottom));
+        background: white;
+        border-top: 1px solid #e2e8f0;
+        box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.05);
+        z-index: 200;
+    }
+
+    .practice-footer-info {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.75rem;
+        font-size: 0.875rem;
+        color: #64748b;
+    }
+
+    .practice-footer-count {
+        font-weight: 700;
+        color: var(--practice-primary);
+    }
+
+    .practice-start-btn {
+        width: 100%;
+        padding: 1rem;
+        background: var(--practice-primary);
+        color: white;
+        font-weight: 700;
+        font-size: 1rem;
+        border: none;
+        border-radius: 0.75rem;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        transition: all 0.2s;
+    }
+
+    .practice-start-btn:hover:not(:disabled) {
+        background: var(--practice-primary-dark);
+    }
+
+    .practice-start-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+
+    /* Mode Cards */
+    .practice-mode-card {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding: 1rem;
+        background: white;
+        border-radius: 1rem;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+        margin-bottom: 0.5rem;
+        cursor: pointer;
+        transition: all 0.2s;
+        border: 2px solid transparent;
+    }
+
+    .practice-mode-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+    }
+
+    .practice-mode-card.selected {
+        border-color: var(--practice-primary);
+        background: #ecfdf5;
+    }
+
+    .practice-mode-icon {
+        width: 50px;
+        height: 50px;
+        border-radius: 1rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .practice-mode-icon i {
+        font-size: 1.25rem;
+        color: white;
+    }
+
+    .practice-mode-icon.yellow {
+        background: linear-gradient(135deg, #f59e0b, #fbbf24);
+    }
+
+    .practice-mode-icon.green {
+        background: linear-gradient(135deg, #10b981, #34d399);
+    }
+
+    .practice-mode-icon.red {
+        background: linear-gradient(135deg, #ef4444, #f87171);
+    }
+
+    .practice-mode-icon.purple {
+        background: linear-gradient(135deg, #8b5cf6, #a78bfa);
+    }
+
+    .practice-mode-info {
+        flex: 1;
+    }
+
+    .practice-mode-name {
+        font-weight: 600;
+        color: #1e293b;
+        margin-bottom: 0.25rem;
+    }
+
+    .practice-mode-desc {
+        font-size: 0.75rem;
+        color: #94a3b8;
+    }
+
+    .practice-mode-count {
+        font-size: 0.8rem;
+        font-weight: 700;
+        color: var(--practice-primary);
+    }
+
+    /* Loading */
+    .practice-loading {
+        text-align: center;
+        padding: 3rem;
+        color: #94a3b8;
+    }
+
+    .practice-loading i {
+        font-size: 2rem;
+        color: var(--practice-primary);
+    }
+
+    /* Empty */
+    .practice-empty {
+        text-align: center;
+        padding: 3rem;
+        color: #94a3b8;
+    }
+
+    .practice-empty i {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+        color: #cbd5e1;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+{# === MOBILE NAVIGATION === #}
+<div class="lg:hidden">
+    {% include _v ~ '/includes/navbar/_navbar_mobile.html' %}
+</div>
+
+<!-- STEP 1: Set Browser (Multi-Select) -->
+<div id="step-browser" class="practice-step active">
+    <div class="practice-header">
+        <a href="{{ url_for('learning.practice.practice_hub') }}" class="practice-back-btn">
+            <i class="fas fa-arrow-left"></i>
+        </a>
+        <div class="practice-title">Chọn bộ thẻ</div>
+        <a href="{{ url_for('dashboard.dashboard') }}" class="practice-back-btn">
+            <i class="fas fa-home"></i>
+        </a>
+    </div>
+
+    <div class="practice-search-wrap">
+        <div class="practice-search">
+            <i class="fas fa-search"></i>
+            <input type="text" id="search-input" placeholder="Tìm kiếm bộ thẻ...">
+        </div>
+    </div>
+
+    <div class="practice-tabs">
+        <div class="practice-tab active" data-category="my">Của tôi</div>
+        <div class="practice-tab" data-category="learning">Đang học</div>
+        <div class="practice-tab" data-category="explore">Khám phá</div>
+    </div>
+
+    <div class="practice-scroll">
+        <div id="sets-grid" class="practice-grid">
+            <div class="practice-loading" style="grid-column: 1/-1;">
+                <i class="fas fa-spinner fa-spin"></i>
+                <p>Đang tải...</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="practice-footer">
+        <div class="practice-footer-info">
+            <span>Đã chọn: <span class="practice-footer-count js-selected-count">0</span> bộ thẻ</span>
+            <button type="button" class="text-sm text-emerald-600 font-semibold js-select-all">Chọn tất cả</button>
+        </div>
+        <button type="button" class="practice-start-btn js-next-step" disabled>
+            <span>Tiếp tục</span>
+            <i class="fas fa-arrow-right"></i>
+        </button>
+    </div>
+</div>
+
+<!-- STEP 2: Mode Selector -->
+<div id="step-modes" class="practice-step">
+    <div class="practice-header">
+        <button type="button" class="practice-back-btn js-back-to-browser">
+            <i class="fas fa-arrow-left"></i>
+        </button>
+        <div class="practice-title">Chọn chế độ học</div>
+        <a href="{{ url_for('dashboard.dashboard') }}" class="practice-back-btn">
+            <i class="fas fa-home"></i>
+        </a>
+    </div>
+
+    <div class="practice-scroll" style="padding: 1rem;">
+        <div class="js-modes-container">
+            <!-- Modes will be loaded here -->
+        </div>
+    </div>
+
+    <div class="practice-footer">
+        <button type="button" class="practice-start-btn js-start-session" disabled>
+            <i class="fas fa-play-circle"></i>
+            <span>Bắt đầu luyện tập</span>
+        </button>
+    </div>
+</div>
+{% endblock content %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        // State
+        let currentCategory = 'my';
+        let currentSearch = '';
+        let selectedSets = new Set();
+        let selectedMode = null;
+        let allSets = [];
+
+        // Elements
+        const stepBrowser = document.getElementById('step-browser');
+        const stepModes = document.getElementById('step-modes');
+        const setsGrid = document.getElementById('sets-grid');
+        const searchInput = document.getElementById('search-input');
+        const modesContainer = document.querySelector('.js-modes-container');
+        const nextStepBtn = document.querySelector('.js-next-step');
+        const startSessionBtn = document.querySelector('.js-start-session');
+        const selectedCountEl = document.querySelector('.js-selected-count');
+        const selectAllBtn = document.querySelector('.js-select-all');
+
+        // URLs
+        const apiSetsUrl = "{{ url_for('learning.practice.api_get_sets') }}";
+        const apiModesUrl = "{{ url_for('learning.practice.api_get_modes', set_identifier='__ID__') }}";
+        const startSessionUrl = "{{ url_for('learning.practice.flashcard_start') }}";
+
+        // Init
+        loadSets();
+
+        // Category tabs
+        document.querySelectorAll('.practice-tab').forEach(function (tab) {
+            tab.addEventListener('click', function () {
+                document.querySelectorAll('.practice-tab').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                currentCategory = tab.dataset.category;
+                loadSets();
+            });
+        });
+
+        // Search
+        let searchTimeout;
+        if (searchInput) {
+            searchInput.addEventListener('input', function () {
+                clearTimeout(searchTimeout);
+                searchTimeout = setTimeout(function () {
+                    currentSearch = searchInput.value;
+                    loadSets();
+                }, 300);
+            });
+        }
+
+        // Select All
+        selectAllBtn?.addEventListener('click', () => {
+            if (selectedSets.size === allSets.length) {
+                // Deselect all
+                selectedSets.clear();
+                document.querySelectorAll('.practice-set-card').forEach(c => c.classList.remove('selected'));
+            } else {
+                // Select all
+                allSets.forEach(s => selectedSets.add(String(s.id)));
+                document.querySelectorAll('.practice-set-card').forEach(c => c.classList.add('selected'));
+            }
+            updateSelection();
+        });
+
+        // Back button
+        document.querySelector('.js-back-to-browser')?.addEventListener('click', () => {
+            showStep('browser');
+        });
+
+        // Next Step button
+        nextStepBtn?.addEventListener('click', () => {
+            if (selectedSets.size > 0) {
+                showStep('modes');
+                loadModes();
+            }
+        });
+
+        // Start Session button
+        startSessionBtn?.addEventListener('click', () => {
+            if (selectedSets.size === 0 || !selectedMode) return;
+
+            // Use GET redirect instead of POST form to avoid CSRF issues
+            const setIds = Array.from(selectedSets).join(',');
+            const url = startSessionUrl + '?set_ids=' + encodeURIComponent(setIds) + '&mode=' + encodeURIComponent(selectedMode);
+            window.location.href = url;
+        });
+
+        function showStep(step) {
+            stepBrowser?.classList.remove('active');
+            stepModes?.classList.remove('active');
+
+            if (step === 'browser') stepBrowser?.classList.add('active');
+            else if (step === 'modes') stepModes?.classList.add('active');
+        }
+
+        function loadSets() {
+            if (!setsGrid) return;
+            setsGrid.innerHTML = '<div class="practice-loading" style="grid-column: 1/-1;"><i class="fas fa-spinner fa-spin"></i><p>Đang tải...</p></div>';
+
+            let url = apiSetsUrl + '?filter=' + currentCategory;
+            if (currentSearch) url += '&q=' + encodeURIComponent(currentSearch);
+
+            fetch(url)
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success && data.sets.length > 0) {
+                        allSets = data.sets;
+                        renderSets(data.sets);
+                    } else {
+                        setsGrid.innerHTML = '<div class="practice-empty" style="grid-column: 1/-1;"><i class="fas fa-folder-open"></i><p>Không có bộ thẻ nào</p></div>';
+                        allSets = [];
+                    }
+                })
+                .catch(() => {
+                    setsGrid.innerHTML = '<div class="practice-empty" style="grid-column: 1/-1;"><i class="fas fa-exclamation-triangle"></i><p>Lỗi tải dữ liệu</p></div>';
+                    allSets = [];
+                });
+        }
+
+        function renderSets(sets) {
+            let html = '';
+            sets.forEach(s => {
+                const isSelected = selectedSets.has(String(s.id));
+                html += `
+                <div class="practice-set-card ${isSelected ? 'selected' : ''}" data-set-id="${s.id}">
+                    <div class="practice-set-cover">
+                        <i class="fas fa-clone"></i>
+                        <div class="practice-set-check"><i class="fas fa-check"></i></div>
+                    </div>
+                    <div class="practice-set-info">
+                        <div class="practice-set-title">${s.title}</div>
+                        <div class="practice-set-count">${s.total_items || 0} thẻ</div>
+                    </div>
+                </div>`;
+            });
+            setsGrid.innerHTML = html;
+
+            // Bind click
+            document.querySelectorAll('.practice-set-card').forEach(card => {
+                card.addEventListener('click', () => {
+                    const setId = card.dataset.setId;
+                    if (selectedSets.has(setId)) {
+                        selectedSets.delete(setId);
+                        card.classList.remove('selected');
+                    } else {
+                        selectedSets.add(setId);
+                        card.classList.add('selected');
+                    }
+                    updateSelection();
+                });
+            });
+        }
+
+        function updateSelection() {
+            selectedCountEl.textContent = selectedSets.size;
+            nextStepBtn.disabled = selectedSets.size === 0;
+
+            // Update select all button text
+            if (selectAllBtn) {
+                selectAllBtn.textContent = selectedSets.size === allSets.length ? 'Bỏ chọn tất cả' : 'Chọn tất cả';
+            }
+        }
+
+        function loadModes() {
+            if (!modesContainer) return;
+            modesContainer.innerHTML = '<div class="practice-loading"><i class="fas fa-spinner fa-spin"></i></div>';
+
+            const ids = Array.from(selectedSets).join(',');
+            const url = apiModesUrl.replace('__ID__', ids);
+
+            fetch(url)
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success && data.modes) {
+                        renderModes(data.modes);
+                    }
+                });
+        }
+
+        function renderModes(modes) {
+            let html = '';
+            const icons = {
+                'new_only': { icon: 'fa-star', color: 'yellow' },
+                'due_only': { icon: 'fa-clock', color: 'green' },
+                'all_review': { icon: 'fa-redo', color: 'green' },
+                'hard_only': { icon: 'fa-fire', color: 'red' },
+                'mixed_srs': { icon: 'fa-brain', color: 'purple' }
+            };
+
+            // Only show basic flashcard modes (exclude practice modes that require special UI)
+            const allowedModes = ['mixed_srs', 'new_only', 'due_only', 'all_review', 'hard_only'];
+
+            modes.filter(mode => allowedModes.includes(mode.id)).forEach(mode => {
+                const iconData = icons[mode.id] || { icon: 'fa-book', color: 'green' };
+                const isDisabled = mode.count === 0;
+                const style = isDisabled ? 'opacity: 0.5; filter: grayscale(100%); pointer-events: none; background: #f1f5f9;' : '';
+
+                html += `
+                <div class="practice-mode-card" data-mode-id="${mode.id}" style="${style}">
+                    <div class="practice-mode-icon ${iconData.color}"><i class="fas ${iconData.icon}"></i></div>
+                    <div class="practice-mode-info">
+                        <div class="practice-mode-name">${mode.name}</div>
+                        <div class="practice-mode-desc">${mode.count} thẻ</div>
+                    </div>
+                    <div class="practice-mode-count">${mode.count}</div>
+                </div>`;
+            });
+
+            modesContainer.innerHTML = html;
+
+            // Bind click
+            document.querySelectorAll('.practice-mode-card').forEach(card => {
+                card.addEventListener('click', () => {
+                    const count = parseInt(card.querySelector('.practice-mode-count')?.textContent || '0');
+                    if (count === 0) return;
+
+                    document.querySelectorAll('.practice-mode-card').forEach(c => c.classList.remove('selected'));
+                    card.classList.add('selected');
+                    selectedMode = card.dataset.modeId;
+
+                    startSessionBtn.disabled = false;
+                });
+            });
+        }
+    });
+</script>
+{% endblock scripts %}

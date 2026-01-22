@@ -1,0 +1,1226 @@
+﻿{# MCQ Setup Template - Wizard Style #}
+{% set _v = template_version %}
+{% extends _v ~ '/base.html' %}
+{% block title %}Trắc nghiệm - {{ container.title }}{% endblock %}
+{% block head %}
+{{ super() }}
+<style>
+    :root {
+        --primary: #6366f1;
+        /* Indigo 500 */
+        --primary-bg: #eef2ff;
+        /* Indigo 50 */
+        --surface: #ffffff;
+        --background: #f8fafc;
+        --text-main: #0f172a;
+        --text-sub: #64748b;
+        --border: #e2e8f0;
+        --radius: 24px;
+        --shadow-sm: 0 4px 6px -1px rgb(0 0 0 / 0.05);
+        --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1);
+    }
+
+    body {
+        background: var(--background);
+        font-family: 'Outfit', 'Inter', sans-serif;
+    }
+
+    .wizard-container {
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        max-width: 600px;
+        margin: 0 auto;
+        background: var(--background);
+        position: relative;
+        overflow: hidden;
+    }
+
+    /* Minimal Header */
+    .wizard-header {
+        padding: 0.75rem 0.75rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        background: var(--surface);
+        border-bottom: 1px solid var(--border);
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        max-width: 600px;
+        margin: 0 auto;
+        z-index: 100;
+    }
+
+    .nav-btn {
+        width: 40px;
+        height: 40px;
+        border-radius: 12px;
+        background: transparent;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--text-main);
+        font-size: 1.1rem;
+        cursor: pointer;
+        transition: all 0.2s;
+        text-decoration: none;
+        border: 1px solid var(--border);
+    }
+
+    .nav-btn:hover {
+        background: var(--background);
+    }
+
+    /* Center Info */
+    .header-info {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+    }
+
+    .set-title {
+        font-size: 1rem;
+        font-weight: 700;
+        color: var(--text-main);
+        margin: 0;
+        max-width: 200px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .mode-badge {
+        font-size: 0.7rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--primary);
+        display: flex;
+        align-items: center;
+        gap: 4px;
+    }
+
+    .step-indicator {
+        display: flex;
+        gap: 6px;
+        width: 40px;
+        justify-content: flex-end;
+    }
+
+    .step-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--border);
+        transition: background 0.3s;
+    }
+
+    .step-dot.active {
+        background: var(--primary);
+        width: 16px;
+        border-radius: 12px;
+    }
+
+    /* Steps Content */
+    .wizard-content {
+        flex: 1;
+        padding: 75px 1.5rem 100px 1.5rem;
+        /* Space for fixed header and footer */
+        display: flex;
+        flex-direction: column;
+        overflow-y: auto;
+    }
+
+    .step-screen {
+        display: none;
+        animation: fadeIn 0.4s ease-out;
+    }
+
+    .step-screen.active {
+        display: block;
+    }
+
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .title-area {
+        margin-bottom: 2rem;
+        text-align: center;
+    }
+
+    .title-area h2 {
+        font-size: 1.75rem;
+        font-weight: 800;
+        color: var(--text-main);
+        margin: 0 0 0.5rem 0;
+        line-height: 1.2;
+    }
+
+    .title-area p {
+        color: var(--text-sub);
+        margin: 0;
+        font-size: 1rem;
+    }
+
+    /* Mode Grid */
+    .mode-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+
+    .mode-card {
+        background: var(--surface);
+        border: 2px solid transparent;
+        border-radius: 20px;
+        padding: 1.25rem;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        cursor: pointer;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: var(--shadow-sm);
+        position: relative;
+    }
+
+    .mode-card:hover:not(.disabled) {
+        transform: translateY(-2px);
+        border-color: rgba(99, 102, 241, 0.3);
+    }
+
+    .mode-card.selected {
+        background: var(--primary-bg);
+        border-color: var(--primary);
+        box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
+    }
+
+    .mode-card.disabled {
+        opacity: 0.5;
+        filter: grayscale(1);
+        cursor: not-allowed;
+        background: var(--background);
+    }
+
+    .mode-icon {
+        width: 50px;
+        height: 50px;
+        border-radius: 16px;
+        background: var(--background);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        color: var(--text-sub);
+        transition: all 0.3s;
+    }
+
+    .mode-card.selected .mode-icon {
+        background: var(--primary);
+        color: white;
+        transform: scale(1.1) rotate(-5deg);
+    }
+
+    .mode-info {
+        flex: 1;
+    }
+
+    .mode-title {
+        font-weight: 700;
+        font-size: 1.1rem;
+        color: var(--text-main);
+        display: block;
+    }
+
+    .mode-desc {
+        font-size: 0.9rem;
+        color: var(--text-sub);
+        margin-top: 2px;
+        display: block;
+    }
+
+    /* Config Cards */
+    .config-card {
+        background: var(--surface);
+        border-radius: 20px;
+        padding: 1rem;
+        box-shadow: var(--shadow-sm);
+        margin-bottom: 1rem;
+        border: 1px solid var(--border);
+    }
+
+    .config-header {
+        font-size: 0.95rem;
+        font-weight: 700;
+        color: var(--text-main);
+        margin-bottom: 0.75rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .config-header i {
+        color: var(--primary);
+        opacity: 0.8;
+    }
+
+    /* Count/Choice Options */
+    .options-row {
+        display: flex;
+        gap: 0.5rem;
+        overflow-x: auto;
+        padding-bottom: 0.5rem;
+    }
+
+    .option-chip {
+        padding: 0.5rem 1rem;
+        border-radius: 10px;
+        border: 1px solid var(--border);
+        background: var(--background);
+        font-size: 0.9rem;
+        font-weight: 600;
+        color: var(--text-sub);
+        cursor: pointer;
+        white-space: nowrap;
+        transition: all 0.2s;
+    }
+
+    .option-chip:hover {
+        background: white;
+        border-color: var(--primary);
+    }
+
+    .option-chip.selected {
+        background: var(--primary);
+        color: white;
+        border-color: var(--primary);
+        box-shadow: 0 4px 6px -1px rgba(99, 102, 241, 0.3);
+    }
+
+    /* Pairs Styling */
+    .pair-container {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    .pair-row {
+        background: var(--background);
+        border-radius: 16px;
+        padding: 0.75rem;
+        position: relative;
+        border: 1px solid var(--border);
+        transition: all 0.3s ease;
+    }
+
+    .pair-row.disabled-row {
+        opacity: 0.6;
+        background: #f1f5f9;
+        border-style: dashed;
+        filter: grayscale(0.5);
+    }
+
+    .pair-connection {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        justify-content: space-between;
+    }
+
+    .pair-checkbox {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 30px;
+        cursor: pointer;
+    }
+
+    .pair-checkbox input {
+        width: 18px;
+        height: 18px;
+        cursor: pointer;
+        padding: 0;
+        margin: 0;
+        accent-color: var(--primary);
+    }
+
+    .pair-box {
+        flex: 1;
+    }
+
+    .pair-label {
+        font-size: 0.75rem;
+        font-weight: 700;
+        color: var(--text-sub);
+        text-transform: uppercase;
+        margin-bottom: 0.4rem;
+        display: block;
+    }
+
+    .modern-select {
+        width: 100%;
+        padding: 0.5rem;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        font-size: 0.9rem;
+        font-weight: 600;
+        color: var(--text-main);
+        appearance: none;
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2364748b'%3e%3cpath d='M7 10l5 5 5-5z'/%3e%3c/svg%3e");
+        background-repeat: no-repeat;
+        background-position: right 0.5rem center;
+        background-size: 1.25rem;
+    }
+
+    .modern-select:focus {
+        outline: none;
+        border-color: var(--primary);
+    }
+
+    .arrow-divider {
+        color: var(--text-sub);
+        font-size: 1rem;
+        transform: translateY(10px);
+    }
+
+    .add-pair-btn {
+        width: 100%;
+        padding: 0.75rem;
+        border: 2px dashed var(--border);
+        background: transparent;
+        border-radius: 16px;
+        color: var(--primary);
+        font-size: 0.9rem;
+        font-weight: 600;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        margin-top: 0.5rem;
+        transition: all 0.2s;
+    }
+
+    .add-pair-btn:hover {
+        background: var(--primary-bg);
+        border-color: var(--primary);
+    }
+
+    .delete-pair {
+        position: absolute;
+        top: -8px;
+        right: -8px;
+        width: 24px;
+        height: 24px;
+        background: var(--error, #ef4444);
+        color: white;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.7rem;
+        border: 2px solid var(--background);
+        cursor: pointer;
+        z-index: 10;
+        transition: transform 0.2s;
+    }
+
+    .delete-pair:hover {
+        transform: scale(1.1);
+    }
+
+    /* Footer */
+    .wizard-footer {
+        padding: 1rem 1.5rem;
+        background: var(--surface);
+        border-top: 1px solid var(--border);
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        max-width: 600px;
+        margin: 0 auto;
+        z-index: 100;
+    }
+
+    .action-btn {
+        width: 100%;
+        padding: 1rem;
+        border-radius: 16px;
+        border: none;
+        font-size: 1rem;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.3s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.75rem;
+        box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2);
+    }
+
+    .btn-primary {
+        background: var(--primary);
+        color: white;
+        box-shadow: 0 8px 16px -4px rgba(99, 102, 241, 0.4);
+    }
+
+    .btn-primary:hover:not(:disabled) {
+        transform: translateY(-2px);
+        box-shadow: 0 12px 20px -4px rgba(99, 102, 241, 0.5);
+    }
+
+    .btn-primary:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="wizard-container">
+
+    <!-- Top Header -->
+    <div class="wizard-header">
+        <a id="header-back-btn" href="#" class="nav-btn">
+            <i class="fas fa-chevron-left"></i>
+        </a>
+
+        <div class="header-info">
+            <span class="mode-badge"><i class="fas fa-list-ul"></i> Trắc nghiệm</span>
+            <h1 class="set-title">{{ container.title }}</h1>
+        </div>
+
+        <div class="step-indicator">
+            <div id="dot-1" class="step-dot active"></div>
+            <div id="dot-2" class="step-dot"></div>
+        </div>
+    </div>
+
+    <div class="wizard-content">
+
+        <!-- STEP 1: MODE SELECTION -->
+        <div class="step-screen active" id="step-1">
+            <div class="title-area">
+                <h2>Chọn chế độ học</h2>
+                <p>Bạn muốn ôn tập theo cách nào?</p>
+            </div>
+
+            <div class="mode-grid">
+                <!-- New -->
+                <div class="mode-card {% if mode_counts.new == 0 %}disabled{% endif %}" data-value="new">
+                    <div class="mode-icon"><i class="fas fa-seedling"></i></div>
+                    <div class="mode-info">
+                        <span class="mode-title">Học từ mới</span>
+                        <span class="mode-desc">{{ mode_counts.new }} từ chưa học</span>
+                    </div>
+                </div>
+
+                <!-- Review -->
+                <div class="mode-card {% if mode_counts.review == 0 %}disabled{% endif %}" data-value="review">
+                    <div class="mode-icon"><i class="fas fa-history"></i></div>
+                    <div class="mode-info">
+                        <span class="mode-title">Ôn tập tới hạn</span>
+                        <span class="mode-desc">{{ mode_counts.review }} từ cần ôn lại</span>
+                    </div>
+                </div>
+
+                <!-- Hard -->
+                <div class="mode-card {% if mode_counts.hard == 0 %}disabled{% endif %}" data-value="hard">
+                    <div class="mode-icon"><i class="fas fa-fire-alt"></i></div>
+                    <div class="mode-info">
+                        <span class="mode-title">Từ khó</span>
+                        <span class="mode-desc">{{ mode_counts.hard }} từ hay sai</span>
+                    </div>
+                </div>
+
+                <!-- Review All -->
+                <div class="mode-card {% if mode_counts.learned == 0 %}disabled{% endif %}" data-value="learned">
+                    <div class="mode-icon"><i class="fas fa-check-double"></i></div>
+                    <div class="mode-info">
+                        <span class="mode-title">Ôn tất cả</span>
+                        <span class="mode-desc">{{ mode_counts.learned }} từ đã học</span>
+                    </div>
+                </div>
+
+                <!-- Random -->
+                <div class="mode-card {% if mode_counts.random == 0 %}disabled{% endif %}" data-value="random">
+                    <div class="mode-icon"><i class="fas fa-random"></i></div>
+                    <div class="mode-info">
+                        <span class="mode-title">Ngẫu nhiên</span>
+                        <span class="mode-desc">{{ mode_counts.random }} từ trong bộ</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- STEP 2: CONFIGURATION -->
+        <div class="step-screen" id="step-2">
+            <div class="title-area">
+                <h2>Thiết lập câu hỏi</h2>
+                <p>Tùy chỉnh nội dung bài trắc nghiệm</p>
+                <div id="selected-mode-display"
+                    class="mt-2 inline-flex items-center gap-2 px-3 py-1 bg-indigo-50 border border-indigo-100 rounded-lg text-indigo-700 text-sm font-bold">
+                    <i class="fas fa-layer-group"></i> <span>...</span>
+                </div>
+            </div>
+
+            <!-- Count Config -->
+            <!-- Count Config -->
+            <div class="config-card">
+                <div class="flex justify-between items-center">
+                    <div class="config-header mb-0">
+                        <i class="fas fa-sort-numeric-up"></i> Số lượng câu hỏi <span id="limit-status-text"
+                            class="text-indigo-500 font-semibold">Không giới hạn</span>
+                    </div>
+                    <!-- Limit Toggle -->
+                    <label class="flex items-center cursor-pointer">
+                        <span class="mr-2 text-sm font-medium text-gray-600">Tùy chỉnh</span>
+                        <div class="relative">
+                            <input type="checkbox" id="limit-toggle" class="sr-only">
+                            <div class="block bg-gray-200 w-10 h-6 rounded-full transition-colors toggle-bg"></div>
+                            <div
+                                class="dot absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform transform">
+                            </div>
+                        </div>
+                    </label>
+                </div>
+
+                <!-- Count Select (Hidden by default) -->
+                <div id="limit-options" class="hidden mt-4">
+                    <label class="block text-xs font-semibold text-slate-500 mb-1 uppercase">Chọn số câu:</label>
+                    <div class="relative w-full">
+                        <select id="count-select"
+                            class="w-full p-2.5 appearance-none bg-white border border-slate-200 rounded-xl font-semibold text-slate-700 text-sm focus:outline-none focus:border-indigo-500 transition-all">
+                            <option value="5">5 câu</option>
+                            <option value="10" selected>10 câu</option>
+                            <option value="15">15 câu</option>
+                            <option value="20">20 câu</option>
+                            <option value="25">25 câu</option>
+                            <option value="30">30 câu</option>
+                            <option value="40">40 câu</option>
+                            <option value="50">50 câu</option>
+                            <option value="100">100 câu</option>
+                        </select>
+                        <i
+                            class="fas fa-chevron-down absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs pointer-events-none"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Choice Config -->
+            <div class="config-card">
+                <div class="config-header"><i class="fas fa-th-large"></i> Số lượng đáp án</div>
+                <div class="grid grid-cols-2 gap-2" id="choices-options">
+                    <div class="option-chip text-center justify-center flex" data-value="3">3 đáp án</div>
+                    <div class="option-chip selected text-center justify-center flex" data-value="4">4 đáp án</div>
+                    <div class="option-chip text-center justify-center flex" data-value="6">6 đáp án</div>
+                    <div class="option-chip text-center justify-center flex" data-value="8">8 đáp án</div>
+                </div>
+            </div>
+
+            <!-- Pairs Config -->
+            <div class="config-card">
+                <div class="flex justify-between items-center mb-3">
+                    <div class="config-header mb-0">
+                        <i class="fas fa-sliders-h"></i> Cấu hình Hỏi & Đáp
+                    </div>
+                    <!-- Custom Toggle -->
+                    <label class="flex items-center cursor-pointer">
+                        <span class="mr-2 text-sm font-medium text-gray-600">Tùy chỉnh</span>
+                        <div class="relative">
+                            <input type="checkbox" id="custom-config-toggle" class="sr-only">
+                            <div class="block bg-gray-200 w-10 h-6 rounded-full transition-colors toggle-bg"></div>
+                            <div
+                                class="dot absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform transform">
+                            </div>
+                        </div>
+                    </label>
+                </div>
+
+                <style>
+                    /* Toggle Styles */
+                    #custom-config-toggle:checked~.toggle-bg {
+                        background-color: var(--primary);
+                    }
+
+                    #custom-config-toggle:checked~.dot {
+                        transform: translateX(100%);
+                    }
+                </style>
+
+                <!-- Default View (Read Only) -->
+                <div id="default-config-view" class="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                    <div id="default-summary" class="space-y-2">
+                        <!-- Injected via JS -->
+                    </div>
+                    <p id="no-default-msg" class="text-sm text-red-500 italic hidden">
+                        <i class="fas fa-exclamation-circle"></i> Bộ này chưa có cấu hình mặc định. Vui lòng bật
+                        "Tùy
+                        chỉnh" để thiết lập.
+                    </p>
+                </div>
+
+                <!-- Custom Builder (Existing) -->
+                <div id="custom-builder-view" class="hidden mt-4">
+                    <div class="pair-container" id="pairs-list">
+                        <!-- Pairs injected via JS -->
+                    </div>
+
+                    <button type="button" class="add-pair-btn" id="add-pair-btn">
+                        <i class="fas fa-plus-circle"></i> Thêm cấu hình khác
+                    </button>
+
+
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Footer Action -->
+    <div class="wizard-footer">
+        <button class="action-btn btn-primary" id="next-btn">
+            Tiếp tục <i class="fas fa-arrow-right"></i>
+        </button>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+    (function () {
+        // --- Data ---
+        const setId = Number("{{ container.container_id }}");
+        const modeCounts = {{ mode_counts | tojson
+    }};
+    const availableKeys = {{ available_keys | tojson }} || [];
+    const savedSettings = {{ saved_settings | tojson }} || {};
+    const defaultSettings = {{ default_settings | tojson }} || {}; // Container Defaults
+
+    // --- State ---
+    let currentStep = 1;
+    let selectedMode = 'random';
+    // Force count to be handled by session logic (default 10 or whatever user picks later if we add UI back)
+    // Here we default to 10 for API compatibility if not specified
+    let selectedCount = 10;
+    let selectedChoices = 4;
+    let isCustomMode = false;
+    let customPairs = [];
+
+    // --- DOM Elements ---
+    const step1 = document.getElementById('step-1');
+    const step2 = document.getElementById('step-2');
+    const dot1 = document.getElementById('dot-1');
+    const dot2 = document.getElementById('dot-2');
+    const nextBtn = document.getElementById('next-btn');
+    const backBtn = document.getElementById('header-back-btn');
+    const modeCards = document.querySelectorAll('.mode-card');
+    const pairsList = document.getElementById('pairs-list');
+    const addPairBtn = document.getElementById('add-pair-btn');
+    const dashboardUrl = "{{ url_for('learning.vocabulary.dashboard') }}";
+
+    // Toggle Elements
+    const customToggle = document.getElementById('custom-config-toggle');
+    const defaultView = document.getElementById('default-config-view');
+    const customView = document.getElementById('custom-builder-view');
+    const defaultSummary = document.getElementById('default-summary');
+    const noDefaultMsg = document.getElementById('no-default-msg');
+
+
+    // Config Options
+    const choicesChips = document.querySelectorAll('#choices-options .option-chip');
+    const countSelect = document.getElementById('count-select');
+
+    // New Toggle Elements
+    const limitToggle = document.getElementById('limit-toggle');
+    const limitOptions = document.getElementById('limit-options');
+    const limitStatusText = document.getElementById('limit-status-text');
+    const selectedModeDisplay = document.getElementById('selected-mode-display');
+    const toggleBg = limitToggle.nextElementSibling;
+    const toggleDot = toggleBg.nextElementSibling;
+
+    // UI Helper
+    function updateLimitUI() {
+        if (limitToggle.checked) {
+            // Limited Mode (Custom ON)
+            limitOptions.classList.remove('hidden');
+            limitStatusText.classList.add('hidden');
+
+            // Toggle Color -> Active
+            toggleBg.classList.add('bg-indigo-500');
+            toggleBg.classList.remove('bg-gray-200');
+
+            // Toggle Dot -> Move Right
+            toggleDot.classList.add('translate-x-full');
+
+            countSelect.disabled = false;
+        } else {
+            // Unlimited Mode (Custom OFF)
+            limitOptions.classList.add('hidden');
+            limitStatusText.classList.remove('hidden');
+
+            // Toggle Color -> Inactive
+            toggleBg.classList.remove('bg-indigo-500');
+            toggleBg.classList.add('bg-gray-200');
+
+            // Toggle Dot -> Reset
+            toggleDot.classList.remove('translate-x-full');
+
+            countSelect.disabled = true;
+        }
+    }
+
+    // --- Initialize ---
+
+    // Check URL for step
+    const urlParams = new URLSearchParams(window.location.search);
+    let initialStep = parseInt(urlParams.get('step')) || 1;
+
+    // 1. Auto-select mode
+    let firstValidMode = null;
+    modeCards.forEach(card => {
+        if (!card.classList.contains('disabled')) {
+            if (!firstValidMode) firstValidMode = card;
+        }
+    });
+
+    if (firstValidMode) {
+        selectMode(firstValidMode);
+    } else {
+        nextBtn.disabled = true;
+        nextBtn.innerHTML = "Không có từ nào";
+    }
+
+    // Load Saved Mode (if available)
+    let hasSavedMode = false;
+    if (savedSettings.mode) {
+        const savedModeCard = document.querySelector(`.mode-card[data-value="${savedSettings.mode}"]`);
+        if (savedModeCard && !savedModeCard.classList.contains('disabled')) {
+            selectMode(savedModeCard);
+            hasSavedMode = true;
+        }
+    }
+
+    // 2. Load Saved Settings (User Prefs)
+    if (savedSettings.choices) {
+        selectedChoices = Number(savedSettings.choices);
+        updateChipSelection(choicesChips, selectedChoices);
+    }
+
+    // Load Count
+    if (savedSettings.count !== undefined) {
+        let sc = Number(savedSettings.count);
+
+        if (sc <= 0) {
+            // Unlimited
+            limitToggle.checked = false;
+            selectedCount = 0;
+            countSelect.value = "10";
+        } else {
+            // Limited
+            limitToggle.checked = true;
+            // Check if sc exists in options, else add or default
+            const exists = [...countSelect.options].some(o => o.value == sc);
+            if (exists) {
+                countSelect.value = String(sc);
+            } else {
+                countSelect.value = "10";
+            }
+            selectedCount = Number(countSelect.value);
+        }
+    } else {
+        // Default: Unlimited
+        limitToggle.checked = false;
+        countSelect.value = "10";
+        selectedCount = 0;
+    }
+    updateLimitUI();
+
+
+
+    // 3. Initialize Toggle State
+    // Logic: Respect explicit 'use_custom_config' flag if present.
+    // If not present (legacy), fallback to checking if custom_pairs exist.
+    let useCustomConfig = false;
+
+    if (savedSettings.use_custom_config !== undefined) {
+        useCustomConfig = savedSettings.use_custom_config;
+    } else {
+        // Legacy fallback
+        useCustomConfig = savedSettings.custom_pairs && savedSettings.custom_pairs.length > 0;
+    }
+
+    if (useCustomConfig) {
+        isCustomMode = true;
+        customToggle.checked = true;
+
+        // Load saved pairs into builder (from User Prefs)
+        const userPairs = savedSettings.custom_pairs;
+        if (userPairs && userPairs.length > 0) {
+            userPairs.forEach(p => addPairUI(p.q, p.a, p.enabled !== false));
+        } else {
+            // If user enabled custom but has no pairs, maybe load defaults as starting point
+            loadDefaultsToBuilder();
+        }
+    } else {
+        isCustomMode = false;
+        customToggle.checked = false;
+        // Pre-populate builder with defaults anyway (for when they toggle ON)
+        loadDefaultsToBuilder();
+    }
+
+    renderConfigView();
+    checkStartButtonState(); // Initial check
+
+    // --- Helper: Render Default View ---
+    function renderDefaultView() {
+        defaultSummary.innerHTML = '';
+        const defaults = defaultSettings.custom_pairs || [];
+
+        if (defaults.length > 0) {
+            noDefaultMsg.classList.add('hidden');
+            defaultSummary.classList.remove('hidden');
+
+            defaults.forEach(p => {
+                const el = document.createElement('div');
+                el.className = 'flex items-center text-sm text-gray-700 bg-white p-2 rounded border border-gray-100';
+                el.innerHTML = `
+                        <span class="font-bold bg-gray-100 px-2 py-0.5 rounded text-xs mr-2 uppercase">${p.q}</span>
+                        <i class="fas fa-arrow-right text-gray-400 text-xs mx-1"></i>
+                        <span class="font-bold bg-gray-100 px-2 py-0.5 rounded text-xs ml-2 uppercase">${p.a}</span>
+                    `;
+                defaultSummary.appendChild(el);
+            });
+        } else {
+            defaultSummary.classList.add('hidden');
+            noDefaultMsg.classList.remove('hidden');
+        }
+    }
+
+    renderDefaultView();
+
+    // Restore Step (only from URL, not auto-navigate based on saved mode)
+    if (initialStep === 2 && selectedMode) {
+        goToStep(2);
+    } else {
+        goToStep(1);
+    }
+
+    // --- Event Listeners ---
+
+    customToggle.addEventListener('change', (e) => {
+        isCustomMode = e.target.checked;
+        renderConfigView();
+        checkStartButtonState();
+    });
+
+    function renderConfigView() {
+        if (isCustomMode) {
+            defaultView.classList.add('hidden');
+            customView.classList.remove('hidden');
+            // Ensure at least one pair UI if empty
+            if (pairsList.children.length === 0) loadDefaultsToBuilder();
+        } else {
+            defaultView.classList.remove('hidden');
+            customView.classList.add('hidden');
+        }
+    }
+
+
+
+    function loadDefaultsToBuilder() {
+        pairsList.innerHTML = ''; // Clear
+        const defaults = defaultSettings.custom_pairs;
+        if (defaults && defaults.length > 0) {
+            defaults.forEach(p => addPairUI(p.q, p.a, p.enabled !== false));
+        } else {
+            // Fallback hardcoded if absolutely no defaults
+            const defQ = availableKeys.includes('front') ? 'front' : (availableKeys[0] || '');
+            const defA = availableKeys.includes('back') ? 'back' : (availableKeys[1] || '');
+            addPairUI(defQ, defA, true);
+        }
+    }
+
+    // Mode Selection
+    modeCards.forEach(card => {
+        if (card.classList.contains('disabled')) return;
+        card.addEventListener('click', () => selectMode(card));
+    });
+
+    function selectMode(cardElement) {
+        modeCards.forEach(c => c.classList.remove('selected'));
+        cardElement.classList.add('selected');
+        selectedMode = cardElement.dataset.value;
+    }
+
+    // Chip Selection (Choices Only)
+    choicesChips.forEach(chip => {
+        chip.addEventListener('click', () => {
+            selectedChoices = Number(chip.dataset.value);
+            updateChipSelection(choicesChips, selectedChoices);
+        });
+    });
+
+    // Limit Toggle Logic
+    limitToggle.addEventListener('change', (e) => {
+        const isLimited = e.target.checked;
+        updateLimitUI();
+
+        if (isLimited) {
+            selectedCount = Number(countSelect.value);
+        } else {
+            selectedCount = 0;
+        }
+    });
+
+    countSelect.addEventListener('change', (e) => {
+        selectedCount = Number(e.target.value);
+    });
+
+
+
+    function updateChipSelection(chipList, value) {
+        let matched = false;
+        chipList.forEach(c => {
+            c.classList.remove('selected');
+            if (Number(c.dataset.value) === value) {
+                c.classList.add('selected');
+                matched = true;
+            }
+        });
+    }
+
+    function checkStartButtonState() {
+        // Only relevant on step 2? Or visually update text?
+        if (currentStep !== 2) return;
+
+        let isValid = true;
+        let msg = 'Bắt đầu học ngay <i class="fas fa-rocket"></i>';
+
+        if (!isCustomMode) {
+            // Check if defaults exist
+            if (!defaultSettings.custom_pairs || defaultSettings.custom_pairs.length === 0) {
+                isValid = false;
+                msg = 'Chưa có cấu hình mặc định';
+            }
+        } else {
+            // Check if custom pairs valid
+            // We don't have real-time sync of customPairs array here unless we call updatePairsData
+            // Quick check of DOM
+            const rows = document.querySelectorAll('.pair-row:not(.disabled-row)');
+            if (rows.length === 0) {
+                isValid = false;
+                msg = 'Cần ít nhất 1 cặp thẻ';
+            }
+        }
+
+        nextBtn.disabled = !isValid;
+        nextBtn.innerHTML = msg;
+        if (isValid) nextBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+        else nextBtn.classList.add('opacity-50', 'cursor-not-allowed');
+    }
+
+    // Add Pair Event -> Trigger State Check
+    addPairBtn.addEventListener('click', () => {
+        addPairUI();
+        checkStartButtonState();
+    });
+
+
+    // Navigation Logic
+    nextBtn.addEventListener('click', () => {
+        if (currentStep === 1) {
+            goToStep(2);
+        } else {
+            startSession();
+        }
+    });
+
+    backBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        if (currentStep === 2) {
+            goToStep(1);
+        } else {
+            window.location.href = dashboardUrl;
+        }
+    });
+
+    function goToStep(step) {
+        currentStep = step;
+
+        // Update URL
+        const url = new URL(window.location);
+        url.searchParams.set('step', step);
+        window.history.pushState({}, '', url);
+
+        if (step === 1) {
+            step1.classList.add('active');
+            step2.classList.remove('active');
+            if (dot1) dot1.classList.add('active');
+            if (dot2) dot2.classList.remove('active');
+            nextBtn.innerHTML = 'Tiếp tục <i class="fas fa-arrow-right"></i>';
+            nextBtn.disabled = false;
+            nextBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+        } else {
+            step1.classList.remove('active');
+            step2.classList.add('active');
+            if (dot1) dot1.classList.remove('active');
+            if (dot2) dot2.classList.add('active');
+
+            // Update Mode Display
+            const modeNameInfo = {
+                'new': 'Học từ mới',
+                'review': 'Ôn tập tới hạn',
+                'hard': 'Từ khó',
+                'learned': 'Ôn tất cả',
+                'random': 'Ngẫu nhiên'
+            };
+            if (selectedModeDisplay) {
+                selectedModeDisplay.innerHTML = `<i class="fas fa-layer-group"></i> <span>Chế độ: ${modeNameInfo[selectedMode] || selectedMode}</span>`;
+            }
+
+            checkStartButtonState(); // Validate immediately on entry
+        }
+    }
+
+    // --- Pair Logic ---
+    function addPairUI(qVal = '', aVal = '', enabled = true) {
+        const row = document.createElement('div');
+        row.className = 'pair-row' + (enabled ? '' : ' disabled-row');
+
+        // Logic to build options
+        let optionsHtml = '';
+        availableKeys.forEach(k => {
+            optionsHtml += `<option value="${k}">${k}</option>`;
+        });
+
+        row.innerHTML = `
+                <button class="delete-pair"><i class="fas fa-times"></i></button>
+                <div class="pair-connection" style="padding-left: 30px;">
+                    <div class="pair-checkbox" style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%);">
+                        <input type="checkbox" class="pair-enable-check" ${enabled ? 'checked' : ''}>
+                    </div>
+                    <div class="pair-box">
+                        <label class="pair-label">Hỏi</label>
+                        <select class="modern-select pair-q">${optionsHtml}</select>
+                    </div>
+                    <div class="arrow-divider"><i class="fas fa-arrow-right"></i></div>
+                    <div class="pair-box">
+                        <label class="pair-label">Đáp án</label>
+                        <select class="modern-select pair-a">${optionsHtml}</select>
+                    </div>
+                </div>
+            `;
+
+        pairsList.appendChild(row);
+
+        // Set values
+        if (qVal) row.querySelector('.pair-q').value = qVal;
+        if (aVal) row.querySelector('.pair-a').value = aVal;
+
+        // Bind Events
+        const checkbox = row.querySelector('.pair-enable-check');
+        checkbox.addEventListener('change', (e) => {
+            if (e.target.checked) {
+                row.classList.remove('disabled-row');
+            } else {
+                row.classList.add('disabled-row');
+            }
+            checkStartButtonState();
+        });
+
+        row.querySelector('.delete-pair').addEventListener('click', () => {
+            row.remove();
+            checkStartButtonState();
+        });
+    }
+
+    function updatePairsData() {
+        customPairs = [];
+        // If NOT custom mode, we use defaultSettings
+        if (!isCustomMode) {
+            // If defaults exist, use them. If not, empty (which will block start)
+            if (defaultSettings.custom_pairs) {
+                customPairs = defaultSettings.custom_pairs;
+            }
+            return;
+        }
+
+        // If Custom Mode, scrape DOM
+        document.querySelectorAll('.pair-row').forEach(row => {
+            const q = row.querySelector('.pair-q').value;
+            const a = row.querySelector('.pair-a').value;
+            const enabled = row.querySelector('.pair-enable-check').checked;
+            if (q && a) customPairs.push({ q, a, enabled });
+        });
+    }
+
+    // --- Start Session ---
+    function startSession() {
+        updatePairsData();
+
+        // Final Validation
+        const hasEnabled = customPairs.some(p => p.enabled !== false); // default key is 'enabled' usually, check logic
+
+        if (customPairs.length === 0 || !hasEnabled) {
+            alert('Vui lòng kích hoạt ít nhất một cấu hình câu hỏi!');
+            return;
+        }
+
+        // Loading State
+        nextBtn.disabled = true;
+        nextBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang khởi tạo...';
+
+        const saveUrl = "{{ url_for('learning.vocabulary.mcq.save_setup', set_id=container.container_id) }}";
+        const sessionUrl = "{{ url_for('learning.vocabulary.mcq.session', set_id=container.container_id) }}";
+
+        fetch(saveUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token() }}'
+            },
+            body: JSON.stringify({
+                mode: selectedMode,
+                count: selectedCount,
+                choices: selectedChoices,
+                custom_pairs: customPairs,
+                use_custom_config: isCustomMode
+            })
+        })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    window.location.href = sessionUrl;
+                } else {
+                    alert(data.message || 'Lỗi không xác định');
+                    nextBtn.disabled = false;
+                    nextBtn.innerHTML = 'Bắt đầu học ngay <i class="fas fa-rocket"></i>';
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                alert('Lỗi kết nối máy chủ');
+                nextBtn.disabled = false;
+                nextBtn.innerHTML = 'Bắt đầu học ngay <i class="fas fa-rocket"></i>';
+            });
+    }
+
+}) ();
+</script>
+{% endblock %}

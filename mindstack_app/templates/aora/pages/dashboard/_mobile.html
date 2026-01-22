@@ -1,0 +1,294 @@
+{# ================= MOBILE APP INTERFACE - APP STYLE V2 (Scroll Btn) ================= #}
+{% set _v = template_version %}
+<div class="lg:hidden fixed inset-0 z-[100] flex flex-col h-[100dvh] w-full safe-area-inset-bottom mobile-dashboard bg-slate-50"
+    style="font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
+
+    {# === HEADER === #}
+    <div class="px-6 pt-5 pb-3 flex items-center justify-between sticky top-0 z-20 bg-slate-50/80 backdrop-blur-md">
+        <div class="flex items-center gap-3">
+            <div
+                class="w-11 h-11 rounded-full flex items-center justify-center border-2 border-white shadow-sm overflow-hidden">
+                {% if current_user.avatar_url %}
+                <img src="{{ current_user.get_avatar_url() }}" class="w-full h-full object-cover">
+                {% else %}
+                <div
+                    class="w-full h-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold text-lg">
+                    {{ current_user.username[0] | upper }}
+                </div>
+                {% endif %}
+            </div>
+            <div>
+                <h1 class="text-lg font-bold text-slate-800 leading-none">Hi, {{ current_user.username }}!</h1>
+                <p class="text-xs text-slate-500 font-medium mt-1 line-clamp-1">Chúc bạn một ngày học tập hiệu quả!</p>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-2">
+            <!-- Notification Bell -->
+            <button onclick="toggleNotificationCenter()"
+                class="w-8 h-8 rounded-full bg-white border border-slate-100 flex items-center justify-center text-slate-500 hover:text-indigo-600 transition-colors shadow-sm relative active:scale-95">
+                <i class="fa-solid fa-bell"></i>
+                <span id="dashboard-noti-badge"
+                    class="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full shadow-sm hidden">0</span>
+            </button>
+
+            <div class="flex items-center gap-1.5 bg-white px-3 py-1.5 rounded-full border border-slate-100 shadow-sm">
+                <i class="fa-solid fa-star text-amber-500 text-sm animation-bounce"></i>
+                <span class="text-xs font-bold text-slate-700">{{ "{:,}".format(score_overview.total|int) }}</span>
+            </div>
+
+            <div class="flex items-center gap-1.5 bg-white px-3 py-1.5 rounded-full border border-slate-100 shadow-sm">
+                <i class="fa-solid fa-fire text-orange-500 text-sm animation-bounce"></i>
+                <span class="text-xs font-bold text-slate-700">{{ score_overview.active_days }}</span>
+            </div>
+        </div>
+    </div>
+
+    {# === SCROLLABLE CONTENT === #}
+    <div class="flex-grow overflow-y-auto overflow-x-hidden px-6 pb-28 space-y-8 no-scrollbar pt-2">
+
+        {# 1. HERO MOTIVATION CARD #}
+        {% if motivation_message %}
+        <div
+            class="bg-gradient-to-br from-indigo-500 to-purple-600 rounded-3xl p-6 text-white shadow-lg shadow-indigo-200 relative overflow-hidden active:scale-[0.98] transition-transform">
+            <div class="absolute top-0 right-0 p-6 opacity-20">
+                <i class="fa-solid fa-quote-right text-6xl"></i>
+            </div>
+            <div class="relative z-10">
+                <div class="flex items-center gap-2 mb-3 opacity-90">
+                    <span class="bg-white/20 px-2 py-0.5 rounded-lg text-[10px] font-bold uppercase tracking-wider">💡
+                        Tiêu điểm</span>
+                </div>
+                <p class="text-base font-medium leading-relaxed">
+                    {{ motivation_message }}
+                </p>
+            </div>
+        </div>
+        {% endif %}
+
+        {# ACTIVE SESSIONS - NEW #}
+        <div id="active-sessions-mobile" class="hidden">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-sm font-bold text-slate-800 flex items-center gap-2">
+                    <span class="text-red-500">🔥</span> Phiên học đang diễn ra <span id="active-sessions-count-mobile"
+                        class="ml-1 text-slate-400 font-medium"></span>
+                </h3>
+                <a href="{{ url_for('learning.manage_sessions') }}"
+                    class="text-[10px] font-bold text-indigo-500 hover:text-indigo-700 bg-indigo-50 px-2 py-1 rounded-lg">
+                    Quản lý <i class="fa-solid fa-chevron-right ml-0.5 text-[8px]"></i>
+                </a>
+            </div>
+            <div id="active-sessions-list-mobile" class="space-y-3">
+                <!-- Content injected by JS -->
+            </div>
+        </div>
+
+        {# 2. QUICK ACTIONS (Horizontal Scroll) #}
+        {% if shortcut_actions %}
+        <div>
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-sm font-bold text-slate-800 flex items-center gap-2">
+                    <span>⚡</span> Gợi ý nhanh
+                </h3>
+                {# Manual Scroll Buttons #}
+                <div class="flex gap-2">
+                    <button
+                        onclick="document.getElementById('shortcuts-scroll').scrollBy({left: -200, behavior: 'smooth'})"
+                        class="w-8 h-8 rounded-full bg-white border border-slate-200 text-slate-400 hover:text-indigo-600 hover:border-indigo-200 flex items-center justify-center shadow-sm active:scale-95 transition-all">
+                        <i class="fa-solid fa-chevron-left text-xs"></i>
+                    </button>
+                    <button
+                        onclick="document.getElementById('shortcuts-scroll').scrollBy({left: 200, behavior: 'smooth'})"
+                        class="w-8 h-8 rounded-full bg-white border border-slate-200 text-slate-400 hover:text-indigo-600 hover:border-indigo-200 flex items-center justify-center shadow-sm active:scale-95 transition-all">
+                        <i class="fa-solid fa-chevron-right text-xs"></i>
+                    </button>
+                </div>
+            </div>
+            <div id="shortcuts-scroll"
+                class="flex gap-4 overflow-x-auto no-scrollbar snap-x -mx-6 px-6 pb-2 scroll-smooth">
+                {% for action in shortcut_actions %}
+                <a href="{{ action.url }}"
+                    class="snap-start flex-shrink-0 w-40 bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex flex-col justify-between h-32 active:scale-95 transition-transform group hover:border-indigo-200">
+                    <div
+                        class="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center text-xl group-hover:bg-indigo-100 transition-colors">
+                        <i class="fa-solid fa-{{ action.icon }}"></i>
+                    </div>
+                    <div>
+                        <h4
+                            class="font-bold text-sm text-slate-800 leading-tight mb-1 group-hover:text-indigo-700 transition-colors">
+                            {{ action.title }}</h4>
+                        <p class="text-[10px] text-slate-400 line-clamp-1">{{ action.description }}</p>
+                    </div>
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        {# 3. LIVE STATS #}
+        <div class="grid grid-cols-2 gap-4">
+            <div
+                class="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm flex flex-col items-center justify-center text-center">
+                <div class="text-indigo-600 text-3xl font-black mb-1">{{ "{:,}".format(score_overview.total|int) }}
+                </div>
+                <div class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Điểm thưởng</div>
+            </div>
+            <div
+                class="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm flex flex-col items-center justify-center text-center">
+                <div class="text-emerald-500 text-3xl font-black mb-1">{{ quiz_summary.mastered }}</div>
+                <div class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Quiz Mastered</div>
+            </div>
+
+            {# FSRS ADDITIONS #}
+            <div
+                class="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm flex flex-col items-center justify-center text-center">
+                <div class="text-purple-600 text-3xl font-black mb-1">{{ flashcard_summary.avg_retention|int }}%</div>
+                <div class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Ghi nhớ (Retention)</div>
+            </div>
+            <div
+                class="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm flex flex-col items-center justify-center text-center">
+                <div class="text-rose-500 text-3xl font-black mb-1">{{ flashcard_summary.avg_stability|int }}d</div>
+                <div class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Ổn định (Stability)</div>
+            </div>
+        </div>
+
+        {# 4. YOUR GOALS #}
+        {% if goal_progress %}
+        <div>
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-sm font-bold text-slate-800 flex items-center gap-2">
+                    <span>🎯</span> Mục tiêu
+                </h3>
+                {# Manual Scroll Buttons #}
+                <div class="flex gap-2">
+                    <button onclick="document.getElementById('goals-scroll').scrollBy({left: -300, behavior: 'smooth'})"
+                        class="w-8 h-8 rounded-full bg-white border border-slate-200 text-slate-400 hover:text-indigo-600 hover:border-indigo-200 flex items-center justify-center shadow-sm active:scale-95 transition-all">
+                        <i class="fa-solid fa-chevron-left text-xs"></i>
+                    </button>
+                    <button onclick="document.getElementById('goals-scroll').scrollBy({left: 300, behavior: 'smooth'})"
+                        class="w-8 h-8 rounded-full bg-white border border-slate-200 text-slate-400 hover:text-indigo-600 hover:border-indigo-200 flex items-center justify-center shadow-sm active:scale-95 transition-all">
+                        <i class="fa-solid fa-chevron-right text-xs"></i>
+                    </button>
+                </div>
+            </div>
+            <div id="goals-scroll" class="flex gap-4 overflow-x-auto no-scrollbar snap-x -mx-6 px-6 pb-4 scroll-smooth">
+                {% for goal in goal_progress %}
+                <div
+                    class="snap-center flex-shrink-0 w-[80vw] bg-white rounded-3xl p-5 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] border border-slate-50 relative overflow-hidden group hover:shadow-md transition-shadow">
+                    <div class="flex justify-between items-start mb-4">
+                        <div class="flex gap-3 items-center">
+                            <div
+                                class="w-12 h-12 rounded-2xl {{ 'bg-emerald-100 text-emerald-600' if goal.is_completed else 'bg-slate-100 text-slate-600' }} flex items-center justify-center text-xl">
+                                <i class="fa-solid fa-{{ goal.icon }}"></i>
+                            </div>
+                            <div>
+                                <h4
+                                    class="font-bold text-slate-800 text-base line-clamp-1 group-hover:text-indigo-700 transition-colors">
+                                    {{ goal.title }}</h4>
+                                <div class="text-xs text-slate-400 mt-1 flex items-center gap-1">
+                                    <span>{{ goal.current_value }}/{{ goal.target_value }} {{ goal.unit }}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div
+                            class="text-xl font-black {{ 'text-emerald-500' if goal.is_completed else 'text-slate-900' }}">
+                            {{ goal.percent }}%</div>
+                    </div>
+
+                    <div class="w-full bg-slate-100 rounded-full h-3 mb-4 overflow-hidden">
+                        <div class="h-full rounded-full transition-all duration-1000 {{ 'bg-emerald-500' if goal.is_completed else 'bg-slate-800' }}"
+                            style="width: {{ goal.percent }}%"></div>
+                    </div>
+
+                    <a href="{{ goal.url }}"
+                        class="w-full py-3 rounded-xl font-bold text-center block {{ 'bg-emerald-50 text-emerald-600' if goal.is_completed else 'bg-slate-900 text-white shadow-lg shadow-slate-200 hover:bg-slate-800' }} transition-colors">
+                        {{ 'Hoàn thành' if goal.is_completed else 'Tiếp tục' }}
+                    </a>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        {# 5. EXPLORE BANNERS #}
+        <div class="space-y-4">
+            <h3 class="text-sm font-bold text-slate-800 mb-2">Chế độ học</h3>
+
+            <a href="{{ url_for('learning.flashcard.flashcard_dashboard.dashboard') }}"
+                class="block relative overflow-hidden rounded-3xl h-32 active:scale-[0.98] transition-transform group">
+                <div
+                    class="absolute inset-0 bg-gradient-to-r from-blue-600 to-cyan-500 group-hover:scale-105 transition-transform duration-500">
+                </div>
+                <div
+                    class="absolute right-0 bottom-0 w-32 h-32 bg-white/20 rounded-full translate-y-1/2 translate-x-1/4 blur-2xl">
+                </div>
+                <div class="relative z-10 h-full p-6 flex flex-col justify-center text-white">
+                    <div class="flex items-center gap-3 mb-1">
+                        <i class="fa-solid fa-clone text-xl opacity-80"></i>
+                        <h4 class="font-bold text-xl">Flashcard</h4>
+                    </div>
+                    <p class="text-blue-100 text-sm font-medium">Lặp lại ngắt quãng</p>
+                </div>
+            </a>
+
+            <div class="grid grid-cols-2 gap-4">
+                <a href="{{ url_for('learning.quiz_learning.dashboard') }}"
+                    class="bg-white rounded-3xl p-5 border border-slate-100 shadow-sm active:scale-[0.98] transition-transform flex flex-col justify-between h-32 hover:border-emerald-200 group">
+                    <div
+                        class="w-10 h-10 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center group-hover:bg-emerald-100 transition-colors">
+                        <i class="fa-solid fa-circle-question text-lg"></i>
+                    </div>
+                    <div>
+                        <h4 class="font-bold text-slate-800 group-hover:text-emerald-700">Luyện Quiz</h4>
+                        <p class="text-xs text-slate-400">Trắc nghiệm</p>
+                    </div>
+                </a>
+
+                <a href="{{ url_for('learning.quiz_battle.quiz_battle_dashboard') }}"
+                    class="bg-white rounded-3xl p-5 border border-slate-100 shadow-sm active:scale-[0.98] transition-transform flex flex-col justify-between h-32 hover:border-rose-200 group">
+                    <div
+                        class="w-10 h-10 rounded-full bg-rose-50 text-rose-600 flex items-center justify-center group-hover:bg-rose-100 transition-colors">
+                        <i class="fa-solid fa-bolt text-lg"></i>
+                    </div>
+                    <div>
+                        <h4 class="font-bold text-slate-800 group-hover:text-rose-700">Đấu trường</h4>
+                        <p class="text-xs text-slate-400">Thách đấu</p>
+                    </div>
+                </a>
+
+                <a href="{{ url_for('content_management.content_dashboard') }}"
+                    class="bg-white rounded-3xl p-5 border border-slate-100 shadow-sm active:scale-[0.98] transition-transform flex flex-col justify-between h-32 hover:border-violet-200 group">
+                    <div
+                        class="w-10 h-10 rounded-full bg-violet-50 text-violet-600 flex items-center justify-center group-hover:bg-violet-100 transition-colors">
+                        <i class="fa-solid fa-layer-group text-lg"></i>
+                    </div>
+                    <div>
+                        <h4 class="font-bold text-slate-800 group-hover:text-violet-700">Kho tài liệu</h4>
+                        <p class="text-xs text-slate-400">Quản lý nội dung</p>
+                    </div>
+                </a>
+            </div>
+        </div>
+
+        <div class="h-6"></div>
+    </div>
+
+    {# === NAVIGATION === #}
+    {% set active_page = 'home' %}
+    {% include _v ~ '/includes/navbar/_bottom_nav_mobile.html' %}
+</div>
+
+<style>
+    .no-scrollbar::-webkit-scrollbar {
+        display: none;
+    }
+
+    .no-scrollbar {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+    }
+
+    .animation-bounce {
+        animation: bounce 2s infinite;
+    }
+</style>
