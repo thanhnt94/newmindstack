@@ -1178,6 +1178,12 @@ def edit_flashcard_set(set_id):
         if flashcard_set.settings:
             try:
                 form.settings.data = json.dumps(flashcard_set.settings)
+                # Populate display settings fields
+                display_settings = flashcard_set.settings.get('display', {})
+                form.display_front_align.data = display_settings.get('front_align', 'left')
+                form.display_back_align.data = display_settings.get('back_align', 'left')
+                form.display_force_bold_front.data = display_settings.get('force_bold_front', False)
+                form.display_force_bold_back.data = display_settings.get('force_bold_back', False)
             except:
                 form.settings.data = '{}'
 
@@ -1230,9 +1236,23 @@ def edit_flashcard_set(set_id):
             # Save settings
             if form.settings.data:
                 try:
-                    flashcard_set.settings = json.loads(form.settings.data)
+                    parsed_settings = json.loads(form.settings.data)
                 except Exception as e:
                     current_app.logger.error(f"Error parsing settings JSON: {e}")
+                    parsed_settings = flashcard_set.settings or {}
+            else:
+                parsed_settings = flashcard_set.settings or {}
+            
+            # Merge display settings from form fields
+            display_settings = {
+                'front_align': form.display_front_align.data or 'left',
+                'back_align': form.display_back_align.data or 'left',
+                'force_bold_front': form.display_force_bold_front.data or False,
+                'force_bold_back': form.display_force_bold_back.data or False,
+            }
+            parsed_settings['display'] = display_settings
+            flashcard_set.settings = parsed_settings
+            flag_modified(flashcard_set, 'settings')
             
             safe_commit(db.session)
             

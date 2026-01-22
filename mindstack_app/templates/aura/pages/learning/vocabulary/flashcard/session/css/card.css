@@ -364,3 +364,21 @@
     display: block;
     margin: auto;
 }
+
+/* ===== Quick Formatting Classes (Display Options) ===== */
+
+/* Center text alignment override */
+.display-center .text-area {
+    justify-content: center !important;
+    text-align: center !important;
+}
+
+.display-center .text-area .flashcard-content-text {
+    text-align: center !important;
+}
+
+/* Force bold text override */
+.force-bold-override .text-area,
+.force-bold-override .text-area * {
+    font-weight: bold !important;
+}

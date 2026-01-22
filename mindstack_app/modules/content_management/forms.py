@@ -129,6 +129,22 @@ class FlashcardSetForm(FlaskForm):
     # Store settings JSON (MCQ defaults, etc.)
     settings = HiddenField('Settings')
     
+    # Display Options (Quick Formatting)
+    display_front_align = SelectField(
+        'Căn lề mặt trước',
+        choices=[('left', 'Trái (Left)'), ('center', 'Giữa (Center)')],
+        default='left',
+        validators=[Optional()]
+    )
+    display_back_align = SelectField(
+        'Căn lề mặt sau',
+        choices=[('left', 'Trái (Left)'), ('center', 'Giữa (Center)')],
+        default='left',
+        validators=[Optional()]
+    )
+    display_force_bold_front = BooleanField('In đậm mặt trước', default=False)
+    display_force_bold_back = BooleanField('In đậm mặt sau', default=False)
+    
     submit = SubmitField('Lưu bộ thẻ')
 
 class FlashcardItemForm(FlaskForm):

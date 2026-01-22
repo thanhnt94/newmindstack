@@ -1,6 +1,6 @@
-{% set _v = template_version %}
-{% from _v ~ '/includes/pagination/_pagination_mobile.html' import render_pagination_mobile %}
-{% from _v ~ '/includes/pagination/_pagination_desktop.html' import render_pagination_desktop %}
+{% set _v = template_version | default('aura') %}
+{% from _v ~ '/includes/pagination/_pagination_mobile.html' import render_pagination_mobile with context %}
+{% from _v ~ '/includes/pagination/_pagination_desktop.html' import render_pagination_desktop with context %}
 
 {% macro render_pagination(pagination, search_query=None, set_id=None, search_field=None, current_filter=None) %}
 {# Mobile Version #}

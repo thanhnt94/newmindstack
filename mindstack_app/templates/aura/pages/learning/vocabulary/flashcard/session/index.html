@@ -132,16 +132,17 @@ using the .flashcard-session-active class on the body #}
     isAutoplaySession: _isAutoplaySession,
     autoplayMode: _autoplayMode,
     visualSettings: _visualSettings,
-    visualSettings: _visualSettings,
     autoSaveOn: _autoSaveOn,
     modeDisplayName: "{{ mode_display_text }}",
-    scores: {
-      again: _scoreAgain,
+    displaySettings: {{ (display_settings or { }) | tojson }},
+  scores: {
+    again: _scoreAgain,
       hard: _scoreHard,
-      good: _scoreGood,
-      easy: _scoreEasy
-    }
+        good: _scoreGood,
+          easy: _scoreEasy
+  }
   };
+
 
   const csrfTokenMeta = document.querySelector('meta[name="csrf-token"]');
   const csrfToken = csrfTokenMeta ? csrfTokenMeta.getAttribute('content') : '';

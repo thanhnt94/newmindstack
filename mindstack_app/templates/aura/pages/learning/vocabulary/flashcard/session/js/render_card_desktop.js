@@ -200,6 +200,13 @@ window.renderDesktopCardHtml = function (data, o) {
         </div>
     `;
 
+  // [NEW] Get display settings from config
+  const displaySettings = window.FlashcardConfig?.displaySettings || {};
+  const frontAlignClass = displaySettings.front_align === 'center' ? 'display-center' : '';
+  const backAlignClass = displaySettings.back_align === 'center' ? 'display-center' : '';
+  const frontBoldClass = displaySettings.force_bold_front ? 'force-bold-override' : '';
+  const backBoldClass = displaySettings.force_bold_back ? 'force-bold-override' : '';
+
   return `
     <div class="desktop-layout-grid w-full h-full flex flex-row overflow-hidden">
        
@@ -211,7 +218,7 @@ window.renderDesktopCardHtml = function (data, o) {
                 <div class="flashcard-card-container desktop-card-size">
                   <div class="js-flashcard-card flashcard-card ${o.cardCategory ? 'flashcard-card--' + o.cardCategory : ''}" data-card-category="${o.cardCategory || 'default'}">
                     
-                    <div class="face front">
+                    <div class="face front ${frontAlignClass} ${frontBoldClass}">
                       ${toolbarFront}
                       <div class="_card-container">
                         <div class="text-area"><div class="flashcard-content-text text-3xl">${o.fTxt}</div></div>
@@ -221,7 +228,7 @@ window.renderDesktopCardHtml = function (data, o) {
                       <!-- NO FLIP BUTTON INSIDE -->
                     </div>
 
-                    <div class="face back">
+                    <div class="face back ${backAlignClass} ${backBoldClass}">
                       ${toolbarBack}
                       <div class="_card-container">
                         <div class="text-area"><div class="flashcard-content-text">${o.bTxt}</div></div>

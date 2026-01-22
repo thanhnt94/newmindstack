@@ -364,6 +364,17 @@ def flashcard_session():
     except Exception:
         pass
     
+    # [NEW] Load display settings from container for Quick Formatting
+    display_settings = {}
+    try:
+        container_id = session_data.get('set_id')
+        if isinstance(container_id, int):
+            container = LearningContainer.query.get(container_id)
+            if container and container.settings:
+                display_settings = container.settings.get('display', {})
+    except Exception as e:
+        current_app.logger.warning(f"Error loading display settings: {e}")
+    
     return render_dynamic_template(
         'pages/learning/vocabulary/flashcard/session/index.html',
         user_button_count=user_button_count,
@@ -372,7 +383,8 @@ def flashcard_session():
         container_name=container_name,
         mode_display_text=mode_display_text,
         saved_visual_settings=session.get('flashcard_visual_settings', {}),
-        saved_auto_save=saved_auto_save
+        saved_auto_save=saved_auto_save,
+        display_settings=display_settings
     )
 
 
