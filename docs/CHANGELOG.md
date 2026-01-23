@@ -39,6 +39,10 @@ và tuân theo [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   - Tạo `logics/response_parser.py` clean output
   - Tạo `services/ai_gateway.py` wrap HybridClient và support Signals
   - Thêm `ai_token_used` signal để audit usage
+- **Auth & Profile Refactor**: Event-Driven User Lifecycle
+  - Thêm tín hiệu `user_registered`, `profile_updated`
+  - Tạo `AuthService`, `UserProfileService` tách logic khỏi Routes
+  - Gamification tự động tặng điểm Welcome, Notification tự gửi lời chào khi có User mới
 
 ---
 

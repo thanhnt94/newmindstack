@@ -72,21 +72,17 @@ def register():
         
     form = RegistrationForm()
     if form.validate_on_submit():
-        user = User(
-            username=form.username.data,
-            email=form.email.data,
-            user_role=User.ROLE_FREE,
-        )
-        user.set_password(form.password.data)
-        db.session.add(user)
-        db.session.flush() # Flush to get user_id
-
-        # Create default session state
-        user_session = UserSession(user_id=user.user_id)
-        db.session.add(user_session)
-
-        db.session.commit()
-        flash('Chúc mừng, bạn đã đăng ký thành công! Vui lòng đăng nhập.', 'success')
-        return redirect(url_for('auth.login'))
+        try:
+            from .services import AuthService
+            AuthService.register_user(
+                username=form.username.data,
+                email=form.email.data,
+                password=form.password.data
+            )
+            flash('Chúc mừng, bạn đã đăng ký thành công! Vui lòng đăng nhập.', 'success')
+            return redirect(url_for('auth.login'))
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Lỗi đăng ký: {str(e)}', 'danger')
         
     return render_dynamic_template('pages/auth/register/register.html', form=form)

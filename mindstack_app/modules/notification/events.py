@@ -93,3 +93,25 @@ def on_score_awarded(sender, **kwargs):
                 
     except Exception as e:
         current_app.logger.error(f"[Notification] Error in score notification: {e}", exc_info=True)
+
+
+from mindstack_app.core.signals import user_registered
+
+@user_registered.connect
+def on_user_registered(sender, user, **kwargs):
+    """
+    Send welcome notification to new users.
+    """
+    from .services import NotificationService
+    
+    try:
+        NotificationService.create_notification(
+            user_id=user.user_id,
+            title="Chào mừng đến với MindStack!",
+            message="Cảm ơn bạn đã tham gia. Hãy bắt đầu hành trình học tập bằng cách tạo bộ thẻ đầu tiên nhé!",
+            type='SYSTEM',
+            link='/dashboard'
+        )
+        current_app.logger.info(f"[Notification] Sent welcome notification to user {user.user_id}")
+    except Exception as e:
+        current_app.logger.error(f"[Notification] Error sending welcome notification: {e}", exc_info=True)

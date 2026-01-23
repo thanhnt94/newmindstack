@@ -50,27 +50,25 @@ def edit_profile():
     form = ProfileEditForm(obj=user)
     
     if form.validate_on_submit():
+        from .services import UserProfileService
+        
         user.username = form.username.data
         user.email = form.email.data
         user.timezone = form.timezone.data
         
-        # Xử lý upload avatar
+        # Xử lý upload avatar qua Service
         if form.avatar.data:
-            file = form.avatar.data
-            filename = secure_filename(f"avatar_{user.user_id}_{file.filename}")
-            
-            # Tạo thư mục avatars nếu chưa có
-            avatar_dir = os.path.join(current_app.config['UPLOAD_FOLDER'], 'avatars')
-            if not os.path.exists(avatar_dir):
-                os.makedirs(avatar_dir)
-                
-            file_path = os.path.join(avatar_dir, filename)
-            file.save(file_path)
-            
-            # Lưu đường dẫn tương đối để url_for cấp được
-            user.avatar_url = f"avatars/{filename}"
+            UserProfileService.update_avatar(user, form.avatar.data)
         
         db.session.commit()
+        
+        # Fire profile info update signal via service (cleaner)
+        # Or we can let service handle all updates.
+        # For now, routes does simple fields update + commit, service does file handling.
+        # But wait, UserProfileService.update_profile_info logic exists too.
+        # Let's pivot to use update_profile_info later if we want total purity.
+        # For now, let's stick to cleaning up the noisy file upload part.
+        
         flash('Thông tin profile đã được cập nhật thành công!', 'success')
         return redirect(url_for('user_profile.view_profile'))
 

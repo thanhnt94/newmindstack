@@ -55,6 +55,20 @@ ai_signals = Namespace()
 #          input_tokens (int), output_tokens (int), cost_estimate (float)
 ai_token_used = ai_signals.signal('ai_token_used')
 
+# ============================================
+# User Lifecycle Signals
+# ============================================
+user_signals = Namespace()
+
+# Signal: Fired when a new user registers successfully
+# Payload: user (User object)
+user_registered = user_signals.signal('user_registered')
+
+# Signal: Fired when user profile (info or avatar) is updated
+# Payload: user (User object), changes (list of fields changed)
+profile_updated = user_signals.signal('profile_updated')
+
 # Future signals can be added here:
+# user_logged_in = user_signals.signal('user_logged_in') # Or modify existing logic
 # badge_earned = learning_signals.signal('badge_earned')
 # daily_goal_reached = learning_signals.signal('daily_goal_reached')

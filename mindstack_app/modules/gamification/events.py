@@ -106,3 +106,26 @@ def on_score_awarded(sender, **kwargs):
     except Exception as e:
         current_app.logger.error(f"[Gamification] Error checking badges: {e}", exc_info=True)
 
+
+# NEW: Listen for user registration
+from mindstack_app.core.signals import user_registered
+
+@user_registered.connect
+def on_user_registered(sender, user, **kwargs):
+    """
+    Grant welcome bonus to new users.
+    """
+    from .services.scoring_service import ScoreService
+    
+    try:
+        # Tặng 50 điểm chào mừng
+        ScoreService.award_points(
+            user_id=user.user_id,
+            amount=50,
+            reason="WELCOME_BONUS",
+            item_type="SYSTEM"
+        )
+        current_app.logger.info(f"Granted welcome bonus to user {user.user_id}")
+    except Exception as e:
+        current_app.logger.error(f"Error granting welcome bonus: {e}")
+
