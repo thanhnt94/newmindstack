@@ -6,7 +6,7 @@ This enables decoupled communication - the Learning module doesn't need
 to know about Gamification internals.
 """
 from flask import current_app
-from mindstack_app.core.signals import card_reviewed, session_completed
+from mindstack_app.core.signals import card_reviewed, session_completed, score_awarded
 
 
 @card_reviewed.connect
@@ -69,3 +69,40 @@ def on_session_completed(sender, **kwargs):
         current_app.logger.debug(
             f"[Gamification] Session completed: user={user_id}, items={items_reviewed}"
         )
+
+
+@score_awarded.connect
+def on_score_awarded(sender, **kwargs):
+    """
+    Handle score_awarded signal from ScoreService.
+    Check and award badges after score changes.
+    
+    This enables decoupled badge checking - ScoreService doesn't need
+    to import BadgeService directly, avoiding circular dependency.
+    
+    Expected kwargs:
+        - user_id: int
+        - amount: int
+        - reason: str  
+        - new_total: int
+        - item_type: str ('FLASHCARD', 'QUIZ_MCQ', 'LOGIN', etc.)
+    """
+    from .services.badges_service import BadgeService
+    
+    user_id = kwargs.get('user_id')
+    item_type = kwargs.get('item_type', '')
+    
+    if not user_id:
+        return
+    
+    try:
+        # Determine trigger type based on item_type
+        if item_type == 'LOGIN':
+            trigger_type = 'LOGIN'
+        else:
+            trigger_type = 'SCORE'
+        
+        BadgeService.check_and_award_badges(user_id, trigger_type)
+    except Exception as e:
+        current_app.logger.error(f"[Gamification] Error checking badges: {e}", exc_info=True)
+

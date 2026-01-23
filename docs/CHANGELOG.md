@@ -15,6 +15,15 @@ và tuân theo [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - **Active Session API**: Endpoint mới để kiểm tra phiên học đang hoạt động.
 - Thêm documentation toàn diện (DEPLOYMENT, CHANGELOG, TROUBLESHOOTING, ...)
 
+### ♻️ Changed
+- **Gamification Module Refactor**: Tái cấu trúc theo kiến trúc 3 tầng (Logic - Service - Route)
+  - Tạo `logics/streak_logic.py` với pure functions cho streak calculation
+  - Thêm signal `score_awarded` để decoupling giữa ScoreService và BadgeService
+  - Loại bỏ circular dependency bằng signal-based communication
+- **Learning Module Refactor**: Tái cấu trúc theo kiến trúc 3 tầng
+  - Tạo `logics/session_logic.py` với pure functions cho session building (filter, sort, queue)
+  - Thêm `card_reviewed.send()` trong `fsrs_service.py` để emit signals cho gamification
+
 ---
 
 ## [1.6.0] - 2026-01-12

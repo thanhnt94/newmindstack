@@ -1,0 +1,1 @@
+"""Gamification Logic - Pure functions."""

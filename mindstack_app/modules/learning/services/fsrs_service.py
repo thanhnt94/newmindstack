@@ -19,6 +19,8 @@ from ..logics.scoring_engine import ScoringEngine
 from ..logics.hybrid_fsrs import HybridFSRSEngine, CardState, Rating
 from fsrs_rs_python import DEFAULT_PARAMETERS
 
+from mindstack_app.core.signals import card_reviewed
+
 
 @dataclass
 class SrsResult:
@@ -431,6 +433,23 @@ class FsrsService:
                 FsrsOptimizerService.train_for_user(user_id)
             except Exception as e:
                 current_app.logger.error(f"FSRS Optimization failed for user {user_id}: {e}")
+        
+        # 11. Commit and emit signal for gamification integration
+        db.session.commit()
+        
+        # Emit card_reviewed signal - gamification module listens for this
+        card_reviewed.send(
+            None,
+            user_id=user_id,
+            item_id=item_id,
+            quality=fsrs_rating,
+            is_correct=is_correct,
+            learning_mode=mode,
+            score_points=score_result.total_points,
+            item_type=mode.upper(),
+            reason=f'Review {mode}',
+            duration_ms=duration_ms
+        )
         
         return progress, srs_result
 

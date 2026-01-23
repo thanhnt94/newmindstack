@@ -7,6 +7,9 @@ from mindstack_app.models import db, User, ScoreLog
 from flask import current_app
 from sqlalchemy import func
 
+from mindstack_app.core.signals import score_awarded
+from ..logics.streak_logic import calculate_streak_from_dates
+
 
 class ScoreService:
     """Dịch vụ quản lý điểm số và leaderboard."""
@@ -42,10 +45,15 @@ class ScoreService:
             db.session.add(log)
             db.session.commit()
             
-            # Kiểm tra Badges sau khi cộng điểm
-            from .badges_service import BadgeService
-            BadgeService.check_and_award_badges(user_id, 'SCORE')
-            BadgeService.check_and_award_badges(user_id, 'LOGIN')
+            # Emit signal để các module khác xử lý (badges, achievements, etc.)
+            score_awarded.send(
+                None,
+                user_id=user_id,
+                amount=amount,
+                reason=reason,
+                new_total=user.total_score,
+                item_type=item_type
+            )
             
             return {
                 'success': True, 
@@ -84,9 +92,15 @@ class ScoreService:
             points = int(get_runtime_config('DAILY_LOGIN_SCORE', 10))
             return ScoreService.award_points(user_id, points, 'Đăng nhập hàng ngày', item_type='LOGIN')
         
-        # Nếu đã login rồi thì vẫn check badge
-        from .badges_service import BadgeService
-        BadgeService.check_and_award_badges(user_id, 'LOGIN')
+        # Nếu đã login rồi thì vẫn emit signal để check badge
+        score_awarded.send(
+            None,
+            user_id=user_id,
+            amount=0,
+            reason='Daily login check',
+            new_total=None,
+            item_type='LOGIN'
+        )
         return None
 
     @staticmethod
@@ -145,36 +159,9 @@ class ScoreService:
             .all()
         )
 
-        if not rows: return 0
+        if not rows:
+            return 0
 
-        learned_dates = set()
-        for row in rows:
-            val = row.activity_date
-            if isinstance(val, str):
-                try:
-                    val = datetime.fromisoformat(val).date()
-                except ValueError:
-                    continue
-            elif isinstance(val, datetime):
-                val = val.date()
-            if val: learned_dates.add(val)
-
-        if not learned_dates: return 0
-
-        today = datetime.utcnow().date()
-        yesterday = today - timedelta(days=1)
-        
-        streak = 0
-        current_check = today
-        
-        if today not in learned_dates:
-            if yesterday in learned_dates:
-                current_check = yesterday
-            else:
-                return 0
-        
-        while current_check in learned_dates:
-            streak += 1
-            current_check -= timedelta(days=1)
-            
-        return streak
+        # Extract dates from query results and delegate to pure logic
+        activity_dates = [row.activity_date for row in rows]
+        return calculate_streak_from_dates(activity_dates, datetime.utcnow().date())
