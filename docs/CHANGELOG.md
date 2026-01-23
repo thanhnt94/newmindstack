@@ -34,6 +34,11 @@ và tuân theo [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   - Tạo `logics/chart_utils.py` với date/time utilities
   - Tạo `services/analytics_service.py` với `AnalyticsService` class
   - `get_dashboard_overview()` consolidates all dashboard data into one call
+- **AI Services Refactor**: Unified AI Gateway & Pure Logic
+  - Tạo `logics/prompt_manager.py` tách biệt prompt building
+  - Tạo `logics/response_parser.py` clean output
+  - Tạo `services/ai_gateway.py` wrap HybridClient và support Signals
+  - Thêm `ai_token_used` signal để audit usage
 
 ---
 

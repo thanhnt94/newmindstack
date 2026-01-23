@@ -45,6 +45,16 @@ content_created = content_signals.signal('content_created')
 # Payload: user_id, content_type, content_id
 content_deleted = content_signals.signal('content_deleted')
 
+# ============================================
+# AI Services Signals
+# ============================================
+ai_signals = Namespace()
+
+# Signal: Fired when AI consumes tokens
+# Payload: user_id, feature (str), provider (str), model (str), 
+#          input_tokens (int), output_tokens (int), cost_estimate (float)
+ai_token_used = ai_signals.signal('ai_token_used')
+
 # Future signals can be added here:
 # badge_earned = learning_signals.signal('badge_earned')
 # daily_goal_reached = learning_signals.signal('daily_goal_reached')
