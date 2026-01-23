@@ -27,6 +27,9 @@ và tuân theo [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   - Tạo `logics/parsers.py` với pure functions cho column classification, action normalization
   - Thêm signals `content_created`, `content_deleted` cho event broadcasting
   - Emit signal trong `FlashcardExcelService` sau khi import thành công
+- **Notification Module Refactor**: Chuyển sang event-driven architecture
+  - Tạo `events.py` với listeners cho `content_created` và `score_awarded`
+  - Notifications tự động trigger khi có events (import thành công, đạt milestone điểm)
 
 ---
 
