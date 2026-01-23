@@ -16,6 +16,15 @@ from mindstack_app.models import (
 )
 from mindstack_app.models.learning_progress import LearningProgress
 
+# Import pure logic from chart_utils
+from ..logics.chart_utils import (
+    resolve_timeframe_dates,
+    normalize_datetime_range,
+    date_range,
+    parse_history_datetime,
+    sanitize_pagination,
+)
+
 
 ITEM_TYPE_LABELS = {
     'FLASHCARD': 'Flashcard',
