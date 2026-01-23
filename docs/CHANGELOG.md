@@ -23,6 +23,10 @@ và tuân theo [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - **Learning Module Refactor**: Tái cấu trúc theo kiến trúc 3 tầng
   - Tạo `logics/session_logic.py` với pure functions cho session building (filter, sort, queue)
   - Thêm `card_reviewed.send()` trong `fsrs_service.py` để emit signals cho gamification
+- **Content Management Module Refactor**: Tái cấu trúc theo kiến trúc 3 tầng
+  - Tạo `logics/parsers.py` với pure functions cho column classification, action normalization
+  - Thêm signals `content_created`, `content_deleted` cho event broadcasting
+  - Emit signal trong `FlashcardExcelService` sau khi import thành công
 
 ---
 

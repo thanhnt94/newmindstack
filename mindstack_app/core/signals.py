@@ -31,6 +31,20 @@ session_completed = learning_signals.signal('session_completed')
 # Payload includes: user_id, amount, reason, new_total, item_type
 score_awarded = learning_signals.signal('score_awarded')
 
+# ============================================
+# Content Management Signals
+# ============================================
+content_signals = Namespace()
+
+# Signal: Fired when content (Course/Set) is created or imported
+# Payload: user_id, content_type ('course', 'flashcard_set', 'quiz_set', 'flashcard_import'), 
+#          content_id, title, items_count (optional)
+content_created = content_signals.signal('content_created')
+
+# Signal: Fired when content is deleted
+# Payload: user_id, content_type, content_id
+content_deleted = content_signals.signal('content_deleted')
+
 # Future signals can be added here:
 # badge_earned = learning_signals.signal('badge_earned')
 # daily_goal_reached = learning_signals.signal('daily_goal_reached')

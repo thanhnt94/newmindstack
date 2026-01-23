@@ -13,6 +13,7 @@ from mindstack_app.utils.media_paths import (
     normalize_media_value_for_storage,
 )
 from mindstack_app.services.flashcard_config_service import FlashcardConfigService
+from mindstack_app.core.signals import content_created
 
 
 class FlashcardExcelService:
@@ -441,6 +442,19 @@ class FlashcardExcelService:
             summary_text = ', '.join(summary_parts)
             if info_notices:
                 summary_text += ' Lưu ý: ' + format_info_warnings(info_notices)
+            
+            # Emit signal for other modules (notifications, analytics)
+            if stats['created'] > 0 or stats['updated'] > 0:
+                content_created.send(
+                    None,
+                    user_id=flashcard_set.owner_id,
+                    content_type='flashcard_import',
+                    content_id=container_id,
+                    title=flashcard_set.title,
+                    items_created=stats['created'],
+                    items_updated=stats['updated']
+                )
+            
             return f'Bộ thẻ đã được xử lý: {summary_text}.'
         finally:
             if temp_filepath and os.path.exists(temp_filepath):
