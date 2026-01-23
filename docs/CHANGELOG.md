@@ -32,7 +32,8 @@ và tuân theo [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   - Notifications tự động trigger khi có events (import thành công, đạt milestone điểm)
 - **Stats Module Refactor**: Tách pure logic ra khỏi DB queries
   - Tạo `logics/chart_utils.py` với date/time utilities
-  - Import chart_utils trong `metrics.py` để reuse functions
+  - Tạo `services/analytics_service.py` với `AnalyticsService` class
+  - `get_dashboard_overview()` consolidates all dashboard data into one call
 
 ---
 
