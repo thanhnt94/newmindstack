@@ -1,0 +1,101 @@
+{#
+File: mindstack_app/templates/lumina/includes/navbar/_bottom_nav_mobile.html
+Purpose: Mobile bottom navigation bar (hidden on desktop via CSS)
+#}
+
+{# === Learning Menu Overlay === #}
+<div id="lumina-learn-overlay"
+    class="fixed inset-0 bg-black/50 backdrop-blur-sm opacity-0 pointer-events-none transition-all duration-300 z-40 lg:hidden">
+</div>
+
+{# === Learning Menu (Floating Cards) === #}
+<div id="lumina-learn-menu"
+    class="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-0 pointer-events-none scale-95 transition-all duration-300 z-50 lg:hidden">
+    <div class="flex flex-col items-center gap-4 w-[85vw] max-w-[320px]">
+        {# Brand Header #}
+        <div class="flex flex-col items-center mb-2">
+            <div class="w-14 h-14 rounded-2xl shadow-xl flex items-center justify-center mb-2"
+                style="background: linear-gradient(135deg, var(--lumina-primary), var(--lumina-secondary));">
+                <i class="fa-solid fa-brain text-2xl text-white"></i>
+            </div>
+            <h1 class="text-2xl font-black text-white drop-shadow-lg">MindStack</h1>
+        </div>
+
+        {# Menu Grid #}
+        <div class="grid grid-cols-2 gap-3 w-full">
+            <a href="{{ url_for('learning.vocabulary.dashboard') }}"
+                class="flex flex-col items-center justify-center text-center gap-2 text-white p-4 rounded-2xl shadow-lg active:scale-95 transition-all border border-white/20"
+                style="background: linear-gradient(135deg, #3b82f6, #6366f1);">
+                <div class="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center">
+                    <i class="fa-solid fa-book-open text-2xl"></i>
+                </div>
+                <span class="text-sm font-bold">Vocabulary</span>
+            </a>
+
+            <a href="{{ url_for('learning.quiz_learning.dashboard') }}"
+                class="flex flex-col items-center justify-center text-center gap-2 text-white p-4 rounded-2xl shadow-lg active:scale-95 transition-all border border-white/20"
+                style="background: linear-gradient(135deg, #10b981, #14b8a6);">
+                <div class="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center">
+                    <i class="fa-solid fa-circle-question text-2xl"></i>
+                </div>
+                <span class="text-sm font-bold">Quiz</span>
+            </a>
+
+            <a href="{{ url_for('learning.practice.practice_hub') }}"
+                class="flex flex-col items-center justify-center text-center gap-2 text-white p-4 rounded-2xl shadow-lg active:scale-95 transition-all border border-white/20"
+                style="background: linear-gradient(135deg, #f59e0b, #f97316);">
+                <div class="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center">
+                    <i class="fa-solid fa-dumbbell text-2xl"></i>
+                </div>
+                <span class="text-sm font-bold">Practice</span>
+            </a>
+
+            <a href="{{ url_for('learning.collab.dashboard') }}"
+                class="flex flex-col items-center justify-center text-center gap-2 text-white p-4 rounded-2xl shadow-lg active:scale-95 transition-all border border-white/20"
+                style="background: linear-gradient(135deg, #ec4899, #f43f5e);">
+                <div class="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center">
+                    <i class="fa-solid fa-users text-2xl"></i>
+                </div>
+                <span class="text-sm font-bold">Collab</span>
+            </a>
+        </div>
+    </div>
+</div>
+
+{# === Bottom Navigation Bar === #}
+<nav class="lumina-bottomnav">
+    {# Home #}
+    <a href="{{ url_for('dashboard.dashboard') }}"
+        class="lumina-bottomnav__item {% if active_page == 'home' or request.endpoint == 'dashboard.dashboard' %}active{% endif %}">
+        <i class="fa-solid fa-house"></i>
+        <span>Home</span>
+    </a>
+
+    {# Goals #}
+    <a href="{{ url_for('goals.manage_goals') }}"
+        class="lumina-bottomnav__item {% if active_page == 'goals' %}active{% endif %}">
+        <i class="fa-solid fa-bullseye"></i>
+        <span>Mục tiêu</span>
+    </a>
+
+    {# Learn (Center Floating Button) #}
+    <div class="lumina-bottomnav__learn">
+        <button id="lumina-learn-btn" class="lumina-bottomnav__learn-btn">
+            <i class="fa-solid fa-brain transition-transform duration-300"></i>
+        </button>
+    </div>
+
+    {# Stats #}
+    <a href="{{ url_for('stats.dashboard') }}"
+        class="lumina-bottomnav__item {% if active_page == 'stats' %}active{% endif %}">
+        <i class="fa-solid fa-chart-line"></i>
+        <span>Thống kê</span>
+    </a>
+
+    {# Profile #}
+    <a href="{{ url_for('user_profile.view_profile') }}"
+        class="lumina-bottomnav__item {% if active_page == 'profile' %}active{% endif %}">
+        <i class="fa-solid fa-user"></i>
+        <span>Cá nhân</span>
+    </a>
+</nav>

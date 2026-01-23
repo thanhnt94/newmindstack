@@ -1,0 +1,106 @@
+{#
+File: mindstack_app/templates/lumina/pages/dashboard/index.html
+Purpose: Dashboard page - Entry point for Lumina theme
+#}
+{% set _v = template_version or 'lumina' %}
+{% extends _v ~ '/base.html' %}
+{% set active_page = 'home' %}
+
+{% block title %}Dashboard - MindStack{% endblock %}
+
+{% block head %}
+{{ super() }}
+<style>
+    /* Dashboard-specific styles */
+    .dashboard-grid {
+        display: grid;
+        gap: var(--space-5);
+    }
+
+    @media (min-width: 768px) {
+        .dashboard-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+
+    @media (min-width: 1024px) {
+        .dashboard-grid {
+            grid-template-columns: repeat(3, 1fr);
+        }
+    }
+
+    .quick-actions {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: var(--space-3);
+    }
+
+    @media (min-width: 640px) {
+        .quick-actions {
+            grid-template-columns: repeat(4, 1fr);
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+{# === MOBILE VIEW === #}
+<div class="lg:hidden">
+    {% include _v ~ '/pages/dashboard/_mobile.html' %}
+</div>
+
+{# === DESKTOP VIEW === #}
+<div class="hidden lg:block">
+    {% include _v ~ '/pages/dashboard/_desktop.html' %}
+</div>
+
+{# === Active Sessions Script === #}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        loadActiveSessions();
+    });
+
+    async function loadActiveSessions() {
+        const mobileContainer = document.getElementById('active-sessions-mobile');
+        const desktopContainer = document.getElementById('active-sessions-desktop');
+
+        try {
+            const res = await fetch('/learn/api/active');
+            const sessions = await res.json();
+
+            if (sessions && sessions.length > 0) {
+                const html = sessions.slice(0, 5).map(s => {
+                    const isQuiz = s.learning_mode === 'quiz';
+                    const iconClass = isQuiz ? 'fa-bolt' : 'fa-layer-group';
+                    const bgColor = isQuiz ? '#f59e0b' : '#6366f1';
+                    const label = isQuiz ? 'câu' : 'thẻ';
+
+                    return `
+                    <a href="${s.resume_url}" class="card card--clickable" style="display: flex; align-items: center; gap: var(--space-3); padding: var(--space-4);">
+                        <div style="width: 40px; height: 40px; border-radius: var(--radius-lg); background: ${bgColor}20; color: ${bgColor}; display: flex; align-items: center; justify-content: center;">
+                            <i class="fas ${iconClass}"></i>
+                        </div>
+                        <div style="flex: 1; min-width: 0;">
+                            <p style="font-weight: var(--font-weight-medium); color: var(--lumina-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${s.container_name}</p>
+                            <p style="font-size: var(--font-size-xs); color: var(--lumina-text-muted);">${s.mode_name} • ${s.progress.done}/${s.progress.total} ${label}</p>
+                        </div>
+                        <span class="btn btn--primary btn--sm">Tiếp tục</span>
+                    </a>
+                `;
+                }).join('');
+
+                if (mobileContainer) {
+                    mobileContainer.innerHTML = html;
+                    mobileContainer.parentElement.style.display = 'block';
+                }
+                if (desktopContainer) {
+                    desktopContainer.innerHTML = html;
+                    desktopContainer.parentElement.style.display = 'block';
+                }
+            }
+        } catch (e) {
+            console.error('Failed to load active sessions', e);
+        }
+    }
+</script>
+{% endblock %}

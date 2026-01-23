@@ -1,0 +1,48 @@
+{#
+File: mindstack_app/templates/lumina/components/_button.html
+Purpose: Button component macro with variants, sizes, and states
+#}
+
+{#
+Button Macro
+Usage: {{ button(text='Click me', variant='primary', size='md', icon='fa-plus', href=None, type='button', classes='') }}
+#}
+{% macro button(text, variant='primary', size='md', icon=None, href=None, type='button', classes='', disabled=False,
+id=None) %}
+{% set base_class = 'btn btn--' ~ variant ~ ' btn--' ~ size ~ ' ' ~ classes %}
+
+{% if href %}
+<a href="{{ href }}" class="{{ base_class }}" {% if id %}id="{{ id }}" {% endif %}>
+    {% if icon %}<i class="fas {{ icon }}"></i>{% endif %}
+    {{ text }}
+</a>
+{% else %}
+<button type="{{ type }}" class="{{ base_class }}" {% if disabled %}disabled{% endif %} {% if id %}id="{{ id }}" {%
+    endif %}>
+    {% if icon %}<i class="fas {{ icon }}"></i>{% endif %}
+    {{ text }}
+</button>
+{% endif %}
+{% endmacro %}
+
+{# Icon Button Macro #}
+{% macro icon_button(icon, variant='ghost', size='md', href=None, title='', id=None, classes='') %}
+{% set base_class = 'btn btn--icon btn--' ~ variant ~ ' ' ~ classes %}
+
+{% if href %}
+<a href="{{ href }}" class="{{ base_class }}" title="{{ title }}" {% if id %}id="{{ id }}" {% endif %}>
+    <i class="fas {{ icon }}"></i>
+</a>
+{% else %}
+<button type="button" class="{{ base_class }}" title="{{ title }}" {% if id %}id="{{ id }}" {% endif %}>
+    <i class="fas {{ icon }}"></i>
+</button>
+{% endif %}
+{% endmacro %}
+
+{# Button Group Macro #}
+{% macro button_group() %}
+<div class="btn-group" style="display: flex; gap: var(--space-2);">
+    {{ caller() }}
+</div>
+{% endmacro %}
