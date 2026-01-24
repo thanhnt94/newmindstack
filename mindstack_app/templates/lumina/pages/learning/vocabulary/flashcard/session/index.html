@@ -1,0 +1,260 @@
+{#
+# File: mindstack_app/templates/lumina/pages/learning/vocabulary/flashcard/session/index.html
+# Version: Lumina 1.0 (iOS Style)
+#}
+
+{% set _v = template_version %}
+{% extends _v ~ '/base.html' %}
+
+{% block title %}Học Flashcard{% endblock %}
+
+{% block head %}
+{{ super() }}
+<!-- LUMINA FLASHCARD STYLES -->
+<style>
+  :root {
+    --fc-bg: #F2F2F7;
+    --fc-card-bg: #FFFFFF;
+    --fc-font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    --fc-btn-h: 56px;
+  }
+
+  body {
+    background: var(--fc-bg);
+    overflow: hidden;
+    font-family: var(--fc-font);
+  }
+
+  .flashcard-session-active header,
+  .flashcard-session-active footer {
+    display: none !important;
+  }
+
+  /* Layout */
+  .lumina-fc-shell {
+    height: 100vh;
+    height: calc(var(--vh, 1vh) * 100);
+    display: flex;
+    flex-direction: column;
+    padding: 16px;
+    box-sizing: border-box;
+    max-width: 600px;
+    margin: 0 auto;
+  }
+
+  /* Header */
+  .lumina-fc-header {
+    height: 50px;
+    display: flex;
+    items-center;
+    justify-content: space-between;
+    flex-shrink: 0;
+    margin-bottom: 12px;
+  }
+
+  .lumina-fc-back {
+    color: #007AFF;
+    font-size: 17px;
+    font-weight: 400;
+    background: none;
+    border: none;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    cursor: pointer;
+  }
+
+  .lumina-fc-prog {
+    font-size: 15px;
+    font-weight: 600;
+    color: #1C1C1E;
+  }
+
+  .lumina-fc-more {
+    color: #007AFF;
+    font-size: 20px;
+    background: none;
+    border: none;
+    cursor: pointer;
+  }
+
+  /* Card Area */
+  .flashcard-wrapper,
+  .flashcard-mobile-view,
+  .js-flashcard-content {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .flashcard-card-container {
+    perspective: 1000px;
+  }
+
+  .flashcard-card {
+    transform-style: preserve-3d;
+    transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    background: transparent;
+  }
+
+  .flashcard-card.flipped {
+    transform: rotateY(180deg);
+  }
+
+  .face {
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+  }
+
+  /* Buttons */
+  .lumina-actions-container {
+    border-top: 1px solid rgba(0, 0, 0, 0.05);
+  }
+
+  .rating-btn {
+    height: var(--fc-btn-h);
+    border-radius: 14px;
+    font-size: 14px;
+    font-weight: 700;
+    color: #fff;
+    border: none;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    transition: transform 0.1s;
+  }
+
+  .rating-btn:active {
+    transform: scale(0.95);
+  }
+
+  .rating-btn__points {
+    font-size: 10px;
+    opacity: 0.8;
+    font-weight: 500;
+  }
+
+  .rating-btn--again {
+    background: #FF3B30;
+  }
+
+  /* Red */
+  .rating-btn--hard {
+    background: #FF9500;
+  }
+
+  /* Orange */
+  .rating-btn--good {
+    background: #34C759;
+  }
+
+  /* Green */
+  .rating-btn--easy {
+    background: #007AFF;
+  }
+
+  /* Blue */
+
+  .rating-btn__icon {
+    display: none;
+  }
+
+  /* Simplify buttons */
+
+  /* Typography */
+  .lumina-card-text {
+    font-family: "Outfit", sans-serif;
+  }
+
+  .lumina-audio-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: #F2F2F7;
+    border: none;
+    color: #007AFF;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="lumina-fc-shell">
+  <header class="lumina-fc-header">
+    <button class="lumina-fc-back" onclick="window.history.back()">
+      <i class="fa-solid fa-chevron-left"></i> Quay lại
+    </button>
+    <div class="lumina-fc-prog"><span id="session-progress">- / -</span></div>
+    <button class="lumina-fc-more" onclick="alert('Settings modal coming soon')"><i
+        class="fa-solid fa-ellipsis-circle"></i></button>
+  </header>
+
+  <div id="flashcard-content" class="flashcard-mobile-view h-full">
+    <div class="js-flashcard-content h-full"></div>
+  </div>
+</div>
+
+<!-- Hidden Modals Placeholders -->
+<div id="exit-confirm-modal" class="hidden"></div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+
+<!-- CONFIGURATION -->
+<script>
+  const _userButtonCount = {{ user_button_count | default (4) }};
+  const _isAutoplaySession = {{ is_autoplay_session | default (false) | tojson }};
+  const _visualSettings = {{ (saved_visual_settings or { }) | tojson }};
+
+  window.FlashcardConfig = {
+    getFlashcardBatchUrl: "{{ url_for('learning.flashcard_learning.get_flashcard_batch') }}",
+    flashcardItemApiUrlTemplate: "{{ url_for('learning.flashcard_learning.get_flashcard_item_api', item_id=0) }}",
+    submitAnswerUrl: "{{ url_for('learning.flashcard_learning.submit_flashcard_answer') }}",
+    endSessionUrl: "{{ url_for('learning.flashcard_learning.end_session_flashcard') }}",
+    userButtonCount: _userButtonCount,
+    isAutoplaySession: _isAutoplaySession,
+    visualSettings: _visualSettings,
+    csrfHeaders: { "X-CSRFToken": "{{ csrf_token() }}" },
+    scores: { again: 1, hard: 5, good: 10, easy: 15 } // Defaults
+  };
+
+  // Init Viewport Height
+  const setVh = () => { document.documentElement.style.setProperty('--vh', `${window.innerHeight * 0.01}px`); };
+  window.addEventListener('resize', setVh); setVh();
+
+  // Progress Updater Hook (monkey patch ui_manager later or use event?)
+  // We will rely on renderCard updating UI, but need to finding where progress is updated.
+  // Usually ui_manager handles it.
+</script>
+
+<!-- LOAD LOGIC -->
+<script src="{{ url_for('learning.flashcard_learning.serve_session_asset', filename='js/utils.js') }}"></script>
+<script src="{{ url_for('learning.flashcard_learning.serve_session_asset', filename='js/audio_manager.js') }}"></script>
+<script src="{{ url_for('learning.flashcard_learning.serve_session_asset', filename='js/ui_manager.js') }}"></script>
+<script
+  src="{{ url_for('learning.flashcard_learning.serve_session_asset', filename='js/session_manager.js') }}"></script>
+<script
+  src="{{ url_for('learning.flashcard_learning.serve_session_asset', filename='js/render_card_mobile.js') }}"></script>
+<script src="{{ url_for('learning.flashcard_learning.serve_session_asset', filename='js/index.js') }}"></script>
+
+<script>
+  // Progress Listener
+  document.addEventListener('flashcardStatsUpdated', (e) => {
+    if (e.detail) {
+      const progEl = document.getElementById('session-progress');
+      if (progEl) {
+        progEl.textContent = `${e.detail.processed || 0} / ${e.detail.total || '?'}`;
+      }
+    }
+  });
+</script>
+{% endblock %}

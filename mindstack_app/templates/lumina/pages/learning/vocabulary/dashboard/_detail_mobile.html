@@ -1,0 +1,92 @@
+{#
+File: mindstack_app/templates/lumina/pages/learning/vocabulary/dashboard/_detail_mobile.html
+Purpose: Mobile layout for Set Detail View (Hidden by default)
+#}
+
+<div id="vocab-view-detail-mobile" class="hidden min-h-screen bg-white pb-24">
+    {# Sticky Header #}
+    <div class="lumina-vocab-header">
+        <div class="lumina-vocab-header__top">
+            <button class="lumina-back-btn" onclick="window.LuminaVocab.showDashboard()">
+                <i class="fa-solid fa-chevron-left"></i>
+                <span style="font-size: 17px; margin-left: -2px;">Quay lại</span>
+            </button>
+            <div class="lumina-vocab-title">Chi tiết bộ thẻ</div>
+            <div style="width: 70px;"></div>
+        </div>
+    </div>
+
+    {# Content Container - Added padding-top in JS or via utility class?
+    The Fixed Header covers top content.
+    We will use a spacer div or padding on the container.
+    #}
+    <div style="padding-top: 50px;">
+
+        {# Hero Section #}
+        <div class="px-4 py-4 flex flex-col gap-4">
+
+            {# Cover & Basic Info Row #}
+            <div class="flex gap-4">
+                {# Cover Image #}
+                <div
+                    class="lumina-detail-cover h-32 w-32 rounded-2xl bg-gray-100 flex-shrink-0 flex items-center justify-center text-4xl text-gray-300 overflow-hidden shadow-sm">
+                    {# Injected by JS #}
+                </div>
+
+                {# Info Side #}
+                <div class="flex flex-col justify-center gap-1 min-w-0 flex-1">
+                    <h1 class="lumina-detail-title text-xl font-bold leading-tight text-gray-900 line-clamp-3">
+                        {# Title #}
+                    </h1>
+                    <div class="flex items-center gap-2 text-sm text-gray-500">
+                        <i class="fa-regular fa-user"></i>
+                        <span class="lumina-detail-author truncate">{# Author #}</span>
+                    </div>
+                    <div class="flex items-center gap-2 text-sm text-blue-600 font-medium">
+                        <i class="fa-solid fa-layer-group"></i>
+                        <span class="lumina-detail-count">{# Count #} từ</span>
+                    </div>
+                </div>
+            </div>
+
+            {# Action Buttons #}
+            <div class="grid grid-cols-2 gap-3 mt-2">
+                <button onclick="window.LuminaVocab.startLearning('flashcard')"
+                    class="col-span-2 bg-blue-600 active:bg-blue-700 text-white font-bold h-12 rounded-xl flex items-center justify-center gap-2 shadow-sm transition-transform active:scale-95">
+                    <i class="fa-solid fa-play"></i> Học ngay (Flashcard)
+                </button>
+                <button onclick="window.LuminaVocab.startLearning('quiz')"
+                    class="bg-gray-100 active:bg-gray-200 text-gray-900 font-semibold h-10 rounded-xl flex items-center justify-center gap-2 transition-transform active:scale-95">
+                    <i class="fa-solid fa-circle-question text-green-600"></i> Quiz
+                </button>
+                <button
+                    class="bg-gray-100 active:bg-gray-200 text-gray-900 font-semibold h-10 rounded-xl flex items-center justify-center gap-2 transition-transform active:scale-95">
+                    <i class="fa-solid fa-gear text-gray-500"></i> Cài đặt
+                </button>
+            </div>
+
+        </div>
+
+        <div class="h-2 bg-gray-50 w-full border-t border-b border-gray-100"></div>
+
+        {# Word List #}
+        <div class="px-4 py-4">
+            <h3 class="text-lg font-bold mb-4 flex items-center justify-between">
+                <span>Danh sách từ</span>
+                <span class="text-sm font-normal text-gray-500 bg-gray-100 px-2 py-1 rounded-lg"
+                    id="detail-total-count">0</span>
+            </h3>
+
+            <div id="lumina-detail-list" class="flex flex-col gap-0 divide-y divide-gray-100">
+                {# Items injected by JS #}
+                <div class="py-8 text-center text-gray-400">Đang tải...</div>
+            </div>
+
+            {# Pagination for List if needed (or infinite scroll) #}
+            <div class="mt-4 flex justify-center">
+                <button id="detail-load-more" class="hidden text-blue-600 font-medium py-2">Xem thêm</button>
+            </div>
+        </div>
+
+    </div>
+</div>

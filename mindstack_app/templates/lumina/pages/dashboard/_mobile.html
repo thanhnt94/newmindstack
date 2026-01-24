@@ -1,7 +1,6 @@
 {#
 File: mindstack_app/templates/lumina/pages/dashboard/_mobile.html
-Purpose: Mobile dashboard - App-like full-screen interface
-Based on aura mobile design patterns
+Purpose: Mobile dashboard - Polished iOS App-like interface
 #}
 {% set _v = template_version or 'lumina' %}
 
@@ -10,7 +9,7 @@ Based on aura mobile design patterns
 
     {# === STICKY HEADER === #}
     <div class="lumina-mobile-header">
-        <div class="lumina-mobile-header__user">
+        <div class="lumina-mobile-header__top">
             <div class="lumina-mobile-header__avatar">
                 {% if current_user.is_authenticated and current_user.avatar_url %}
                 <img src="{{ current_user.get_avatar_url() }}" alt="Avatar">
@@ -18,204 +17,178 @@ Based on aura mobile design patterns
                 <span>{{ current_user.username[0] | upper if current_user.is_authenticated else 'G' }}</span>
                 {% endif %}
             </div>
-            <div>
-                <h1 class="lumina-mobile-header__title">
-                    Hi, {{ current_user.username if current_user.is_authenticated else 'Bạn' }}! 👋
-                </h1>
-                <p class="lumina-mobile-header__subtitle">Chúc bạn học tốt hôm nay!</p>
+            <div class="lumina-mobile-header__controls">
+                <div class="lumina-mobile-stat-badge">
+                    <i class="fa-solid fa-gem text-blue-500"></i>
+                    <span>{{ "{:,}".format(current_user.total_score if current_user.is_authenticated and
+                        current_user.total_score else 0) }}</span>
+                </div>
+                <button class="lumina-mobile-icon-btn" onclick="toggleNotificationCenter()">
+                    <i class="fa-regular fa-bell"></i>
+                </button>
             </div>
         </div>
-        <div class="lumina-mobile-header__actions">
-            <button class="lumina-mobile-header__badge" onclick="toggleNotificationCenter()">
-                <i class="fa-solid fa-bell"></i>
-            </button>
-            <div class="lumina-mobile-header__stat">
-                <i class="fa-solid fa-gem"></i>
-                <span>{{ "{:,}".format(current_user.total_score if current_user.is_authenticated and
-                    current_user.total_score else 0) }}</span>
-            </div>
+        <div class="lumina-mobile-header__greeting">
+            <h1 class="text-3xl font-bold tracking-tight text-gray-900">
+                Xin chào, <br>
+                <span class="text-indigo-600">{{ current_user.username if current_user.is_authenticated else 'Bạn'
+                    }}</span>
+            </h1>
         </div>
     </div>
 
     {# === SCROLLABLE CONTENT === #}
     <div class="lumina-mobile-content">
 
-        {# === HERO CARD === #}
-        <div class="lumina-hero-card">
-            <div class="lumina-hero-card__icon">
-                <i class="fa-solid fa-brain"></i>
-            </div>
-            <div class="lumina-hero-card__content">
-                <span class="lumina-hero-card__badge">🚀 Tiêu điểm</span>
-                <p class="lumina-hero-card__text">Học mỗi ngày để duy trì streak và cải thiện trí nhớ dài hạn!</p>
+        {# === HERO: TODAY'S FOCUS === #}
+        <div class="lumina-mobile-section">
+            <div class="lumina-hero-banner">
+                <div class="lumina-hero-banner__content">
+                    <span class="lumina-tag">Tiêu điểm</span>
+                    <h3 class="text-lg font-bold text-white mt-1 leading-snug">
+                        Duy trì chuỗi học tập để đạt kết quả tốt nhất!
+                    </h3>
+                </div>
+                <div class="lumina-hero-banner__icon">
+                    <i class="fa-solid fa-fire-flame-curved"></i>
+                </div>
             </div>
         </div>
 
-        {# === QUICK ACTIONS === #}
-        <div class="lumina-section">
-            <div class="lumina-section__header">
-                <h3 class="lumina-section__title">
-                    <span>⚡</span> Học ngay
-                </h3>
-            </div>
-            <div class="lumina-quick-scroll">
-                <a href="{{ url_for('learning.vocabulary.dashboard') }}"
-                    class="lumina-quick-card lumina-quick-card--vocab">
-                    <div class="lumina-quick-card__icon">
+        {# === QUICK ACTIONS (Horizontal) === #}
+        <div class="lumina-mobile-section">
+            <h3 class="lumina-section-title">Học tập</h3>
+            <div class="lumina-h-scroll">
+                <a href="{{ url_for('learning.vocabulary.dashboard') }}" class="lumina-app-card">
+                    <div class="lumina-app-card__icon bg-blue-100 text-blue-600">
                         <i class="fa-solid fa-book-open"></i>
                     </div>
-                    <div class="lumina-quick-card__text">
-                        <h4>Vocabulary</h4>
-                        <p>Từ vựng & Flashcard</p>
-                    </div>
+                    <span class="lumina-app-card__label">Từ vựng</span>
                 </a>
-                <a href="{{ url_for('learning.quiz_learning.dashboard') }}"
-                    class="lumina-quick-card lumina-quick-card--quiz">
-                    <div class="lumina-quick-card__icon">
+
+                <a href="{{ url_for('learning.quiz_learning.dashboard') }}" class="lumina-app-card">
+                    <div class="lumina-app-card__icon bg-green-100 text-green-600">
                         <i class="fa-solid fa-circle-question"></i>
                     </div>
-                    <div class="lumina-quick-card__text">
-                        <h4>Quiz</h4>
-                        <p>Trắc nghiệm</p>
-                    </div>
+                    <span class="lumina-app-card__label">Quiz</span>
                 </a>
-                <a href="{{ url_for('learning.practice.practice_hub') }}"
-                    class="lumina-quick-card lumina-quick-card--practice">
-                    <div class="lumina-quick-card__icon">
+
+                <a href="{{ url_for('learning.practice.practice_hub') }}" class="lumina-app-card">
+                    <div class="lumina-app-card__icon bg-orange-100 text-orange-600">
                         <i class="fa-solid fa-dumbbell"></i>
                     </div>
-                    <div class="lumina-quick-card__text">
-                        <h4>Practice</h4>
-                        <p>Ôn tập đa bộ</p>
-                    </div>
+                    <span class="lumina-app-card__label">Luyện tập</span>
                 </a>
-                <a href="{{ url_for('learning.course.course_learning_dashboard') }}"
-                    class="lumina-quick-card lumina-quick-card--course">
-                    <div class="lumina-quick-card__icon">
+
+                <a href="{{ url_for('learning.course.course_learning_dashboard') }}" class="lumina-app-card">
+                    <div class="lumina-app-card__icon bg-purple-100 text-purple-600">
                         <i class="fa-solid fa-graduation-cap"></i>
                     </div>
-                    <div class="lumina-quick-card__text">
-                        <h4>Course</h4>
-                        <p>Khóa học</p>
-                    </div>
+                    <span class="lumina-app-card__label">Khóa học</span>
                 </a>
+            </div>
+        </div>
+
+        {# === STATS OFFSET === #}
+        <div class="lumina-mobile-section">
+            <h3 class="lumina-section-title">Thống kê</h3>
+            <div class="grid grid-cols-2 gap-3">
+                <div class="lumina-stat-box">
+                    <span class="text-3xl font-black text-gray-900">0</span>
+                    <span class="text-xs font-semibold text-gray-500 uppercase">Từ đã học</span>
+                </div>
+                <div class="lumina-stat-box">
+                    <span class="text-3xl font-black text-gray-900">0</span>
+                    <span class="text-xs font-semibold text-gray-500 uppercase">Ngày Streak</span>
+                </div>
             </div>
         </div>
 
         {# === ACTIVE SESSIONS === #}
-        <div class="lumina-section" id="lumina-active-sessions" style="display: none;">
-            <div class="lumina-section__header">
-                <h3 class="lumina-section__title">
-                    <span>🔥</span> Đang học dở
-                </h3>
-            </div>
-            <div id="lumina-active-list" class="lumina-active-list"></div>
+        <div class="lumina-mobile-section" id="lumina-active-sessions" style="display: none;">
+            <h3 class="lumina-section-title">Đang học dở</h3>
+            <div id="lumina-active-list" class="flex flex-col gap-3"></div>
         </div>
 
-        {# === STATS GRID === #}
-        <div class="lumina-section">
-            <div class="lumina-section__header">
-                <h3 class="lumina-section__title">
-                    <span>📊</span> Thống kê hôm nay
-                </h3>
-            </div>
-            <div class="lumina-stats-grid">
-                <div class="lumina-stat-card">
-                    <div class="lumina-stat-card__value">0</div>
-                    <div class="lumina-stat-card__label">Từ đã học</div>
-                </div>
-                <div class="lumina-stat-card">
-                    <div class="lumina-stat-card__value">0 ngày</div>
-                    <div class="lumina-stat-card__label">Streak</div>
-                </div>
-            </div>
-        </div>
-
-        {# === EXPLORE === #}
-        <div class="lumina-section">
-            <div class="lumina-section__header">
-                <h3 class="lumina-section__title">
-                    <span>🎯</span> Khám phá thêm
-                </h3>
-            </div>
-            <div class="lumina-explore-grid">
-                <a href="{{ url_for('stats.dashboard') }}" class="lumina-explore-card">
-                    <div class="lumina-explore-card__icon" style="background: #06b6d4;">
-                        <i class="fa-solid fa-chart-line"></i>
+        {# === EXPLORE LIST === #}
+        <div class="lumina-mobile-section">
+            <h3 class="lumina-section-title">Khám phá</h3>
+            <div class="lumina-list-group">
+                <a href="{{ url_for('stats.dashboard') }}" class="lumina-list-item">
+                    <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-lg bg-cyan-100 text-cyan-600 flex items-center justify-center">
+                            <i class="fa-solid fa-chart-line text-sm"></i>
+                        </div>
+                        <span class="font-medium text-gray-900">Thống kê chi tiết</span>
                     </div>
-                    <span>Thống kê</span>
+                    <i class="fa-solid fa-chevron-right text-gray-400 text-xs"></i>
                 </a>
-                <a href="{{ url_for('goals.manage_goals') }}" class="lumina-explore-card">
-                    <div class="lumina-explore-card__icon" style="background: #f59e0b;">
-                        <i class="fa-solid fa-bullseye"></i>
+                <div class="lumina-divider"></div>
+                <a href="{{ url_for('goals.manage_goals') }}" class="lumina-list-item">
+                    <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-lg bg-yellow-100 text-yellow-600 flex items-center justify-center">
+                            <i class="fa-solid fa-bullseye text-sm"></i>
+                        </div>
+                        <span class="font-medium text-gray-900">Mục tiêu học tập</span>
                     </div>
-                    <span>Mục tiêu</span>
+                    <i class="fa-solid fa-chevron-right text-gray-400 text-xs"></i>
                 </a>
-                <a href="{{ url_for('content_management.content_dashboard') }}" class="lumina-explore-card">
-                    <div class="lumina-explore-card__icon" style="background: #8b5cf6;">
-                        <i class="fa-solid fa-folder-open"></i>
+                <div class="lumina-divider"></div>
+                <a href="{{ url_for('content_management.content_dashboard') }}" class="lumina-list-item">
+                    <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-lg bg-violet-100 text-violet-600 flex items-center justify-center">
+                            <i class="fa-solid fa-folder-open text-sm"></i>
+                        </div>
+                        <span class="font-medium text-gray-900">Kho nội dung</span>
                     </div>
-                    <span>Nội dung</span>
-                </a>
-                <a href="{{ url_for('notes.manage_notes') }}" class="lumina-explore-card">
-                    <div class="lumina-explore-card__icon" style="background: #ec4899;">
-                        <i class="fa-solid fa-sticky-note"></i>
-                    </div>
-                    <span>Ghi chú</span>
+                    <i class="fa-solid fa-chevron-right text-gray-400 text-xs"></i>
                 </a>
             </div>
         </div>
 
-        {# Bottom spacer for nav #}
-        <div style="height: 100px;"></div>
+        {# Bottom Spacer #}
+        <div class="h-28"></div>
     </div>
 </div>
 
 <style>
-    /* === Mobile App Container === */
+    /* === UTILS === */
     .lumina-mobile-app {
-        position: fixed;
-        inset: 0;
-        display: flex;
-        flex-direction: column;
-        background: var(--lumina-bg);
-        z-index: 50;
+        /* Handled by layout.css */
+        background: #F2F2F7;
+        /* iOS System Gray 6 */
     }
 
-    /* === Sticky Header === */
+    /* === HEADER === */
     .lumina-mobile-header {
+        background: rgba(255, 255, 255, 0.85);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
         position: sticky;
         top: 0;
-        z-index: 20;
+        z-index: 40;
+        padding-bottom: 12px;
+        border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    }
+
+    .lumina-mobile-header__top {
         display: flex;
         align-items: center;
         justify-content: space-between;
-        padding: 16px 20px;
-        background: rgba(248, 250, 252, 0.9);
-        backdrop-filter: blur(12px);
-        -webkit-backdrop-filter: blur(12px);
-    }
-
-    .lumina-mobile-header__user {
-        display: flex;
-        align-items: center;
-        gap: 12px;
+        padding: 12px 20px 0;
     }
 
     .lumina-mobile-header__avatar {
-        width: 44px;
-        height: 44px;
+        width: 40px;
+        height: 40px;
         border-radius: 50%;
-        background: linear-gradient(135deg, var(--lumina-primary), var(--lumina-secondary));
+        background: #007AFF;
+        color: white;
         display: flex;
         align-items: center;
         justify-content: center;
-        color: white;
         font-weight: 700;
-        font-size: 18px;
         overflow: hidden;
-        border: 2px solid white;
-        box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
     }
 
     .lumina-mobile-header__avatar img {
@@ -224,284 +197,168 @@ Based on aura mobile design patterns
         object-fit: cover;
     }
 
-    .lumina-mobile-header__title {
-        font-size: 18px;
-        font-weight: 700;
-        color: var(--lumina-text);
-        line-height: 1.2;
-    }
-
-    .lumina-mobile-header__subtitle {
-        font-size: 12px;
-        color: var(--lumina-text-muted);
-        margin-top: 2px;
-    }
-
-    .lumina-mobile-header__actions {
+    .lumina-mobile-header__controls {
         display: flex;
         align-items: center;
-        gap: 8px;
+        gap: 12px;
     }
 
-    .lumina-mobile-header__badge {
-        width: 36px;
-        height: 36px;
-        border-radius: 50%;
-        background: white;
-        border: 1px solid var(--lumina-border);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: var(--lumina-text-muted);
-        font-size: 14px;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-    }
-
-    .lumina-mobile-header__stat {
+    .lumina-mobile-stat-badge {
+        background: rgba(0, 0, 0, 0.05);
+        padding: 6px 12px;
+        border-radius: 99px;
         display: flex;
         align-items: center;
         gap: 6px;
-        background: white;
-        padding: 6px 12px;
-        border-radius: 20px;
-        border: 1px solid var(--lumina-border);
-        font-size: 12px;
+        font-size: 13px;
         font-weight: 600;
-        color: var(--lumina-text);
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        color: #1C1C1E;
     }
 
-    .lumina-mobile-header__stat i {
-        color: #3b82f6;
-    }
-
-    /* === Scrollable Content === */
-    .lumina-mobile-content {
-        flex: 1;
-        overflow-y: auto;
-        overflow-x: hidden;
-        padding: 0 20px 120px;
-        -webkit-overflow-scrolling: touch;
-    }
-
-    .lumina-mobile-content::-webkit-scrollbar {
-        display: none;
-    }
-
-    /* === Hero Card === */
-    .lumina-hero-card {
-        position: relative;
-        background: linear-gradient(135deg, var(--lumina-primary), var(--lumina-secondary));
-        border-radius: 24px;
-        padding: 24px;
-        margin-bottom: 24px;
-        color: white;
-        overflow: hidden;
-        box-shadow: 0 8px 24px rgba(99, 102, 241, 0.3);
-    }
-
-    .lumina-hero-card__icon {
-        position: absolute;
-        top: 16px;
-        right: 16px;
-        opacity: 0.15;
-        font-size: 64px;
-    }
-
-    .lumina-hero-card__content {
-        position: relative;
-        z-index: 1;
-    }
-
-    .lumina-hero-card__badge {
-        display: inline-block;
-        background: rgba(255, 255, 255, 0.2);
-        padding: 4px 12px;
-        border-radius: 12px;
-        font-size: 11px;
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        margin-bottom: 12px;
-    }
-
-    .lumina-hero-card__text {
-        font-size: 15px;
-        font-weight: 500;
-        line-height: 1.5;
-    }
-
-    /* === Section === */
-    .lumina-section {
-        margin-bottom: 28px;
-    }
-
-    .lumina-section__header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        margin-bottom: 16px;
-    }
-
-    .lumina-section__title {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        font-size: 15px;
-        font-weight: 700;
-        color: var(--lumina-text);
-    }
-
-    /* === Quick Scroll === */
-    .lumina-quick-scroll {
-        display: flex;
-        gap: 12px;
-        overflow-x: auto;
-        margin: 0 -20px;
-        padding: 4px 20px 8px;
-        scroll-snap-type: x mandatory;
-        -webkit-overflow-scrolling: touch;
-    }
-
-    .lumina-quick-scroll::-webkit-scrollbar {
-        display: none;
-    }
-
-    .lumina-quick-card {
-        flex-shrink: 0;
-        width: 140px;
-        height: 120px;
-        background: white;
-        border-radius: 20px;
-        padding: 16px;
-        display: flex;
-        flex-direction: column;
-        justify-content: space-between;
-        border: 1px solid var(--lumina-border-light);
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-        scroll-snap-align: start;
-        transition: transform 0.2s, box-shadow 0.2s;
-    }
-
-    .lumina-quick-card:active {
-        transform: scale(0.96);
-    }
-
-    .lumina-quick-card__icon {
-        width: 40px;
-        height: 40px;
-        border-radius: 12px;
+    .lumina-mobile-icon-btn {
+        width: 36px;
+        height: 36px;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 18px;
-        color: white;
+        font-size: 20px;
+        color: #007AFF;
     }
 
-    .lumina-quick-card--vocab .lumina-quick-card__icon {
-        background: linear-gradient(135deg, #3b82f6, #6366f1);
+    .lumina-mobile-header__greeting {
+        padding: 12px 20px 0;
     }
 
-    .lumina-quick-card--quiz .lumina-quick-card__icon {
-        background: linear-gradient(135deg, #10b981, #14b8a6);
+    /* === CONTENT === */
+    .lumina-mobile-content {
+        padding: 20px;
     }
 
-    .lumina-quick-card--practice .lumina-quick-card__icon {
-        background: linear-gradient(135deg, #f59e0b, #f97316);
+    .lumina-mobile-section {
+        margin-bottom: 32px;
     }
 
-    .lumina-quick-card--course .lumina-quick-card__icon {
-        background: linear-gradient(135deg, #8b5cf6, #a855f7);
-    }
-
-    .lumina-quick-card__text h4 {
-        font-size: 14px;
+    .lumina-section-title {
+        font-size: 20px;
         font-weight: 700;
-        color: var(--lumina-text);
-        margin-bottom: 2px;
+        color: #1C1C1E;
+        margin-bottom: 16px;
+        letter-spacing: -0.5px;
     }
 
-    .lumina-quick-card__text p {
-        font-size: 11px;
-        color: var(--lumina-text-muted);
-    }
-
-    /* === Active Sessions List === */
-    .lumina-active-list {
-        display: flex;
-        flex-direction: column;
-        gap: 12px;
-    }
-
-    /* === Stats Grid === */
-    .lumina-stats-grid {
-        display: grid;
-        grid-template-columns: repeat(2, 1fr);
-        gap: 12px;
-    }
-
-    .lumina-stat-card {
-        background: white;
+    /* === COMPONENTS === */
+    .lumina-hero-banner {
+        background: linear-gradient(135deg, #5856D6, #AF52DE);
         border-radius: 20px;
         padding: 20px;
-        text-align: center;
-        border: 1px solid var(--lumina-border-light);
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+        position: relative;
+        overflow: hidden;
+        box-shadow: 0 10px 20px rgba(88, 86, 214, 0.25);
     }
 
-    .lumina-stat-card__value {
-        font-size: 28px;
-        font-weight: 800;
-        color: var(--lumina-primary);
-        margin-bottom: 4px;
+    .lumina-hero-banner__content {
+        position: relative;
+        z-index: 2;
     }
 
-    .lumina-stat-card__label {
+    .lumina-tag {
+        background: rgba(255, 255, 255, 0.2);
+        color: white;
         font-size: 11px;
-        font-weight: 600;
-        color: var(--lumina-text-muted);
+        font-weight: 700;
         text-transform: uppercase;
-        letter-spacing: 0.5px;
+        padding: 4px 10px;
+        border-radius: 8px;
     }
 
-    /* === Explore Grid === */
-    .lumina-explore-grid {
-        display: grid;
-        grid-template-columns: repeat(4, 1fr);
-        gap: 12px;
+    .lumina-hero-banner__icon {
+        position: absolute;
+        bottom: -10px;
+        right: -10px;
+        font-size: 80px;
+        color: white;
+        opacity: 0.15;
+        transform: rotate(-15deg);
     }
 
-    .lumina-explore-card {
+    /* H-Scroll */
+    .lumina-h-scroll {
+        display: flex;
+        gap: 16px;
+        overflow-x: auto;
+        margin: 0 -20px;
+        padding: 4px 20px 20px;
+        scroll-snap-type: x mandatory;
+    }
+
+    .lumina-h-scroll::-webkit-scrollbar {
+        display: none;
+    }
+
+    .lumina-app-card {
+        flex: 0 0 auto;
         display: flex;
         flex-direction: column;
         align-items: center;
         gap: 8px;
-        padding: 12px 8px;
-        background: white;
-        border-radius: 16px;
-        border: 1px solid var(--lumina-border-light);
-        transition: transform 0.2s;
+        scroll-snap-align: start;
+        text-align: center;
+        width: 80px;
     }
 
-    .lumina-explore-card:active {
-        transform: scale(0.95);
-    }
-
-    .lumina-explore-card__icon {
-        width: 44px;
-        height: 44px;
-        border-radius: 14px;
+    .lumina-app-card__icon {
+        width: 64px;
+        height: 64px;
+        border-radius: 18px;
         display: flex;
         align-items: center;
         justify-content: center;
-        color: white;
-        font-size: 18px;
+        font-size: 28px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
     }
 
-    .lumina-explore-card span {
-        font-size: 11px;
-        font-weight: 600;
-        color: var(--lumina-text);
+    .lumina-app-card__label {
+        font-size: 12px;
+        font-weight: 500;
+        color: #1C1C1E;
+    }
+
+    /* Stats */
+    .lumina-stat-box {
+        background: white;
+        padding: 20px;
+        border-radius: 16px;
         text-align: center;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+    }
+
+    /* List Group (iOS Settings Style) */
+    .lumina-list-group {
+        background: white;
+        border-radius: 16px;
+        overflow: hidden;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    }
+
+    .lumina-list-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 16px;
+        background: white;
+    }
+
+    .lumina-list-item:active {
+        background: #F2F2F7;
+    }
+
+    .lumina-divider {
+        height: 1px;
+        background: #E5E5EA;
+        margin-left: 60px;
+        /* Indent divider */
     }
 </style>

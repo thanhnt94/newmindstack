@@ -1,0 +1,46 @@
+{#
+File: mindstack_app/templates/lumina/pages/learning/vocabulary/dashboard/_desktop.html
+Purpose: Desktop specific layout for Vocabulary Dashboard
+#}
+
+<div class="lumina-desktop-vocab">
+    {# Header #}
+    <div class="lumina-desktop-header">
+        <div>
+            <h1 class="lumina-desktop-title">Thư viện từ vựng</h1>
+            <p class="text-gray-500 mt-1">Quản lý và học tập các bộ thẻ của bạn</p>
+        </div>
+
+        <div class="lumina-desktop-controls">
+            {# Search #}
+            <div class="lumina-vocab-search" style="width: 300px;">
+                <i class="fa-solid fa-magnifying-glass"></i>
+                <input type="text" class="js-vocab-search-input" placeholder="Tìm kiếm bộ thẻ...">
+            </div>
+
+            {# Tabs #}
+            <div class="lumina-desktop-tabs">
+                <div class="lumina-desktop-tab js-desktop-tab active" data-category="learning">Đang học</div>
+                <div class="lumina-desktop-tab js-desktop-tab" data-category="explore">Khám phá</div>
+            </div>
+
+            {# Create Button (Future) #}
+            <a href="/learn/vocabulary/create"
+                class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl font-semibold transition-colors flex items-center gap-2">
+                <i class="fa-solid fa-plus"></i> Tạo mới
+            </a>
+        </div>
+    </div>
+
+    {# Content Grid #}
+    <div id="vocab-grid-desktop" class="lumina-vocab-grid">
+        {# Content loaded via JS #}
+        <div class="flex flex-col items-center justify-center py-20 text-gray-400 col-span-full">
+            <i class="fa-solid fa-spinner fa-spin text-4xl mb-4"></i>
+            <p class="text-lg">Đang tải dữ liệu...</p>
+        </div>
+    </div>
+
+    {# Pagination #}
+    <div id="desktop-pagination"></div>
+</div>

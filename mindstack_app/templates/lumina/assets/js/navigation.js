@@ -58,17 +58,13 @@
         isLearningMenuOpen = !isLearningMenuOpen;
 
         if (isLearningMenuOpen) {
-            learningMenu?.classList.remove('opacity-0', 'pointer-events-none', 'scale-95');
-            learningMenu?.classList.add('opacity-100', 'pointer-events-auto', 'scale-100');
-            learningMenuOverlay?.classList.remove('opacity-0', 'pointer-events-none');
-            learningMenuOverlay?.classList.add('opacity-100', 'pointer-events-auto');
-            learningMenuBtn?.querySelector('i')?.classList.add('rotate-180');
+            learningMenu?.classList.add('is-visible');
+            learningMenuOverlay?.classList.add('is-visible');
+            learningMenuBtn?.classList.add('is-active');
         } else {
-            learningMenu?.classList.add('opacity-0', 'pointer-events-none', 'scale-95');
-            learningMenu?.classList.remove('opacity-100', 'pointer-events-auto', 'scale-100');
-            learningMenuOverlay?.classList.add('opacity-0', 'pointer-events-none');
-            learningMenuOverlay?.classList.remove('opacity-100', 'pointer-events-auto');
-            learningMenuBtn?.querySelector('i')?.classList.remove('rotate-180');
+            learningMenu?.classList.remove('is-visible');
+            learningMenuOverlay?.classList.remove('is-visible');
+            learningMenuBtn?.classList.remove('is-active');
         }
     }
 
