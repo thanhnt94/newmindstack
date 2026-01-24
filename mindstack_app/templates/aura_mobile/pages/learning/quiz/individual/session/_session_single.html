@@ -1,12 +1,12 @@
-﻿{# =============================== #}
+{# =============================== #}
 {# File: mindstack_app/modules/learning/quiz/individual/templates/quiz/individual/quiz_session_single.html #}
-{# Phiên bản: 4.4 (Responsive Split - Client-Side Toggle) #}
+{# Phi�n b?n: 4.4 (Responsive Split - Client-Side Toggle) #}
 {# =============================== #}
 
 {% set _v = template_version %}
 {% extends _v ~ '/base.html' %}
 
-{% block title %}Làm bài Quiz{% endblock %}
+{% block title %}L�m b�i Quiz{% endblock %}
 
 {% block head %}
 {{ super() }}
@@ -22,22 +22,22 @@
 <div id="explanation-hub-modal" class="qb-modal-overlay">
     <div class="qb-modal-container desktop:max-w-xl desktop:mx-auto desktop:h-[80vh] desktop:rounded-2xl">
         <div class="qb-hub-header">
-            <h3 class="font-bold text-slate-800 text-lg">Chi tiết & Học tập</h3>
+            <h3 class="font-bold text-slate-800 text-lg">Chi ti?t & H?c t?p</h3>
             <button id="close-hub-btn"
                 class="w-8 h-8 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center hover:bg-slate-200"><i
                     class="fa-solid fa-xmark"></i></button>
         </div>
         <div class="qb-hub-tabs">
-            <div class="qb-hub-tab-item active" data-target="hub-expl">📖 Giải thích</div>
-            <div class="qb-hub-tab-item" data-target="hub-ai">🤖 AI Coach</div>
-            <div class="qb-hub-tab-item" data-target="hub-note">📝 Ghi chú</div>
+            <div class="qb-hub-tab-item active" data-target="hub-expl">?? Gi?i th�ch</div>
+            <div class="qb-hub-tab-item" data-target="hub-ai">?? AI Coach</div>
+            <div class="qb-hub-tab-item" data-target="hub-note">?? Ghi ch�</div>
         </div>
         <div class="qb-hub-content">
             <!-- Expl Tab -->
             <div id="hub-expl" class="qb-hub-pane active">
                 <div class="p-4 bg-blue-50 rounded-xl border border-blue-100 text-slate-700 leading-relaxed">
-                    <h4 class="font-bold text-blue-800 mb-2"><i class="fa-solid fa-circle-info"></i> Giải thích:</h4>
-                    <div id="hub-explanation-text">Chưa có giải thích.</div>
+                    <h4 class="font-bold text-blue-800 mb-2"><i class="fa-solid fa-circle-info"></i> Gi?i th�ch:</h4>
+                    <div id="hub-explanation-text">Chua c� gi?i th�ch.</div>
                 </div>
             </div>
             <!-- AI Tab -->
@@ -45,24 +45,24 @@
                 <div class="bg-gradient-to-r from-indigo-50 to-purple-50 p-4 rounded-xl border border-indigo-100 mb-4">
                     <div class="flex items-center justify-between mb-3">
                         <div class="flex items-center gap-2 text-indigo-700 font-bold"><i class="fa-solid fa-robot"></i>
-                            <span>AI Phân Tích</span>
+                            <span>AI Ph�n T�ch</span>
                         </div>
                         <button id="ai-generate-btn"
                             class="text-xs bg-white text-indigo-600 px-3 py-1.5 rounded-lg border border-indigo-200 font-semibold shadow-sm"><i
-                                class="fa-solid fa-wand-magic-sparkles"></i> Tạo mới</button>
+                                class="fa-solid fa-wand-magic-sparkles"></i> T?o m?i</button>
                     </div>
                     <div id="hub-ai-content"
-                        class="content-display markdown-body text-sm text-slate-700 leading-relaxed min-h-[100px]">Nhấn
-                        nút để yêu cầu AI phân tích...</div>
+                        class="content-display markdown-body text-sm text-slate-700 leading-relaxed min-h-[100px]">Nh?n
+                        n�t d? y�u c?u AI ph�n t�ch...</div>
                 </div>
             </div>
             <!-- Note Tab -->
             <div id="hub-note" class="qb-hub-pane">
                 <div class="flex justify-between items-center mb-2">
-                    <h4 class="font-bold text-slate-700">Ghi chú của bạn</h4>
+                    <h4 class="font-bold text-slate-700">Ghi ch� c?a b?n</h4>
                     <button id="hub-note-edit-btn"
                         class="hidden text-xs bg-blue-100 text-blue-600 border border-blue-200 px-3 py-1.5 rounded hover:bg-blue-200 font-medium">
-                        <i class="fa-solid fa-pencil"></i> Sửa ghi chú
+                        <i class="fa-solid fa-pencil"></i> S?a ghi ch�
                     </button>
                 </div>
 
@@ -77,13 +77,13 @@
                 <div id="hub-note-edit-mode" class="hidden">
                     <textarea id="hub-note-input"
                         class="w-full p-3 rounded-xl border border-slate-200 text-sm bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-200 outline-none transition"
-                        rows="8" placeholder="Ghi chú của bạn..."></textarea>
+                        rows="8" placeholder="Ghi ch� c?a b?n..."></textarea>
                     <div class="flex justify-end mt-2 gap-2">
                         <button id="hub-note-cancel"
-                            class="cm-btn bg-white hover:bg-slate-100 text-slate-600 border border-slate-300 py-1.5 px-4 text-sm rounded-md">Hủy</button>
+                            class="cm-btn bg-white hover:bg-slate-100 text-slate-600 border border-slate-300 py-1.5 px-4 text-sm rounded-md">H?y</button>
                         <button id="hub-note-save"
-                            class="cm-btn bg-blue-600 text-white hover:bg-blue-700 py-1.5 px-4 text-sm rounded-md">Lưu
-                            ghi chú</button>
+                            class="cm-btn bg-blue-600 text-white hover:bg-blue-700 py-1.5 px-4 text-sm rounded-md">Luu
+                            ghi ch�</button>
                     </div>
                 </div>
             </div>
@@ -96,8 +96,8 @@
         style="max-width: 900px; margin: 0 auto; height: 90vh; top: 50%; bottom: auto; transform: translate(0, -50%) scale(1); border-radius: 1rem;">
         <div class="qb-hub-header">
             <h3 class="font-bold text-slate-800 text-lg"><i
-                    class="fa-solid fa-pen-to-square text-blue-600 mr-2"></i>Chỉnh
-                sửa câu hỏi</h3>
+                    class="fa-solid fa-pen-to-square text-blue-600 mr-2"></i>Ch?nh
+                s?a c�u h?i</h3>
             <button id="close-edit-modal-btn"
                 class="w-8 h-8 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center hover:bg-slate-200"><i
                     class="fa-solid fa-xmark"></i></button>
@@ -113,24 +113,24 @@
     <div class="qb-modal-container"
         style="max-width: 500px; margin: 0 auto; height: auto; top: 50%; bottom: auto; transform: translate(0, -50%) scale(1); border-radius: 1rem;">
         <div class="qb-hub-header">
-            <h3 class="font-bold text-slate-800 text-lg"><i class="fa-solid fa-flag text-red-500 mr-2"></i>Báo lỗi / Góp
-                ý</h3>
+            <h3 class="font-bold text-slate-800 text-lg"><i class="fa-solid fa-flag text-red-500 mr-2"></i>B�o l?i / G�p
+                �</h3>
             <button id="close-feedback-btn"
                 class="w-8 h-8 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center hover:bg-slate-200"><i
                     class="fa-solid fa-xmark"></i></button>
         </div>
         <div class="p-4">
-            <p class="text-sm text-slate-600 mb-3">Hãy mô tả vấn đề bạn gặp phải với câu hỏi này. Đóng góp của bạn giúp
-                chúng tôi cải thiện chất lượng!</p>
+            <p class="text-sm text-slate-600 mb-3">H�y m� t? v?n d? b?n g?p ph?i v?i c�u h?i n�y. ��ng g�p c?a b?n gi�p
+                ch�ng t�i c?i thi?n ch?t lu?ng!</p>
             <textarea id="feedback-input"
                 class="w-full p-3 rounded-xl border border-slate-200 text-sm bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-200 outline-none transition mb-4"
-                rows="4" placeholder="Nhập nội dung phản hồi..."></textarea>
+                rows="4" placeholder="Nh?p n?i dung ph?n h?i..."></textarea>
             <div class="flex justify-end gap-2">
                 <button id="feedback-cancel-btn"
-                    class="cm-btn bg-white hover:bg-slate-100 text-slate-600 border border-slate-300 py-2 px-4 text-sm rounded-lg">Hủy</button>
+                    class="cm-btn bg-white hover:bg-slate-100 text-slate-600 border border-slate-300 py-2 px-4 text-sm rounded-lg">H?y</button>
                 <button id="feedback-submit-btn"
-                    class="cm-btn bg-blue-600 text-white hover:bg-blue-700 py-2 px-4 text-sm rounded-lg">Gửi phản
-                    hồi</button>
+                    class="cm-btn bg-blue-600 text-white hover:bg-blue-700 py-2 px-4 text-sm rounded-lg">G?i ph?n
+                    h?i</button>
             </div>
         </div>
     </div>
@@ -222,7 +222,7 @@
                 const answered = lastAnswerResult && lastAnswerResult.item_id === currentQuestion.item_id;
                 if (answered) {
                     showFeedback(lastAnswerResult);
-                    updateActionButtons(false, '<i class="fa-solid fa-arrow-right"></i> Tiếp theo', 'next');
+                    updateActionButtons(false, '<i class="fa-solid fa-arrow-right"></i> Ti?p theo', 'next');
                     if (dom.openHubBtn) dom.openHubBtn.classList.remove('hidden');
                 } else {
                     // Restore selected option if not yet answered
@@ -273,7 +273,7 @@
                 }
             } catch (e) {
                 console.error(e);
-                alert('Lỗi tải câu hỏi. Vui lòng thử lại.');
+                alert('L?i t?i c�u h?i. Vui l�ng th? l?i.');
             } finally {
                 showLoading(false);
             }
@@ -282,7 +282,7 @@
         function renderQuestion(q) {
             currentQuestion = q;
             const qNum = (sessionStats.total + currentIndex + 1);
-            setText('.js-question-header', `Câu hỏi ${qNum}`);
+            setText('.js-question-header', `C�u h?i ${qNum}`);
             setHtml('.js-question-text', q.content.question);
 
             // Media
@@ -366,14 +366,14 @@
             if (dom.openHubBtn) dom.openHubBtn.classList.add('hidden');
             if (dom.openHubDesktopBtn) dom.openHubDesktopBtn.classList.add('hidden');
 
-            updateActionButtons(true, '<i class="fa-solid fa-paper-plane"></i> Gửi đáp án', 'submit');
+            updateActionButtons(true, '<i class="fa-solid fa-paper-plane"></i> G?i d�p �n', 'submit');
 
             // Reset Content
-            setText('#hub-explanation-text', "Chưa có giải thích.");
+            setText('#hub-explanation-text', "Chua c� gi?i th�ch.");
             setHtml('#desktop-explanation-content', "");
             toggleClass('#desktop-explanation', 'hidden', true);
 
-            const aiDefault = "Nhấn nút để yêu cầu AI phân tích...";
+            const aiDefault = "Nh?n n�t d? y�u c?u AI ph�n t�ch...";
             setText('#hub-ai-content', aiDefault);
             setHtml('#desktop-ai-content', `<span class="italic text-slate-500">${aiDefault}</span>`);
 
@@ -421,7 +421,7 @@
             const answer = userAnswers[itemId];
             if (!answer) return;
 
-            updateActionButtons(true, '<i class="fas fa-circle-notch fa-spin"></i> Đang gửi...');
+            updateActionButtons(true, '<i class="fas fa-circle-notch fa-spin"></i> �ang g?i...');
 
             const duration_ms = Date.now() - startTime;
 
@@ -453,7 +453,7 @@
                 if (currentQuestion.user_stats) {
                     const s = currentQuestion.user_stats;
                     s.times_answered++;
-                    s.last_reviewed = "Vừa xong";
+                    s.last_reviewed = "V?a xong";
 
                     const isCorrect = lastAnswerResult.is_correct;
                     if (isCorrect) {
@@ -488,8 +488,8 @@
                         const html = s.recent_history.map(h => {
                             // Helper for timestamp formatting handled purely in JS here
                             const date = new Date(h.timestamp);
-                            let timeStr = "Vừa xong";
-                            if (h.timestamp.indexOf('T') > 0 && !h.timestamp.includes('Vừa xong')) { // Simple check if it's ISO string
+                            let timeStr = "V?a xong";
+                            if (h.timestamp.indexOf('T') > 0 && !h.timestamp.includes('V?a xong')) { // Simple check if it's ISO string
                                 timeStr = date.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', month: 'numeric', day: 'numeric' });
                             }
 
@@ -500,7 +500,7 @@
                                 <div class="flex justify-between items-center bg-slate-50 p-2 rounded border border-slate-100">
                                     <span class="text-xs text-slate-500">${timeStr}</span>
                                     <div class="flex items-center gap-2">
-                                        <span class="font-bold text-slate-700">Chọn ${ans}</span>
+                                        <span class="font-bold text-slate-700">Ch?n ${ans}</span>
                                         ${icon}
                                     </div>
                                 </div>
@@ -516,13 +516,13 @@
                 if (lastAnswerResult.is_correct) sessionStats.correct++;
                 updateStatsUI();
 
-                updateActionButtons(false, '<i class="fa-solid fa-arrow-right"></i> Tiếp theo', 'next');
+                updateActionButtons(false, '<i class="fa-solid fa-arrow-right"></i> Ti?p theo', 'next');
                 if (dom.openHubBtn) dom.openHubBtn.classList.remove('hidden');
 
                 saveState(); // Save state after getting feedback
             } catch (e) {
                 console.error(e);
-                alert('Lỗi gửi đáp án.');
+                alert('L?i g?i d�p �n.');
                 updateActionButtons(false);
             }
         }
@@ -547,19 +547,19 @@
             // toggleClass('#desktop-insights-area', 'hidden', false);
 
             if (result.is_correct) {
-                setText('.js-feedback-icon', '🎉');
-                setText('.js-feedback-title', 'Chính xác!');
+                setText('.js-feedback-icon', '??');
+                setText('.js-feedback-title', 'Ch�nh x�c!');
                 document.querySelectorAll('.js-feedback-title').forEach(el => el.className = 'text-lg font-bold text-emerald-600 js-feedback-title');
                 document.querySelectorAll('.desktop-feedback-box').forEach(el => { el.classList.remove('incorrect'); el.classList.add('correct'); });
             } else {
-                setText('.js-feedback-icon', '🤔');
-                setText('.js-feedback-title', 'Sai rồi');
+                setText('.js-feedback-icon', '??');
+                setText('.js-feedback-title', 'Sai r?i');
                 document.querySelectorAll('.js-feedback-title').forEach(el => el.className = 'text-lg font-bold text-rose-600 js-feedback-title');
                 document.querySelectorAll('.desktop-feedback-box').forEach(el => { el.classList.remove('correct'); el.classList.add('incorrect'); });
             }
             setText('.js-feedback-answer', result.correct_answer);
 
-            const explanationText = result.explanation || "Chưa có giải thích.";
+            const explanationText = result.explanation || "Chua c� gi?i th�ch.";
             const explanationHtml = explanationText.replace(/\r?\n/g, '<br>');
             if (dom.hubExplText) dom.hubExplText.innerHTML = explanationHtml;
             const dtExplContent = document.getElementById('desktop-explanation-content');
@@ -647,7 +647,7 @@
                             <div class="flex justify-between items-center bg-slate-50 p-2 rounded border border-slate-100">
                                 <span class="text-xs text-slate-500">${timeStr}</span>
                                 <div class="flex items-center gap-2">
-                                    <span class="font-bold text-slate-700">Chọn ${ans}</span>
+                                    <span class="font-bold text-slate-700">Ch?n ${ans}</span>
                                     ${icon}
                                 </div>
                             </div>
@@ -655,7 +655,7 @@
                     }).join('');
                     histContainer.innerHTML = html;
                 } else if (histContainer) {
-                    histContainer.innerHTML = '<div class="text-center text-xs text-slate-400 italic">Chưa có dữ liệu</div>';
+                    histContainer.innerHTML = '<div class="text-center text-xs text-slate-400 italic">Chua c� d? li?u</div>';
                 }
 
             } else {
@@ -687,7 +687,7 @@
 
         function finishSession() {
             clearState();
-            alert('Đã hoàn thành phiên học!');
+            alert('�� ho�n th�nh phi�n h?c!');
             window.location.href = quizDashboardUrl;
         }
 
@@ -727,7 +727,7 @@
         const handleAiGenerateImpl = async (btn) => {
             if (!btn) return;
             btn.disabled = true;
-            const loadingText = "Đang tạo...";
+            const loadingText = "�ang t?o...";
             if (dom.hubAiContent) dom.hubAiContent.textContent = loadingText;
             setHtml('#desktop-ai-content', `<i class="fas fa-spinner fa-spin"></i> ${loadingText}`);
 
@@ -749,7 +749,7 @@
                 // Hide the button after successful generation
                 btn.classList.add('hidden');
             } catch (e) {
-                const errHtml = '<span class="text-red-500">Lỗi khi gọi AI.</span>';
+                const errHtml = '<span class="text-red-500">L?i khi g?i AI.</span>';
                 if (dom.hubAiContent) dom.hubAiContent.innerHTML = errHtml;
                 setHtml('#desktop-ai-content', errHtml);
                 btn.disabled = false;
@@ -761,7 +761,7 @@
             const originalText = btn.innerHTML;
             const content = inputEl.value;
 
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Lưu...';
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Luu...';
             btn.disabled = true;
 
             try {
@@ -780,10 +780,10 @@
                 updateNoteUI(content);
                 updateDesktopNoteUI(content);
 
-                alert('Đã lưu ghi chú.');
+                alert('�� luu ghi ch�.');
                 saveState(); // Save state after saving note
             } catch (e) {
-                alert('Lỗi lưu ghi chú.');
+                alert('L?i luu ghi ch�.');
             }
             btn.innerHTML = originalText;
             btn.disabled = false;
@@ -994,18 +994,18 @@
             submitBtn?.addEventListener('click', () => {
                 const content = input.value.trim();
                 if (!content) {
-                    alert("Vui lòng nhập nội dung.");
+                    alert("Vui l�ng nh?p n?i dung.");
                     return;
                 }
                 // Simulate API call
                 submitBtn.disabled = true;
-                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang gửi...';
+                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> �ang g?i...';
 
                 setTimeout(() => {
                     console.log(`Sending feedback for item ${currentQuestion?.item_id}: ${content}`);
-                    alert("Cảm ơn đóng góp của bạn!");
+                    alert("C?m on d�ng g�p c?a b?n!");
                     submitBtn.disabled = false;
-                    submitBtn.innerHTML = 'Gửi phản hồi';
+                    submitBtn.innerHTML = 'G?i ph?n h?i';
                     input.value = '';
                     closeFeedback();
                 }, 800);
@@ -1014,7 +1014,7 @@
 
         // Exit
         const exitHandler = () => {
-            if (confirm('Kết thúc phiên làm bài?')) {
+            if (confirm('K?t th�c phi�n l�m b�i?')) {
                 clearState();
                 window.location.href = quizDashboardUrl;
             }
@@ -1113,14 +1113,14 @@
                         currentQuestion.audio_transcript = newText; // Update cache
                         toggleEditMode(false);
                     } else {
-                        alert(data.message || "Lỗi khi lưu.");
+                        alert(data.message || "L?i khi luu.");
                     }
                 } catch (e) {
                     console.error(e);
-                    alert("Lỗi kết nối khi lưu transcript.");
+                    alert("L?i k?t n?i khi luu transcript.");
                 } finally {
                     saveBtn.disabled = false;
-                    saveBtn.textContent = 'Lưu';
+                    saveBtn.textContent = 'Luu';
                 }
             };
 
@@ -1159,7 +1159,7 @@
 
                     if (!audioUrl) {
                         // console.error("DEBUG: currentQuestion structure:", currentQuestion); // Removed debug log
-                        throw new Error("Không tìm thấy file audio.");
+                        throw new Error("Kh�ng t�m th?y file audio.");
                     }
 
                     // Call API to get text + permission
@@ -1203,20 +1203,20 @@
                         // Or success=False.
                         // We should show the message in the "Empty" or "Error" area.
                         if (response.status === 404 || response.status === 403) {
-                            // "Chưa có transcript... vui lòng liên hệ admin"
+                            // "Chua c� transcript... vui l�ng li�n h? admin"
                             // Show this message in the empty/info area, not as a crash.
                             emptyDiv.classList.remove('hidden');
                             // Find the paragraph in emptyDiv and update it temporarily?
                             // Or just use errorDiv for clearer feedback.
                             // Let's use errorDiv for clarity if it's a "refusal".
-                            // But wait, user said "nó ghi chưa có nội dung" -> probably hitting emptyDiv default text.
+                            // But wait, user said "n� ghi chua c� n?i dung" -> probably hitting emptyDiv default text.
 
                             // Let's update emptyDiv text to be dynamic based on server message
                             const emptyTextP = emptyDiv.querySelector('p');
-                            if (emptyTextP) emptyTextP.textContent = data.message || "Chưa có transcript.";
+                            if (emptyTextP) emptyTextP.textContent = data.message || "Chua c� transcript.";
 
                         } else {
-                            throw new Error(data.message || "Lỗi server.");
+                            throw new Error(data.message || "L?i server.");
                         }
                     }
                 } catch (e) {
@@ -1250,12 +1250,12 @@
                         el.textContent = titleKeys.length === 1 ? mainTitle : `${mainTitle} (+${titleKeys.length - 1})`;
                         if (el.parentElement) el.parentElement.title = Object.values(storedTitles).join(', ');
                     } else {
-                        el.textContent = "Phiên học Quiz";
+                        el.textContent = "Phi�n h?c Quiz";
                     }
                 });
             } catch (e) {
-                console.error("Lỗi khi tải tên bộ quiz:", e);
-                document.querySelectorAll('.js-quiz-set-title').forEach(el => el.textContent = "Phiên học Quiz");
+                console.error("L?i khi t?i t�n b? quiz:", e);
+                document.querySelectorAll('.js-quiz-set-title').forEach(el => el.textContent = "Phi�n h?c Quiz");
             }
         }
 
@@ -1296,7 +1296,7 @@
                 statsHtml = `
                  <div class="grid grid-cols-2 gap-4 max-w-sm mx-auto mb-6 text-left">
                     <div class="bg-emerald-50 p-4 rounded-xl border border-emerald-100">
-                        <div class="text-xs text-slate-500 uppercase font-bold">Chính xác</div>
+                        <div class="text-xs text-slate-500 uppercase font-bold">Ch�nh x�c</div>
                         <div class="text-2xl font-black text-emerald-600">${endMessage.stats.correct_count}</div>
                     </div>
                     <div class="bg-red-50 p-4 rounded-xl border border-red-100">
@@ -1304,14 +1304,14 @@
                         <div class="text-2xl font-black text-red-600">${endMessage.stats.incorrect_count}</div>
                     </div>
                     <div class="bg-blue-50 p-4 rounded-xl border border-blue-100 col-span-2">
-                        <div class="text-xs text-slate-500 uppercase font-bold">Tiến độ</div>
-                        <div class="text-xl font-bold text-blue-700">${endMessage.stats.processed_count} / ${endMessage.stats.total_items} câu</div>
+                        <div class="text-xs text-slate-500 uppercase font-bold">Ti?n d?</div>
+                        <div class="text-xl font-bold text-blue-700">${endMessage.stats.processed_count} / ${endMessage.stats.total_items} c�u</div>
                     </div>
                  </div>
                  `;
             }
 
-            const msgHtml = `<div class="text-center py-12 px-6"><i class="fas fa-check-circle text-5xl text-green-500 mb-4"></i><h3 class="text-xl font-bold text-slate-800 mb-2">Hoàn thành phiên học!</h3><p class="text-slate-500 mb-6">${endMessage.message || 'Phiên học đã kết thúc.'}</p>${statsHtml}<a href="${quizDashboardUrl}" class="cm-btn cm-btn-primary"><i class="fas fa-home"></i> Về Dashboard</a></div>`;
+            const msgHtml = `<div class="text-center py-12 px-6"><i class="fas fa-check-circle text-5xl text-green-500 mb-4"></i><h3 class="text-xl font-bold text-slate-800 mb-2">Ho�n th�nh phi�n h?c!</h3><p class="text-slate-500 mb-6">${endMessage.message || 'Phi�n h?c d� k?t th�c.'}</p>${statsHtml}<a href="${quizDashboardUrl}" class="cm-btn cm-btn-primary"><i class="fas fa-home"></i> V? Dashboard</a></div>`;
 
             // Override content area
             showLoading(false);
@@ -1328,7 +1328,7 @@
         }
 
         async function handleEndSession() {
-            if (confirm('Bạn có chắc chắn muốn kết thúc phiên học hiện tại?')) {
+            if (confirm('B?n c� ch?c ch?n mu?n k?t th�c phi�n h?c hi?n t?i?')) {
                 try {
                     const res = await fetch(endSessionUrl, {
                         method: 'POST',
@@ -1344,7 +1344,7 @@
                         window.location.href = quizDashboardUrl;
                     }
                 } catch (e) {
-                    alert('Lỗi kết thúc phiên.');
+                    alert('L?i k?t th�c phi�n.');
                 }
             }
         }

@@ -68,8 +68,8 @@ class DailyStatsService:
         # 3. Reviewed items (last_reviewed on this date, excluding new items)
         reviewed_items_count = LearningProgress.query.filter(
             LearningProgress.user_id == user_id,
-            LearningProgress.last_reviewed >= day_start,
-            LearningProgress.last_reviewed <= day_end,
+            LearningProgress.fsrs_last_review >= day_start,
+            LearningProgress.fsrs_last_review <= day_end,
             # Exclude items first seen today
             ~and_(
                 LearningProgress.first_seen >= day_start,

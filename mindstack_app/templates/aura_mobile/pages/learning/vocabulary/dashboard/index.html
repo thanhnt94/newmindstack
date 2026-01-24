@@ -36,73 +36,32 @@
 
 
 
-    /* Mobile full-screen steps */
+    /* Unified Mobile-First Styles */
 
-    @media (max-width: 1023px) {
-
-
-
-        body>header,
-
-        body>footer {
-
-            display: none !important;
-
-        }
-
-
-
-        body>main {
-
-            padding: 0 !important;
-
-            margin: 0 !important;
-
-            max-width: none !important;
-
-        }
-
-
-
-        .vocab-step {
-
-            display: none;
-
-            position: fixed;
-
-            inset: 0;
-
-            z-index: 100;
-
-            background: #f8fafc;
-
-            flex-direction: column;
-
-            overflow-y: auto;
-
-        }
-
-
-
-        .vocab-step.active {
-
-            display: flex;
-
-        }
-
+    /* Ensure body/main don't restrict layout */
+    body>header,
+    body>footer {
+        display: none !important;
     }
 
+    body>main {
+        padding: 0 !important;
+        margin: 0 !important;
+        max-width: none !important;
+    }
 
+    .vocab-step {
+        display: none;
+        position: fixed;
+        inset: 0;
+        z-index: 100;
+        background: #f8fafc;
+        flex-direction: column;
+        overflow-y: auto;
+    }
 
-    @media (min-width: 1024px) {
-        .vocab-step {
-            display: none !important;
-            position: static !important;
-        }
-
-        .vocab-step.active {
-            display: block !important;
-        }
+    .vocab-step.active {
+        display: flex;
     }
 
 
@@ -2630,22 +2589,14 @@
 
 {% block content %}
 
-{# Include Desktop View - Hidden on mobile, visible on lg+ #}
+{# Unified View - Responsive #}
 {% set _v = template_version %}
-{% include _v ~ '/pages/learning/vocabulary/dashboard/_desktop.html' %}
-
-{# Mobile View - Step Browser only - Hidden on lg+ #}
 {% include _v ~ '/pages/learning/vocabulary/dashboard/_mobile.html' %}
 
-<!-- STEP 2: Set Detail - Desktop (hidden on mobile) -->
-<div class="hidden lg:block">
-    <div id="step-detail-desktop" class="vocab-step">
-        {% include _v ~ '/pages/learning/vocabulary/dashboard/components/steps/_detail_desktop.html' %}
-    </div>
-</div>
+<!-- STEP 2: Set Detail - Unified -->
+<!-- Desktop detail block removed -->
 
-<!-- STEP 2: Set Detail - Mobile (hidden on desktop via CSS in step-header) -->
-<div id="step-detail" class="vocab-step lg:hidden">
+<div id="step-detail" class="vocab-step">
 
     <div class="step-header-left">
 

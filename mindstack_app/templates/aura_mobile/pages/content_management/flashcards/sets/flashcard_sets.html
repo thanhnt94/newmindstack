@@ -12,11 +12,12 @@
 <div class="cm-shell" data-accent="sky">
     <div class="cm-container space-y-6">
 
-        {% include _v ~ '/pages/content_management/flashcards/sets/_flashcard_sets_list_mobile.html' %}
-        {% include _v ~ '/pages/content_management/flashcards/sets/_flashcard_sets_list_desktop.html' %}
+        {# Include Consolidated List #}
+        {% include _v ~ '/pages/content_management/flashcards/sets/_flashcard_sets_list.html' %}
 
-        <div class="text-center">
-            <a href="{{ url_for('content_management.content_dashboard') }}" class="cm-link">
+        <div class="text-center pt-8">
+            <a href="{{ url_for('content_management.content_dashboard') }}"
+                class="cm-link inline-flex items-center gap-2 text-slate-500 hover:text-indigo-600 transition-colors text-sm font-medium">
                 <i class="fa-solid fa-arrow-left"></i>
                 <span>Quay lại Bảng điều khiển nội dung</span>
             </a>

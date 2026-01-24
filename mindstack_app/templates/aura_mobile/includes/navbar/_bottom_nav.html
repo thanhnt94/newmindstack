@@ -1,5 +1,5 @@
 {# ================= MOBILE BOTTOM NAV ================= #}
-<div class="global-bottom-nav fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 lg:hidden z-40 pb-safe">
+<div class="global-bottom-nav fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 z-40 pb-safe">
     {# Pass active_page parameter to highlight current page, e.g. active_page='home' #}
 
     {# === BOTTOM TAB BAR WITH LEARNING MENU === #}
@@ -176,53 +176,59 @@
 
 <script>
     // Learning Menu Toggle
-    const learnButton = document.getElementById('learnButton');
-    const arcMenu = document.getElementById('arcMenu');
-    const arcMenuOverlay = document.getElementById('arcMenuOverlay');
-    const learnIcon = document.getElementById('learnIcon');
-    let isArcMenuOpen = false;
+    // Wrap in IIFE to avoid variable collisions
+    (function () {
+        const learnButton = document.getElementById('learnButton');
+        const arcMenu = document.getElementById('arcMenu');
+        const arcMenuOverlay = document.getElementById('arcMenuOverlay');
+        const learnIcon = document.getElementById('learnIcon');
+        let isArcMenuOpen = false;
 
-    function toggleArcMenu() {
-        isArcMenuOpen = !isArcMenuOpen;
+        function toggleArcMenu() {
+            isArcMenuOpen = !isArcMenuOpen;
 
-        if (isArcMenuOpen) {
-            arcMenu.classList.remove('opacity-0', 'pointer-events-none');
-            arcMenu.classList.add('opacity-100', 'pointer-events-auto');
-            arcMenuOverlay.classList.remove('opacity-0', 'pointer-events-none');
-            arcMenuOverlay.classList.add('opacity-100', 'pointer-events-auto');
-            learnIcon.style.transform = 'rotate(180deg)';
+            if (isArcMenuOpen) {
+                arcMenu.classList.remove('opacity-0', 'pointer-events-none');
+                arcMenu.classList.add('opacity-100', 'pointer-events-auto');
+                arcMenuOverlay.classList.remove('opacity-0', 'pointer-events-none');
+                arcMenuOverlay.classList.add('opacity-100', 'pointer-events-auto');
+                learnIcon.style.transform = 'rotate(180deg)';
 
-            const arcItems = document.querySelectorAll('.arc-item');
-            arcItems.forEach((item, index) => {
-                setTimeout(() => {
-                    item.style.transform = 'translateY(0) scale(1)';
-                    item.style.opacity = '1';
-                }, index * 80);
-            });
-        } else {
-            arcMenu.classList.add('opacity-0', 'pointer-events-none');
-            arcMenu.classList.remove('opacity-100', 'pointer-events-auto');
-            arcMenuOverlay.classList.add('opacity-0', 'pointer-events-none');
-            arcMenuOverlay.classList.remove('opacity-100', 'pointer-events-auto');
-            learnIcon.style.transform = 'rotate(0deg)';
+                const arcItems = document.querySelectorAll('.arc-item');
+                arcItems.forEach((item, index) => {
+                    setTimeout(() => {
+                        item.style.transform = 'translateY(0) scale(1)';
+                        item.style.opacity = '1';
+                    }, index * 80);
+                });
+            } else {
+                arcMenu.classList.add('opacity-0', 'pointer-events-none');
+                arcMenu.classList.remove('opacity-100', 'pointer-events-auto');
+                arcMenuOverlay.classList.add('opacity-0', 'pointer-events-none');
+                arcMenuOverlay.classList.remove('opacity-100', 'pointer-events-auto');
+                learnIcon.style.transform = 'rotate(0deg)';
 
+                const arcItems = document.querySelectorAll('.arc-item');
+                arcItems.forEach(item => {
+                    item.style.transform = 'translateY(20px) scale(0.8)';
+                    item.style.opacity = '0';
+                });
+            }
+        }
+
+        if (learnButton && arcMenu && arcMenuOverlay) {
+            learnButton.addEventListener('click', toggleArcMenu);
+            arcMenuOverlay.addEventListener('click', toggleArcMenu);
+        }
+
+
+        document.addEventListener('DOMContentLoaded', () => {
             const arcItems = document.querySelectorAll('.arc-item');
             arcItems.forEach(item => {
                 item.style.transform = 'translateY(20px) scale(0.8)';
                 item.style.opacity = '0';
+                item.style.transition = 'all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)';
             });
-        }
-    }
-
-    learnButton.addEventListener('click', toggleArcMenu);
-    arcMenuOverlay.addEventListener('click', toggleArcMenu);
-
-    document.addEventListener('DOMContentLoaded', () => {
-        const arcItems = document.querySelectorAll('.arc-item');
-        arcItems.forEach(item => {
-            item.style.transform = 'translateY(20px) scale(0.8)';
-            item.style.opacity = '0';
-            item.style.transition = 'all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)';
         });
-    });
+    })();
 </script>

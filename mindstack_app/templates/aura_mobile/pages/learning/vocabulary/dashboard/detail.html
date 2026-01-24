@@ -22,24 +22,7 @@
         background-color: #f8fafc;
     }
 
-    /* Responsive view switching - must be first to avoid conflicts */
-    .desktop-only-view {
-        display: none;
-    }
 
-    .mobile-only-view {
-        display: block;
-    }
-
-    @media (min-width: 1024px) {
-        .desktop-only-view {
-            display: block;
-        }
-
-        .mobile-only-view {
-            display: none !important;
-        }
-    }
 
     /* Steps visibility */
     .vocab-step {
@@ -50,47 +33,30 @@
         display: block;
     }
 
-    /* Desktop layout overrides */
-    @media (min-width: 1024px) {
-        body>main.container {
-            max-width: 100% !important;
-            padding: 0 !important;
-        }
-
-        .desktop-detail-container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 2rem;
-        }
+    /* Unified Mobile-First Styles */
+    body>header,
+    body>footer {
+        display: none !important;
     }
 
-    /* Mobile full-screen steps */
-    @media (max-width: 1023px) {
+    body>main {
+        padding: 0 !important;
+        margin: 0 !important;
+        max-width: none !important;
+    }
 
-        body>header,
-        body>footer {
-            display: none !important;
-        }
+    .vocab-step {
+        display: none;
+        position: fixed;
+        inset: 0;
+        z-index: 100;
+        background: #f8fafc;
+        flex-direction: column;
+        overflow-y: auto;
+    }
 
-        body>main {
-            padding: 0 !important;
-            margin: 0 !important;
-            max-width: none !important;
-        }
-
-        .vocab-step {
-            display: none;
-            position: fixed;
-            inset: 0;
-            z-index: 100;
-            background: #f8fafc;
-            flex-direction: column;
-            overflow-y: auto;
-        }
-
-        .vocab-step.active {
-            display: flex;
-        }
+    .vocab-step.active {
+        display: flex;
     }
 
 
@@ -137,15 +103,8 @@
 
 {% block content %}
 <div id="vocab-detail-wrapper">
-    <!-- STEP 2: Set Detail - Desktop (hidden on mobile via CSS) -->
-    <div id="desktop-view-wrapper" class="desktop-only-view">
-        <div id="step-detail-desktop" class="vocab-step active">
-            {% include _v ~ '/pages/learning/vocabulary/dashboard/components/steps/_detail_desktop.html' %}
-        </div>
-    </div>
-
-    <!-- STEP 2: Set Detail - Mobile (hidden on desktop via CSS) -->
-    <div id="mobile-view-wrapper" class="mobile-only-view">
+    <!-- Detail View - Unified -->
+    <div id="detail-view-wrapper">
         {% include _v ~ '/pages/learning/vocabulary/dashboard/components/steps/_detail_mobile.html' %}
     </div>
 

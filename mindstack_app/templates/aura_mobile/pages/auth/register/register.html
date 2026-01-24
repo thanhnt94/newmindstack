@@ -6,13 +6,117 @@
 {% block body_class %} register-page{% endblock %}
 
 {% block content %}
+{# Mobile Register - App-like Style #}
+<div class="min-h-screen bg-gradient-to-br from-emerald-600 via-teal-600 to-cyan-500 flex flex-col">
 
-{# Include Mobile Version #}
-{% include _v ~ '/pages/auth/register/_register_mobile.html' %}
+    {# Header #}
+    <div class="px-6 pt-12 pb-8">
+        <a href="/" class="inline-flex items-center gap-2 text-white/80 hover:text-white mb-8">
+            <i class="fa-solid fa-arrow-left"></i>
+            <span class="text-sm font-medium">Quay lại</span>
+        </a>
+        <div class="flex items-center gap-3 mb-2">
+            <div class="w-12 h-12 bg-white rounded-2xl flex items-center justify-center shadow-xl">
+                <i class="fa-solid fa-brain text-emerald-600 text-xl"></i>
+            </div>
+            <div class="flex items-start gap-1">
+                <span class="font-black text-white text-2xl">Mindstack</span>
+                <span
+                    class="px-1.5 py-0.5 bg-white/20 backdrop-blur-sm text-white text-[10px] font-bold rounded -translate-y-0.5">3.0</span>
+            </div>
+        </div>
+        <h1 class="text-3xl font-black text-white mb-2">Bắt đầu hành trình!</h1>
+        <p class="text-white/70 text-base">Tạo tài khoản để khám phá Mindstack</p>
+    </div>
 
-{# Include Desktop Version #}
-{% include _v ~ '/pages/auth/register/_register_desktop.html' %}
+    {# Form Container #}
+    <div class="flex-1 bg-white rounded-t-[2rem] px-6 py-8 overflow-y-auto">
+        <form action="{{ url_for('auth.register') }}" method="post" class="space-y-4">
+            {{ form.csrf_token }}
 
+            {# Username #}
+            <div>
+                <label class="block text-sm font-bold text-slate-700 mb-2">
+                    <i class="fa-solid fa-user text-emerald-600 mr-2"></i>
+                    Tên đăng nhập
+                </label>
+                {{ form.username(class="w-full px-4 py-3.5 bg-slate-50 border-2 border-slate-200 rounded-2xl
+                focus:outline-none focus:border-emerald-500 focus:bg-white transition-all text-base font-medium",
+                placeholder="Chọn tên đăng nhập") }}
+                {% if form.username.errors %}
+                <div class="mt-2 text-red-500 text-xs font-medium">
+                    {% for error in form.username.errors %}<p>{{ error }}</p>{% endfor %}
+                </div>
+                {% endif %}
+            </div>
+
+            {# Email #}
+            <div>
+                <label class="block text-sm font-bold text-slate-700 mb-2">
+                    <i class="fa-solid fa-envelope text-emerald-600 mr-2"></i>
+                    Email
+                </label>
+                {{ form.email(class="w-full px-4 py-3.5 bg-slate-50 border-2 border-slate-200 rounded-2xl
+                focus:outline-none focus:border-emerald-500 focus:bg-white transition-all text-base font-medium",
+                placeholder="email@example.com") }}
+                {% if form.email.errors %}
+                <div class="mt-2 text-red-500 text-xs font-medium">
+                    {% for error in form.email.errors %}<p>{{ error }}</p>{% endfor %}
+                </div>
+                {% endif %}
+            </div>
+
+            {# Password #}
+            <div>
+                <label class="block text-sm font-bold text-slate-700 mb-2">
+                    <i class="fa-solid fa-lock text-emerald-600 mr-2"></i>
+                    Mật khẩu
+                </label>
+                {{ form.password(class="w-full px-4 py-3.5 bg-slate-50 border-2 border-slate-200 rounded-2xl
+                focus:outline-none focus:border-emerald-500 focus:bg-white transition-all text-base font-medium",
+                placeholder="Tạo mật khẩu") }}
+                {% if form.password.errors %}
+                <div class="mt-2 text-red-500 text-xs font-medium">
+                    {% for error in form.password.errors %}<p>{{ error }}</p>{% endfor %}
+                </div>
+                {% endif %}
+            </div>
+
+            {# Confirm Password #}
+            <div>
+                <label class="block text-sm font-bold text-slate-700 mb-2">
+                    <i class="fa-solid fa-lock-open text-emerald-600 mr-2"></i>
+                    Xác nhận mật khẩu
+                </label>
+                {{ form.password2(class="w-full px-4 py-3.5 bg-slate-50 border-2 border-slate-200 rounded-2xl
+                focus:outline-none focus:border-emerald-500 focus:bg-white transition-all text-base font-medium",
+                placeholder="Nhập lại mật khẩu") }}
+                {% if form.password2.errors %}
+                <div class="mt-2 text-red-500 text-xs font-medium">
+                    {% for error in form.password2.errors %}<p>{{ error }}</p>{% endfor %}
+                </div>
+                {% endif %}
+            </div>
+
+            {# Submit Button #}
+            <button type="submit"
+                class="w-full py-4 bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-bold text-lg rounded-2xl shadow-lg shadow-emerald-200 hover:shadow-xl hover:scale-[1.02] transition-all mt-6">
+                <i class="fa-solid fa-user-plus mr-2"></i>
+                Tạo tài khoản
+            </button>
+
+            {# Login Link #}
+            <div class="text-center pt-4">
+                <p class="text-slate-500 text-sm">
+                    Đã có tài khoản?
+                    <a href="{{ url_for('auth.login') }}" class="font-bold text-emerald-600 hover:text-emerald-700">
+                        Đăng nhập
+                    </a>
+                </p>
+            </div>
+        </form>
+    </div>
+</div>
 {% endblock %}
 
 {% block scripts %}
@@ -48,6 +152,7 @@
         body.register-page>main {
             padding: 0 !important;
             margin: 0 !important;
+            max-width: 100% !important;
         }
 
         body.register-page>main>.container {

@@ -1,7 +1,7 @@
-﻿{# MCQ Setup Template - Wizard Style #}
+{# MCQ Setup Template - Wizard Style #}
 {% set _v = template_version %}
 {% extends _v ~ '/base.html' %}
-{% block title %}Trắc nghiệm - {{ container.title }}{% endblock %}
+{% block title %}Tr?c nghi?m - {{ container.title }}{% endblock %}
 {% block head %}
 {{ super() }}
 <style>
@@ -499,7 +499,7 @@
         </a>
 
         <div class="header-info">
-            <span class="mode-badge"><i class="fas fa-list-ul"></i> Trắc nghiệm</span>
+            <span class="mode-badge"><i class="fas fa-list-ul"></i> Tr?c nghi?m</span>
             <h1 class="set-title">{{ container.title }}</h1>
         </div>
 
@@ -514,8 +514,8 @@
         <!-- STEP 1: MODE SELECTION -->
         <div class="step-screen active" id="step-1">
             <div class="title-area">
-                <h2>Chọn chế độ học</h2>
-                <p>Bạn muốn ôn tập theo cách nào?</p>
+                <h2>Ch?n ch? d? h?c</h2>
+                <p>B?n mu?n �n t?p theo c�ch n�o?</p>
             </div>
 
             <div class="mode-grid">
@@ -523,8 +523,8 @@
                 <div class="mode-card {% if mode_counts.new == 0 %}disabled{% endif %}" data-value="new">
                     <div class="mode-icon"><i class="fas fa-seedling"></i></div>
                     <div class="mode-info">
-                        <span class="mode-title">Học từ mới</span>
-                        <span class="mode-desc">{{ mode_counts.new }} từ chưa học</span>
+                        <span class="mode-title">H?c t? m?i</span>
+                        <span class="mode-desc">{{ mode_counts.new }} t? chua h?c</span>
                     </div>
                 </div>
 
@@ -532,8 +532,8 @@
                 <div class="mode-card {% if mode_counts.review == 0 %}disabled{% endif %}" data-value="review">
                     <div class="mode-icon"><i class="fas fa-history"></i></div>
                     <div class="mode-info">
-                        <span class="mode-title">Ôn tập tới hạn</span>
-                        <span class="mode-desc">{{ mode_counts.review }} từ cần ôn lại</span>
+                        <span class="mode-title">�n t?p t?i h?n</span>
+                        <span class="mode-desc">{{ mode_counts.review }} t? c?n �n l?i</span>
                     </div>
                 </div>
 
@@ -541,8 +541,8 @@
                 <div class="mode-card {% if mode_counts.hard == 0 %}disabled{% endif %}" data-value="hard">
                     <div class="mode-icon"><i class="fas fa-fire-alt"></i></div>
                     <div class="mode-info">
-                        <span class="mode-title">Từ khó</span>
-                        <span class="mode-desc">{{ mode_counts.hard }} từ hay sai</span>
+                        <span class="mode-title">T? kh�</span>
+                        <span class="mode-desc">{{ mode_counts.hard }} t? hay sai</span>
                     </div>
                 </div>
 
@@ -550,8 +550,8 @@
                 <div class="mode-card {% if mode_counts.learned == 0 %}disabled{% endif %}" data-value="learned">
                     <div class="mode-icon"><i class="fas fa-check-double"></i></div>
                     <div class="mode-info">
-                        <span class="mode-title">Ôn tất cả</span>
-                        <span class="mode-desc">{{ mode_counts.learned }} từ đã học</span>
+                        <span class="mode-title">�n t?t c?</span>
+                        <span class="mode-desc">{{ mode_counts.learned }} t? d� h?c</span>
                     </div>
                 </div>
 
@@ -559,8 +559,8 @@
                 <div class="mode-card {% if mode_counts.random == 0 %}disabled{% endif %}" data-value="random">
                     <div class="mode-icon"><i class="fas fa-random"></i></div>
                     <div class="mode-info">
-                        <span class="mode-title">Ngẫu nhiên</span>
-                        <span class="mode-desc">{{ mode_counts.random }} từ trong bộ</span>
+                        <span class="mode-title">Ng?u nhi�n</span>
+                        <span class="mode-desc">{{ mode_counts.random }} t? trong b?</span>
                     </div>
                 </div>
             </div>
@@ -569,8 +569,8 @@
         <!-- STEP 2: CONFIGURATION -->
         <div class="step-screen" id="step-2">
             <div class="title-area">
-                <h2>Thiết lập câu hỏi</h2>
-                <p>Tùy chỉnh nội dung bài trắc nghiệm</p>
+                <h2>Thi?t l?p c�u h?i</h2>
+                <p>T�y ch?nh n?i dung b�i tr?c nghi?m</p>
                 <div id="selected-mode-display"
                     class="mt-2 inline-flex items-center gap-2 px-3 py-1 bg-indigo-50 border border-indigo-100 rounded-lg text-indigo-700 text-sm font-bold">
                     <i class="fas fa-layer-group"></i> <span>...</span>
@@ -582,12 +582,12 @@
             <div class="config-card">
                 <div class="flex justify-between items-center">
                     <div class="config-header mb-0">
-                        <i class="fas fa-sort-numeric-up"></i> Số lượng câu hỏi <span id="limit-status-text"
-                            class="text-indigo-500 font-semibold">Không giới hạn</span>
+                        <i class="fas fa-sort-numeric-up"></i> S? lu?ng c�u h?i <span id="limit-status-text"
+                            class="text-indigo-500 font-semibold">Kh�ng gi?i h?n</span>
                     </div>
                     <!-- Limit Toggle -->
                     <label class="flex items-center cursor-pointer">
-                        <span class="mr-2 text-sm font-medium text-gray-600">Tùy chỉnh</span>
+                        <span class="mr-2 text-sm font-medium text-gray-600">T�y ch?nh</span>
                         <div class="relative">
                             <input type="checkbox" id="limit-toggle" class="sr-only">
                             <div class="block bg-gray-200 w-10 h-6 rounded-full transition-colors toggle-bg"></div>
@@ -600,19 +600,19 @@
 
                 <!-- Count Select (Hidden by default) -->
                 <div id="limit-options" class="hidden mt-4">
-                    <label class="block text-xs font-semibold text-slate-500 mb-1 uppercase">Chọn số câu:</label>
+                    <label class="block text-xs font-semibold text-slate-500 mb-1 uppercase">Ch?n s? c�u:</label>
                     <div class="relative w-full">
                         <select id="count-select"
                             class="w-full p-2.5 appearance-none bg-white border border-slate-200 rounded-xl font-semibold text-slate-700 text-sm focus:outline-none focus:border-indigo-500 transition-all">
-                            <option value="5">5 câu</option>
-                            <option value="10" selected>10 câu</option>
-                            <option value="15">15 câu</option>
-                            <option value="20">20 câu</option>
-                            <option value="25">25 câu</option>
-                            <option value="30">30 câu</option>
-                            <option value="40">40 câu</option>
-                            <option value="50">50 câu</option>
-                            <option value="100">100 câu</option>
+                            <option value="5">5 c�u</option>
+                            <option value="10" selected>10 c�u</option>
+                            <option value="15">15 c�u</option>
+                            <option value="20">20 c�u</option>
+                            <option value="25">25 c�u</option>
+                            <option value="30">30 c�u</option>
+                            <option value="40">40 c�u</option>
+                            <option value="50">50 c�u</option>
+                            <option value="100">100 c�u</option>
                         </select>
                         <i
                             class="fas fa-chevron-down absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs pointer-events-none"></i>
@@ -622,12 +622,12 @@
 
             <!-- Choice Config -->
             <div class="config-card">
-                <div class="config-header"><i class="fas fa-th-large"></i> Số lượng đáp án</div>
+                <div class="config-header"><i class="fas fa-th-large"></i> S? lu?ng d�p �n</div>
                 <div class="grid grid-cols-2 gap-2" id="choices-options">
-                    <div class="option-chip text-center justify-center flex" data-value="3">3 đáp án</div>
-                    <div class="option-chip selected text-center justify-center flex" data-value="4">4 đáp án</div>
-                    <div class="option-chip text-center justify-center flex" data-value="6">6 đáp án</div>
-                    <div class="option-chip text-center justify-center flex" data-value="8">8 đáp án</div>
+                    <div class="option-chip text-center justify-center flex" data-value="3">3 d�p �n</div>
+                    <div class="option-chip selected text-center justify-center flex" data-value="4">4 d�p �n</div>
+                    <div class="option-chip text-center justify-center flex" data-value="6">6 d�p �n</div>
+                    <div class="option-chip text-center justify-center flex" data-value="8">8 d�p �n</div>
                 </div>
             </div>
 
@@ -635,11 +635,11 @@
             <div class="config-card">
                 <div class="flex justify-between items-center mb-3">
                     <div class="config-header mb-0">
-                        <i class="fas fa-sliders-h"></i> Cấu hình Hỏi & Đáp
+                        <i class="fas fa-sliders-h"></i> C?u h�nh H?i & ��p
                     </div>
                     <!-- Custom Toggle -->
                     <label class="flex items-center cursor-pointer">
-                        <span class="mr-2 text-sm font-medium text-gray-600">Tùy chỉnh</span>
+                        <span class="mr-2 text-sm font-medium text-gray-600">T�y ch?nh</span>
                         <div class="relative">
                             <input type="checkbox" id="custom-config-toggle" class="sr-only">
                             <div class="block bg-gray-200 w-10 h-6 rounded-full transition-colors toggle-bg"></div>
@@ -667,9 +667,9 @@
                         <!-- Injected via JS -->
                     </div>
                     <p id="no-default-msg" class="text-sm text-red-500 italic hidden">
-                        <i class="fas fa-exclamation-circle"></i> Bộ này chưa có cấu hình mặc định. Vui lòng bật
-                        "Tùy
-                        chỉnh" để thiết lập.
+                        <i class="fas fa-exclamation-circle"></i> B? n�y chua c� c?u h�nh m?c d?nh. Vui l�ng b?t
+                        "T�y
+                        ch?nh" d? thi?t l?p.
                     </p>
                 </div>
 
@@ -680,7 +680,7 @@
                     </div>
 
                     <button type="button" class="add-pair-btn" id="add-pair-btn">
-                        <i class="fas fa-plus-circle"></i> Thêm cấu hình khác
+                        <i class="fas fa-plus-circle"></i> Th�m c?u h�nh kh�c
                     </button>
 
 
@@ -693,7 +693,7 @@
     <!-- Footer Action -->
     <div class="wizard-footer">
         <button class="action-btn btn-primary" id="next-btn">
-            Tiếp tục <i class="fas fa-arrow-right"></i>
+            Ti?p t?c <i class="fas fa-arrow-right"></i>
         </button>
     </div>
 
@@ -803,7 +803,7 @@
         selectMode(firstValidMode);
     } else {
         nextBtn.disabled = true;
-        nextBtn.innerHTML = "Không có từ nào";
+        nextBtn.innerHTML = "Kh�ng c� t? n�o";
     }
 
     // Load Saved Mode (if available)
@@ -1010,13 +1010,13 @@
         if (currentStep !== 2) return;
 
         let isValid = true;
-        let msg = 'Bắt đầu học ngay <i class="fas fa-rocket"></i>';
+        let msg = 'B?t d?u h?c ngay <i class="fas fa-rocket"></i>';
 
         if (!isCustomMode) {
             // Check if defaults exist
             if (!defaultSettings.custom_pairs || defaultSettings.custom_pairs.length === 0) {
                 isValid = false;
-                msg = 'Chưa có cấu hình mặc định';
+                msg = 'Chua c� c?u h�nh m?c d?nh';
             }
         } else {
             // Check if custom pairs valid
@@ -1025,7 +1025,7 @@
             const rows = document.querySelectorAll('.pair-row:not(.disabled-row)');
             if (rows.length === 0) {
                 isValid = false;
-                msg = 'Cần ít nhất 1 cặp thẻ';
+                msg = 'C?n �t nh?t 1 c?p th?';
             }
         }
 
@@ -1073,7 +1073,7 @@
             step2.classList.remove('active');
             if (dot1) dot1.classList.add('active');
             if (dot2) dot2.classList.remove('active');
-            nextBtn.innerHTML = 'Tiếp tục <i class="fas fa-arrow-right"></i>';
+            nextBtn.innerHTML = 'Ti?p t?c <i class="fas fa-arrow-right"></i>';
             nextBtn.disabled = false;
             nextBtn.classList.remove('opacity-50', 'cursor-not-allowed');
         } else {
@@ -1084,14 +1084,14 @@
 
             // Update Mode Display
             const modeNameInfo = {
-                'new': 'Học từ mới',
-                'review': 'Ôn tập tới hạn',
-                'hard': 'Từ khó',
-                'learned': 'Ôn tất cả',
-                'random': 'Ngẫu nhiên'
+                'new': 'H?c t? m?i',
+                'review': '�n t?p t?i h?n',
+                'hard': 'T? kh�',
+                'learned': '�n t?t c?',
+                'random': 'Ng?u nhi�n'
             };
             if (selectedModeDisplay) {
-                selectedModeDisplay.innerHTML = `<i class="fas fa-layer-group"></i> <span>Chế độ: ${modeNameInfo[selectedMode] || selectedMode}</span>`;
+                selectedModeDisplay.innerHTML = `<i class="fas fa-layer-group"></i> <span>Ch? d?: ${modeNameInfo[selectedMode] || selectedMode}</span>`;
             }
 
             checkStartButtonState(); // Validate immediately on entry
@@ -1116,12 +1116,12 @@
                         <input type="checkbox" class="pair-enable-check" ${enabled ? 'checked' : ''}>
                     </div>
                     <div class="pair-box">
-                        <label class="pair-label">Hỏi</label>
+                        <label class="pair-label">H?i</label>
                         <select class="modern-select pair-q">${optionsHtml}</select>
                     </div>
                     <div class="arrow-divider"><i class="fas fa-arrow-right"></i></div>
                     <div class="pair-box">
-                        <label class="pair-label">Đáp án</label>
+                        <label class="pair-label">��p �n</label>
                         <select class="modern-select pair-a">${optionsHtml}</select>
                     </div>
                 </div>
@@ -1178,13 +1178,13 @@
         const hasEnabled = customPairs.some(p => p.enabled !== false); // default key is 'enabled' usually, check logic
 
         if (customPairs.length === 0 || !hasEnabled) {
-            alert('Vui lòng kích hoạt ít nhất một cấu hình câu hỏi!');
+            alert('Vui l�ng k�ch ho?t �t nh?t m?t c?u h�nh c�u h?i!');
             return;
         }
 
         // Loading State
         nextBtn.disabled = true;
-        nextBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang khởi tạo...';
+        nextBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> �ang kh?i t?o...';
 
         const saveUrl = "{{ url_for('learning.vocabulary.mcq.save_setup', set_id=container.container_id) }}";
         const sessionUrl = "{{ url_for('learning.vocabulary.mcq.session', set_id=container.container_id) }}";
@@ -1208,16 +1208,16 @@
                 if (data.success) {
                     window.location.href = sessionUrl;
                 } else {
-                    alert(data.message || 'Lỗi không xác định');
+                    alert(data.message || 'L?i kh�ng x�c d?nh');
                     nextBtn.disabled = false;
-                    nextBtn.innerHTML = 'Bắt đầu học ngay <i class="fas fa-rocket"></i>';
+                    nextBtn.innerHTML = 'B?t d?u h?c ngay <i class="fas fa-rocket"></i>';
                 }
             })
             .catch(err => {
                 console.error(err);
-                alert('Lỗi kết nối máy chủ');
+                alert('L?i k?t n?i m�y ch?');
                 nextBtn.disabled = false;
-                nextBtn.innerHTML = 'Bắt đầu học ngay <i class="fas fa-rocket"></i>';
+                nextBtn.innerHTML = 'B?t d?u h?c ngay <i class="fas fa-rocket"></i>';
             });
     }
 
