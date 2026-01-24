@@ -372,35 +372,10 @@
 {% include _v ~ '/pages/learning/collab/flashcard/_mobile.html' %}
 
 {# Desktop Title and Tabs (Desktop Only) #}
-<div class="container mx-auto px-1 py-4 sm:px-6 sm:py-6 lg:px-8 lg:py-8 hidden lg:block">
-    {# Biến trạng thái dùng chung cho JS #}
-    <script>var currentStudyMode = 'solo';</script>
-
-    <div class="flashcard-title-wrapper hidden lg:flex">
-        <div id="flashcardTitle" class="flashcard-title-badge"><i class="fas fa-clone"></i>Flashcard</div>
-    </div>
-
-    <div class="flex justify-center mb-6 hidden lg:flex">
-        <div class="study-mode-tabs relative z-10" role="tablist" aria-label="Chế độ học flashcard"
-            style="pointer-events: auto;">
-            <button type="button" class="study-mode-tab active" data-study-tab="solo" role="tab"
-                aria-selected="true">Học 1
-                mình</button>
-            <button type="button" class="study-mode-tab" data-study-tab="group" role="tab" aria-selected="false">Học
-                theo
-                nhóm</button>
-        </div>
-    </div>
-</div>
-
-{# Content - Both Mobile and Desktop #}
+{# Content - Mobile Only #}
 <div class="container mx-auto px-1 sm:px-6 lg:px-8">
-    {# --- Chế độ Individual --- #}
-    {% include _v ~ '/pages/learning/collab/flashcard/_desktop_individual.html' %}
-
-    {# --- Chế độ Collab --- #}
-    {% include _v ~ '/pages/learning/collab/flashcard/_desktop_collab.html' %}
-
+    {# Mobile view is already included above via _mobile.html #}
+    {# If _mobile.html contains everything, we don't need extra containers here. #}
 </div>
 {% endblock %}
 
