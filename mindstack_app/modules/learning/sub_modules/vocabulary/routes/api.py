@@ -236,6 +236,14 @@ def api_get_set_detail(set_id):
         from ..logics.stats_logic import get_course_overview_stats
         course_stats = get_course_overview_stats(current_user.user_id, set_id, page=page, per_page=12)
         
+        # DEBUG: Write stats info to file
+        with open('debug_api_stats.txt', 'w', encoding='utf-8') as f:
+            if course_stats:
+                f.write(f"Success! Items count: {len(course_stats.get('items', []))}\n")
+                f.write(f"Pagination: {course_stats.get('pagination')}\n")
+            else:
+                f.write("Success but course_stats is None (Why?)\n")
+
         if course_stats and 'pagination' in course_stats:
              p = course_stats['pagination']
              # Create dummy pagination object - Force page from request to be sure
@@ -254,9 +262,15 @@ def api_get_set_detail(set_id):
 
     except Exception as e:
         import traceback
-        current_app.logger.error(f"ERROR calculating course stats for set {set_id}: {e}\n{traceback.format_exc()}")
-        # Don't fail - just return empty stats
-        course_stats = None
+        err_msg = f"ERROR calculating course stats for set {set_id}: {e}\n{traceback.format_exc()}"
+        current_app.logger.error(err_msg)
+        
+        # DEBUG: Write error to file
+        with open('debug_api_error.txt', 'w', encoding='utf-8') as f:
+            f.write(err_msg)
+            
+        # Return error info to client for debugging
+        course_stats = {'error': str(e), 'trace': traceback.format_exc(), 'items': []}
 
     return jsonify({
         'success': True,

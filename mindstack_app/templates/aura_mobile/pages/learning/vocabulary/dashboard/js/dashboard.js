@@ -411,75 +411,22 @@ document.addEventListener('DOMContentLoaded', function () {
         });
 
         function handleResponsiveView(step) {
-            const desktopView = document.querySelector('.vocab-desktop-view');
+            // Unified Mobile View Logic
             const mobileBrowser = document.getElementById('step-browser');
-            const isDesktop = window.innerWidth >= 1024;
 
-            // Desktop View Containers
-            const desktopDashboard = document.getElementById('desktop-dashboard-view');
-            const desktopDetail = document.getElementById('desktop-detail-view');
-
+            // Always treat as mobile
             if (step === 'browser') {
-                if (isDesktop && desktopView) {
-                    // Desktop: Show Main Dashboard View
-                    if (mobileBrowser) {
-                        mobileBrowser.classList.remove('active');
-                        mobileBrowser.style.display = 'none';
-                    }
-                    desktopView.style.display = 'block';
-                    desktopView.classList.add('active');
-
-                    // View Switching
-                    if (desktopDashboard) desktopDashboard.style.display = 'block';
-                    if (desktopDetail) desktopDetail.style.display = 'none';
-
-                } else {
-                    // Mobile: Show Mobile Browser
-                    if (desktopView) {
-                        desktopView.style.display = 'none';
-                        desktopView.classList.remove('active');
-                    }
-                    if (mobileBrowser) {
-                        mobileBrowser.classList.add('active');
-                        mobileBrowser.style.display = 'flex';
-                    }
-                }
-            } else if (step === 'detail') {
-                if (isDesktop && desktopView) {
-                    // Desktop: Show Detail View
-                    if (mobileBrowser) {
-                        mobileBrowser.classList.remove('active');
-                        mobileBrowser.style.display = 'none';
-                    }
-                    desktopView.style.display = 'block';
-                    desktopView.classList.add('active');
-
-                    // View Switching
-                    if (desktopDashboard) desktopDashboard.style.display = 'none';
-                    if (desktopDetail) desktopDetail.style.display = 'block';
-                } else {
-                    // Mobile: Show Mobile Detail Step
-                    if (desktopView) {
-                        desktopView.style.display = 'none';
-                        desktopView.classList.remove('active');
-                    }
-                    const targetStep = document.getElementById('step-' + step) || document.getElementById(step);
-                    if (targetStep) {
-                        targetStep.style.display = 'flex';
-                    }
+                if (mobileBrowser) {
+                    mobileBrowser.classList.add('active');
+                    mobileBrowser.style.display = 'flex';
                 }
             } else {
-                // Other steps (Modes, Options, etc.) -> Standard Logic
-                // Always hide desktop view (unless we want those steps embedded in desktop too? For now standard full modal-like steps)
-                if (desktopView) {
-                    desktopView.style.display = 'none';
-                    desktopView.classList.remove('active');
-                }
-
-                // Ensure specific step is shown
+                // Detail or other steps
+                // Ensure browser is hidden if needed (though showStep handles generic hiding)
+                // We mainly need to ensure the target step is flex
                 const targetStep = document.getElementById('step-' + step) || document.getElementById(step);
                 if (targetStep) {
-                    targetStep.style.display = isDesktop ? 'block' : 'flex';
+                    targetStep.style.display = 'flex';
                 }
             }
         }

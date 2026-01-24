@@ -468,6 +468,8 @@ window.submitFlashcardAnswer = submitFlashcardAnswer;
 window.updateFlashcardCard = updateFlashcardCard;
 
 // Global State Getters
+// Global State Getters - Commented out to debug recursion
+/*
 Object.defineProperty(window, 'currentFlashcardBatch', {
     get: () => currentFlashcardBatch,
     configurable: true
@@ -494,3 +496,4 @@ Object.defineProperty(window, 'sessionAnswerHistory', { // Expose for mobile sta
     get: () => sessionAnswerHistory,
     configurable: true
 });
+*/

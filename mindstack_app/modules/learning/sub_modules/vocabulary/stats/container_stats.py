@@ -6,6 +6,7 @@ from datetime import datetime
 from sqlalchemy import func
 from mindstack_app.models import LearningItem, ReviewLog, LearningContainer
 from mindstack_app.models.learning_progress import LearningProgress
+from mindstack_app.modules.learning.services.fsrs_service import FsrsService
 
 
 class VocabularyContainerStats:
@@ -106,8 +107,6 @@ class VocabularyContainerStats:
         total_reviews = 0
         last_reviewed = None
         
-        from mindstack_app.modules.learning.services.fsrs_service import FsrsService
-
         for item_id in item_ids:
             progress = progress_map.get(item_id)
             if not progress:

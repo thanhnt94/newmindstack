@@ -23,8 +23,9 @@ document.addEventListener('DOMContentLoaded', function () {
         const continueBtn = document.querySelector('.js-mode-continue');
 
         // --- Navigation Logic ---
+        // --- Navigation Logic ---
         function showStep(step) {
-            console.log("Showing Step:", step);
+            console.log("Showing Step (Unified):", step);
             currentActiveStep = step;
 
             document.querySelectorAll('.vocab-step').forEach(s => {
@@ -32,25 +33,16 @@ document.addEventListener('DOMContentLoaded', function () {
                 s.style.display = 'none';
             });
 
-            const isDesktop = window.innerWidth >= 1024;
-
             if (step === 'detail') {
-                if (isDesktop) {
-                    if (stepDetailDesktop) {
-                        stepDetailDesktop.classList.add('active');
-                        stepDetailDesktop.style.display = 'block';
-                    }
-                } else {
-                    if (stepDetail) {
-                        stepDetail.classList.add('active');
-                        stepDetail.style.display = 'flex';
-                    }
+                if (stepDetail) {
+                    stepDetail.classList.add('active');
+                    stepDetail.style.display = 'flex';
                 }
             } else {
                 const targetStep = document.getElementById('step-' + step) || document.getElementById(step);
                 if (targetStep) {
                     targetStep.classList.add('active');
-                    targetStep.style.display = isDesktop ? 'block' : 'flex';
+                    targetStep.style.display = 'flex';
                 }
             }
             window.scrollTo(0, 0);
@@ -148,10 +140,10 @@ document.addEventListener('DOMContentLoaded', function () {
 
             // Render word list to ALL containers (desktop + mobile)
             const listContainers = document.querySelectorAll('.js-word-list');
-            if (listContainers.length > 0 && stats && stats.items) {
-                let listHtml = '';
 
-                if (stats.items && stats.items.length > 0) {
+            if (listContainers.length > 0) {
+                if (stats && stats.items && stats.items.length > 0) {
+                    let listHtml = '';
                     // Sort: Words needing review (low %) first, new words last
                     const sortedItems = [...stats.items].sort((a, b) => {
                         if (a.status === 'new' && b.status !== 'new') return 1;
@@ -208,47 +200,46 @@ document.addEventListener('DOMContentLoaded', function () {
                     </div>`;
                     });
 
-                    // Render to ALL word list containers
                     listContainers.forEach(container => {
                         container.innerHTML = listHtml;
-                        // Bind click events for item stats
                         container.querySelectorAll('.js-item-stats-trigger').forEach(card => {
                             card.onclick = function (e) {
                                 if (e.target.closest('button') || e.target.closest('a')) return;
                                 const itemId = this.dataset.itemId;
-                                console.log('Word card clicked, itemId:', itemId);
-                                // Try both function names for compatibility
                                 if (itemId) {
                                     if (typeof window.openVocabularyItemStats === 'function') {
                                         window.openVocabularyItemStats(itemId);
                                     } else if (typeof window.openStatsModal === 'function') {
                                         window.openStatsModal(itemId);
-                                    } else {
-                                        console.error('No stats modal function found! Available:', Object.keys(window).filter(k => k.includes('open')));
                                     }
                                 }
                             };
                         });
                     });
-                }
 
-
-                const paginationBars = document.querySelectorAll('.vocab-pagination-bar, .js-detail-pagination-bar-desktop');
-                if (paginationBars.length > 0 && paginationHtml) {
-                    paginationBars.forEach(bar => {
-                        bar.innerHTML = paginationHtml;
-                        bar.classList.add('visible');
-                        bar.querySelectorAll('a').forEach(link => {
-                            link.onclick = (e) => {
-                                e.preventDefault();
-                                const url = new URL(link.href);
-                                fetchCourseStatsPage(url.searchParams.get('page'));
-                            };
-                        });
+                } else {
+                    // Empty state or missing stats
+                    listContainers.forEach(container => {
+                        container.innerHTML = '<div class="text-center py-10 text-slate-400"><i class="fas fa-inbox text-4xl mb-3 opacity-50"></i><p>Chưa có từ vựng nào.</p></div>';
                     });
                 }
             }
-        }
+
+            const paginationBars = document.querySelectorAll('.vocab-pagination-bar, .js-detail-pagination-bar-desktop');
+            if (paginationBars.length > 0 && paginationHtml) {
+                paginationBars.forEach(bar => {
+                    bar.innerHTML = paginationHtml;
+                    bar.classList.add('visible');
+                    bar.querySelectorAll('a').forEach(link => {
+                        link.onclick = (e) => {
+                            e.preventDefault();
+                            const url = new URL(link.href);
+                            fetchCourseStatsPage(url.searchParams.get('page'));
+                        };
+                    });
+                });
+            }
+        } // End renderSetDetail
 
         function fetchCourseStatsPage(page) {
 
@@ -425,32 +416,6 @@ document.addEventListener('DOMContentLoaded', function () {
             if (selectedSetId) loadSetDetail(selectedSetId);
             showStep(currentActiveStep);
 
-            // Handle resize - debounced to avoid thrashing
-            let lastWidth = window.innerWidth;
-            let resizeTimeout;
-            window.addEventListener('resize', function () {
-                clearTimeout(resizeTimeout);
-                resizeTimeout = setTimeout(function () {
-                    const newWidth = window.innerWidth;
-                    const crossedBreakpoint = (lastWidth < 1024 && newWidth >= 1024) || (lastWidth >= 1024 && newWidth < 1024);
-                    if (crossedBreakpoint) {
-                        console.log('Breakpoint crossed, refreshing view');
-                        lastWidth = newWidth;
-                        showStep(currentActiveStep);
-                        if (selectedSetId && selectedSetData) {
-                            // Re-render to ensure both views are updated
-                            fetch('/learn/vocabulary/api/set/' + selectedSetId + '?page=1')
-                                .then(r => r.json())
-                                .then(data => {
-                                    if (data.success) {
-                                        renderSetDetail(data.set, data.course_stats, false, data.pagination_html);
-                                    }
-                                });
-                        }
-                    }
-                    lastWidth = newWidth;
-                }, 250);
-            });
         }
 
         initialize();

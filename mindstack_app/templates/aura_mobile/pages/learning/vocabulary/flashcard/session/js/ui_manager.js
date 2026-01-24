@@ -152,20 +152,10 @@ function setMediaHiddenState(hidden) {
 
 // --- Content Synchronization ---
 
-function setFlashcardContent(desktopHtml, mobileHtml = null) {
+// Simplified for Unified Mobile View
+function setFlashcardContent(html) {
     document.querySelectorAll('.js-flashcard-content').forEach(el => {
-        const isInDesktopView = el.closest('.flashcard-desktop-view');
-        const isInMobileView = el.closest('.flashcard-mobile-view');
-
-        if (mobileHtml !== null) {
-            if (isInDesktopView) {
-                el.innerHTML = desktopHtml;
-            } else if (isInMobileView) {
-                el.innerHTML = mobileHtml;
-            }
-        } else {
-            el.innerHTML = desktopHtml;
-        }
+        el.innerHTML = html;
     });
 }
 
@@ -304,22 +294,22 @@ function renderCard(data) {
         editUrl
     };
 
-    let desktopHtml = "";
+    // Unified Mobile Rendering
     let mobileHtml = "";
 
-    if (window.renderDesktopCardHtml) {
-        desktopHtml = window.renderDesktopCardHtml(data, renderOptions);
-    }
     if (window.renderMobileCardHtml) {
         mobileHtml = window.renderMobileCardHtml(data, renderOptions);
-    }
-
-    if (!desktopHtml && !mobileHtml) {
-        console.error("Render functions not found!");
+    } else {
+        console.error("renderMobileCardHtml function not found!");
         return;
     }
 
-    setFlashcardContent(desktopHtml, mobileHtml);
+    if (!mobileHtml) {
+        console.error("renderMobileCardHtml returned empty content!");
+        return;
+    }
+
+    setFlashcardContent(mobileHtml);
 
     // Explicitly update buttons state
     const btns = document.querySelectorAll('.audio-autoplay-toggle-btn');
@@ -1342,6 +1332,7 @@ window.closeAllSettingsMenus = closeAllSettingsMenus;
 window.toggleSettingsMenu = toggleSettingsMenu;
 
 
+/*
 Object.defineProperty(window, 'isMediaHidden', {
     get: () => isMediaHidden,
     set: (val) => isMediaHidden = val,
@@ -1357,6 +1348,7 @@ Object.defineProperty(window, 'flashcardSessionStats', {
     set: (val) => { window._fStats = val; },
     configurable: true
 });
+*/
 
 /**
  * Cập nhật các chỉ số RPG HUD ("THẺ NÀY" box)
@@ -1561,7 +1553,7 @@ document.addEventListener('flashcardStatsUpdated', function (e) {
 // =========================================
 
 // Track if we should defer audio playback
-let pendingAudioAutoplay = false;
+window.pendingAudioAutoplay = false;
 
 // When notification starts: hide card content and bottom bar
 document.addEventListener('notificationStart', function () {
@@ -1576,7 +1568,7 @@ document.addEventListener('notificationStart', function () {
         bottomBar.style.display = 'none';
     }
     // Set flag so renderCard knows to defer audio
-    pendingAudioAutoplay = true;
+    window.pendingAudioAutoplay = true;
 });
 
 // When notification completes: show card content and play audio

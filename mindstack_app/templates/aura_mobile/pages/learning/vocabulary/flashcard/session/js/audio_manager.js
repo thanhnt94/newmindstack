@@ -405,8 +405,10 @@ window.autoplayDelaySeconds = autoplayDelaySeconds;
 window.currentAutoplayToken = currentAutoplayToken; // used by revealBackSide dependencies
 
 // Add simple getters mainly for external checks if needed
+/*
 Object.defineProperty(window, 'isAudioAutoplayEnabled', {
     get: () => isAudioAutoplayEnabled,
     set: (val) => { isAudioAutoplayEnabled = val; }, // Allow setter
     configurable: true
 });
+*/
