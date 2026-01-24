@@ -1,0 +1,48 @@
+<style>
+    body {
+        font-family: 'Inter', sans-serif;
+        color: #1e293b;
+        /* Slate-800 */
+        font-feature-settings: "cv11", "ss01";
+    }
+
+    .active-link {
+        color: #4f46e5;
+        /* Indigo-600 */
+    }
+
+    /* Animations */
+    @keyframes slide-in-top {
+        from {
+            transform: translateY(-100%);
+            opacity: 0;
+        }
+
+        to {
+            transform: translateY(0);
+            opacity: 1;
+        }
+    }
+
+    .animate-slide-in-top {
+        animation: slide-in-top 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    /* Flashcard Session Fullscreen Logic (Mobile Native) */
+    body.flashcard-session-active {
+        height: 100dvh;
+        overflow: hidden;
+    }
+
+    body.flashcard-session-active>header,
+    body.flashcard-session-active>footer,
+    body.flashcard-session-active .global-bottom-nav {
+        display: none !important;
+    }
+
+    body.flashcard-session-active>main {
+        height: 100%;
+        padding: 0 !important;
+        margin: 0 !important;
+    }
+</style>

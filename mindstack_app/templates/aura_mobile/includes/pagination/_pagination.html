@@ -1,0 +1,15 @@
+{% set _v = template_version | default('aura') %}
+{% from _v ~ '/includes/pagination/_pagination_mobile.html' import render_pagination_mobile with context %}
+{% from _v ~ '/includes/pagination/_pagination_desktop.html' import render_pagination_desktop with context %}
+
+{% macro render_pagination(pagination, search_query=None, set_id=None, search_field=None, current_filter=None) %}
+{# Mobile Version #}
+<div class="lg:hidden w-full">
+    {{ render_pagination_mobile(pagination, search_query, set_id, search_field, current_filter) }}
+</div>
+
+{# Desktop Version #}
+<div class="hidden lg:block w-full">
+    {{ render_pagination_desktop(pagination, search_query, set_id, search_field, current_filter) }}
+</div>
+{% endmacro %}

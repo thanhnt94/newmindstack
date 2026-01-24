@@ -1,0 +1,33 @@
+{# ================= MOBILE LAYOUT LOGIC ================= #}
+
+{% macro css_reset() %}
+<style>
+    /* === GLOBAL MOBILE RESET === */
+    /* Ensures "App-like" feel on mobile without double headers/footers */
+    @media (max-width: 1023px) {
+
+        /* Force hide header/footer just in case logic fails, 
+               though the 'hidden lg:block' classes in desktop macro should handle it. */
+        body>header,
+        body>footer {
+            display: none !important;
+        }
+
+        /* Container Reset: Full width, no padding on mobile main container */
+        body>main.container {
+            max-width: 100% !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            width: 100% !important;
+        }
+
+        /* Body Reset: Prevent double scrollbars, handle height */
+        body {
+            min-height: 100vh;
+            /* Note: We don't force overflow:hidden here globally because 
+                   some pages might need body scroll. We let individual pages 
+                   (like dashboard/mobile) decide if they want to lock scroll. */
+        }
+    }
+</style>
+{% endmacro %}

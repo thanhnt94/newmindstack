@@ -1,0 +1,331 @@
+{# Mobile Interface Partial #}
+<div class="lg:hidden">
+    {# === MOBILE APP HEADER (Collapsible) === #}
+    <div class="qb-mobile-sticky-wrapper">
+        <div class="qb-mobile-header flex-col items-stretch !p-0">
+
+            {# --- Collapsed State: Quiz Title + Toggle Button --- #}
+            <div id="header-collapsed"
+                class="flex items-center justify-between px-3 py-2 bg-gradient-to-r from-indigo-600 to-indigo-700">
+                {# Quiz Badge + Title #}
+                <div class="flex items-center gap-2.5 overflow-hidden max-w-[75%]">
+                    <span
+                        class="flex-shrink-0 flex items-center gap-1 px-2.5 py-1 bg-gradient-to-r from-amber-400 to-amber-500 rounded-lg shadow-md">
+                        <i class="fa-solid fa-bolt text-[10px] text-amber-900"></i>
+                        <span class="text-[10px] font-black text-amber-900 uppercase tracking-wide">Quiz</span>
+                    </span>
+                    <span class="text-sm font-bold text-white truncate js-quiz-set-title"
+                        style="text-shadow: 0 1px 3px rgba(0,0,0,0.3);">Đang
+                        tải...</span>
+                </div>
+
+                {# Score Badge #}
+                <div class="flex items-center gap-1.5 h-8 px-3 bg-white/20 rounded-full">
+                    <i class="fa-solid fa-gem text-amber-300 text-xs"></i>
+                    <span id="header-total-score" class="text-sm font-black text-white font-mono">{{
+                        current_user.total_score }}</span>
+                </div>
+            </div>
+
+            {# --- Stats Row (Always Visible) --- #}
+            <div id="header-expanded" class="bg-white border-b border-slate-200">
+                <div class="flex items-center justify-between px-3 py-2">
+                    {# Stats - 4 distinct groups with tooltips #}
+                    <div class="flex items-center gap-1.5 text-xs">
+                        {# Progress: answered/total #}
+                        <div class="stat-pill flex items-center gap-1 px-2 py-1 bg-slate-100 rounded-lg"
+                            data-tooltip="Tiến độ: Số câu đã làm / Tổng số câu">
+                            <i class="fa-solid fa-list-check text-slate-500 text-[9px]"></i>
+                            <span class="text-slate-700 font-semibold js-stat-progress-text">0/0</span>
+                        </div>
+
+                        {# Correct count #}
+                        <div class="stat-pill flex items-center gap-1 px-2 py-1 bg-emerald-50 rounded-lg"
+                            data-tooltip="Số câu trả lời đúng trong phiên">
+                            <i class="fa-solid fa-check text-emerald-500 text-[9px]"></i>
+                            <span class="text-emerald-600 font-bold js-stat-correct">0</span>
+                        </div>
+
+                        {# Accuracy % #}
+                        <div class="stat-pill flex items-center gap-1 px-2 py-1 bg-blue-50 rounded-lg"
+                            data-tooltip="Tỉ lệ chính xác (%)">
+                            <i class="fa-solid fa-bullseye text-blue-500 text-[9px]"></i>
+                            <span class="text-blue-600 font-bold js-stat-accuracy">0%</span>
+                        </div>
+
+                        {# Session Points #}
+                        <div class="stat-pill flex items-center gap-1 px-2 py-1 bg-amber-50 rounded-lg"
+                            data-tooltip="Điểm kim cương kiếm được trong phiên">
+                            <i class="fa-solid fa-gem text-amber-500 text-[9px]"></i>
+                            <span class="text-amber-600 font-bold font-mono js-stat-session-points">+0</span>
+                        </div>
+                    </div>
+
+                    {# Action Buttons #}
+                    <div class="flex items-center gap-1.5">
+                        <button id="mobile-stats-btn" type="button"
+                            class="w-7 h-7 rounded-full bg-slate-100 text-slate-500 flex items-center justify-center hover:bg-slate-200">
+                            <i class="fa-solid fa-chart-pie text-[10px]"></i>
+                        </button>
+                        <a href="/"
+                            class="w-7 h-7 rounded-full bg-slate-100 text-slate-500 flex items-center justify-center hover:bg-slate-200">
+                            <i class="fa-solid fa-house text-[10px]"></i>
+                        </a>
+                        <button id="mobile-exit-btn"
+                            class="w-7 h-7 rounded-full bg-rose-50 text-rose-500 flex items-center justify-center hover:bg-rose-100">
+                            <i class="fa-solid fa-right-from-bracket text-[10px]"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {# Mobile Tooltip Popup #}
+    <div id="mobile-tooltip"
+        class="fixed z-[999] hidden px-3 py-2 bg-slate-800 text-white text-xs rounded-lg shadow-lg max-w-[200px] text-center"
+        style="pointer-events: none;"></div>
+
+    <script>
+        // Mobile tooltip handler
+        document.addEventListener('DOMContentLoaded', function () {
+            const tooltip = document.getElementById('mobile-tooltip');
+            const pills = document.querySelectorAll('.stat-pill[data-tooltip]');
+
+            pills.forEach(pill => {
+                pill.addEventListener('click', function (e) {
+                    e.stopPropagation();
+                    const text = this.dataset.tooltip;
+                    const rect = this.getBoundingClientRect();
+
+                    tooltip.textContent = text;
+                    tooltip.classList.remove('hidden');
+
+                    // Position below the pill
+                    tooltip.style.left = Math.max(8, rect.left + rect.width / 2 - tooltip.offsetWidth / 2) + 'px';
+                    tooltip.style.top = (rect.bottom + 8) + 'px';
+
+                    // Auto hide after 2s
+                    setTimeout(() => tooltip.classList.add('hidden'), 2000);
+                });
+            });
+
+            // Hide on click elsewhere
+            document.addEventListener('click', () => tooltip.classList.add('hidden'));
+        });
+    </script>
+
+
+
+    <div class="container mx-auto px-2 py-0 max-w-7xl">
+
+        <div class="qb-layout-grid">
+
+            {# --- GAMEPLAY AREA --- #}
+            <div id="tab-pane-game" class="space-y-3">
+
+                <div class="cm-card">
+                    <div class="cm-card-header flex items-center justify-between">
+                        <span class="font-bold text-slate-700 flex items-center gap-2">
+                            <i class="fa-solid fa-circle-question text-blue-500"></i>
+                            <span class="js-question-header">Câu hỏi --</span>
+                        </span>
+                        <div class="flex items-center gap-3">
+                            <div class="inline-block relative marker-dropdown-container">
+                                <button type="button"
+                                    class="text-slate-400 hover:text-blue-500 transition text-lg js-quiz-marker-toggle"
+                                    aria-label="Đánh dấu">
+                                    <i class="far fa-bookmark"></i>
+                                </button>
+                                <div
+                                    class="marker-dropdown hidden absolute top-full right-0 z-50 bg-white border border-gray-200 rounded-xl shadow-lg p-2 min-w-[160px] flex flex-col gap-1 mt-1 origin-top-right">
+                                    <button
+                                        class="flex items-center w-full text-left px-3 py-2 hover:bg-gray-50 rounded-lg text-sm transition-colors text-slate-700 js-quiz-mark-difficult"
+                                        data-type="difficult"><i class="fas fa-fire text-orange-500 mr-2 w-4"></i>Khó
+                                        (Difficult)</button>
+                                    <button
+                                        class="flex items-center w-full text-left px-3 py-2 hover:bg-gray-50 rounded-lg text-sm transition-colors text-slate-700 js-quiz-mark-ignored"
+                                        data-type="ignored"><i class="fas fa-eye-slash text-slate-400 mr-2 w-4"></i>Bỏ
+                                        qua (Ignore)</button>
+                                    <button
+                                        class="flex items-center w-full text-left px-3 py-2 hover:bg-gray-50 rounded-lg text-sm transition-colors text-slate-700 js-quiz-mark-favorite"
+                                        data-type="favorite"><i class="fas fa-heart text-rose-500 mr-2 w-4"></i>Yêu
+                                        thích</button>
+                                </div>
+                            </div>
+
+                            <button type="button" id="mobile-edit-btn"
+                                class="hidden text-orange-500 hover:text-orange-600 transition" aria-label="Chỉnh sửa">
+                                <i class="fa-solid fa-pen-to-square text-lg"></i>
+                            </button>
+                            <button type="button" id="mobile-transcript-btn"
+                                class="text-slate-400 hover:text-slate-600 transition hidden" aria-label="Transcript">
+                                <i class="fa-solid fa-file-lines text-lg"></i>
+                            </button>
+                            <button type="button" id="mobile-feedback-btn"
+                                class="text-slate-400 hover:text-slate-600 transition" aria-label="Báo lỗi">
+                                <i class="fa-regular fa-flag text-lg"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="cm-card-body relative">
+                        <!-- Loading State -->
+                        <div class="flex flex-col items-center justify-center py-12 text-blue-500 js-quiz-loading">
+                            <i class="fas fa-spinner fa-spin text-4xl mb-3"></i>
+                            <p>Đang tải câu hỏi...</p>
+                        </div>
+
+                        <!-- Question Content -->
+                        <div class="hidden js-quiz-content">
+                            <h2 class="qb-question-text js-question-text">--</h2>
+                            <div class="qb-question-media hidden js-question-media"></div>
+
+                            <div class="qb-options-grid mt-4 js-options-grid">
+                                <!-- Options injected here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Feedback / Result Panel (Fixed Bottom Sheet on Mobile) -->
+                <div id="mobile-result-panel" class="cm-card border-l-4 border-l-blue-500 hidden js-result-panel">
+                    <div class="cm-card-body p-4">
+                        <div class="flex flex-col gap-3">
+                            <!-- Header -->
+                            <div class="flex items-center gap-3">
+                                <div class="text-3xl js-feedback-icon p-2 bg-slate-50 rounded-full shadow-sm">💡</div>
+                                <h3 class="text-xl font-bold text-slate-900 js-feedback-title">Kết quả</h3>
+                            </div>
+
+                            <!-- Focused Correct Answer Box (HIDDEN - Now using option highlighting) -->
+                            <div
+                                class="bg-emerald-50 rounded-xl p-3 border border-emerald-100 flex items-center justify-between shadow-sm hidden">
+                                <span class="text-sm font-bold text-emerald-800 uppercase tracking-wide">Đáp án chính
+                                    xác</span>
+                                <span
+                                    class="bg-white text-emerald-600 text-2xl font-black px-5 py-1 rounded-lg shadow-sm border border-emerald-100 js-feedback-answer min-w-[3rem] text-center">--</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            {# --- STATS MODAL (Replaces Tab) --- #}
+            <div id="mobile-stats-modal" class="qb-modal-overlay">
+                <div class="qb-modal-container bg-slate-50 rounded-t-2xl h-[85vh]">
+                    <!-- Header -->
+                    <div class="qb-hub-header border-b border-slate-200 bg-white rounded-t-2xl">
+                        <h3 class="font-bold text-slate-800 text-lg flex items-center">
+                            <i class="fa-solid fa-chart-pie text-blue-600 mr-2"></i>Thống kê
+                        </h3>
+                        <button id="close-stats-btn"
+                            class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center hover:bg-slate-200">
+                            <i class="fa-solid fa-xmark text-slate-500"></i>
+                        </button>
+                    </div>
+
+                    <div class="qb-hub-content p-4 space-y-6 overflow-y-auto">
+                        <div class="cm-card">
+                            <div class="cm-card-header">
+                                <span class="font-bold text-emerald-600"><i class="fa-solid fa-trophy mr-2"></i>Tổng
+                                    quan phiên</span>
+                            </div>
+                            <div class="cm-card-body">
+                                <div class="grid grid-cols-2 gap-4 text-center">
+                                    <div class="p-3 bg-slate-50 rounded-lg border border-slate-100">
+                                        <div class="text-xs text-slate-500 uppercase">Đã làm</div>
+                                        <div class="text-2xl font-bold text-slate-800 js-stat-total">0</div>
+                                    </div>
+                                    <div class="p-3 bg-emerald-50 rounded-lg border border-emerald-100">
+                                        <div class="text-xs text-emerald-600 uppercase">Chính xác</div>
+                                        <div class="text-2xl font-bold text-emerald-700 js-stat-accuracy">0%</div>
+                                    </div>
+                                </div>
+                                <div class="mt-4">
+                                    <div class="flex justify-between text-xs text-slate-500 mb-1">
+                                        <span>Tiến độ</span>
+                                        <span class="js-stat-progress-text">0/0</span>
+                                    </div>
+                                    <div class="w-full bg-slate-100 rounded-full h-2.5">
+                                        <div class="bg-blue-600 h-2.5 rounded-full js-stat-progress-bar"
+                                            style="width: 0%">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Question Stats Card -->
+                        <div class="cm-card">
+                            <div class="cm-card-header flex justify-between items-center">
+                                <span class="font-bold text-blue-600"><i class="fa-solid fa-list-check mr-2"></i>Câu hỏi
+                                    này</span>
+                                <a href="#" id="mobile-question-stats-link" target="_blank"
+                                    class="text-xs text-blue-500 hover:text-blue-700 font-semibold"><i
+                                        class="fa-solid fa-chart-pie"></i> Chi tiết</a>
+                            </div>
+                            <div class="cm-card-body space-y-4">
+                                <!-- Key Metrics Grid -->
+                                <div class="grid grid-cols-2 gap-3 text-center">
+                                    <div class="p-3 bg-slate-50 rounded-lg border border-slate-100">
+                                        <div class="text-[10px] text-slate-500 uppercase font-bold">Lần làm</div>
+                                        <div class="text-lg font-bold text-slate-800 js-qstat-times">0</div>
+                                    </div>
+                                    <div class="p-3 bg-blue-50 rounded-lg border border-blue-100">
+                                        <div class="text-[10px] text-blue-600 uppercase font-bold">Chính xác</div>
+                                        <div class="text-lg font-bold text-blue-700 js-qstat-accuracy">0%</div>
+                                    </div>
+                                    <div class="p-3 bg-orange-50 rounded-lg border border-orange-100">
+                                        <div class="text-[10px] text-orange-600 uppercase font-bold">Chuỗi đúng</div>
+                                        <div class="text-lg font-bold text-orange-700 js-qstat-streak">0</div>
+                                    </div>
+                                    <div class="p-3 bg-slate-50 rounded-lg border border-slate-100">
+                                        <div class="text-[10px] text-slate-500 uppercase font-bold">Gần nhất</div>
+                                        <div class="text-sm font-bold text-slate-700 mt-1 js-qstat-last">--</div>
+                                    </div>
+                                </div>
+
+                                <!-- Breakdown -->
+                                <div class="flex items-center gap-2 text-xs font-medium">
+                                    <div
+                                        class="flex-1 bg-emerald-100 text-emerald-700 px-3 py-2 rounded flex justify-between items-center">
+                                        <span>Đúng</span>
+                                        <span class="font-bold js-qstat-correct">0</span>
+                                    </div>
+                                    <div
+                                        class="flex-1 bg-rose-100 text-rose-700 px-3 py-2 rounded flex justify-between items-center">
+                                        <span>Sai</span>
+                                        <span class="font-bold js-qstat-incorrect">0</span>
+                                    </div>
+                                </div>
+
+                                <!-- Mini History -->
+                                <div>
+                                    <h5 class="text-xs font-bold text-slate-400 uppercase mb-2">Lịch sử gần đây</h5>
+                                    <div class="space-y-2 js-qstat-history text-sm text-slate-600">
+                                        <div class="text-center text-xs text-slate-400 italic">Chưa có dữ liệu</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    {# === MOBILE BOTTOM BAR === #}
+    <div class="qb-bottom-bar">
+        <button type="button" id="open-hub-btn"
+            class="qb-mobile-chat-toggle bg-indigo-50 text-indigo-600 border-indigo-200 hidden"
+            aria-label="Mở chi tiết">
+            <i class="fa-solid fa-lightbulb text-xl"></i>
+        </button>
+
+        <button type="button" id="mobile-action-btn" class="cm-btn cm-btn-primary w-full shadow-lg" disabled>
+            <i class="fa-solid fa-paper-plane"></i> Gửi đáp án
+        </button>
+    </div>
+</div>

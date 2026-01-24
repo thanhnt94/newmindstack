@@ -1,0 +1,228 @@
+{# ================= MOBILE BOTTOM NAV ================= #}
+<div class="global-bottom-nav fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 lg:hidden z-40 pb-safe">
+    {# Pass active_page parameter to highlight current page, e.g. active_page='home' #}
+
+    {# === BOTTOM TAB BAR WITH LEARNING MENU === #}
+    <div class="flex-shrink-0 relative z-30">
+        <!-- Learning Menu Overlay with Blur -->
+        <div id="arcMenuOverlay"
+            class="fixed inset-0 bg-gradient-to-b from-black/40 to-black/60 backdrop-blur-md opacity-0 pointer-events-none transition-all duration-300 z-40">
+        </div>
+
+        <!-- Learning Menu - Compact Floating Cards -->
+        <div id="arcMenu"
+            class="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-0 pointer-events-none transition-all duration-300 z-50">
+            <div class="flex flex-col items-center gap-4 w-[85vw] max-w-[320px]">
+                <!-- Logo & Brand -->
+                <div class="flex flex-col items-center mb-1 arc-item">
+                    <div
+                        class="w-14 h-14 bg-gradient-to-br from-indigo-600 to-violet-600 rounded-2xl shadow-xl flex items-center justify-center border-3 border-white/25 mb-1.5 backdrop-blur-md">
+                        <i class="fa-solid fa-brain text-2xl text-white filter drop-shadow-md"></i>
+                    </div>
+                    <h1 class="text-2xl font-black text-white tracking-tight drop-shadow-lg">MindStack</h1>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3 w-full">
+                    <!-- Quiz (Left) -->
+                    <a href="{{ url_for('learning.quiz_learning.dashboard') }}"
+                        class="flex flex-col items-center justify-center text-center gap-2 bg-gradient-to-br from-emerald-500 to-teal-500 text-white p-4 rounded-2xl shadow-lg hover:shadow-emerald-500/50 active:scale-95 transition-all arc-item border border-white/20">
+                        <div
+                            class="w-14 h-14 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center shadow-md">
+                            <i class="fa-solid fa-circle-question text-3xl"></i>
+                        </div>
+                        <div>
+                            <p class="text-base font-bold leading-tight">Quiz</p>
+                            <p class="text-[10px] opacity-90 font-medium mt-0.5">Luyện tập câu hỏi</p>
+                        </div>
+                    </a>
+
+                    <!-- Practice (Right) -->
+                    <a href="{{ url_for('learning.practice.practice_hub') }}"
+                        class="flex flex-col items-center justify-center text-center gap-2 bg-gradient-to-br from-amber-500 to-orange-500 text-white p-4 rounded-2xl shadow-lg hover:shadow-amber-500/50 active:scale-95 transition-all arc-item border border-white/20">
+                        <div
+                            class="w-14 h-14 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center shadow-md">
+                            <i class="fa-solid fa-dumbbell text-3xl"></i>
+                        </div>
+                        <div>
+                            <p class="text-base font-bold leading-tight">Practice</p>
+                            <p class="text-[10px] opacity-90 font-medium mt-0.5">Ôn tập đa bộ thẻ</p>
+                        </div>
+                    </a>
+
+                    <!-- Vocabulary (Left) -->
+                    <a href="{{ url_for('learning.vocabulary.dashboard') }}"
+                        class="flex flex-col items-center justify-center text-center gap-2 bg-gradient-to-br from-blue-500 to-indigo-500 text-white p-4 rounded-2xl shadow-lg hover:shadow-blue-500/50 active:scale-95 transition-all arc-item border border-white/20">
+                        <div
+                            class="w-14 h-14 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center shadow-md">
+                            <i class="fa-solid fa-book-open text-3xl"></i>
+                        </div>
+                        <div>
+                            <p class="text-base font-bold leading-tight">Vocabulary</p>
+                            <p class="text-[10px] opacity-90 font-medium mt-0.5">Học từ vựng</p>
+                        </div>
+                    </a>
+
+                    <!-- Collab (Right) -->
+                    <a href="{{ url_for('learning.collab.dashboard') }}"
+                        class="flex flex-col items-center justify-center text-center gap-2 bg-gradient-to-br from-pink-500 to-rose-500 text-white p-4 rounded-2xl shadow-lg hover:shadow-pink-500/50 active:scale-95 transition-all arc-item border border-white/20">
+                        <div
+                            class="w-14 h-14 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center shadow-md">
+                            <i class="fa-solid fa-users text-3xl"></i>
+                        </div>
+                        <div>
+                            <p class="text-base font-bold leading-tight">Collab</p>
+                            <p class="text-[10px] opacity-90 font-medium mt-0.5">Học nhóm</p>
+                        </div>
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bottom Navigation Bar - Compact Modern Style -->
+        <div class="relative">
+            <!-- Main Nav Bar -->
+            <div class="relative bg-white border-t border-slate-100 shadow-[0_-2px_12px_rgba(0,0,0,0.06)]"
+                style="padding-bottom: env(safe-area-inset-bottom, 0px);">
+                <div class="flex justify-between items-center px-4 py-2">
+                    <!-- 1. Home -->
+                    <a href="{{ url_for('dashboard.dashboard') }}"
+                        class="flex flex-col items-center gap-1 transition-all hover:scale-105 group relative min-w-[52px]">
+                        {% if active_page == 'home' %}
+                        <div
+                            class="w-12 h-12 rounded-2xl bg-indigo-600 shadow-lg shadow-indigo-500/40 flex items-center justify-center transition-all -mt-2">
+                            <i class="fa-solid fa-house text-white text-xl"></i>
+                        </div>
+                        {% else %}
+                        <i
+                            class="fa-solid fa-house text-slate-400 text-xl group-hover:text-indigo-600 transition-colors"></i>
+                        <span
+                            class="text-[10px] font-semibold text-slate-400 group-hover:text-indigo-600 transition-colors">Home</span>
+                        {% endif %}
+                    </a>
+
+                    <!-- 2. Goals -->
+                    <a href="{{ url_for('goals.manage_goals') }}"
+                        class="flex flex-col items-center gap-1 transition-all hover:scale-105 group relative min-w-[52px]">
+                        {% if active_page == 'goals' %}
+                        <div
+                            class="w-12 h-12 rounded-2xl bg-amber-500 shadow-lg shadow-amber-500/40 flex items-center justify-center transition-all -mt-2">
+                            <i class="fa-solid fa-bullseye text-white text-xl"></i>
+                        </div>
+                        {% else %}
+                        <i
+                            class="fa-solid fa-bullseye text-slate-400 text-xl group-hover:text-amber-500 transition-colors"></i>
+                        <span
+                            class="text-[10px] font-semibold text-slate-400 group-hover:text-amber-600 transition-colors">Mục
+                            tiêu</span>
+                        {% endif %}
+                    </a>
+
+                    <!-- 3. Learn (Center - Elevated) -->
+                    <button id="learnButton"
+                        class="flex flex-col items-center -mt-8 transition-all hover:scale-105 relative group min-w-[52px]">
+                        <!-- Glow Ring -->
+                        <div
+                            class="absolute -inset-2 bg-gradient-to-br from-purple-500 via-pink-500 to-purple-500 rounded-full blur-xl opacity-40 animate-pulse">
+                        </div>
+
+                        <!-- Main Button -->
+                        <div class="relative">
+                            <div
+                                class="w-[60px] h-[60px] rounded-full bg-gradient-to-br from-purple-600 via-purple-500 to-pink-500 flex items-center justify-center transition-all shadow-xl shadow-purple-500/50 border-4 border-white group-hover:shadow-purple-500/70 group-active:scale-95">
+                                <i id="learnIcon"
+                                    class="fa-solid fa-brain text-white text-[26px] transition-transform duration-300"></i>
+                            </div>
+                        </div>
+                    </button>
+
+                    <!-- 4. Stats -->
+                    <a href="{{ url_for('stats.dashboard') }}"
+                        class="flex flex-col items-center gap-1 transition-all hover:scale-105 group relative min-w-[52px]">
+                        {% if active_page == 'stats' %}
+                        <div
+                            class="w-12 h-12 rounded-2xl bg-cyan-500 shadow-lg shadow-cyan-500/40 flex items-center justify-center transition-all -mt-2">
+                            <i class="fa-solid fa-chart-line text-white text-xl"></i>
+                        </div>
+                        {% else %}
+                        <i
+                            class="fa-solid fa-chart-line text-slate-400 text-xl group-hover:text-cyan-500 transition-colors"></i>
+                        <span
+                            class="text-[10px] font-semibold text-slate-400 group-hover:text-cyan-600 transition-colors">Thống
+                            kê</span>
+                        {% endif %}
+                    </a>
+
+                    <!-- 5. Profile -->
+                    <a href="{{ url_for('user_profile.view_profile') }}"
+                        class="flex flex-col items-center gap-1 transition-all hover:scale-105 group relative min-w-[52px]">
+                        {% if active_page == 'profile' %}
+                        <div
+                            class="w-12 h-12 rounded-2xl bg-rose-500 shadow-lg shadow-rose-500/40 flex items-center justify-center transition-all -mt-2">
+                            <i class="fa-solid fa-user text-white text-xl"></i>
+                        </div>
+                        {% else %}
+                        <i
+                            class="fa-solid fa-user text-slate-400 text-xl group-hover:text-rose-500 transition-colors"></i>
+                        <span
+                            class="text-[10px] font-semibold text-slate-400 group-hover:text-rose-600 transition-colors">Cá
+                            nhân</span>
+                        {% endif %}
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Learning Menu Toggle
+    const learnButton = document.getElementById('learnButton');
+    const arcMenu = document.getElementById('arcMenu');
+    const arcMenuOverlay = document.getElementById('arcMenuOverlay');
+    const learnIcon = document.getElementById('learnIcon');
+    let isArcMenuOpen = false;
+
+    function toggleArcMenu() {
+        isArcMenuOpen = !isArcMenuOpen;
+
+        if (isArcMenuOpen) {
+            arcMenu.classList.remove('opacity-0', 'pointer-events-none');
+            arcMenu.classList.add('opacity-100', 'pointer-events-auto');
+            arcMenuOverlay.classList.remove('opacity-0', 'pointer-events-none');
+            arcMenuOverlay.classList.add('opacity-100', 'pointer-events-auto');
+            learnIcon.style.transform = 'rotate(180deg)';
+
+            const arcItems = document.querySelectorAll('.arc-item');
+            arcItems.forEach((item, index) => {
+                setTimeout(() => {
+                    item.style.transform = 'translateY(0) scale(1)';
+                    item.style.opacity = '1';
+                }, index * 80);
+            });
+        } else {
+            arcMenu.classList.add('opacity-0', 'pointer-events-none');
+            arcMenu.classList.remove('opacity-100', 'pointer-events-auto');
+            arcMenuOverlay.classList.add('opacity-0', 'pointer-events-none');
+            arcMenuOverlay.classList.remove('opacity-100', 'pointer-events-auto');
+            learnIcon.style.transform = 'rotate(0deg)';
+
+            const arcItems = document.querySelectorAll('.arc-item');
+            arcItems.forEach(item => {
+                item.style.transform = 'translateY(20px) scale(0.8)';
+                item.style.opacity = '0';
+            });
+        }
+    }
+
+    learnButton.addEventListener('click', toggleArcMenu);
+    arcMenuOverlay.addEventListener('click', toggleArcMenu);
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const arcItems = document.querySelectorAll('.arc-item');
+        arcItems.forEach(item => {
+            item.style.transform = 'translateY(20px) scale(0.8)';
+            item.style.opacity = '0';
+            item.style.transition = 'all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)';
+        });
+    });
+</script>

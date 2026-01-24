@@ -1,0 +1,77 @@
+{% set _v = template_version %}
+{% from _v ~ '/includes/pagination/_pagination_mobile.html' import render_pagination_mobile %}
+
+<div class="w-full space-y-3">
+    {% if quiz_sets %}
+    <div class="space-y-3">
+        {% if current_filter == 'doing' and quiz_sets|length >= 2 %}
+        <div class="quiz-set-item bg-blue-50 p-4 rounded-lg border border-blue-200 cursor-pointer transition-colors duration-200 flex justify-between items-center"
+            data-set-id="all" data-total-items="all" data-title="Tất cả các bộ">
+            <div>
+                <h3 class="font-semibold text-blue-800 flex items-center"><i
+                        class="fas fa-infinity mr-2 text-blue-600"></i> Làm tất cả các bộ</h3>
+            </div>
+        </div>
+        {% endif %}
+
+        {% for set in quiz_sets %}
+        {% set is_disabled = (set.total_items == 0) %}
+        {% set set_state = set.user_state | default({'is_archived': false}) %}
+        <div class="quiz-set-item bg-white p-4 rounded-2xl shadow-sm border border-slate-200 overflow-hidden transition-all duration-300 relative {% if is_disabled %}opacity-60 grayscale{% else %}cursor-pointer active:scale-[0.98]{% endif %} {% if set_state.is_archived %}bg-slate-50{% endif %}"
+            data-set-id="{{ set.container_id }}" data-total-items="{{ set.total_items }}"
+            data-completion-percentage="{{ set.completion_percentage | default(0) | int }}"
+            data-title="{{ set.title }}">
+
+            <!-- Thanh tiến độ - Slim & Subtle -->
+            <div class="absolute bottom-0 left-0 h-1 rounded-full transition-all duration-500"
+                style="width: {{ set.completion_percentage | default(0) }}%; background: #3b82f6; opacity: 0.8;"></div>
+
+            <div class="relative z-10 flex justify-between items-start w-full gap-3">
+                <div class="flex-grow min-w-0">
+                    <h3 class="font-bold text-slate-800 text-base leading-tight mb-1 truncate">{{ set.title }}</h3>
+                    <div class="flex items-center text-xs text-slate-500 space-x-2">
+                        <span
+                            class="bg-slate-100 px-2 py-0.5 rounded text-slate-600 font-medium truncate max-w-[100px]">{{
+                            set.creator.username }}</span>
+                        {% if set.completion_percentage and set.completion_percentage > 0 %}
+                        <span class="text-blue-600 font-semibold">{{ set.completion_percentage | int }}%</span>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="flex-shrink-0 flex items-center gap-3">
+                    {# Nút Archive/Unarchive #}
+                    {% if current_filter != 'archive' %}
+                    <div class="archive-icon w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-100 text-slate-400 transition-colors"
+                        data-set-id="{{ set.container_id }}">
+                        <i class="fas fa-archive {% if set_state.is_archived %}text-blue-500{% endif %}"></i>
+                    </div>
+                    {% endif %}
+
+                    {# Hiển thị số lượng câu hỏi - Badge style #}
+                    <div
+                        class="flex flex-col items-center justify-center bg-slate-50 rounded-lg px-2.5 py-1 min-w-[3rem] border border-slate-100">
+                        <span class="text-sm font-bold text-slate-700 leading-none">
+                            {% if current_filter == 'doing' %}
+                            {{ set.item_count_display }}
+                            {% else %}
+                            {{ set.total_items }}
+                            {% endif %}
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    {{ render_pagination_mobile(pagination=pagination, search_query=search_query, search_field=search_field,
+    current_filter=current_filter) }}
+    {% else %}
+    <div class="text-center py-12 px-6 text-gray-600">
+        <i class="fas fa-question-circle text-5xl text-gray-300 mb-4"></i>
+        <p>Không tìm thấy bộ câu hỏi nào phù hợp.</p>
+        <p class="text-sm text-gray-500 mt-2">Hãy thử thay đổi bộ lọc hoặc tìm kiếm.</p>
+    </div>
+    {% endif %}
+</div>

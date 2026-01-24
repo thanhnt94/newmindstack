@@ -1,0 +1,65 @@
+<!-- Memory Power Widget HTML Template -->
+<!-- Include this in flashcard session templates where you want to display Memory Power -->
+
+<div id="memory-power-widget" class="memory-power-widget" style="display: none;">
+    <!-- Header with main Memory Power percentage -->
+    <div class="mp-header">
+        <span class="mp-title">📊 Mức độ ghi nhớ</span>
+        <span class="mp-value mp-medium">0.0%</span>
+    </div>
+
+    <!-- Breakdown showing stability and retention -->
+    <div class="mp-breakdown">
+        <!-- Stability Row -->
+        <div class="mp-row">
+            <div class="mp-row-header">
+                <span>Độ bền bộ nhớ (Stability)</span>
+                <span class="mp-label-mastery">0.0%</span>
+            </div>
+            <div class="mp-bar-container">
+                <div class="mp-bar mp-bar-mastery" style="width: 0%"></div>
+            </div>
+        </div>
+
+        <!-- Retention Row -->
+        <div class="mp-row">
+            <div class="mp-row-header">
+                <span>Khả năng nhớ (Retention)</span>
+                <span class="mp-label-retention">0.0%</span>
+            </div>
+            <div class="mp-bar-container">
+                <div class="mp-bar mp-bar-retention" style="width: 0%"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer with streak and next review -->
+    <div class="mp-footer">
+        <span class="mp-streak"></span>
+        <span class="mp-next-review">Next review: --</span>
+    </div>
+</div>
+
+<!-- 
+Usage Instructions:
+1. Include this HTML in your template
+2. Include memory_power_widget.css in your <head>
+3. Include memory_power_widget.js before </body>
+4. Call updateMemoryPowerFromResponse(response) after each answer
+
+Example JavaScript integration:
+```javascript
+// After submitting answer and getting response
+fetch('/flashcard/answer', {
+    method: 'POST',
+    body: JSON.stringify({quality: 4})
+})
+.then(r => r.json())
+.then(response => {
+    // Update other UI...
+    
+    // Update Memory Power widget
+    updateMemoryPowerFromResponse(response);
+});
+```
+-->

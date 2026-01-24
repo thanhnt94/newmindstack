@@ -1,0 +1,645 @@
+<!-- File: newmindstack/mindstack_app/modules/content_management/templates/quizzes/_add_edit_quiz_set_bare.html -->
+<!-- Phiên bản: 2.0 (Refactored to match Flashcard Style) -->
+
+{% set previous_set_id = previous_set_id | default(None) %}
+{% set next_set_id = next_set_id | default(None) %}
+{% set is_modal_view = request.args.get('is_modal') == 'true' %}
+{% set modal_suffix = '?is_modal=true' if is_modal_view else '' %}
+{% set form_action = form_action | default(request.path) %}
+
+<!-- Dependencies locally scoped for this partial -->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+    /* Force iframe background to be transparent */
+    html,
+    body {
+        background-color: transparent !important;
+        margin: 0;
+        padding: 0;
+    }
+
+    /* Scoped styles for the modal content */
+    .edit-modal-content-wrapper {
+        font-family: 'Inter', sans-serif;
+        background-color: transparent;
+        width: 100%;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        padding: 1rem;
+    }
+
+    .edit-modal-content-wrapper *,
+    .edit-modal-content-wrapper ::before,
+    .edit-modal-content-wrapper ::after {
+        box-sizing: border-box;
+    }
+
+    /* Custom Scrollbar */
+    .custom-scrollbar::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 4px;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+        background: #d1d5db;
+        border-radius: 4px;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+        background: #9ca3af;
+    }
+</style>
+
+<div class="edit-modal-content-wrapper">
+
+    <!-- Modal Card Container -->
+    <div
+        class="w-full max-w-2xl bg-white rounded-xl shadow-xl flex flex-col max-h-[90vh] relative overflow-hidden ring-1 ring-gray-200">
+
+        <form id="quizSetForm" action="{{ form_action }}" method="post" enctype="multipart/form-data"
+            class="flex flex-col h-auto bg-white overflow-hidden min-h-0">
+            {{ form.csrf_token }}
+
+            <!-- Top Navbar (Fixed Actions) -->
+            <div class="flex-none flex items-center justify-between py-3 px-4 border-b border-gray-100 bg-white z-20">
+                <div class="flex items-center gap-4">
+                    <h2 class="text-lg font-bold text-gray-800">{{ title }}</h2>
+                    {% if template_excel_url %}
+                    <a href="{{ template_excel_url }}" target="_blank"
+                        class="hidden sm:inline-flex items-center gap-1.5 text-xs text-blue-600 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-md transition-colors font-medium">
+                        <i class="fas fa-file-download"></i>
+                        <span>Template Excel</span>
+                    </a>
+                    {% endif %}
+                </div>
+                <div class="flex items-center gap-2">
+                    <!-- Navigation Buttons -->
+                    {% if previous_set_id %}
+                    <a href="{{ url_for('.edit_quiz_set', set_id=previous_set_id) }}{{ modal_suffix }}"
+                        class="text-blue-600 hover:bg-blue-50 px-3 py-1.5 rounded-lg text-sm transition-colors"
+                        title="Bộ trước">
+                        <i class="fas fa-chevron-left"></i>
+                    </a>
+                    {% endif %}
+                    {% if next_set_id %}
+                    <a href="{{ url_for('.edit_quiz_set', set_id=next_set_id) }}{{ modal_suffix }}"
+                        class="text-blue-600 hover:bg-blue-50 px-3 py-1.5 rounded-lg text-sm transition-colors"
+                        title="Bộ sau">
+                        <i class="fas fa-chevron-right"></i>
+                    </a>
+                    {% endif %}
+
+                    <button type="button" data-role="close-editor"
+                        class="text-gray-500 hover:text-gray-700 hover:bg-gray-100 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors">
+                        Hủy
+                    </button>
+                    <button type="submit"
+                        class="bg-blue-600 text-white px-4 py-1.5 rounded-lg hover:bg-blue-700 text-sm font-bold transition-colors shadow-sm flex items-center gap-2">
+                        <i class="fas fa-save"></i>
+                        Lưu
+                    </button>
+                </div>
+            </div>
+
+            <!-- Scrollable Content Area -->
+            <div class="flex-1 overflow-y-auto custom-scrollbar min-h-0 px-6 py-4">
+
+                <!-- Global Excel Upload Section -->
+                <div class="flex-none mb-6 space-y-3">
+                    <div class="flex items-center justify-between">
+                        <label class="block text-sm font-semibold text-gray-700">
+                            {{ form.excel_file.label.text }}
+                            <span
+                                class="text-xs text-green-600 font-bold ml-1 bg-green-50 px-2 py-0.5 rounded-full border border-green-100">Auto-fill</span>
+                        </label>
+                        <button type="button"
+                            class="text-xs text-red-500 hover:text-red-700 transition hidden font-medium"
+                            data-role="excel-clear">
+                            <i class="fas fa-trash-alt mr-1"></i>Xóa file
+                        </button>
+                    </div>
+
+                    <div data-role="excel-drop-zone" role="button" tabindex="0"
+                        class="relative group border-2 border-dashed border-gray-300 hover:border-blue-400 rounded-xl bg-gray-50 hover:bg-blue-50/30 px-6 py-6 text-center transition-all duration-300 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400">
+                        <input id="excel_file_input" type="file" name="{{ form.excel_file.name }}" class="hidden"
+                            accept="{{ (quiz_config.QUIZ_ALLOWED_EXTENSIONS or ['.xlsx']) | join(',') }}">
+
+                        <div class="flex items-center justify-center gap-4 pointer-events-none transition-transform group-hover:scale-105"
+                            data-role="excel-placeholder">
+                            <div class="relative flex-none">
+                                <span
+                                    class="flex h-10 w-10 items-center justify-center rounded-xl bg-white shadow-sm border border-gray-100 text-green-600">
+                                    <i class="fas fa-file-excel text-xl"></i>
+                                </span>
+                                <span
+                                    class="absolute -bottom-1 -right-1 h-4 w-4 bg-blue-500 rounded-full text-white flex items-center justify-center text-[10px] shadow-md">
+                                    <i class="fas fa-plus"></i>
+                                </span>
+                            </div>
+
+                            <div class="text-left">
+                                <p class="text-sm font-semibold text-gray-700">Tải lên file Excel</p>
+                                <p class="text-xs text-gray-500 mt-0.5">Kéo thả hoặc bấm để chọn file .xlsx</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white border border-blue-100 shadow-sm rounded-xl p-3 hidden flex items-start gap-3"
+                        data-role="excel-file-summary">
+                        <div
+                            class="h-8 w-8 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600 shrink-0">
+                            <i class="fas fa-file-alt text-sm"></i>
+                        </div>
+                        <div>
+                            <p class="text-sm font-bold text-gray-800 flex items-center gap-2"
+                                data-role="excel-file-name">
+                                Chưa chọn file
+                            </p>
+                            <p class="text-xs text-gray-500 mt-0.5" data-role="excel-file-meta"></p>
+                        </div>
+                    </div>
+
+                    <!-- Column Analysis Report -->
+                    <div class="bg-white border border-gray-200 shadow-sm rounded-xl p-3 hidden space-y-2"
+                        data-role="excel-analysis-report">
+                        <div class="flex justify-between items-center border-b border-gray-100 pb-2">
+                            <h4 class="text-xs font-bold text-gray-500 uppercase tracking-wider">Kết quả phân tích</h4>
+                            <span class="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded font-medium"
+                                data-role="column-count"></span>
+                        </div>
+                        <div data-role="analysis-grid" class="space-y-2 text-sm">
+                            <!-- Dynamic content -->
+                        </div>
+                    </div>
+                    <p class="text-sm hidden text-center font-medium" data-role="excel-status"></p>
+                </div>
+
+                <!-- Modern Segmented Tab Navigation -->
+                <div class="sticky top-0 bg-white/95 backdrop-blur z-10 py-2 mb-4 border-b border-gray-100">
+                    <div class="bg-gray-100/80 p-1 rounded-xl flex gap-1 overflow-x-auto">
+                        <button type="button" data-main-tab="info"
+                            class="flex-1 px-4 py-2 text-sm font-semibold rounded-lg transition-all duration-200 flex items-center justify-center gap-2 shadow-sm bg-white text-blue-600 ring-1 ring-black/5">
+                            <i class="fas fa-info-circle text-blue-500"></i>
+                            Thông tin
+                        </button>
+                        <button type="button" data-main-tab="resources"
+                            class="flex-1 px-4 py-2 text-sm font-medium text-gray-500 rounded-lg hover:bg-gray-200/50 hover:text-gray-700 transition-all duration-200 flex items-center justify-center gap-2">
+                            <i class="fas fa-layer-group"></i>
+                            Tài nguyên
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Tab 1: Info Only -->
+                <div id="tab-main-info" class="main-tab-content space-y-5 block animate-fade-in">
+                    <div>
+                        {{ form.title.label(class="block text-sm font-semibold text-gray-700 mb-1") }}
+                        {{ form.title(class="block w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl
+                        focus:bg-white focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-all
+                        outline-none", placeholder="VD: Bộ Quiz Lịch Sử...") }}
+                    </div>
+
+                    <div>
+                        {{ form.description.label(class="block text-sm font-semibold text-gray-700 mb-1") }}
+                        {{ form.description(class="block w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl
+                        focus:bg-white focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-all
+                        outline-none resize-none", rows="3", placeholder="Mô tả nội dung...") }}
+                    </div>
+
+                    <div>
+                        {{ form.tags.label(class="block text-sm font-semibold text-gray-700 mb-1") }}
+                        {{ form.tags(class="block w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl
+                        focus:bg-white focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-all
+                        outline-none", placeholder="VD: Toán, Lịch sử, Tiếng Anh") }}
+                    </div>
+
+                    {% if current_user.user_role != 'free' %}
+                    <div class="flex items-center gap-3 p-3 bg-gray-50 rounded-xl border border-gray-100">
+                        {{ form.is_public(class="h-5 w-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500
+                        cursor-pointer") }}
+                        {{ form.is_public.label(class="text-sm font-medium text-gray-700 cursor-pointer select-none") }}
+                    </div>
+                    {% endif %}
+
+                    <div class="border-t border-gray-200 pt-6">
+                        {{ form.ai_prompt.label(class="block text-sm font-medium text-gray-700") }}
+                        <p class="text-xs text-gray-500 mb-2">{{ form.ai_prompt.description }}</p>
+                        {{ form.ai_prompt(class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm
+                        focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500", rows="3",
+                        placeholder="Ví dụ: Tạo câu hỏi trắc nghiệm về...") }}
+                    </div>
+                </div>
+
+                <!-- Tab 2: Resources -->
+                <div id="tab-main-resources" class="main-tab-content space-y-6 hidden animate-fade-in">
+                    {% set current_cover = form.cover_image.data or '' %}
+                    <div>
+                        {{ form.cover_image.label(class="block text-sm font-medium text-gray-700") }}
+                        <div class="mt-1 space-y-3" data-role="cover-wrapper" data-initial-url="{{ current_cover }}"
+                            data-base-folder="{{ form.image_base_folder.data or '' }}">
+                            {{ form.cover_image(class="block w-full px-4 py-2 border border-gray-300 rounded-md
+                            shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500", placeholder="VD:
+                            uploads/quizzes/covers/sample.jpg", **{'data-role': 'cover-input'}) }}
+                            <div
+                                class="relative border border-dashed border-gray-300 rounded-lg overflow-hidden bg-gray-50">
+                                <img data-role="cover-preview" src="{{ current_cover }}" alt="Xem trước ảnh cover"
+                                    class="w-full max-h-64 object-contain{% if not current_cover %} hidden{% endif %}">
+                                <div data-role="cover-placeholder"
+                                    class="flex items-center justify-center text-sm text-gray-400 py-10{% if current_cover %} hidden{% endif %}">
+                                    Chưa có ảnh cover để xem trước.
+                                </div>
+                            </div>
+                            <button type="button" data-role="cover-open"
+                                class="text-sm text-blue-600 hover:text-blue-800 transition-colors duration-200 flex items-center gap-2{% if not current_cover %} hidden{% endif %}">
+                                <i class="fas fa-external-link-alt"></i>
+                                <span>Mở ảnh cover</span>
+                            </button>
+                            <p class="text-xs text-gray-500" data-role="cover-status"></p>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            {{ form.image_base_folder.label(class="block text-sm font-medium text-gray-700") }}
+                            <p class="text-xs text-gray-500 mb-1">{{ form.image_base_folder.description }}</p>
+                            {{ form.image_base_folder(class="mt-1 block w-full px-4 py-2 border border-gray-300
+                            rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500",
+                            placeholder="vd: quiz/level1/images") }}
+                        </div>
+                        <div>
+                            {{ form.audio_base_folder.label(class="block text-sm font-medium text-gray-700") }}
+                            <p class="text-xs text-gray-500 mb-1">{{ form.audio_base_folder.description }}</p>
+                            {{ form.audio_base_folder(class="mt-1 block w-full px-4 py-2 border border-gray-300
+                            rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500",
+                            placeholder="vd: quiz/level1/audio") }}
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </form>
+    </div>
+
+</div>
+
+{% include 'v4/pages/content_management/shared/_cover_preview_script.html' %}
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const form = document.getElementById('quizSetForm');
+
+        // [CONFIG] Dynamic values from backend
+        const QUIZ_CONFIG = {{ quiz_config | tojson | safe
+    }} || {};
+    const MAX_SIZE_MB = QUIZ_CONFIG.QUIZ_UPLOAD_MAX_SIZE_MB || 10;
+    const ALLOWED_EXTS = QUIZ_CONFIG.QUIZ_ALLOWED_EXTENSIONS || ['.xlsx'];
+
+
+    // Modal Navigation Logic
+    if (!window.parent.closeModal) {
+        window.parent.closeModal = function () {
+            console.log("Mock close modal");
+        };
+    }
+
+    document.querySelectorAll('[data-role="close-editor"]').forEach(button => {
+        button.addEventListener('click', () => {
+            if (window.parent && typeof window.parent.closeModal === 'function') {
+                window.parent.closeModal();
+            } else {
+                window.history.back();
+            }
+        });
+    });
+
+    if (!form) return;
+
+    // --- Tab Logic ---
+    const mainTabButtons = form.querySelectorAll('button[data-main-tab]');
+    const mainTabContents = form.querySelectorAll('.main-tab-content');
+
+    const switchMainTab = (targetTab) => {
+        mainTabButtons.forEach(btn => {
+            const isActive = btn.dataset.mainTab === targetTab;
+            const icon = btn.querySelector('i');
+            if (icon) icon.classList.remove('text-blue-500');
+
+            if (isActive) {
+                btn.className = "flex-1 px-4 py-2.5 text-sm font-semibold rounded-lg transition-all duration-200 flex items-center justify-center gap-2 shadow-sm bg-white text-blue-600 ring-1 ring-black/5";
+                if (icon) icon.classList.add('text-blue-500');
+            } else {
+                btn.className = "flex-1 px-4 py-2.5 text-sm font-medium text-gray-500 rounded-lg hover:bg-gray-200/50 hover:text-gray-700 transition-all duration-200 flex items-center justify-center gap-2";
+            }
+        });
+
+        mainTabContents.forEach(content => {
+            if (content.id === `tab-main-${targetTab}`) {
+                content.classList.remove('hidden');
+                content.classList.add('block');
+            } else {
+                content.classList.add('hidden');
+                content.classList.remove('block');
+            }
+        });
+    };
+
+    mainTabButtons.forEach(btn => {
+        btn.addEventListener('click', () => switchMainTab(btn.dataset.mainTab));
+    });
+
+    // --- Excel Logic ---
+    const fileInput = document.getElementById('excel_file_input');
+    if (!fileInput) return; // Should not happen
+
+    const dropZone = form.querySelector('[data-role="excel-drop-zone"]');
+    const placeholder = form.querySelector('[data-role="excel-placeholder"]');
+    const summaryBox = form.querySelector('[data-role="excel-file-summary"]');
+    const fileNameLabel = form.querySelector('[data-role="excel-file-name"]');
+    const fileMetaLabel = form.querySelector('[data-role="excel-file-meta"]');
+    const clearButton = form.querySelector('[data-role="excel-clear"]');
+    const statusLabel = form.querySelector('[data-role="excel-status"]');
+    const analysisReport = form.querySelector('[data-role="excel-analysis-report"]');
+    const analysisGrid = form.querySelector('[data-role="analysis-grid"]');
+    const csrfInput = form.querySelector('input[name="csrf_token"]');
+    const csrfToken = csrfInput ? csrfInput.value : '';
+
+    const formatBytes = (bytes) => {
+        if (!bytes && bytes !== 0) return '';
+        const sizes = ['B', 'KB', 'MB', 'GB'];
+        if (bytes === 0) return '0 B';
+        const i = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), sizes.length - 1);
+        return `${(bytes / Math.pow(1024, i)).toFixed(i === 0 ? 0 : 1)} ${sizes[i]}`;
+    };
+
+    const formatDate = (timestamp) => {
+        if (!timestamp) return '';
+        const date = new Date(timestamp);
+        return Number.isNaN(date.getTime()) ? '' : date.toLocaleString('vi-VN');
+    };
+
+    const showStatus = (message, type) => {
+        if (!statusLabel) return;
+        statusLabel.textContent = message || '';
+        statusLabel.classList.remove('text-red-600', 'text-green-600', 'text-blue-600', 'hidden');
+        if (!message) {
+            statusLabel.classList.add('hidden');
+            return;
+        }
+        if (type === 'error') statusLabel.classList.add('text-red-600');
+        else if (type === 'success') statusLabel.classList.add('text-green-600');
+        else statusLabel.classList.add('text-blue-600');
+    };
+
+    const resetUploadState = ({ keepStatus = false } = {}) => {
+        fileInput.value = '';
+        if (placeholder) placeholder.classList.remove('hidden');
+        if (summaryBox) summaryBox.classList.add('hidden');
+        if (clearButton) clearButton.classList.add('hidden');
+        if (dropZone) {
+            dropZone.classList.remove('ring-2', 'ring-blue-400', 'bg-blue-50', 'hidden');
+        }
+        if (analysisReport) analysisReport.classList.add('hidden');
+
+        if (!keepStatus && statusLabel) {
+            statusLabel.textContent = '';
+            statusLabel.classList.add('hidden');
+            statusLabel.classList.remove('text-red-600', 'text-green-600', 'text-blue-600');
+        }
+    };
+
+    const updateSummary = (file) => {
+        if (!summaryBox || !file) return;
+        summaryBox.classList.remove('hidden');
+        if (fileNameLabel) fileNameLabel.textContent = file.name;
+        if (fileMetaLabel) {
+            const metaParts = [];
+            if (file.size) metaParts.push(`Dung lượng ${formatBytes(file.size)}`);
+            if (file.lastModified) metaParts.push(`Chỉnh sửa lần cuối ${formatDate(file.lastModified)}`);
+            fileMetaLabel.textContent = metaParts.join(' · ');
+        }
+    };
+
+    const renderAnalysis = (analysis) => {
+        if (!analysisReport || !analysisGrid) return;
+
+        if (!analysis) {
+            analysisReport.classList.add('hidden');
+            return;
+        }
+        analysisReport.classList.remove('hidden');
+        let html = '';
+
+        if (!analysis.success) {
+            const errorMsg = analysis.error || 'Lỗi không xác định khi đọc cột.';
+            html = `<div class="p-2 bg-red-50 border border-red-200 rounded text-xs text-red-700 flex items-center gap-2"><i class="fas fa-times-circle"></i><span><strong>Lỗi phân tích:</strong> ${errorMsg}</span></div>`;
+            analysisGrid.innerHTML = html;
+            return;
+        }
+
+        if (analysis.missing_required && analysis.missing_required.length > 0) {
+            html += `<div class="p-2 bg-red-50 border border-red-200 rounded text-xs text-red-700 flex items-start gap-2"><i class="fas fa-exclamation-triangle mt-0.5"></i><div><strong>Thiếu cột bắt buộc:</strong> ${analysis.missing_required.join(', ')}<p class="text-[10px] mt-0.5 opacity-80">File sẽ không thể trích xuất nếu thiếu các cột này.</p></div></div>`;
+        } else {
+            html += `<div class="p-2 bg-green-50 border border-green-200 rounded text-xs text-green-700 flex items-center gap-2"><i class="fas fa-check-circle"></i><span>Đủ cột bắt buộc (Option A/B, Correct Answer).</span></div>`;
+        }
+
+        if (analysis.standard_columns && analysis.standard_columns.length > 0) {
+            html += `<div class="flex flex-col gap-1 mt-2"><span class="text-xs text-gray-500 font-medium">Cột tiêu chuẩn (đã khớp):</span><div class="flex flex-wrap gap-1">`;
+            analysis.standard_columns.forEach(col => {
+                html += `<span class="px-2 py-0.5 bg-green-100 text-green-700 rounded text-xs border border-green-200">${col}</span>`;
+            });
+            html += `</div></div>`;
+        }
+
+        if (analysis.ai_columns && analysis.ai_columns.length > 0) {
+            html += `<div class="flex flex-col gap-1 mt-2"><span class="text-xs text-gray-500 font-medium">Cột AI:</span><div class="flex flex-wrap gap-1">`;
+            analysis.ai_columns.forEach(col => {
+                html += `<span class="px-2 py-0.5 bg-purple-100 text-purple-700 rounded text-xs border border-purple-200">${col}</span>`;
+            });
+            html += `</div></div>`;
+        }
+
+        if (analysis.custom_columns && analysis.custom_columns.length > 0) {
+            html += `<div class="flex flex-col gap-1 pt-2 mt-2 border-t border-dashed border-gray-200"><div class="flex justify-between items-center"><span class="text-xs text-blue-600 font-bold">Custom Data (Sẽ được lưu):</span><span class="text-[10px] bg-blue-100 text-blue-700 px-1.5 rounded-full">${analysis.custom_columns.length}</span></div><div class="flex flex-wrap gap-1">`;
+            analysis.custom_columns.forEach(col => {
+                html += `<span class="px-2 py-0.5 bg-blue-50 text-blue-600 rounded text-xs border border-blue-100">${col}</span>`;
+            });
+            html += `</div></div>`;
+        } else {
+            html += `<div class="flex flex-col gap-1 pt-2 mt-2 border-t border-dashed border-gray-200"><span class="text-xs text-gray-400">Không tìm thấy cột Custom nào.</span></div>`;
+        }
+
+        analysisGrid.innerHTML = html;
+    };
+
+    const populateFormFields = (data = {}) => {
+        if (!data) return;
+        if (data.title) form.querySelector('[name="title"]').value = data.title;
+        if (data.description) form.querySelector('[name="description"]').value = data.description;
+        if (data.tags) form.querySelector('[name="tags"]').value = data.tags;
+        if (data.ai_prompt) form.querySelector('[name="ai_prompt"]').value = data.ai_prompt;
+
+        if (data.image_base_folder) form.querySelector('[name="image_base_folder"]').value = data.image_base_folder;
+        if (data.audio_base_folder) form.querySelector('[name="audio_base_folder"]').value = data.audio_base_folder;
+
+        const isPublicCheckbox = form.querySelector('[name="is_public"]');
+        if (isPublicCheckbox) {
+            if (data.is_public !== undefined && data.is_public !== null) {
+                const isPublicValue = String(data.is_public).toLowerCase();
+                isPublicCheckbox.checked = ['true', '1', 'yes'].includes(isPublicValue);
+            }
+        }
+    };
+
+    const processExcelFile = async (file) => {
+        if (!file) return;
+
+        showStatus('Đang xử lý file Excel, vui lòng chờ...', 'info');
+        const formData = new FormData();
+        formData.append('excel_file', file);
+        if (csrfToken) formData.append('csrf_token', csrfToken);
+
+        try {
+            const processExcelUrl = new URL(
+                "{{ url_for('content_management.content_management_quizzes.process_excel_info') }}",
+                window.location.origin
+            ).toString();
+
+            const response = await fetch(processExcelUrl, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    ...(csrfToken ? { 'X-CSRFToken': csrfToken } : {})
+                }
+            });
+
+            const result = await response.json();
+
+            if (response.ok && result.success) {
+                const data = result.data || {};
+                populateFormFields(data.data || {});
+                renderAnalysis(data.analysis);
+                showStatus(result.message || 'Đã điền thông tin từ file Excel.', 'success');
+            } else {
+                showStatus(result.message || 'Không thể đọc sheet Info từ file.', 'error');
+            }
+        } catch (error) {
+            console.error('Lỗi khi xử lý file Excel:', error);
+            showStatus('Lỗi khi xử lý file Excel. Vui lòng thử lại.', 'error');
+        }
+    };
+
+    const handleFile = (file) => {
+        if (!file) {
+            resetUploadState();
+            return;
+        }
+        const fileExt = '.' + file.name.split('.').pop().toLowerCase();
+        if (!ALLOWED_EXTS.some(ext => ext.toLowerCase() === fileExt)) {
+            resetUploadState({ keepStatus: true });
+            showStatus(`Định dạng tệp không hợp lệ. Vui lòng chọn file trong các định dạng: ${ALLOWED_EXTS.join(', ')}`, 'error');
+            return;
+        }
+
+        if (file.size > MAX_SIZE_MB * 1024 * 1024) {
+            resetUploadState({ keepStatus: true });
+            showStatus(`Dung lượng tệp vượt quá ${MAX_SIZE_MB}MB.`, 'error');
+            return;
+        }
+
+
+        if (placeholder) placeholder.classList.add('hidden');
+        if (summaryBox) summaryBox.classList.remove('hidden');
+        if (clearButton) clearButton.classList.remove('hidden');
+
+        // Hide the drop zone completely when file is selected
+        if (dropZone) dropZone.classList.add('hidden');
+
+        updateSummary(file);
+        processExcelFile(file);
+    };
+
+    // Event Listeners for File Input
+    if (dropZone) {
+        dropZone.addEventListener('click', () => fileInput.click());
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('ring-2', 'ring-blue-400', 'bg-blue-50');
+        });
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('ring-2', 'ring-blue-400', 'bg-blue-50');
+        });
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            const files = e.dataTransfer.files;
+            if (files.length) {
+                fileInput.files = files; // Sync input
+                handleFile(files[0]);
+            }
+        });
+    }
+
+    fileInput.addEventListener('change', (e) => {
+        if (e.target.files.length) handleFile(e.target.files[0]);
+        else resetUploadState();
+    });
+
+    if (clearButton) {
+        clearButton.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation(); // prevent triggering dropZone click
+            resetUploadState();
+            showStatus('Đã bỏ chọn file.', 'info');
+        });
+    }
+
+    resetUploadState(); // Init state
+
+    // --- Form Submit ---
+    form.addEventListener('submit', async function (event) {
+        event.preventDefault();
+        const formData = new FormData(form);
+
+        try {
+            const response = await fetch(form.action, {
+                method: 'POST',
+                body: formData,
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            });
+            const result = await response.json();
+
+            if (response.ok && result.success) {
+                if (window.parent.showFlashMessage) window.parent.showFlashMessage(result.message, 'success');
+                if (window.parent) {
+                    window.parent.dispatchEvent(new CustomEvent('content-management:refresh', {
+                        detail: { scope: 'quiz-set', targetTab: 'quizzes' }
+                    }));
+                }
+                window.parent.closeModal();
+            } else {
+                if (result.errors) {
+                    // Simple error highlighting
+                    for (const fieldName in result.errors) {
+                        const field = form.querySelector(`[name="${fieldName}"]`);
+                        if (field) field.classList.add('border-red-500');
+                    }
+                    showStatus('Vui lòng kiểm tra lại các trường báo đỏ.', 'error');
+                } else {
+                    if (window.parent.showFlashMessage) window.parent.showFlashMessage(result.message || 'Có lỗi xảy ra.', 'danger');
+                }
+            }
+        } catch (error) {
+            if (window.parent.showFlashMessage) window.parent.showFlashMessage('Không thể kết nối đến máy chủ.', 'danger');
+        }
+    });
+    });
+</script>

@@ -1,0 +1,171 @@
+{% extends 'base.html' %}
+
+{% block title %}Luyện tập Flashcard{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="max-w-4xl mx-auto">
+        <!-- Header -->
+        <div class="mb-8">
+            <h1 class="text-3xl font-bold text-gray-800 mb-2">Luyện tập Flashcard</h1>
+            <p class="text-gray-600">Chọn bộ thẻ và chế độ học để bắt đầu phiên luyện tập</p>
+        </div>
+
+        <!-- Selection Form -->
+        <form action="{{ url_for('learning.practice.flashcard_start') }}" method="POST" id="practiceForm">
+            <!-- Step 1: Chọn bộ thẻ -->
+            <div class="bg-white rounded-xl shadow-sm p-6 mb-6">
+                <h2 class="text-xl font-semibold text-gray-800 mb-4">
+                    <span
+                        class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-blue-100 text-blue-600 mr-2">1</span>
+                    Chọn bộ thẻ
+                </h2>
+
+                <div id="setsContainer" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- Sets sẽ được load qua AJAX -->
+                    <div class="text-center py-8 col-span-2">
+                        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                        <p class="text-gray-500 mt-2">Đang tải...</p>
+                    </div>
+                </div>
+
+                <input type="hidden" name="set_ids" id="selectedSetIds" value="">
+            </div>
+
+            <!-- Step 2: Chọn chế độ học -->
+            <div class="bg-white rounded-xl shadow-sm p-6 mb-6">
+                <h2 class="text-xl font-semibold text-gray-800 mb-4">
+                    <span
+                        class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-blue-100 text-blue-600 mr-2">2</span>
+                    Chọn chế độ học
+                </h2>
+
+                <div id="modesContainer" class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {% for mode in flashcard_modes %}
+                    <label class="mode-option relative flex items-center p-4 border-2 rounded-lg cursor-pointer hover:border-blue-300 transition-colors
+                        {% if mode.id == 'mixed_srs' %}border-blue-500 bg-blue-50{% else %}border-gray-200{% endif %}">
+                        <input type="radio" name="mode" value="{{ mode.id }}" {% if mode.id=='mixed_srs' %}checked{%
+                            endif %} class="sr-only">
+                        <div class="flex-1">
+                            <span class="font-medium text-gray-800">{{ mode.name }}</span>
+                            <span class="mode-count ml-2 text-sm text-gray-500">(--)</span>
+                        </div>
+                        <div class="checkmark hidden">
+                            <svg class="w-6 h-6 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd"
+                                    d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                                    clip-rule="evenodd"></path>
+                            </svg>
+                        </div>
+                    </label>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Submit Button -->
+            <div class="flex justify-end">
+                <button type="submit" id="startBtn"
+                    class="px-8 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled>
+                    Bắt đầu luyện tập
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<style>
+    .mode-option input:checked~.checkmark {
+        display: block;
+    }
+
+    .mode-option:has(input:checked) {
+        border-color: rgb(59, 130, 246);
+        background-color: rgb(239, 246, 255);
+    }
+
+    .set-card.selected {
+        border-color: rgb(59, 130, 246);
+        background-color: rgb(239, 246, 255);
+    }
+</style>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const setsContainer = document.getElementById('setsContainer');
+        const selectedSetIds = document.getElementById('selectedSetIds');
+        const startBtn = document.getElementById('startBtn');
+        let selectedSets = new Set();
+
+        // Load sets
+        fetch('{{ url_for("learning.practice.api_get_sets") }}')
+            .then(r => r.json())
+            .then(data => {
+                if (data.success && data.sets.length > 0) {
+                    setsContainer.innerHTML = data.sets.map(set => `
+                    <div class="set-card p-4 border-2 border-gray-200 rounded-lg cursor-pointer hover:border-blue-300 transition-colors"
+                         data-set-id="${set.id}">
+                        <div class="font-medium text-gray-800">${set.title}</div>
+                        <div class="text-sm text-gray-500 mt-1">${set.item_count_display} thẻ</div>
+                    </div>
+                `).join('');
+
+                    // Add click handlers
+                    setsContainer.querySelectorAll('.set-card').forEach(card => {
+                        card.addEventListener('click', () => {
+                            const setId = card.dataset.setId;
+                            if (selectedSets.has(setId)) {
+                                selectedSets.delete(setId);
+                                card.classList.remove('selected');
+                            } else {
+                                selectedSets.add(setId);
+                                card.classList.add('selected');
+                            }
+                            updateSelectedSets();
+                        });
+                    });
+                } else {
+                    setsContainer.innerHTML = '<p class="text-gray-500 col-span-2 text-center py-4">Không có bộ thẻ nào.</p>';
+                }
+            })
+            .catch(err => {
+                setsContainer.innerHTML = '<p class="text-red-500 col-span-2 text-center py-4">Lỗi khi tải bộ thẻ.</p>';
+            });
+
+        function updateSelectedSets() {
+            const ids = Array.from(selectedSets).join(',');
+            selectedSetIds.value = ids;
+            startBtn.disabled = selectedSets.size === 0;
+
+            // Load modes count
+            if (selectedSets.size > 0) {
+                fetch(`{{ url_for("learning.practice.api_get_modes", set_identifier="__ID__") }}`.replace('__ID__', ids))
+                    .then(r => r.json())
+                    .then(data => {
+                        if (data.success) {
+                            data.modes.forEach(mode => {
+                                const label = document.querySelector(`input[name="mode"][value="${mode.id}"]`)?.parentElement;
+                                if (label) {
+                                    const countSpan = label.querySelector('.mode-count');
+                                    if (countSpan) countSpan.textContent = `(${mode.count})`;
+                                }
+                            });
+                        }
+                    });
+            }
+        }
+
+        // Mode selection
+        document.querySelectorAll('.mode-option').forEach(label => {
+            label.addEventListener('click', () => {
+                document.querySelectorAll('.mode-option').forEach(l => {
+                    l.classList.remove('border-blue-500', 'bg-blue-50');
+                    l.classList.add('border-gray-200');
+                });
+                label.classList.remove('border-gray-200');
+                label.classList.add('border-blue-500', 'bg-blue-50');
+            });
+        });
+    });
+</script>
+{% endblock %}

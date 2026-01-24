@@ -1,0 +1,732 @@
+{#
+File: mindstack_app/modules/content_management/quizzes/items/_add_edit_quiz_item_bare.html
+Phiên bản: 2.0
+MỤC ĐÍCH: Refactor giao diện sửa câu hỏi Quiz sử dụng Tab (giống Flashcard).
+#}
+<!doctype html>
+<html lang="vi">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{ title }}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        /* Force full height and disable body scroll */
+        html,
+        body {
+            height: 100vh;
+            width: 100%;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            font-family: 'Inter', sans-serif;
+            color: #1e293b;
+            background-color: #fff;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 5px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background-color: #cbd5e1;
+            border-radius: 3px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background-color: #94a3b8;
+        }
+
+        .animate-fade-in {
+            animation: fadeIn 0.3s ease-out forwards;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(5px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Tab state styling */
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        .active-tab {
+            color: #2563eb;
+            /* blue-600 */
+        }
+
+        .active-tab::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background-color: #2563eb;
+            border-top-left-radius: 2px;
+            border-top-right-radius: 2px;
+        }
+    </style>
+</head>
+
+<body class="flex flex-col">
+
+    {% set modal_suffix = '?is_modal=true' if is_modal_view else '' %}
+
+    <!-- HEADER (Fixed) -->
+    <div
+        class="flex-none bg-white border-b border-slate-100 flex items-center justify-between px-4 py-2.5 z-20 shadow-sm">
+        <!-- Left: Close & Title -->
+        <div class="flex items-center gap-3">
+            <button type="button"
+                class="group flex items-center justify-center w-8 h-8 rounded-full bg-slate-50 text-slate-500 hover:bg-slate-100 hover:text-slate-800 transition focus:outline-none"
+                data-role="close-editor" title="Thoát">
+                <i class="fas fa-times"></i>
+            </button>
+            <div class="flex items-baseline gap-2">
+                <h1 class="text-base font-bold text-slate-800 leading-tight">{{ title }}</h1>
+                {% if quiz_item %}
+                <span class="text-xs text-slate-400 font-mono">#{{ quiz_item.item_id }}</span>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Right: Actions -->
+        <div class="flex items-center gap-2">
+            <div class="hidden sm:flex items-center bg-slate-50 rounded-lg p-0.5 border border-slate-100">
+                {% if previous_item_id %}
+                <a href="{{ url_for('.edit_quiz_item', set_id=quiz_set.container_id, item_id=previous_item_id) }}{{ modal_suffix }}"
+                    class="w-7 h-7 flex items-center justify-center text-slate-600 hover:bg-white hover:text-blue-600 hover:shadow-sm rounded transition"
+                    title="Câu trước">
+                    <i class="fas fa-chevron-left text-[10px]"></i>
+                </a>
+                {% else %}
+                <span class="w-7 h-7 flex items-center justify-center text-slate-300 cursor-not-allowed"><i
+                        class="fas fa-chevron-left text-[10px]"></i></span>
+                {% endif %}
+
+                <div class="w-px h-3 bg-slate-200 mx-0.5"></div>
+
+                {% if next_item_id %}
+                <a href="{{ url_for('.edit_quiz_item', set_id=quiz_set.container_id, item_id=next_item_id) }}{{ modal_suffix }}"
+                    class="w-7 h-7 flex items-center justify-center text-slate-600 hover:bg-white hover:text-blue-600 hover:shadow-sm rounded transition"
+                    title="Câu tiếp">
+                    <i class="fas fa-chevron-right text-[10px]"></i>
+                </a>
+                {% else %}
+                <span class="w-7 h-7 flex items-center justify-center text-slate-300 cursor-not-allowed"><i
+                        class="fas fa-chevron-right text-[10px]"></i></span>
+                {% endif %}
+            </div>
+
+            <button type="submit" form="quizItemForm"
+                class="flex items-center gap-1.5 px-4 py-1.5 bg-blue-600 text-white text-xs font-bold rounded-lg hover:bg-blue-700 active:scale-95 transition shadow-sm shadow-blue-600/20">
+                <i class="fas fa-check"></i>
+                <span>Lưu</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- TABS (Fixed) -->
+    <div class="flex-none bg-white border-b border-slate-100 px-4 flex gap-6 z-10 overflow-x-auto">
+        <button type="button" data-tab-target="tab-general"
+            class="py-2.5 relative text-xs font-bold text-slate-500 hover:text-slate-800 transition focus:outline-none group active-tab whitespace-nowrap">
+            <i class="fa-solid fa-layer-group mr-1.5 text-slate-400 group-hover:text-slate-600"></i>Thông tin chung
+        </button>
+        <button type="button" data-tab-target="tab-media"
+            class="py-2.5 relative text-xs font-bold text-slate-500 hover:text-slate-800 transition focus:outline-none group whitespace-nowrap">
+            <i class="fa-solid fa-photo-film mr-1.5 text-slate-400 group-hover:text-slate-600"></i>Media &amp;
+            Transcript
+        </button>
+        <button type="button" data-tab-target="tab-ai"
+            class="py-2.5 relative text-xs font-bold text-slate-500 hover:text-slate-800 transition focus:outline-none group whitespace-nowrap">
+            <i class="fa-solid fa-robot mr-1.5 text-slate-400 group-hover:text-slate-600"></i>AI Coach
+        </button>
+        <button type="button" data-tab-target="tab-advanced"
+            class="py-2.5 relative text-xs font-bold text-slate-500 hover:text-slate-800 transition focus:outline-none group whitespace-nowrap">
+            <i class="fa-solid fa-sliders mr-1.5 text-slate-400 group-hover:text-slate-600"></i>Nâng cao
+        </button>
+    </div>
+
+    <!-- SCROLLABLE CONTENT -->
+    <div class="flex-1 overflow-y-auto custom-scrollbar bg-slate-50/50 p-4 sm:p-6 full-height-container"
+        data-item-id="{{ quiz_item.item_id if quiz_item else '' }}"
+        data-set-id="{{ quiz_set.container_id if quiz_set else '' }}">
+
+        <div class="max-w-4xl mx-auto w-full">
+            <form id="quizItemForm" action="" method="post" class=""
+                data-image-base-folder="{{ image_base_folder or '' }}"
+                data-audio-base-folder="{{ audio_base_folder or '' }}">
+                {{ form.csrf_token }}
+
+                <!-- TAB: GENERAL -->
+                <div id="tab-general" class="tab-content active space-y-6">
+
+                    <!-- Question & Pre-question -->
+                    <div class="grid grid-cols-1 gap-6">
+                        <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+                            <h3 class="text-sm font-bold text-slate-800 mb-4 flex items-center gap-2">
+                                <i class="fa-solid fa-circle-question text-blue-500"></i> Nội dung câu hỏi
+                            </h3>
+                            <div class="space-y-4">
+                                <div>
+                                    {{ form.pre_question_text.label(class="block text-xs font-semibold text-slate-500
+                                    mb-1.5 uppercase tracking-wide") }}
+                                    {{ form.pre_question_text(class="w-full px-3 py-2 text-sm text-slate-800 bg-slate-50
+                                    border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500
+                                    focus:ring-1 focus:ring-blue-500 transition resize-y",
+                                    placeholder="Văn bản trước câu hỏi (nếu có)", rows="2") }}
+                                </div>
+                                <div>
+                                    {{ form.question.label(class="block text-xs font-semibold text-slate-500 mb-1.5
+                                    uppercase tracking-wide") }}
+                                    {{ form.question(class="w-full px-3 py-2 text-sm text-slate-800 bg-white border
+                                    border-slate-200 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-1
+                                    focus:ring-blue-500 transition resize-y font-medium shadow-sm",
+                                    placeholder="Nội dung câu hỏi", rows="3") }}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+                            <h3 class="text-sm font-bold text-slate-800 mb-4 flex items-center gap-2">
+                                <i class="fa-solid fa-list-ul text-emerald-500"></i> Lựa chọn &amp; Đáp án
+                            </h3>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    {{ form.option_a.label(class="block text-xs font-semibold text-slate-500 mb-1.5") }}
+                                    {{ form.option_a(class="w-full px-3 py-2 text-sm text-slate-800 bg-slate-50 border
+                                    border-slate-200 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-1
+                                    focus:ring-blue-500 transition", placeholder="Lựa chọn A") }}
+                                </div>
+                                <div>
+                                    {{ form.option_b.label(class="block text-xs font-semibold text-slate-500 mb-1.5") }}
+                                    {{ form.option_b(class="w-full px-3 py-2 text-sm text-slate-800 bg-slate-50 border
+                                    border-slate-200 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-1
+                                    focus:ring-blue-500 transition", placeholder="Lựa chọn B") }}
+                                </div>
+                                <div>
+                                    {{ form.option_c.label(class="block text-xs font-semibold text-slate-500 mb-1.5") }}
+                                    {{ form.option_c(class="w-full px-3 py-2 text-sm text-slate-800 bg-slate-50 border
+                                    border-slate-200 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-1
+                                    focus:ring-blue-500 transition", placeholder="Lựa chọn C") }}
+                                </div>
+                                <div>
+                                    {{ form.option_d.label(class="block text-xs font-semibold text-slate-500 mb-1.5") }}
+                                    {{ form.option_d(class="w-full px-3 py-2 text-sm text-slate-800 bg-slate-50 border
+                                    border-slate-200 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-1
+                                    focus:ring-blue-500 transition", placeholder="Lựa chọn D") }}
+                                </div>
+                            </div>
+
+                            <div class="mt-4 pt-4 border-t border-slate-100 grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    {{ form.correct_answer_text.label(class="block text-xs font-semibold text-slate-500
+                                    mb-1.5 uppercase tracking-wide") }}
+                                    {{ form.correct_answer_text(class="w-full px-3 py-2 text-sm text-emerald-700
+                                    bg-emerald-50 border border-emerald-200 rounded-lg focus:outline-none
+                                    focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition
+                                    font-semibold") }}
+                                    <p class="text-[10px] text-slate-400 mt-1">Nhập A, B, C, hoặc D (hoặc toàn văn đáp
+                                        án đúng).</p>
+                                </div>
+                                <div>
+                                    {{ form.order_in_container.label(class="block text-xs font-semibold text-slate-500
+                                    mb-1.5 uppercase tracking-wide") }}
+                                    {{ form.order_in_container(class="w-full px-3 py-2 text-sm text-slate-800
+                                    bg-slate-50 border border-slate-200 rounded-lg focus:outline-none
+                                    focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition", placeholder="Ví
+                                    dụ: 1") }}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Guidance -->
+                        <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+                            <h3 class="text-sm font-bold text-slate-800 mb-4 flex items-center gap-2">
+                                <i class="fa-solid fa-lightbulb text-amber-500"></i> Gợi ý &amp; Giải thích
+                            </h3>
+                            {{ form.guidance.label(class="sr-only") }}
+                            {{ form.guidance(class="w-full px-3 py-2 text-sm text-slate-800 bg-amber-50/50 border
+                            border-slate-200 rounded-lg focus:outline-none focus:border-amber-500 focus:ring-1
+                            focus:ring-amber-500 transition resize-y", placeholder="Giải thích chi tiết hoặc gợi ý cho
+                            câu hỏi này...", rows="3") }}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB: MEDIA -->
+                <div id="tab-media" class="tab-content space-y-6">
+                    <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            <!-- Image -->
+                            <div data-role="quiz-image-field" data-initial-url="{{ image_preview_url or '' }}"
+                                class="space-y-3">
+                                <div class="flex items-center justify-between">
+                                    <h3 class="text-sm font-bold text-slate-800 flex items-center gap-2">
+                                        <i class="fa-solid fa-image text-purple-500"></i> Hình ảnh
+                                    </h3>
+                                    <button type="button" data-role="quiz-open-image"
+                                        class="text-xs text-blue-600 hover:text-blue-800 font-medium {% if not image_preview_url %}hidden{% endif %}">
+                                        <i class="fas fa-external-link-alt mr-1"></i>Mở rộng
+                                    </button>
+                                </div>
+
+                                {{ form.question_image_file(class="w-full px-3 py-2 text-sm text-slate-600 bg-slate-50
+                                border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-1
+                                focus:ring-blue-500 transition",
+                                placeholder="Dán URL ảnh hoặc đường dẫn...", **{'data-role': 'quiz-image-input'}) }}
+
+                                <div
+                                    class="aspect-video bg-slate-100 rounded-lg border border-slate-200 border-dashed flex items-center justify-center overflow-hidden relative group">
+                                    <img data-role="quiz-image-preview" src="{{ image_preview_url or '' }}"
+                                        class="w-full h-full object-contain {% if not image_preview_url %}hidden{% endif %} transition-transform duration-500 group-hover:scale-105">
+                                    <div data-role="quiz-image-placeholder"
+                                        class="text-center p-4 {% if image_preview_url %}hidden{% endif %}">
+                                        <i class="fa-regular fa-image text-3xl text-slate-300 mb-2"></i>
+                                        <p class="text-xs text-slate-400">Chưa có ảnh minh họa</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Audio -->
+                            <div data-role="quiz-audio-field" data-initial-url="{{ audio_preview_url or '' }}"
+                                class="space-y-3">
+                                <h3 class="text-sm font-bold text-slate-800 flex items-center gap-2">
+                                    <i class="fa-solid fa-volume-high text-pink-500"></i> Âm thanh
+                                </h3>
+
+                                {{ form.question_audio_file(class="w-full px-3 py-2 text-sm text-slate-600 bg-slate-50
+                                border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-1
+                                focus:ring-blue-500 transition",
+                                placeholder="Dán URL audio hoặc đường dẫn...", **{'data-role': 'quiz-audio-input'}) }}
+
+                                <div
+                                    class="bg-slate-50 rounded-lg border border-slate-200 p-3 flex items-center justify-center h-[50px]">
+                                    <audio controls data-role="quiz-audio-player"
+                                        class="w-full h-8 {% if not audio_preview_url %}hidden{% endif %}">
+                                        {% if audio_preview_url %}
+                                        <source src="{{ audio_preview_url }}">{% endif %}
+                                    </audio>
+                                    <div data-role="quiz-audio-placeholder"
+                                        class="text-xs text-slate-400 flex items-center gap-2 {% if audio_preview_url %}hidden{% endif %}">
+                                        <i class="fa-solid fa-music"></i>
+                                        <span>Chưa có file âm thanh</span>
+                                    </div>
+                                </div>
+
+                                <!-- Transcript -->
+                                <div class="pt-3 border-t border-slate-100">
+                                    <div class="flex items-center justify-between mb-2">
+                                        <label
+                                            class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Transcript</label>
+                                        {% if quiz_item and (current_user.user_role == 'admin' or
+                                        quiz_set.creator_user_id == current_user.user_id) %}
+                                        <button type="button" id="quiz-transcript-generate-btn"
+                                            class="text-[10px] bg-indigo-50 text-indigo-600 px-2 py-1 rounded hover:bg-indigo-100 transition font-medium">
+                                            <i class="fas fa-closed-captioning mr-1"></i> Tạo tự động
+                                        </button>
+                                        {% endif %}
+                                    </div>
+                                    {{ form.audio_transcript(class="w-full px-3 py-2 text-sm text-slate-800 bg-white
+                                    border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500
+                                    focus:ring-1 focus:ring-blue-500 transition",
+                                    rows="3", placeholder="Nội dung chi tiết của đoạn audio...") }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB: AI COACH -->
+                <div id="tab-ai" class="tab-content space-y-6">
+                    <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+                        <div class="space-y-6">
+                            <!-- Prompt -->
+                            <div>
+                                <div class="flex items-center justify-between mb-2">
+                                    {{ form.ai_prompt.label(class="text-sm font-bold text-slate-800 flex items-center
+                                    gap-2") }}
+                                </div>
+                                <p class="text-xs text-slate-500 mb-2">{{ form.ai_prompt.description }}</p>
+                                {{ form.ai_prompt(class="w-full px-3 py-2 text-sm text-slate-800 bg-slate-50 border
+                                border-slate-200 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-1
+                                focus:ring-blue-500 transition font-mono text-[13px]",
+                                rows="3", placeholder="Nhập prompt tùy chỉnh cho AI...") }}
+                            </div>
+
+                            <!-- Explanation -->
+                            <div class="pt-6 border-t border-slate-100">
+                                <div class="flex items-center justify-between mb-2">
+                                    {{ form.ai_explanation.label(class="text-sm font-bold text-slate-800 flex
+                                    items-center gap-2") }}
+                                    {% if quiz_item and (current_user.user_role == 'admin' or quiz_set.creator_user_id
+                                    == current_user.user_id) %}
+                                    <button type="button" id="quiz-ai-regenerate-btn"
+                                        class="text-xs bg-blue-50 text-blue-600 px-3 py-1.5 rounded-lg hover:bg-blue-100 transition font-medium">
+                                        <i class="fas fa-wand-magic-sparkles mr-1.5"></i> Tái tạo nội dung
+                                    </button>
+                                    {% endif %}
+                                </div>
+                                {{ form.ai_explanation(class="w-full px-3 py-2 text-sm text-slate-700 bg-slate-50 border
+                                border-slate-200 rounded-lg focus:outline-none resize-none",
+                                rows="6", readonly=True) }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB: ADVANCED -->
+                <div id="tab-advanced" class="tab-content space-y-6">
+                    <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+                        <h3 class="text-sm font-bold text-slate-800 mb-4 flex items-center gap-2">
+                            <i class="fa-solid fa-layer-group text-slate-500"></i> Nhóm &amp; Shared Context
+                        </h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                {{ form.group_id.label(class="block text-xs font-semibold text-slate-500 mb-1.5
+                                uppercase tracking-wide") }}
+                                {{ form.group_id(class="w-full px-3 py-2 text-sm text-slate-800 bg-slate-50 border
+                                border-slate-200 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-1
+                                focus:ring-blue-500 transition font-mono",
+                                placeholder="ID nhóm (nếu có)") }}
+                                <p class="text-[10px] text-slate-400 mt-1">Dùng để gom nhóm các câu hỏi có chung ngữ
+                                    cảnh (bài đọc, audio).</p>
+                            </div>
+                            <div>
+                                {{ form.group_item_order.label(class="block text-xs font-semibold text-slate-500 mb-1.5
+                                uppercase tracking-wide") }}
+                                {{ form.group_item_order(class="w-full px-3 py-2 text-sm text-slate-800 bg-slate-50
+                                border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-1
+                                focus:ring-blue-500 transition",
+                                placeholder="Thứ tự trong nhóm") }}
+                            </div>
+                            <div class="md:col-span-2">
+                                {{ form.group_shared_components.label(class="block text-xs font-semibold text-slate-500
+                                mb-1.5 uppercase tracking-wide") }}
+                                {{ form.group_shared_components(class="w-full px-3 py-2 text-sm text-slate-800
+                                bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500
+                                focus:ring-1 focus:ring-blue-500 transition",
+                                placeholder="VD: image,audio,explanation (các thành phần chia sẻ)") }}
+                                <p class="text-[10px] text-slate-400 mt-1">Danh sách các trường nội dung được chia sẻ
+                                    giữa các câu hỏi trong cùng nhóm.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    {% if quiz_item and move_targets %}
+                    <div
+                        class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm border-l-4 border-l-purple-500">
+                        <h3 class="text-sm font-bold text-slate-800 mb-4 flex items-center gap-2">
+                            <i class="fa-solid fa-share-from-square text-purple-600"></i> Di chuyển câu hỏi
+                        </h3>
+                        <!-- Form di chuyển riêng biệt, không nằm trong form chính -->
+                    </div>
+                    {% endif %}
+                </div>
+            </form>
+
+            {# Move Form (Outside main form) #}
+            {% if quiz_item and move_targets %}
+            <div id="move-form-container" class="hidden">
+                <form method="post"
+                    action="{{ url_for('.move_quiz_item', set_id=quiz_set.container_id, item_id=quiz_item.item_id) }}"
+                    class="space-y-4">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="is_modal" value="{{ 'true' if is_modal_view else 'false' }}">
+                    <div>
+                        <label for="move_quiz_target_modal"
+                            class="block text-xs font-semibold text-slate-500 mb-1.5 uppercase tracking-wide">Chọn bộ
+                            Quiz đích</label>
+                        <select id="move_quiz_target_modal" name="target_set_id"
+                            class="w-full px-3 py-2 text-sm text-slate-800 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition">
+                            <option value="">-- Chọn bộ Quiz --</option>
+                            {% for target in move_targets %}
+                            <option value="{{ target.container_id }}">{{ target.title }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <button type="submit"
+                        class="w-full flex items-center justify-center gap-2 px-4 py-2 bg-purple-600 text-white text-sm font-semibold rounded-lg hover:bg-purple-700 transition shadow-sm">
+                        <i class="fas fa-share"></i> Di chuyển ngay
+                    </button>
+                    <p class="text-xs text-slate-500 text-center">Câu hỏi sẽ được chuyển sang bộ mới và xóa khỏi bộ này.
+                    </p>
+                </form>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    {% include _v ~ '/pages/content_management/quizzes/shared/_quiz_media_scripts.html' %}
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // Tab Switching Logic
+            const tabs = document.querySelectorAll('[data-tab-target]');
+            const tabContents = document.querySelectorAll('.tab-content');
+
+            tabs.forEach(tab => {
+                tab.addEventListener('click', () => {
+                    const targetId = tab.dataset.tabTarget;
+
+                    // Reset styling
+                    tabs.forEach(t => {
+                        t.classList.remove('active-tab');
+                        t.classList.remove('text-blue-600', 'text-slate-800');
+                        t.classList.add('text-slate-500');
+                        const icon = t.querySelector('i');
+                        if (icon) {
+                            icon.classList.remove('text-blue-500');
+                            icon.classList.add('text-slate-400');
+                        }
+                    });
+
+                    // Activate clicked
+                    tab.classList.add('active-tab', 'text-blue-600');
+                    tab.classList.remove('text-slate-500');
+                    const activeIcon = tab.querySelector('i');
+                    if (activeIcon) {
+                        activeIcon.classList.remove('text-slate-400');
+                        activeIcon.classList.add('text-blue-500');
+                    }
+
+                    // Show content
+                    tabContents.forEach(content => {
+                        content.classList.remove('active');
+                        if (content.id === targetId) content.classList.add('active');
+                    });
+                });
+            });
+
+            // Handle Move Form rendering inside the Advanced Tab
+            const moveFormContainer = document.getElementById('move-form-container');
+            if (moveFormContainer) {
+                const advancedTab = document.getElementById('tab-advanced');
+                // Move the form HTML into the visual placeholder in Advanced tab
+                const placeholder = advancedTab.querySelector('.border-l-purple-500');
+                if (placeholder) {
+                    placeholder.appendChild(moveFormContainer.querySelector('form'));
+                }
+            }
+
+
+            const form = document.getElementById('quizItemForm');
+            document.querySelectorAll('[data-role="close-editor"]').forEach(button => {
+                button.addEventListener('click', () => {
+                    if (window.parent && typeof window.parent.closeModal === 'function') {
+                        window.parent.closeModal();
+                    } else {
+                        window.history.back();
+                    }
+                });
+            });
+
+            if (form) {
+                if (window.initializeQuizMediaControls) {
+                    window.initializeQuizMediaControls({ form: form });
+                }
+
+                const currentUrl = new URL(window.location.href);
+                currentUrl.searchParams.delete('is_modal');
+                form.action = currentUrl.toString();
+
+                form.addEventListener('submit', async function (event) {
+                    event.preventDefault();
+
+                    // Clear errors
+                    document.querySelectorAll('.error-message').forEach(el => el.remove());
+                    document.querySelectorAll('.border-red-500').forEach(el => el.classList.remove('border-red-500'));
+
+                    // Disable save
+                    const saveBtn = document.querySelector('button[type="submit"][form="quizItemForm"]');
+                    if (saveBtn) {
+                        saveBtn.disabled = true;
+                        saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+                    }
+
+                    const formData = new FormData(form);
+                    const actionUrl = form.action;
+
+                    try {
+                        const response = await fetch(actionUrl, {
+                            method: 'POST',
+                            body: formData,
+                            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                        });
+
+                        const result = await response.json();
+
+                        if (response.ok) {
+                            if (result.success) {
+                                const itemId = "{{ quiz_item.item_id if quiz_item else '' }}";
+                                const setId = "{{ quiz_set.container_id if quiz_set else '' }}";
+
+                                if (window.parent && window.parent.showFlashMessage) {
+                                    window.parent.showFlashMessage(result.message, 'success');
+                                }
+
+                                // Specific refresh requests
+                                if (window.parent) {
+                                    const payload = {
+                                        scope: 'quiz-item',
+                                        setId: setId ? parseInt(setId, 10) : null,
+                                        itemId: result.item_id || (itemId ? parseInt(itemId, 10) : null),
+                                        targetTab: 'quizzes'
+                                    };
+                                    window.parent.dispatchEvent(new CustomEvent('content-management:refresh', { detail: payload }));
+                                }
+
+                                // Close modal
+                                if (window.parent && window.parent.closeModal) {
+                                    window.parent.closeModal();
+                                }
+                            } else {
+                                if (window.parent && window.parent.showFlashMessage) {
+                                    window.parent.showFlashMessage(result.message || 'Có lỗi xảy ra.', 'danger');
+                                }
+                            }
+                        } else {
+                            if (result.errors) {
+                                for (const fieldName in result.errors) {
+                                    const fieldElement = form.querySelector(`[name="${fieldName}"]`);
+                                    if (fieldElement) {
+                                        fieldElement.classList.add('border-red-500');
+                                        // Switch to tab containing this error
+                                        const tabContent = fieldElement.closest('.tab-content');
+                                        if (tabContent) {
+                                            const targetTabBtn = document.querySelector(`[data-tab-target="${tabContent.id}"]`);
+                                            if (targetTabBtn) targetTabBtn.click();
+                                        }
+                                    }
+                                }
+                                if (window.parent && window.parent.showFlashMessage) {
+                                    window.parent.showFlashMessage('Vui lòng kiểm tra lại thông tin nhập.', 'warning');
+                                }
+                            } else {
+                                if (window.parent && window.parent.showFlashMessage) {
+                                    window.parent.showFlashMessage(result.message || 'Lỗi không xác định.', 'danger');
+                                }
+                            }
+                        }
+                    } catch (error) {
+                        console.error(error);
+                        if (window.parent && window.parent.showFlashMessage) {
+                            window.parent.showFlashMessage('Lỗi kết nối.', 'danger');
+                        }
+                    } finally {
+                        if (saveBtn) {
+                            saveBtn.disabled = false;
+                            saveBtn.innerHTML = '<i class="fas fa-check"></i> <span>Lưu</span>';
+                        }
+                    }
+                });
+            }
+
+            // AI Logic
+            const aiRegenerateBtn = document.getElementById('quiz-ai-regenerate-btn');
+            const aiExplanationField = document.getElementById('ai_explanation');
+            const getAiResponseUrl = "{{ url_for('ai_services.get_ai_response') }}";
+            const itemId = {{ (quiz_item.item_id if quiz_item else None) | tojson }};
+
+        if (aiRegenerateBtn && aiExplanationField && itemId) {
+            aiRegenerateBtn.addEventListener('click', async () => {
+                const originalText = aiRegenerateBtn.innerHTML;
+                aiRegenerateBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+                aiRegenerateBtn.disabled = true;
+                aiExplanationField.classList.add('animate-pulse');
+
+                try {
+                    const csrfToken = document.querySelector('input[name="csrf_token"]').value;
+                    const response = await fetch(getAiResponseUrl, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': csrfToken
+                        },
+                        body: JSON.stringify({
+                            item_id: itemId,
+                            prompt_type: 'explanation',
+                            force_regenerate: true
+                        })
+                    });
+
+                    const result = await response.json();
+                    aiExplanationField.classList.remove('animate-pulse');
+                    if (response.ok && result.success) {
+                        aiExplanationField.value = result.response;
+                    } else {
+                        alert('Lỗi: ' + (result.message || 'Không thể tạo nội dung.'));
+                    }
+                } catch (error) {
+                    aiExplanationField.classList.remove('animate-pulse');
+                    alert('Lỗi kết nối.');
+                } finally {
+                    aiRegenerateBtn.innerHTML = originalText;
+                    aiRegenerateBtn.disabled = false;
+                }
+            });
+        }
+
+        // Transcript Logic
+        const transcriptBtn = document.getElementById('quiz-transcript-generate-btn');
+        const transcriptField = document.getElementById('audio_transcript');
+
+        if (transcriptBtn && transcriptField && itemId) {
+            transcriptBtn.addEventListener('click', async () => {
+                const originalText = transcriptBtn.innerHTML;
+                transcriptBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+                transcriptBtn.disabled = true;
+
+                try {
+                    const csrfToken = document.querySelector('input[name="csrf_token"]').value;
+                    const response = await fetch(`/learn/api/transcript/${itemId}`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': csrfToken
+                        }
+                    });
+                    const data = await response.json();
+                    if (data.success) {
+                        transcriptField.value = data.transcript;
+                    } else {
+                        alert(data.message || 'Lỗi tạo transcript');
+                    }
+                } catch (e) {
+                    alert('Lỗi kết nối transcript');
+                } finally {
+                    transcriptBtn.innerHTML = originalText;
+                    transcriptBtn.disabled = false;
+                }
+            });
+        }
+        });
+    </script>
+</body>
+
+</html>

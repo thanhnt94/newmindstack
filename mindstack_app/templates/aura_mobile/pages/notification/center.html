@@ -1,0 +1,309 @@
+<!-- Notification Center (Mobile Sheet / Desktop Dropdown) -->
+<div id="notification-center"
+    class="fixed inset-y-0 right-0 w-full sm:w-96 bg-white shadow-2xl z-[150] transform translate-x-full transition-transform duration-300 flex flex-col pointer-events-auto border-l border-slate-100">
+
+    <!-- Header -->
+    <div class="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50 backdrop-blur-sm">
+        <div>
+            <h3 class="font-black text-lg text-slate-800">Thông báo</h3>
+            <p class="text-xs text-slate-500 font-medium">Cập nhật mới nhất</p>
+        </div>
+        <div class="flex gap-2">
+            <button onclick="notifService.markAllRead()"
+                class="text-xs font-bold text-blue-600 hover:text-blue-700 px-3 py-1.5 rounded-lg hover:bg-blue-50 transition-colors">
+                Đọc tất cả
+            </button>
+            <button onclick="toggleNotificationCenter()"
+                class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200 transition-colors">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Subscribe UI -->
+    <div id="push-permission-ui" class="p-4 bg-blue-50 border-b border-blue-100 hidden">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-sm font-bold text-blue-800">Bật thông báo</p>
+                <p class="text-xs text-blue-600">Nhận tin mới ngay lập tức.</p>
+            </div>
+            <button onclick="notifService.requestPermission()"
+                class="bg-blue-600 text-white text-xs px-3 py-2 rounded-lg font-bold hover:bg-blue-700 transition-colors shadow-sm">
+                Bật
+            </button>
+        </div>
+    </div>
+
+    <!-- List -->
+    <div id="notif-list" class="flex-grow overflow-y-auto p-2 space-y-2 bg-slate-50">
+        <!-- Loading -->
+        <div class="flex flex-col items-center justify-center py-10 text-slate-400 gap-2">
+            <i class="fas fa-spinner fa-spin text-2xl"></i>
+            <span class="text-xs">Đang tải...</span>
+        </div>
+    </div>
+
+    <!-- Empty Template -->
+    <template id="notif-empty-tpl">
+        <div class="flex flex-col items-center justify-center py-16 text-slate-400">
+            <div class="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4 text-slate-300">
+                <i class="fa-regular fa-bell-slash text-2xl"></i>
+            </div>
+            <p class="text-sm font-medium">Không có thông báo mới</p>
+        </div>
+    </template>
+</div>
+
+<!-- Overlay -->
+<div id="notif-overlay" onclick="toggleNotificationCenter()"
+    class="fixed inset-0 bg-black/20 backdrop-blur-[1px] z-[140] opacity-0 pointer-events-none transition-opacity duration-300">
+</div>
+
+<script>
+    const notifService = {
+        isOpen: false,
+
+        toggle() {
+            this.isOpen = !this.isOpen;
+            const panel = document.getElementById('notification-center');
+            const overlay = document.getElementById('notif-overlay');
+
+            if (this.isOpen) {
+                panel.classList.remove('translate-x-full');
+                overlay.classList.remove('opacity-0', 'pointer-events-none');
+                this.fetchNotifications();
+                this.checkPushPermission();
+            } else {
+                panel.classList.add('translate-x-full');
+                overlay.classList.add('opacity-0', 'pointer-events-none');
+            }
+        },
+
+        async fetchNotifications() {
+            const listEl = document.getElementById('notif-list');
+            try {
+                const res = await fetch(`/notifications/api/list?limit=20&_t=${Date.now()}`);
+                const data = await res.json();
+                this.render(data.notifications);
+                this.updateBadge(data.unread_count);
+            } catch (err) {
+                console.error('Notif fetch error', err);
+                listEl.innerHTML = '<div class="text-center py-4 text-red-400 text-xs">Lỗi tải thông báo</div>';
+            }
+        },
+
+        render(items) {
+            const listEl = document.getElementById('notif-list');
+            if (!items || items.length === 0) {
+                const emptyTpl = document.getElementById('notif-empty-tpl');
+                listEl.innerHTML = emptyTpl.innerHTML;
+                return;
+            }
+
+            listEl.innerHTML = items.map(item => {
+                let icon = 'fa-bell';
+                let color = 'bg-blue-100 text-blue-600';
+
+                if (item.type === 'STUDY') { icon = 'fa-book-open'; color = 'bg-emerald-100 text-emerald-600'; }
+                if (item.type === 'CHAT') { icon = 'fa-comments'; color = 'bg-indigo-100 text-indigo-600'; }
+                if (item.type === 'ACHIEVEMENT') { icon = 'fa-trophy'; color = 'bg-amber-100 text-amber-600'; }
+
+                const isReadClass = item.is_read ? 'opacity-75 bg-white' : 'bg-white border-l-4 border-l-blue-500';
+
+                return `
+            <div onclick="notifService.handleClick(${item.id}, '${item.link || ''}')" 
+                 class="w-full p-4 rounded-xl shadow-sm border border-slate-100 cursor-pointer hover:shadow-md transition-all flex gap-3 ${isReadClass} group relative">
+                <div class="flex-shrink-0 w-10 h-10 rounded-full ${color} flex items-center justify-center">
+                    <i class="fa-solid ${icon}"></i>
+                </div>
+                <div class="flex-grow min-w-0">
+                    <div class="flex justify-between items-start mb-1">
+                        <h4 class="text-sm font-bold text-slate-800 line-clamp-1 pr-6">${item.title}</h4>
+                        <span class="text-[10px] text-slate-400 font-medium whitespace-nowrap ml-2">${this.timeSince(new Date(item.created_at))}</span>
+                    </div>
+                    <p class="text-xs text-slate-600 line-clamp-2 leading-relaxed">${item.message}</p>
+                </div>
+                <div class="flex flex-col justify-center items-end pl-2 border-l border-slate-100 ml-1">
+                     <button onclick="event.stopPropagation(); notifService.delete(${item.id})" 
+                             class="text-slate-300 hover:text-red-500 transition-colors p-2 rounded-full hover:bg-red-50" title="Xóa">
+                        <i class="fa-solid fa-trash-can text-sm"></i>
+                     </button>
+                     ${!item.is_read ? '<div class="w-2 h-2 rounded-full bg-blue-500 mt-2"></div>' : ''}
+                </div>
+            </div>
+            `;
+            }).join('');
+        },
+
+        getCsrfToken() {
+            return document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+        },
+
+        async delete(id) {
+            if (!confirm('Bạn có chắc muốn xóa thông báo này?')) return;
+            try {
+                await fetch(`/notifications/api/delete/${id}`, {
+                    method: 'DELETE',
+                    headers: { 'X-CSRFToken': this.getCsrfToken() }
+                });
+                this.fetchNotifications();
+            } catch (e) {
+                alert('Lỗi xóa thông báo: ' + e.message);
+            }
+        },
+
+        async handleClick(id, link) {
+            try {
+                await fetch(`/notifications/api/mark-read/${id}`, {
+                    method: 'POST',
+                    headers: { 'X-CSRFToken': this.getCsrfToken() }
+                });
+            } catch (e) { }
+
+            if (link && link !== 'null' && link !== '') {
+                window.location.href = link;
+            } else {
+                this.fetchNotifications();
+            }
+        },
+
+        async markAllRead() {
+            try {
+                await fetch('/notifications/api/mark-all-read', {
+                    method: 'POST',
+                    headers: { 'X-CSRFToken': this.getCsrfToken() }
+                });
+                this.fetchNotifications();
+            } catch (e) {
+                alert('Lỗi đánh dấu đã đọc: ' + e.message);
+            }
+        },
+
+        updateBadge(count) {
+            ['mobile-noti-badge', 'desktop-noti-badge', 'dashboard-noti-badge'].forEach(id => {
+                const badge = document.getElementById(id);
+                if (badge) {
+                    if (count > 0) {
+                        badge.classList.remove('hidden');
+                        badge.innerText = count > 9 ? '9+' : count;
+                    } else {
+                        badge.classList.add('hidden');
+                    }
+                }
+            });
+        },
+
+        timeSince(date) {
+            const seconds = Math.floor((new Date() - date) / 1000);
+            let interval = seconds / 31536000;
+            if (interval > 1) return Math.floor(interval) + " năm trước";
+            interval = seconds / 2592000;
+            if (interval > 1) return Math.floor(interval) + " tháng trước";
+            interval = seconds / 86400;
+            if (interval > 1) return Math.floor(interval) + " ngày trước";
+            interval = seconds / 3600;
+            if (interval > 1) return Math.floor(interval) + " giờ trước";
+            interval = seconds / 60;
+            if (interval > 1) return Math.floor(interval) + " phút trước";
+            return "Vừa xong";
+        },
+
+        // --- Web Push Logic ---
+
+        checkPushPermission() {
+            const ui = document.getElementById('push-permission-ui');
+            if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+                return; // Not supported
+            }
+
+            if (Notification.permission === 'default') {
+                ui.classList.remove('hidden');
+            } else if (Notification.permission === 'granted') {
+                ui.classList.add('hidden');
+                this.ensureSubscription();
+            } else {
+                ui.classList.add('hidden');
+            }
+        },
+
+        async requestPermission() {
+            try {
+                const permission = await Notification.requestPermission();
+                if (permission === 'granted') {
+                    document.getElementById('push-permission-ui').classList.add('hidden');
+                    this.checkPushPermission();
+                } else if (permission === 'denied') {
+                    alert('Bạn đã chặn thông báo cho trang web này. Vui lòng vào cài đặt trình duyệt (biểu tượng ổ khóa trên thanh địa chỉ) để Bật lại/Reset quyền thông báo.');
+                }
+            } catch (e) {
+                alert('Lỗi trình duyệt: ' + e.message);
+            }
+        },
+
+        async ensureSubscription() {
+            try {
+                const reg = await navigator.serviceWorker.register('/notifications/sw.js');
+
+                const keyRes = await fetch('/notifications/api/vapid-public-key');
+                if (!keyRes.ok) throw new Error('Không thể lấy VAPID Key');
+
+                const keyData = await keyRes.json();
+                const vapidKey = keyData.publicKey;
+
+                if (!vapidKey) throw new Error('VAPID Key chưa được cấu hình');
+
+                const convertedKey = this.urlBase64ToUint8Array(vapidKey);
+
+                let sub = await reg.pushManager.getSubscription();
+                if (!sub) {
+                    sub = await reg.pushManager.subscribe({
+                        userVisibleOnly: true,
+                        applicationServerKey: convertedKey
+                    });
+                }
+
+                await fetch('/notifications/api/subscribe', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': this.getCsrfToken()
+                    },
+                    body: JSON.stringify(sub)
+                });
+                console.log('Subscribed to backend!');
+
+            } catch (err) {
+                console.error('Subscription failed', err);
+                alert('Lỗi đăng ký nhận tin: ' + err.message + '\nHãy thử tải lại trang.');
+            }
+        },
+
+        urlBase64ToUint8Array(base64String) {
+            const padding = '='.repeat((4 - base64String.length % 4) % 4);
+            const base64 = (base64String + padding)
+                .replace(/\-/g, '+')
+                .replace(/_/g, '/');
+            const rawData = window.atob(base64);
+            const outputArray = new Uint8Array(rawData.length);
+            for (let i = 0; i < rawData.length; ++i) {
+                outputArray[i] = rawData.charCodeAt(i);
+            }
+            return outputArray;
+        },
+
+        init() {
+            this.fetchNotifications();
+            setInterval(() => this.fetchNotifications(), 60000);
+
+            if ('serviceWorker' in navigator) {
+                // navigator.serviceWorker.register('/notifications/sw.js');
+            }
+        }
+    };
+
+    window.toggleNotificationCenter = () => notifService.toggle();
+
+    document.addEventListener('DOMContentLoaded', () => {
+        notifService.init();
+    });
+</script>
