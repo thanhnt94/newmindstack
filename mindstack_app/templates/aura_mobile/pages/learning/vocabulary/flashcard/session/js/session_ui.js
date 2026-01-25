@@ -558,8 +558,6 @@
                 let timeText = '';
                 // Prefer interval_minutes -> formatMinutesAsDuration
                 if (window.formatMinutesAsDuration && info.interval_minutes) {
-                    // For badge inside button, we want compact. Tooltip is detailed.
-                    // Let's keep badge simple.
                     const m = Math.round(info.interval_minutes);
                     if (m < 60) timeText = m + 'm';
                     else if (m < 1440) timeText = Math.round(m / 60) + 'h';
@@ -574,13 +572,19 @@
                 }
 
                 if (timeText) {
-                    const badge = document.createElement('span');
-                    badge.className = 'fc-time-badge block text-[10px] font-bold opacity-80 mt-0.5 w-full text-center';
-                    badge.style.width = '100%';
-                    badge.textContent = timeText;
-                    btn.appendChild(badge);
+                    // Update the Title Span directly
+                    // const titleSpan = btn.querySelector('.rating-btn__title'); // Already defined above
+                    if (titleSpan) {
+                        // Check if we already appended (to avoid duplicates if called multiple times)
+                        // Reset first to be safe
+                        const baseLabel = btn.getAttribute('data-base-label') || titleSpan.textContent;
+                        if (!btn.getAttribute('data-base-label')) {
+                            btn.setAttribute('data-base-label', baseLabel);
+                        }
+                        titleSpan.textContent = `${baseLabel} (${timeText})`;
+                        titleSpan.style.whiteSpace = 'nowrap'; // Ensure it stays on one line if possible, or wrap nicely
+                    }
                 }
-
             }
 
             // Attach Hover Listeners (Always attach to ensure feedback)
@@ -613,18 +617,201 @@
     function updateMobileStats(stats) {
         if (!stats) return;
 
-        // Update Progress Bar & Text (Header)
+        // 1. Session Progress (Left Header: 0/0)
+        // Selectors: .js-fc-progress-text, .js-fc-answered-count
         if (stats.total > 0) {
             const percent = Math.min(100, Math.round((stats.processed / stats.total) * 100));
-            document.querySelectorAll('.js-fc-progress-fill').forEach(el => {
-                el.style.width = percent + '%';
-            });
-            document.querySelectorAll('.js-fc-progress-text').forEach(el => {
-                el.textContent = `${stats.processed}/${stats.total}`;
-            });
+            document.querySelectorAll('.js-fc-progress-fill').forEach(el => el.style.width = percent + '%');
+
+            const progressText = `${stats.processed}/${stats.total}`;
+            document.querySelectorAll('.js-fc-progress-text').forEach(el => el.textContent = progressText);
+
+            // Also update any standalone counters
+            document.querySelectorAll('.js-fc-answered-count').forEach(el => el.textContent = stats.processed);
+            document.querySelectorAll('.js-fc-total-count').forEach(el => el.textContent = stats.total);
         }
 
-        // ... (rest of stats)
+        // 2. Session Correct Count (Green Check)
+        document.querySelectorAll('.js-fc-session-correct').forEach(el => {
+            el.textContent = stats.correct || 0;
+        });
+
+        // 3. Session Points (Diamond)
+        document.querySelectorAll('.js-fc-session-points').forEach(el => {
+            const val = stats.session_score || 0;
+            const sign = val > 0 ? '+' : '';
+            el.textContent = sign + val;
+        });
+
+        // 4. Secondary Row Stats (Current Card Context)
+
+        // 4a. Streak (Fire)
+        document.querySelectorAll('.js-fc-streak-count').forEach(el => {
+            el.textContent = stats.streak || 0;
+        });
+
+        // 4b. Stability (Shield)
+        document.querySelectorAll('.js-fc-stability-days').forEach(el => {
+            const val = stats.stability !== undefined ? parseFloat(stats.stability).toFixed(1) : '0';
+            // If it's 0.0, show 0
+            el.textContent = (val === '0.0' || val === '0.00') ? '0' : val;
+        });
+
+        // 4c. Retention (Purple Brain)
+        document.querySelectorAll('.js-fc-retention-percent').forEach(el => {
+            const val = stats.retrievability !== undefined ? Math.round(stats.retrievability) : 0;
+            el.textContent = val + '%';
+        });
+
+        // 4d. Difficulty (D) - if exists
+        document.querySelectorAll('.js-fc-difficulty-val').forEach(el => {
+            // Difficulty is usually 1-10
+            // We might need to fetch it from 'difficulty' or check if it's passed
+            // In session_manager.js we didn't explicitly pass 'difficulty' in flashcardSessionStats root,
+            // but it might be in statistics object?
+            // Actually session_manager.js passes: stability, retrievability.
+            // Let's rely on what we have.
+            el.textContent = '0.0'; // Placeholder if not passed
+        });
+
+        // 4e. Review Counts (Refresh Icon)
+        document.querySelectorAll('.js-fc-review-count').forEach(el => {
+            el.textContent = (stats.times_reviewed || 0) + ' lần';
+        });
+
+        // 5. State Badge (MỚI / learning...) - controlled by updateStateBadge
+        // converting status 'new', 'learning', etc to display text happens in updateStateBadge
+        // We can call it here if we have status
+        if (stats.status && window.updateStateBadge) {
+            window.updateStateBadge(stats.status);
+        }
     }
+
+    // --- Smart Transition Helpers ---
+
+    window.hideRatingButtons = function () {
+        const ratingBtns = document.querySelector('.fc-rating-btns');
+        if (ratingBtns) {
+            // Use opacity for immediate visual feedback without layout shift
+            ratingBtns.style.opacity = '0';
+            ratingBtns.style.pointerEvents = 'none'; // Disable clicks
+        }
+        const bottomFlipBtn = document.querySelector('.fc-flip-btn');
+        if (bottomFlipBtn) {
+            bottomFlipBtn.style.opacity = '0';
+            bottomFlipBtn.style.pointerEvents = 'none';
+        }
+    };
+
+    window.showRatingButtons = function () {
+        const ratingBtns = document.querySelector('.fc-rating-btns');
+        if (ratingBtns) {
+            ratingBtns.style.opacity = '';
+            ratingBtns.style.pointerEvents = '';
+        }
+        const bottomFlipBtn = document.querySelector('.fc-flip-btn');
+        if (bottomFlipBtn) {
+            bottomFlipBtn.style.opacity = '';
+            bottomFlipBtn.style.pointerEvents = '';
+        }
+    };
+
+    // Promise-based Toast (Dynamic Wait)
+    window.showMobileToast = function (htmlContent, duration = 1500) {
+        return new Promise((resolve) => {
+            // Create or reuse toast element
+            let toast = document.getElementById('mobile-smart-toast');
+            if (!toast) {
+                toast = document.createElement('div');
+                toast.id = 'mobile-smart-toast';
+                toast.className = 'fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-[99999] pointer-events-none transition-all duration-300';
+                document.body.appendChild(toast);
+            }
+
+            // Reset state
+            toast.style.opacity = '0';
+            toast.style.transform = 'translate(-50%, -40%) scale(0.9)';
+
+            // Set Content
+            toast.innerHTML = `
+                <div class="bg-slate-800/95 backdrop-blur-md text-white px-6 py-4 rounded-2xl shadow-2xl flex flex-col items-center gap-2 border border-slate-700/50 min-w-[200px]">
+                    ${htmlContent}
+                </div>
+            `;
+
+            // Animate In
+            requestAnimationFrame(() => {
+                toast.style.opacity = '1';
+                toast.style.transform = 'translate(-50%, -50%) scale(1)';
+            });
+
+            // Wait Duration
+            setTimeout(() => {
+                // Animate Out
+                toast.style.opacity = '0';
+                toast.style.transform = 'translate(-50%, -40%) scale(0.95)';
+
+                // Resolve after animation matches CSS duration (300ms)
+                setTimeout(() => {
+                    resolve();
+                }, 300);
+            }, duration);
+        });
+    };
+
+    // Alias for Score Toast
+    window.showScoreToast = function (scoreChange) {
+        const sign = scoreChange > 0 ? '+' : '';
+        const color = scoreChange > 0 ? 'text-emerald-400' : 'text-rose-400';
+        return window.showMobileToast(`
+            <div class="text-3xl font-bold ${color}">${sign}${scoreChange}</div>
+            <div class="text-xs text-slate-400 uppercase tracking-widest font-bold">Điểm kinh nghiệm</div>
+        `, 1200);
+    };
+
+    // Alias for Memory Power
+    window.showMemoryPowerToast = function (powerDiff) {
+        return window.showMobileToast(`
+             <div class="text-2xl font-bold text-indigo-400">Memory Power</div>
+             <div class="text-lg font-medium text-indigo-200">+${powerDiff}</div>
+        `, 1500);
+    };
+
+    // [UX-IMMEDIATE] Update specific card stats immediately after rating (before transition)
+    window.updateCurrentCardStats = function (stats) {
+        if (!stats) return;
+        console.log('[FSRS Mobile] Immediate Stats Update:', stats);
+
+        // 1. Streak
+        if (stats.current_streak !== undefined) {
+            document.querySelectorAll('.js-fc-streak-count').forEach(el => el.textContent = stats.current_streak);
+        }
+
+        // 2. Stability
+        if (stats.stability !== undefined) {
+            const val = parseFloat(stats.stability).toFixed(1);
+            const displayVal = (val === '0.0' || val === '0.00') ? '0' : val;
+            document.querySelectorAll('.js-fc-stability-days').forEach(el => el.textContent = displayVal);
+        }
+
+        // 3. Retention (Memory Power / Retrievability)
+        // Backend might return 'memory_power' or 'retrievability'
+        const retention = (stats.retrievability !== undefined) ? stats.retrievability : stats.memory_power;
+        if (retention !== undefined) {
+            document.querySelectorAll('.js-fc-retention-percent').forEach(el => el.textContent = Math.round(retention) + '%');
+        }
+
+        // 4. Review Count
+        if (stats.times_reviewed !== undefined) {
+            document.querySelectorAll('.js-fc-review-count').forEach(el => el.textContent = stats.times_reviewed + ' lần');
+        }
+
+        // 5. Status Badge
+        // API 'statistics' might have 'status' or 'custom_state'
+        const status = stats.status || stats.custom_state;
+        if (status && window.updateStateBadge) {
+            window.updateStateBadge(status);
+        }
+    };
 
 })();

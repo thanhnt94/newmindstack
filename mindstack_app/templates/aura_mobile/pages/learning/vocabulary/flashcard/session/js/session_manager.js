@@ -11,6 +11,7 @@ let currentUserTotalScore = 0;
 let sessionAnswerHistory = [];
 let currentStreak = 0;
 let currentCardStartTime = 0;
+let isSubmitting = false; // [LOCK] Prevent double submissions
 
 
 // Local stats
@@ -249,12 +250,17 @@ async function getNextFlashcardBatch() {
 // Finding render rendering point is key. It's window.renderCard(currentCardData) at line 152.
 
 async function submitFlashcardAnswer(itemId, answer) {
+    if (isSubmitting) return; // Prevent double clicks
+    isSubmitting = true;
+
+    // [SMART TRANSITION] 1. Immediate Action
+    if (window.hideRatingButtons) window.hideRatingButtons();
+
     window.stopAllFlashcardAudio();
     const submitAnswerUrl = window.FlashcardConfig.submitAnswerUrl;
 
     // [NEW] Calculate duration
     const durationMs = currentCardStartTime > 0 ? (Date.now() - currentCardStartTime) : 0;
-
     try {
         const res = await fetch(submitAnswerUrl, {
             method: 'POST',
@@ -271,20 +277,35 @@ async function submitFlashcardAnswer(itemId, answer) {
         sessionScore += data.score_change;
         currentUserTotalScore = data.updated_total_score;
 
-        // Gamified Notification
+        // [UX-IMMEDIATE] 3. Update Current Card Stats Immediately
+        if (window.updateCurrentCardStats) {
+            const mergedStats = {
+                ...(data.statistics || {}),
+                ...(data.memory_power || {})
+            };
+            window.updateCurrentCardStats(mergedStats);
+        }
+
+        // [SMART TRANSITION] 2. Notification & Dynamic Wait
         let notificationPromise = Promise.resolve();
 
-        // [UX-FIX] Dispatch event to hide card content and bottom bar during notification
-        document.dispatchEvent(new CustomEvent('notificationStart'));
+        // Dispatch event to hide card content (optional, maybe keep it visible now?)
+        // User requested: "Keep current card visible"
+        // So we might NOT want 'notificationStart' to hide content anymore?
+        // Let's keep 'notificationStart' but ensure it doesn't hide the card text if that's what it did.
+        // Checking previous code: notificationStart added class 'notification-active' which might hide content.
+        // User said: "Giữ nguyên thẻ hiện tại trên màn hình." implied visible?
+        // Let's Comment out the hiding dispatch if it hides content.
+        // document.dispatchEvent(new CustomEvent('notificationStart')); 
 
-        if (data.score_change > 0 && typeof window.showScoreToast === 'function') {
-            window.showScoreToast(data.score_change);
+        if (data.score_change > 0 && window.showScoreToast) {
+            // We await this!
+            notificationPromise = window.showScoreToast(data.score_change);
         }
 
-        // Memory Power Notification - await its animation (using FSRS Retrievability)
-        if (data.memory_power && typeof window.showMemoryPowerFeedback === 'function') {
-            notificationPromise = window.showMemoryPowerFeedback(data.memory_power.old_retrievability, data.memory_power.retrievability);
-        }
+        // Memory Power Notification (if distinct from Score)
+        // If both exist, maybe chain them or show combined? 
+        // For now, let's prioritize Score Toast as the main blocker.
 
         const previousCardContent = currentFlashcardBatch[currentFlashcardIndex].content;
         previousCardStats = {
@@ -374,19 +395,25 @@ async function submitFlashcardAnswer(itemId, answer) {
 
         currentFlashcardIndex++;
 
-        // Wait for notification animation to complete before loading next card
+        // [SMART TRANSITION] 3. Wait for Notification to Finish (Dynamic Wait)
+        // This is the barrier. The code will pause here until the toast animation is FULLY done.
         await notificationPromise;
 
-        // [UX-FIX] Dispatch event to signal notification is complete, UI can now reveal content
-        document.dispatchEvent(new CustomEvent('notificationComplete'));
+        // [SMART TRANSITION] 4. Load Next Card (Only after wait)
+        await getNextFlashcardBatch();
 
-        // [UX-DELAY] Add slight delay for smooth transition (per user request/Aura parity)
-        await new Promise(r => setTimeout(r, 600));
+        // 5. Show buttons again (after card loaded)
+        if (window.showRatingButtons) window.showRatingButtons();
 
-        getNextFlashcardBatch();
     } catch (e) {
         console.error('Lỗi khi gửi đáp án:', e);
         if (window.showCustomAlert) window.showCustomAlert('Có lỗi khi gửi đáp án. Vui lòng thử lại.');
+
+        // Unlock on error so user can retry
+        if (window.showRatingButtons) window.showRatingButtons();
+        isSubmitting = false;
+    } finally {
+        isSubmitting = false;
     }
 }
 
