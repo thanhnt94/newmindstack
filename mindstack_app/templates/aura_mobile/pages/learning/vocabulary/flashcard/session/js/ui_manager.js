@@ -535,6 +535,7 @@ function renderCard(data) {
 
 // --- Preview Tooltip Helper Functions ---
 
+
 function createPreviewTooltipElement() {
     const tooltip = document.createElement('div');
     tooltip.id = 'rating-preview-tooltip';
@@ -543,25 +544,18 @@ function createPreviewTooltipElement() {
 
     // Initial Styles (if not in CSS)
     Object.assign(tooltip.style, {
-        position: 'fixed', // Use fixed for easier positioning relative to viewport
+        position: 'fixed',
         zIndex: '9999',
         display: 'none',
         pointerEvents: 'none',
-        background: 'rgba(15, 23, 42, 0.95)',
-        color: '#f8fafc',
-        padding: '12px',
-        borderRadius: '12px',
-        fontSize: '13px',
-        lineHeight: '1.4',
-        boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.5)',
-        width: '220px',
-        backdropFilter: 'blur(8px)',
-        border: '1px solid rgba(255,255,255,0.1)',
+        // Styles are now handled by .rating-preview-tooltip class in CSS
+        // Kept purely for failsafe if CSS doesn't load
         opacity: '0',
         transition: 'opacity 0.15s ease, transform 0.15s ease',
-        transform: 'translateY(10px)'
+        transform: 'translateY(4px)'
     });
 }
+
 
 // Ensure tooltip is created on load
 document.addEventListener('DOMContentLoaded', () => {
@@ -587,9 +581,22 @@ function showPreviewTooltip(targetBtn, data) {
     console.log('[PreviewTooltip] Showing data:', data);
 
     const { formatMinutesAsDuration } = window;
-    const intervalDisplay = formatMinutesAsDuration ? formatMinutesAsDuration(data.interval) : (data.interval + 'm');
 
-    console.log('[PreviewTooltip] TRIGGERED via window function. Data:', data);
+    // Calculate Interval Display
+    let intervalDisplay = '';
+    if (data.interval_minutes && formatMinutesAsDuration) {
+        intervalDisplay = formatMinutesAsDuration(data.interval_minutes);
+    } else if (data.interval !== undefined) {
+        if (data.unit) {
+            intervalDisplay = data.interval + data.unit; // e.g. "4d"
+        } else {
+            // Fallback if unit missing (assume days if small, minutes if large? safely suffix 'm' or 'd'?)
+            // Better to just show value
+            intervalDisplay = data.interval + (data.interval > 100 ? 'm' : 'd');
+        }
+    } else {
+        intervalDisplay = '0m';
+    }
 
     // Determine Color based on Points
     const pointsColor = data.points > 0 ? '#4ade80' : (data.points < 0 ? '#f87171' : '#94a3b8');

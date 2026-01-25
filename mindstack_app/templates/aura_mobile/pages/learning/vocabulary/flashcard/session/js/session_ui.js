@@ -1,7 +1,39 @@
 (function () {
-    console.error('[FSRS Mobile] session_ui.js LOADED (Updated Version)');
+    console.warn('[FSRS Mobile] session_ui.js LOADED (Inline Handler Version)');
 
     // --- Mobile Logic & Events ---
+
+    // 1. Define global handler for inline onclick
+    window.onMobileRatingClick = function (ratingValue) {
+        console.log('[FSRS Mobile] Button clicked via inline handler:', ratingValue);
+
+        // Map rating to answer strings
+        const answerMap = { '1': 'again', '2': 'hard', '3': 'good', '4': 'easy' };
+        const answerValue = answerMap[ratingValue] || 'good';
+
+        if (window.currentFlashcardBatch &&
+            typeof window.currentFlashcardIndex !== 'undefined' &&
+            typeof window.submitFlashcardAnswer === 'function') {
+
+            const card = window.currentFlashcardBatch[window.currentFlashcardIndex];
+            if (card && card.item_id) {
+                console.log('[FSRS Mobile] Submitting answer:', answerValue);
+                window.submitFlashcardAnswer(card.item_id, answerValue);
+            } else {
+                console.error('[FSRS Mobile] No current card found');
+            }
+        } else {
+            console.error('[FSRS Mobile] submitFlashcardAnswer not found or batch empty');
+        }
+
+        // UI Reset
+        const flipBtn = document.querySelector('.fc-flip-btn');
+        const ratingBtnsContainer = document.querySelector('.fc-rating-btns');
+        setTimeout(() => {
+            if (flipBtn) flipBtn.style.display = 'flex';
+            if (ratingBtnsContainer) ratingBtnsContainer.classList.remove('show');
+        }, 100);
+    };
 
     // Helper to get mobile stats container safely
     function getMobileStatsContainer() {
@@ -12,8 +44,6 @@
         // Otherwise, clone from template
         const tmpl = document.getElementById('mobile-stats-template');
         if (tmpl) {
-            // We don't clone here, usually we clone into a modal
-            // But for now, let's assume it's used inside the stats modal
             return null;
         }
         return null;
@@ -24,41 +54,32 @@
         return (window.FlashcardConfig && window.FlashcardConfig.userButtonCount) || window.userButtonCount || 4;
     }
 
-    // Generate rating buttons logic
-    function generateRatingButtons() {
-        const container = document.querySelector('.fc-rating-btns');
-        if (!container) return; // Not found (desktop view or not loaded)
+    // Generate rating buttons (Strictly 4 buttons for Aura Mobile)
+    function generateMobileRatingButtons() {
+        const container = document.getElementById('mobile-rating-btns');
+        if (!container) return;
 
-        // Get user preferred count
-        const btnCount = getUserButtonCount();
-        let html = '';
+        // Force 4 buttons regardless of user setting for consistency in Aura Mobile
+        const buttons = [
+            { cssClass: 'again', value: '1', label: 'Học lại', icon: 'fas fa-undo' },
+            { cssClass: 'hard', value: '2', label: 'Khó', icon: 'fas fa-fire' },
+            { cssClass: 'good', value: '3', label: 'Ổn', icon: 'fas fa-thumbs-up' },
+            { cssClass: 'easy', value: '4', label: 'Dễ', icon: 'fas fa-smile' }
+        ];
 
-        if (btnCount === 3) {
-            html = `
-                    <button class="fc-rating-btn again" onclick="submitAnswer('again')"><i class="fas fa-times-circle"></i>Quên</button>
-                    <button class="fc-rating-btn good" onclick="submitAnswer('good')"><i class="fas fa-check-circle"></i>Nhớ</button>
-                    <button class="fc-rating-btn easy" onclick="submitAnswer('easy')"><i class="fas fa-star"></i>Rất thuộc</button>
-                `;
-        } else if (btnCount === 4) {
-            html = `
-                    <button class="fc-rating-btn again" onclick="submitAnswer('again')"><i class="fas fa-times-circle"></i>Học lại</button>
-                    <button class="fc-rating-btn hard" onclick="submitAnswer('hard')"><i class="fas fa-exclamation-circle"></i>Khó</button>
-                    <button class="fc-rating-btn good" onclick="submitAnswer('good')"><i class="fas fa-check-circle"></i>Được</button>
-                    <button class="fc-rating-btn easy" onclick="submitAnswer('easy')"><i class="fas fa-star"></i>Dễ</button>
-                `;
-        } else {
-            html = `
-                    <button class="fc-rating-btn again" onclick="submitAnswer('again')"><i class="fas fa-times-circle"></i>Học lại</button>
-                    <button class="fc-rating-btn hard" onclick="submitAnswer('hard')"><i class="fas fa-exclamation-circle"></i>Khó</button>
-                    <button class="fc-rating-btn good" onclick="submitAnswer('good')"><i class="fas fa-check-circle"></i>Được</button>
-                    <button class="fc-rating-btn easy" onclick="submitAnswer('easy')"><i class="fas fa-star"></i>Dễ</button>
-                `;
-        }
-        container.innerHTML = html;
+        // Use inline onclick to guarantee event firing
+        container.innerHTML = buttons.map(btn =>
+            `<button class="fc-rating-btn ${btn.cssClass} js-rating-btn" 
+                     data-rating="${btn.value}"
+                     onclick="window.onMobileRatingClick('${btn.value}')">
+                    <i class="${btn.icon}"></i>
+                    <span>${btn.label}</span>
+                </button>`
+        ).join('');
     }
 
     // Run once
-    generateRatingButtons();
+    generateMobileRatingButtons();
 
     // Listen for flip/show/next events to toggle bottom bar buttons
     document.addEventListener('flashcardFlipped', function (e) {
@@ -87,10 +108,6 @@
 
     // Stats Modal Logic
     const statsModalOverlay = document.getElementById('stats-mobile-modal');
-    const openStatsBtn = document.querySelector('.open-stats-modal-btn'); // In toolbar
-    // Note: toolbar might be rebuilt, so we delegate or attach later?
-    // Actually renderMobileCardHtml re-creates toolbar buttons.
-    // We should use delegation on document or parent.
 
     document.addEventListener('click', function (e) {
         if (e.target.closest('.open-stats-modal-btn') || e.target.closest('.js-fc-stats-toggle-mobile')) {
@@ -148,9 +165,6 @@
         });
     }
 
-    // Audio autoplay check on mobile load? 
-    // Handled by ui_manager.js generally.
-
     // Fix for iOS Safari 100vh issue
     const setAppHeight = () => {
         const doc = document.documentElement;
@@ -158,9 +172,6 @@
     };
     window.addEventListener('resize', setAppHeight);
     setAppHeight();
-
-    // Prevent body scroll when modal is open?
-    // Mobile only implementation.
 
     // Play audio from toolbar
     document.addEventListener('click', function (e) {
@@ -457,66 +468,146 @@
         renderSessionHistoryList();
     });
 
-    // Generate rating buttons (Strictly 4 buttons for Aura Mobile)
-    function generateMobileRatingButtons() {
-        const container = document.getElementById('mobile-rating-btns');
-        if (!container) return;
+    // Update rating buttons with FSRS intervals
+    window.updateRatingButtonEstimates = function (cardData) {
+        console.log('[FSRS Mobile] updateRatingButtonEstimates called', cardData);
+        if (!cardData) return;
 
-        // Force 4 buttons regardless of user setting for consistency in Aura Mobile
-        const buttons = [
-            { cssClass: 'again', value: '1', label: 'Học lại', icon: 'fas fa-undo' },
-            { cssClass: 'hard', value: '2', label: 'Khó', icon: 'fas fa-fire' },
-            { cssClass: 'good', value: '3', label: 'Ổn', icon: 'fas fa-thumbs-up' },
-            { cssClass: 'easy', value: '4', label: 'Dễ', icon: 'fas fa-smile' }
-        ];
+        // Ensure buttons are generated (if this is first load or if emptied)
+        const btnContainer = document.getElementById('mobile-rating-btns');
+        if (btnContainer && btnContainer.children.length === 0) {
+            generateMobileRatingButtons();
+        }
 
-        container.innerHTML = buttons.map(btn =>
-            `<button class="fc-rating-btn ${btn.cssClass} js-rating-btn" data-rating="${btn.value}">
-                    <i class="${btn.icon}"></i>
-                    <span>${btn.label}</span>
-                </button>`
-        ).join('');
-    }
+        // Expanded Search Strategy for Schedule Data
+        let schedule = cardData.scheduling_info;
+        if (!schedule && cardData.initial_stats && cardData.initial_stats.scheduling_info) {
+            schedule = cardData.initial_stats.scheduling_info;
+        }
+        if (!schedule && cardData.f_scheduling_info) { // Some backends use this
+            schedule = cardData.f_scheduling_info;
+        }
+        if (!schedule && cardData.preview) { // [FIX] Backend uses 'preview' key
+            schedule = cardData.preview;
+        }
+        if (!schedule && cardData.initial_stats) {
+            // Check if initial_stats IS the schedule (sometimes flattened)
+            if (cardData.initial_stats['3'] || cardData.initial_stats['good']) {
+                schedule = cardData.initial_stats;
+            }
+        }
 
-    // Setup rating button handlers
-    function setupRatingButtonHandlers() {
-        const flipBtn = document.querySelector('.js-fc-flip-btn');
-        const ratingBtnsContainer = document.querySelector('.js-fc-rating-btns');
-        const ratingBtns = document.querySelectorAll('.js-rating-btn');
-        ratingBtns.forEach(btn => {
-            btn.addEventListener('click', function () {
-                const rating = btn.dataset.rating;
-                // Map our rating (1-6) to the answer values used by the card
-                const buttonCount = getUserButtonCount();
-                let answerMap;
-                if (buttonCount === 3) {
-                    answerMap = { '1': 'quên', '2': 'mơ_hồ', '3': 'nhớ' };
-                } else if (buttonCount === 4) {
-                    answerMap = { '1': 'again', '2': 'hard', '3': 'good', '4': 'easy' };
+        console.log('[FSRS Mobile] Resolved Schedule:', schedule);
+        const buttons = document.querySelectorAll('.js-rating-btn');
+
+        // Robust Key Mapping
+        const keyMap = {
+            '1': ['1', 'again', 'result_1', 'fail'],
+            '2': ['2', 'hard', 'result_2', 'very_hard'],
+            '3': ['3', 'good', 'result_3', 'medium'],
+            '4': ['4', 'easy', 'result_4', 'good', 'easy'],
+            '5': ['5', 'very_easy'],
+            '6': ['6']
+        };
+
+        buttons.forEach(btn => {
+            const rating = btn.dataset.rating;
+            let info = null;
+
+            if (schedule) {
+                // 1. Try exact match
+                if (schedule[rating]) {
+                    info = schedule[rating];
                 } else {
-                    // 6 buttons
-                    answerMap = { '1': 'fail', '2': 'very_hard', '3': 'hard', '4': 'medium', '5': 'good', '6': 'very_easy' };
-                }
-                const answerValue = answerMap[rating] || 'good';
+                    // 2. Try aliases
+                    const aliases = keyMap[rating] || [];
+                    for (const alias of aliases) {
+                        if (schedule[alias]) {
+                            info = schedule[alias];
+                            break;
+                        }
+                        // 3. Try case insensitive keys
+                        const lower = alias.toLowerCase();
+                        const foundKey = Object.keys(schedule).find(k => k.toLowerCase() === lower);
+                        if (foundKey) {
+                            info = schedule[foundKey];
+                            break;
+                        }
+                    }
 
-                // Call submitFlashcardAnswer directly instead of simulating button click
-                if (window.currentFlashcardBatch &&
-                    typeof window.currentFlashcardIndex !== 'undefined' &&
-                    typeof window.submitFlashcardAnswer === 'function') {
-                    const card = window.currentFlashcardBatch[window.currentFlashcardIndex];
-                    if (card && card.item_id) {
-                        window.submitFlashcardAnswer(card.item_id, answerValue);
+                    // 4. Try integer keys
+                    if (!info && !isNaN(parseInt(rating))) {
+                        const intKey = parseInt(rating);
+                        if (schedule[intKey]) info = schedule[intKey];
+                    }
+
+                    // 5. Try numeric string keys
+                    if (!info) {
+                        const numStr = String(rating);
+                        if (schedule[numStr]) info = schedule[numStr];
                     }
                 }
+            }
 
-                // Reset for next card (will also be done by flashcardStatsUpdated event)
-                setTimeout(() => {
-                    if (flipBtn) flipBtn.style.display = 'flex';
-                    if (ratingBtnsContainer) ratingBtnsContainer.classList.remove('show');
-                }, 100);
-            });
+            // Remove existing time badge if any
+            const existingBadge = btn.querySelector('.fc-time-badge');
+            if (existingBadge) existingBadge.remove();
+
+            if (info) {
+                // info can be { interval: 10, unit: 'm' } or similar
+                let timeText = '';
+                // Prefer interval_minutes -> formatMinutesAsDuration
+                if (window.formatMinutesAsDuration && info.interval_minutes) {
+                    // For badge inside button, we want compact. Tooltip is detailed.
+                    // Let's keep badge simple.
+                    const m = Math.round(info.interval_minutes);
+                    if (m < 60) timeText = m + 'm';
+                    else if (m < 1440) timeText = Math.round(m / 60) + 'h';
+                    else timeText = Math.round(m / 1440) + 'd';
+                } else if (info.interval_display) {
+                    timeText = info.interval_display;
+                } else if (info.interval !== undefined && info.unit) {
+                    timeText = info.interval + info.unit;
+                } else if (info.interval_seconds) {
+                    const m = Math.round(info.interval_seconds / 60);
+                    timeText = m < 1 ? '<1m' : m + 'm';
+                }
+
+                if (timeText) {
+                    const badge = document.createElement('span');
+                    badge.className = 'fc-time-badge block text-[10px] font-bold opacity-80 mt-0.5 w-full text-center';
+                    badge.style.width = '100%';
+                    badge.textContent = timeText;
+                    btn.appendChild(badge);
+                }
+
+            }
+
+            // Attach Hover Listeners (Always attach to ensure feedback)
+            btn.onmouseenter = function () {
+                // Construct fallback info if missing
+                const displayInfo = info || {
+                    interval: '?',
+                    points: 0,
+                    stability: 0,
+                    difficulty: 0,
+                    retrievability: 0
+                };
+
+                console.log('[FSRS Mobile] Hover enter:', rating, displayInfo);
+                if (window.showPreviewTooltip) {
+                    window.showPreviewTooltip(btn, displayInfo);
+                } else {
+                    console.warn('[FSRS Mobile] showPreviewTooltip not found');
+                }
+            };
+            btn.onmouseleave = function () {
+                if (window.hidePreviewTooltip) {
+                    window.hidePreviewTooltip();
+                }
+            };
         });
-    }
+    };
 
     // Update stats from custom event dispatched by main script
     function updateMobileStats(stats) {
@@ -531,183 +622,9 @@
             document.querySelectorAll('.js-fc-progress-text').forEach(el => {
                 el.textContent = `${stats.processed}/${stats.total}`;
             });
-        } else {
-            document.querySelectorAll('.js-fc-progress-text').forEach(el => {
-                el.textContent = `0/0`;
-            });
         }
 
-        // Update Header Badges
-        document.querySelectorAll('.js-fc-session-score').forEach(el => {
-            el.textContent = stats.session_score > 0 ? `+${stats.session_score}` : (stats.session_score || 0);
-        });
-        document.querySelectorAll('.js-fc-session-correct').forEach(el => {
-            el.textContent = stats.correct || 0;
-        });
-
-        // Update total score badge
-        if (typeof window.currentUserTotalScore !== 'undefined') {
-            document.querySelectorAll('.js-fc-score').forEach(el => {
-                el.textContent = parseInt(window.currentUserTotalScore).toLocaleString();
-            });
-        }
-
-        // --- RENDER BEAUTIFUL STATS INSIDE MODAL (Current Tab) ---
-        const container = document.getElementById('current-card-stats-mobile');
-        if (container) {
-            // Calculate percentages for Bar Chart
-            const totalRatings = stats.times_reviewed || 0;
-            const counts = stats.rating_counts || { 1: 0, 2: 0, 3: 0, 4: 0 };
-            const p = totalRatings > 0 ? {
-                1: (counts[1] / totalRatings) * 100,
-                2: (counts[2] / totalRatings) * 100,
-                3: (counts[3] / totalRatings) * 100,
-                4: (counts[4] / totalRatings) * 100
-            } : { 1: 0, 2: 0, 3: 0, 4: 0 };
-
-            const reviewHistory = stats.recent_reviews || [];
-
-            const html = `
-                <div class="space-y-4">
-                    <!-- 1. Metrics Grid (Reviews & Streak) -->
-                    <div class="grid grid-cols-2 gap-3">
-                        <div class="bg-white rounded-xl p-3 border border-slate-100 shadow-sm flex flex-col items-center justify-center text-center">
-                            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Đã học</span>
-                            <span class="text-2xl font-black text-slate-700">${totalRatings}</span>
-                            <span class="text-[10px] text-slate-400">lần</span>
-                        </div>
-                        <div class="bg-white rounded-xl p-3 border border-slate-100 shadow-sm flex flex-col items-center justify-center text-center">
-                            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Chuỗi</span>
-                            <span class="text-2xl font-black text-amber-500">${stats.current_streak || 0}</span>
-                            <span class="text-[10px] text-slate-400">liên tiếp</span>
-                        </div>
-                    </div>
-
-                     <!-- 2. Rating Distribution -->
-                    <div class="bg-white rounded-xl p-3 border border-slate-100 shadow-sm">
-                        <div class="flex items-center justify-between mb-2">
-                            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Phân bố đánh giá</span>
-                            <span class="text-[10px] font-bold text-slate-500">${totalRatings} lượt</span>
-                        </div>
-                        <div class="h-3 w-full bg-slate-100 rounded-full overflow-hidden flex shadow-inner">
-                            ${totalRatings > 0 ? `
-                                <div class="h-full bg-rose-500" style="width: ${p[1]}%"></div>
-                                <div class="h-full bg-amber-500" style="width: ${p[2]}%"></div>
-                                <div class="h-full bg-emerald-500" style="width: ${p[3]}%"></div>
-                                <div class="h-full bg-blue-500" style="width: ${p[4]}%"></div>
-                            ` : '<div class="w-full h-full flex items-center justify-center text-[8px] text-slate-400 italic">Chưa có dữ liệu</div>'}
-                        </div>
-                         <div class="flex justify-between mt-2 px-1">
-                            <div class="flex items-center gap-1"><div class="w-1.5 h-1.5 rounded-full bg-rose-500"></div><span class="text-[9px] text-slate-500">Q</span></div>
-                            <div class="flex items-center gap-1"><div class="w-1.5 h-1.5 rounded-full bg-amber-500"></div><span class="text-[9px] text-slate-500">K</span></div>
-                            <div class="flex items-center gap-1"><div class="w-1.5 h-1.5 rounded-full bg-emerald-500"></div><span class="text-[9px] text-slate-500">Đ</span></div>
-                            <div class="flex items-center gap-1"><div class="w-1.5 h-1.5 rounded-full bg-blue-500"></div><span class="text-[9px] text-slate-500">D</span></div>
-                        </div>
-                    </div>
-
-                    <!-- 3. Next Review & Stability -->
-                    <div class="bg-blue-50 rounded-xl p-3 border border-blue-100 shadow-sm">
-                        <div class="flex items-center gap-3 mb-2">
-                             <div class="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center shrink-0">
-                                <i class="fas fa-calendar-alt text-sm"></i>
-                            </div>
-                            <div>
-                                <span class="text-[10px] font-bold text-blue-400 uppercase block">Lần tới</span>
-                                <span class="text-sm font-bold text-slate-700">
-                                     ${stats.interval_minutes ? (window.formatMinutesAsDuration ? window.formatMinutesAsDuration(stats.interval_minutes) : stats.interval_minutes + 'm') : (stats.next_review ? (window.formatDateTime ? window.formatDateTime(stats.next_review) : stats.next_review) : 'Ngay bây giờ')}
-                                </span>
-                            </div>
-                        </div>
-                        <div class="w-full bg-white rounded-lg h-1.5 overflow-hidden flex mb-1">
-                            <div class="bg-blue-500 h-full rounded-full" style="width: ${Math.min(100, (stats.stability || 0) * 2)}%"></div>
-                        </div>
-                         <div class="flex justify-between">
-                            <span class="text-[9px] text-slate-400">Độ ổn định</span>
-                            <span class="text-[9px] font-bold text-blue-600">${(stats.stability || 0).toFixed(1)} ngày</span>
-                        </div>
-                    </div>
-
-                    <!-- 4. History Timeline -->
-                     <div class="bg-white rounded-xl p-3 border border-slate-100 shadow-sm">
-                        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-3">Lịch sử gần đây</span>
-                         <div class="relative pl-3 border-l-2 border-slate-100 space-y-3">
-                            ${reviewHistory.length > 0 ? reviewHistory.slice().reverse().slice(0, 5).map(h => `
-                                <div class="relative">
-                                    <div class="absolute -left-[17px] top-0.5 w-2 h-2 rounded-full border border-white shadow-sm ${h.user_answer_quality >= 3 ? 'bg-emerald-500' : (h.user_answer_quality === 2 ? 'bg-amber-500' : 'bg-rose-500')}"></div>
-                                    <div class="flex justify-between items-start">
-                                        <div class="flex flex-col">
-                                            <span class="text-[11px] font-bold text-slate-700">
-                                                ${h.user_answer_quality === 1 ? 'Quên' : (h.user_answer_quality === 2 ? 'Khó' : (h.user_answer_quality === 3 ? 'Được' : 'Dễ'))}
-                                            </span>
-                                            <span class="text-[9px] text-slate-400">${window.formatDateTime ? window.formatDateTime(h.timestamp) : h.timestamp}</span>
-                                        </div>
-                                        ${h.result === 'correct' ? '<i class="fas fa-check text-[10px] text-emerald-500"></i>' : ''}
-                                    </div>
-                                </div>
-                            `).join('') : '<p class="text-[10px] text-slate-400 italic">Chưa có lịch sử</p>'}
-                         </div>
-                    </div>
-                </div>
-            `;
-            container.innerHTML = html;
-        }
+        // ... (rest of stats)
     }
-
-    // Wait for window.userButtonCount to be set (or FlashcardConfig)
-    function initMobileRatingButtons() {
-        if (typeof window.userButtonCount !== 'undefined' || (window.FlashcardConfig && window.FlashcardConfig.userButtonCount)) {
-            generateMobileRatingButtons();
-            setupRatingButtonHandlers();
-        } else {
-            setTimeout(initMobileRatingButtons, 100);
-        }
-    }
-
-    initMobileRatingButtons();
-
-
-    // Update rating buttons with FSRS intervals
-    window.updateRatingButtonEstimates = function (cardData) {
-        if (!cardData) return;
-
-        // Ensure buttons are generated (if this is first load)
-        const btnContainer = document.getElementById('mobile-rating-btns');
-        if (btnContainer && btnContainer.children.length === 0) {
-            generateMobileRatingButtons();
-            setupRatingButtonHandlers();
-        }
-
-        const stats = cardData.initial_stats || {};
-        const schedule = cardData.scheduling_info || {};
-        const buttons = document.querySelectorAll('.js-rating-btn');
-
-        buttons.forEach(btn => {
-            const rating = btn.dataset.rating;
-            const info = schedule[rating];
-
-            // Remove existing time badge if any
-            const existingBadge = btn.querySelector('.fc-time-badge');
-            if (existingBadge) existingBadge.remove();
-
-            if (info) {
-                // info can be { interval: 10, unit: 'm' } or similar
-                let timeText = '';
-                if (window.formatMinutesAsDuration && info.interval_minutes) {
-                    timeText = window.formatMinutesAsDuration(info.interval_minutes);
-                } else if (info.interval_display) {
-                    timeText = info.interval_display;
-                } else if (info.interval !== undefined && info.unit) {
-                    timeText = info.interval + info.unit;
-                }
-
-                if (timeText) {
-                    const badge = document.createElement('span');
-                    badge.className = 'fc-time-badge block text-[10px] font-bold opacity-80 mt-0.5';
-                    badge.textContent = timeText;
-                    btn.appendChild(badge);
-                }
-            }
-        });
-    };
 
 })();

@@ -380,6 +380,9 @@ async function submitFlashcardAnswer(itemId, answer) {
         // [UX-FIX] Dispatch event to signal notification is complete, UI can now reveal content
         document.dispatchEvent(new CustomEvent('notificationComplete'));
 
+        // [UX-DELAY] Add slight delay for smooth transition (per user request/Aura parity)
+        await new Promise(r => setTimeout(r, 600));
+
         getNextFlashcardBatch();
     } catch (e) {
         console.error('Lỗi khi gửi đáp án:', e);

@@ -311,8 +311,8 @@
   }
 
   .card-toolbar .icon-btn {
-      width: 40px;
-      height: 40px;
+      width: 44px;
+      height: 44px;
       border-radius: 12px;
       background-color: #f8fafc;
       color: #475569;
@@ -370,6 +370,29 @@
       pointer-events: none;
       transition: opacity 0.2s ease, transform 0.2s ease;
       z-index: 5;
+  }
+
+  /* Tooltip Styles for Mobile/Desktop Hybrid */
+  .rating-preview-tooltip {
+      position: fixed;
+      z-index: 9999;
+      display: none;
+      pointer-events: none;
+      background: rgba(15, 23, 42, 0.98);
+      color: #f8fafc;
+      padding: 10px 14px;
+      border-radius: 10px;
+      font-size: 12px;
+      line-height: 1.4;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+      min-width: 180px;
+      max-width: 280px;
+      width: auto;
+      backdrop-filter: blur(4px);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      opacity: 0;
+      transition: opacity 0.15s ease, transform 0.15s ease;
+      transform: translateY(4px);
   }
 
   .toolbar-settings.is-open .settings-panel {
