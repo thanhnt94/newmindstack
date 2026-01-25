@@ -14,8 +14,9 @@
 <style>
     /* === CORE LAYOUT === */
     body {
-        background-color: #f8fafc;
+        background-color: #f7f9fc;
         font-family: 'Inter', sans-serif;
+        color: #1e293b;
     }
 
     /* Hide Default Header/Nav on Mobile */
@@ -30,28 +31,27 @@
         }
 
         body {
-            padding-top: 115px !important;
-            /* Header + Tabs */
-            padding-bottom: 80px;
-            /* Bottom Bar */
+            padding-top: 110px !important;
+            /* Header Height */
+            padding-bottom: 90px;
         }
     }
 
     /* === UI COMPONENTS === */
     .cm-card {
         background: #ffffff;
-        border: 1px solid #e2e8f0;
-        border-radius: 0.75rem;
-        box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
+        border: 1px solid #eef2f6;
+        border-radius: 1.25rem;
+        box-shadow: 0 4px 15px -1px rgba(0, 0, 0, 0.04);
         overflow: hidden;
         display: flex;
         flex-direction: column;
-        margin-bottom: 1rem;
+        margin-bottom: 1.25rem;
     }
 
     .cm-card-header {
-        padding: 1rem 1.25rem;
-        border-bottom: 1px solid #f1f5f9;
+        padding: 1.25rem 1.5rem;
+        border-bottom: 1px solid #f8fafc;
         background-color: #ffffff;
         display: flex;
         align-items: center;
@@ -59,60 +59,62 @@
     }
 
     .cm-card-body {
-        padding: 1.25rem;
+        padding: 1.5rem;
         flex: 1;
         position: relative;
     }
 
     .qb-question-text {
-        font-size: 1.25rem;
-        font-weight: 700;
-        color: #1e293b;
-        line-height: 1.5;
-        margin-bottom: 1rem;
+        font-size: 1.35rem;
+        font-weight: 800;
+        color: #0f172a;
+        line-height: 1.4;
+        margin-bottom: 1.25rem;
     }
 
     .qb-question-media img {
         width: 100%;
         max-height: 320px;
         object-fit: contain;
-        border-radius: 0.75rem;
-        border: 1px solid #e2e8f0;
-        background: white;
-        margin-bottom: 1rem;
+        border-radius: 1rem;
+        border: 1px solid #f1f5f9;
+        background: #f8fafc;
+        margin-bottom: 1.25rem;
     }
 
     .qb-options-grid {
         display: grid;
-        gap: 0.75rem;
+        gap: 0.85rem;
     }
 
     .qb-option-label {
         display: flex;
-        align-items: flex-start;
-        gap: 1rem;
-        padding: 1rem;
-        border: 2px solid #e2e8f0;
-        border-radius: 0.75rem;
+        align-items: center;
+        gap: 1.25rem;
+        padding: 1rem 1.25rem;
+        border: 1.5px solid #f1f5f9;
+        border-radius: 1rem;
         cursor: pointer;
-        transition: all 0.15s ease;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
         background: white;
+        min-height: 64px;
     }
 
     .qb-option-label:hover {
-        border-color: #94a3b8;
+        border-color: #cbd5e1;
         background: #f8fafc;
+        transform: translateY(-1px);
     }
 
     .qb-option-label.selected {
-        border-color: #3b82f6;
-        background: #eff6ff;
-        ring: 1px solid #3b82f6;
+        border-color: #4f46e5;
+        background: #f5f3ff;
+        box-shadow: 0 4px 12px -2px rgba(79, 70, 229, 0.1);
     }
 
     .qb-option-label.correct {
         border-color: #10b981;
-        background: #ecfdf5;
+        background: #f0fdf4;
     }
 
     .qb-option-label.incorrect {
@@ -122,29 +124,28 @@
 
     .qb-option-label.disabled {
         pointer-events: none;
-        opacity: 0.7;
+        opacity: 0.8;
     }
 
     .qb-option-letter-circle {
         display: flex;
         align-items: center;
         justify-content: center;
-        width: 32px;
-        height: 32px;
+        width: 36px;
+        height: 36px;
         border-radius: 999px;
         background: #f1f5f9;
-        color: #1e293b;
-        font-weight: 700;
-        font-size: 0.9rem;
-        border: 1px solid #e2e8f0;
+        color: #475569;
+        font-weight: 800;
+        font-size: 0.85rem;
+        border: 1.5px solid #e2e8f0;
         flex-shrink: 0;
-        margin-top: 2px;
     }
 
     .qb-option-label.selected .qb-option-letter-circle {
-        background: #3b82f6;
+        background: #4f46e5;
         color: white;
-        border-color: #3b82f6;
+        border-color: #4f46e5;
     }
 
     .qb-option-label.correct .qb-option-letter-circle {
@@ -159,53 +160,121 @@
         border-color: #ef4444;
     }
 
-    /* === MOBILE HEADER & TABS === */
-    .qb-mobile-sticky-wrapper {
+    .qb-option-text {
+        font-weight: 600;
+        color: #334155;
+        font-size: 1.05rem;
+    }
+
+    .qb-option-label.selected .qb-option-text {
+        color: #4338ca;
+    }
+
+    /* === MOBILE HEADER & STATUS === */
+    .qb-mobile-aura-header {
         position: fixed;
         top: 0;
         left: 0;
         right: 0;
-        z-index: 50;
-        background: white;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
-    }
-
-    .qb-mobile-header {
+        z-index: 100;
+        background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+        padding: 14px 16px;
         display: flex;
         align-items: center;
         justify-content: space-between;
-        padding: 10px 16px 4px 16px;
+        color: white;
+        box-shadow: 0 4px 12px rgba(79, 70, 229, 0.2);
     }
 
-    .qb-mobile-tabs-container {
-        padding: 0 16px 10px 16px;
-        background: white;
-        border-bottom: 1px solid #e2e8f0;
-    }
-
-    .qb-mobile-tabs {
-        display: flex;
-        background: #f1f5f9;
-        border-radius: 10px;
-        padding: 3px;
-    }
-
-    .qb-mobile-tab-item {
-        flex: 1;
-        text-align: center;
-        padding: 8px;
-        font-size: 0.9rem;
-        font-weight: 600;
-        color: #64748b;
+    .qb-badge-quiz {
+        background: #f59e0b;
+        color: #78350f;
+        padding: 4px 10px;
         border-radius: 8px;
-        cursor: pointer;
+        font-weight: 800;
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+    }
+
+    .qb-mobile-status-container {
+        position: fixed;
+        top: 56px;
+        /* Below Aura Header */
+        left: 0;
+        right: 0;
+        z-index: 90;
+        padding: 12px 16px;
+        background: rgba(255, 255, 255, 0.9);
+        backdrop-filter: blur(8px);
+        border-bottom: 1px solid #f1f5f9;
+    }
+
+    .qb-status-pills {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        overflow-x: auto;
+        padding-bottom: 2px;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .qb-status-pills::-webkit-scrollbar {
+        display: none;
+    }
+
+    .qb-pill {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 12px;
+        border-radius: 999px;
+        background: #f1f5f9;
+        border: 1px solid #e2e8f0;
+        white-space: nowrap;
+        font-weight: 700;
+        font-size: 0.85rem;
+        color: #475569;
+    }
+
+    .qb-pill.accent {
+        background: #eff6ff;
+        border-color: #dbeafe;
+        color: #3b82f6;
+    }
+
+    .qb-pill.success {
+        background: #f0fdf4;
+        border-color: #dcfce7;
+        color: #10b981;
+    }
+
+    .qb-pill.warning {
+        background: #fffbeb;
+        border-color: #fef3c7;
+        color: #f59e0b;
+    }
+
+    .qb-action-icon {
+        width: 36px;
+        height: 36px;
+        border-radius: 999px;
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        color: #64748b;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
         transition: all 0.2s;
     }
 
-    .qb-mobile-tab-item.active {
-        background: white;
-        color: #2563eb;
-        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    .qb-action-icon.danger {
+        color: #ef4444;
+        border-color: #fee2e2;
     }
 
     /* === BOTTOM BAR === */
@@ -214,39 +283,65 @@
         bottom: 0;
         left: 0;
         right: 0;
-        background: white;
-        padding: 12px 16px;
-        border-top: 1px solid #e2e8f0;
+        background: rgba(255, 255, 255, 0.9);
+        backdrop-filter: blur(12px);
+        padding: 16px 20px;
+        padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+        border-top: 1px solid #f1f5f9;
         z-index: 60;
         display: flex;
-        gap: 10px;
+        gap: 12px;
         align-items: center;
-        box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.05);
     }
 
     .cm-btn {
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        gap: 0.5rem;
-        padding: 0.6rem 1.2rem;
-        border-radius: 0.5rem;
-        font-weight: 600;
-        font-size: 0.9rem;
-        transition: all 0.2s;
+        gap: 0.6rem;
+        padding: 0.8rem 1.4rem;
+        border-radius: 1rem;
+        font-weight: 800;
+        font-size: 0.95rem;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         cursor: pointer;
         border: none;
     }
 
     .cm-btn-primary {
-        background: #2563eb;
+        background: linear-gradient(135deg, #4f46e5 0%, #3730a3 100%);
         color: white;
-        box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2);
+        box-shadow: 0 8px 20px -4px rgba(79, 70, 229, 0.4);
+    }
+
+    .cm-btn-primary:active {
+        transform: scale(0.97);
     }
 
     .cm-btn-primary:disabled {
-        background: #94a3b8;
+        background: #cbd5e1;
+        color: #94a3b8;
+        box-shadow: none;
         cursor: not-allowed;
+    }
+
+    .qb-icon-btn {
+        width: 48px;
+        height: 48px;
+        border-radius: 14px;
+        background: #eff6ff;
+        color: #3b82f6;
+        border: 1px solid #dbeafe;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.25rem;
+        flex-shrink: 0;
+        transition: all 0.2s;
+    }
+
+    .qb-icon-btn:active {
+        background: #dbeafe;
     }
 
     /* === HUB MODAL === */
@@ -338,96 +433,97 @@
 {% endblock %}
 
 {% block content %}
-{# === MOBILE APP HEADER === #}
-<div class="qb-mobile-sticky-wrapper">
-    <div class="qb-mobile-header">
-        <div class="flex items-center gap-3">
-            <div class="flex flex-col">
-                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Tiến độ</span>
-                {# Added js-stat-progress-text hook #}
-                <span id="mobile-progress-display"
-                    class="text-lg font-black text-slate-800 leading-none js-stat-progress-text">--/--</span>
-            </div>
-            <div class="h-6 w-px bg-slate-200"></div>
-            <div class="flex flex-col">
-                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Đúng</span>
-                {# Added js-stat-correct hook (mapped to score for mobile display) #}
-                <span id="mobile-score-display"
-                    class="text-lg font-black text-emerald-600 leading-none font-mono js-stat-correct">0</span>
-            </div>
+{# === MOBILE AURA HEADER === #}
+<div class="qb-mobile-aura-header">
+    <div class="flex items-center gap-2">
+        <div class="qb-badge-quiz">
+            <i class="fa-solid fa-bolt"></i> QUIZ
         </div>
-
-        <div class="flex gap-2">
-            <a href="{{ url_for('dashboard.dashboard') }}"
-                class="w-9 h-9 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center hover:bg-slate-200"
-                title="Về thư viện"><i class="fas fa-arrow-left"></i></a>
-            <button id="mobile-exit-btn" onclick="endQuizSession()"
-                class="w-9 h-9 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center hover:bg-slate-200"><i
-                    class="fa-solid fa-right-from-bracket"></i></button>
-        </div>
+        <span class="font-extrabold text-sm tracking-tight">Phiên học Quiz</span>
     </div>
+    <div class="flex items-center gap-1 bg-white/20 px-3 py-1.5 rounded-xl backdrop-blur-md">
+        <i class="fa-solid fa-gem text-amber-300 text-xs"></i>
+        <span class="text-white font-black text-xs">150</span>
+    </div>
+</div>
 
-    {# === MOBILE TABS === #}
-    <div class="qb-mobile-tabs-container">
-        <div class="qb-mobile-tabs">
-            <div class="qb-mobile-tab-item active" data-tab="game">Câu hỏi</div>
-            <div class="qb-mobile-tab-item" data-tab="stats">Thống kê</div>
+{# === MOBILE STATUS BAR (Pills) === #}
+<div class="qb-mobile-status-container">
+    <div class="flex items-center justify-between">
+        <div class="qb-status-pills">
+            <div class="qb-pill">
+                <i class="fa-solid fa-list-ul text-slate-400"></i>
+                <span class="js-stat-progress-text">0/0</span>
+            </div>
+            <div class="qb-pill success">
+                <i class="fa-solid fa-check text-emerald-500"></i>
+                <span class="js-stat-correct">0</span>
+            </div>
+            <div class="qb-pill accent">
+                <i class="fa-solid fa-bullseye text-blue-500"></i>
+                <span class="js-stat-accuracy">0%</span>
+            </div>
+            <div class="qb-pill warning">
+                <i class="fa-solid fa-fire text-amber-500"></i>
+                <span class="js-stat-streak">0</span>
+            </div>
+        </div>
+        <div class="flex items-center gap-2 border-l border-slate-200 pl-3">
+            <button class="qb-action-icon" data-tab-trigger="stats"><i class="fa-solid fa-chart-pie"></i></button>
+            <a href="{{ url_for('dashboard.dashboard') }}" class="qb-action-icon"><i class="fa-solid fa-house"></i></a>
+            <button class="qb-action-icon danger" onclick="endQuizSession()"><i
+                    class="fa-solid fa-arrow-right-from-bracket"></i></button>
         </div>
     </div>
 </div>
 
-<div class="container mx-auto px-2 py-6 max-w-7xl">
+<div class="container mx-auto px-4 py-8 max-w-lg">
     {# --- TAB: GAMEPLAY --- #}
-    <div id="tab-pane-game" class="qb-tab-pane active space-y-6">
+    <div id="tab-pane-game" class="qb-tab-pane active">
         <div class="cm-card">
             <div class="cm-card-header">
-                {# Added js-question-header hook #}
-                <span class="font-bold text-slate-700 flex items-center gap-2"><i
-                        class="fa-solid fa-circle-question text-blue-500"></i> <span id="question-header-text"
-                        class="js-question-header">Câu hỏi --</span></span>
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-blue-50 text-blue-500 flex items-center justify-center text-lg">
+                        <i class="fa-solid fa-circle-question"></i>
+                    </div>
+                    <span class="font-black text-slate-800 js-question-header">Câu hỏi 1</span>
+                </div>
+                <button class="text-slate-300 hover:text-blue-500 transition-colors">
+                    <i class="fa-regular fa-bookmark text-xl"></i>
+                </button>
             </div>
-            <div class="cm-card-body relative">
+            <div class="cm-card-body">
                 <!-- Loading State -->
-                {# Added js-quiz-loading hook #}
                 <div id="quiz-loading"
-                    class="flex flex-col items-center justify-center py-12 text-blue-500 js-quiz-loading">
-                    <i class="fas fa-spinner fa-spin text-4xl mb-3"></i>
-                    <p>Đang tải câu hỏi...</p>
+                    class="flex flex-col items-center justify-center py-20 text-indigo-500 js-quiz-loading">
+                    <div
+                        class="w-12 h-12 border-4 border-indigo-200 border-t-indigo-500 rounded-full animate-spin mb-4">
+                    </div>
+                    <p class="font-bold">Đang chuẩn bị câu hỏi...</p>
                 </div>
 
                 <!-- Question Content -->
-                {# Added js-quiz-content hook #}
                 <div id="quiz-content" class="hidden js-quiz-content">
-                    {# Added js-question-text hook #}
                     <h2 id="question-text" class="qb-question-text js-question-text">--</h2>
-                    {# Added js-question-media hook #}
                     <div id="question-media" class="qb-question-media hidden js-question-media"></div>
 
-                    {# Added js-options-grid hook #}
-                    <div id="question-options" class="qb-options-grid mt-4 js-options-grid">
+                    <div id="question-options" class="qb-options-grid mt-6 js-options-grid">
                         <!-- Options injected here -->
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Feedback / Result Panel -->
-        {# Added js-result-panel hook #}
-        <div id="result-panel" class="cm-card border-l-4 border-l-blue-500 hidden js-result-panel">
-            <div class="cm-card-body">
-                <div class="flex items-start gap-4">
-                    {# Added js-feedback-icon hook #}
-                    <div id="feedback-icon" class="text-3xl js-feedback-icon">💡</div>
-                    <div class="flex-1">
-                        {# Added js-feedback-title hook #}
-                        <h3 id="feedback-title" class="text-lg font-bold text-slate-900 js-feedback-title">Kết quả</h3>
-                        <div class="flex gap-4 text-sm mt-2">
-                            <div class="bg-slate-50 px-3 py-2 rounded border border-slate-100">
-                                <span class="block text-xs text-slate-400 uppercase">Đáp án đúng</span>
-                                {# Added js-feedback-answer hook #}
-                                <span id="feedback-correct-answer"
-                                    class="font-bold text-emerald-600 js-feedback-answer">--</span>
-                            </div>
+        <!-- Feedback Panel -->
+        <div id="result-panel" class="hidden js-result-panel animate-slide-in-up mt-[-0.5rem] mb-6">
+            <div class="cm-card !bg-slate-900 border-none shadow-xl">
+                <div class="cm-card-body py-4">
+                    <div class="flex items-center gap-4">
+                        <span class="js-feedback-icon text-3xl">🎉</span>
+                        <div class="flex-1">
+                            <h3 class="text-white font-black js-feedback-title">Chính xác!</h3>
+                            <p class="text-slate-400 text-xs">Đáp án đúng là: <span
+                                    class="text-emerald-400 font-bold js-feedback-answer">--</span></p>
                         </div>
                     </div>
                 </div>
@@ -435,34 +531,33 @@
         </div>
     </div>
 
-    {# --- TAB: STATS --- #}
+    {# --- TAB: STATS (Repurposed for summary) --- #}
     <div id="tab-pane-stats" class="qb-tab-pane hidden space-y-6">
+        <!-- (Stats content preserved but matching new styles) -->
         <div class="cm-card">
-            <div class="cm-card-header">
-                <span class="font-bold text-emerald-600"><i class="fa-solid fa-chart-pie"></i> Thống kê phiên</span>
+            <div class="cm-card-header border-none pb-0">
+                <span class="font-black text-slate-800 text-xl">Thống kê phiên</span>
             </div>
             <div class="cm-card-body">
-                <div class="grid grid-cols-2 gap-4 text-center">
-                    <div class="p-3 bg-slate-50 rounded-lg border border-slate-100">
-                        <div class="text-xs text-slate-500 uppercase">Đã làm</div>
-                        {# Added js-stat-total hook #}
-                        <div id="stat-total" class="text-2xl font-bold text-slate-800 js-stat-total">0</div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                        <span class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Đã
+                            làm</span>
+                        <div class="text-3xl font-black text-slate-800 js-stat-total">0</div>
                     </div>
-                    <div class="p-3 bg-emerald-50 rounded-lg border border-emerald-100">
-                        <div class="text-xs text-emerald-600 uppercase">Chính xác</div>
-                        {# Added js-stat-accuracy hook #}
-                        <div id="stat-accuracy" class="text-2xl font-bold text-emerald-700 js-stat-accuracy">0%</div>
+                    <div class="p-4 bg-emerald-50 rounded-2xl border border-emerald-100">
+                        <span class="block text-[10px] font-bold text-emerald-400 uppercase tracking-widest mb-1">Chính
+                            xác</span>
+                        <div class="text-3xl font-black text-emerald-700 js-stat-accuracy">0%</div>
                     </div>
                 </div>
-                <div class="mt-4">
-                    <div class="flex justify-between text-xs text-slate-500 mb-1">
-                        <span>Tiến độ</span>
-                        {# Added js-stat-progress-text hook #}
-                        <span id="stat-progress-text" class="js-stat-progress-text">0/0</span>
+                <div class="mt-8">
+                    <div class="flex justify-between items-end mb-2">
+                        <span class="text-sm font-bold text-slate-600">Tiến độ tổng thể</span>
+                        <span class="text-xs font-black text-indigo-600 js-stat-progress-text">0/0</span>
                     </div>
-                    <div class="w-full bg-slate-100 rounded-full h-2.5">
-                        {# Added js-stat-progress-bar hook #}
-                        <div id="stat-progress-bar" class="bg-blue-600 h-2.5 rounded-full js-stat-progress-bar"
+                    <div class="w-full bg-slate-100 rounded-full h-3 overflow-hidden">
+                        <div class="bg-indigo-500 h-full rounded-full transition-all duration-500 js-stat-progress-bar"
                             style="width: 0%"></div>
                     </div>
                 </div>
@@ -473,12 +568,11 @@
 
 {# === MOBILE BOTTOM BAR === #}
 <div class="qb-bottom-bar">
-    <button type="button" id="open-hub-btn"
-        class="qb-mobile-chat-toggle bg-indigo-50 text-indigo-600 border-indigo-200 hidden" aria-label="Mở chi tiết"><i
-            class="fa-solid fa-lightbulb text-xl"></i></button>
-
-    <button type="button" id="mobile-action-btn" class="cm-btn cm-btn-primary w-full shadow-lg" disabled>
-        <i class="fa-solid fa-paper-plane"></i> Gửi đáp án
+    <button type="button" id="open-hub-btn" class="qb-icon-btn hidden" aria-label="Gợi ý">
+        <i class="fa-solid fa-lightbulb"></i>
+    </button>
+    <button type="button" id="mobile-action-btn" class="cm-btn cm-btn-primary flex-1 shadow-indigo-200" disabled>
+        <i class="fa-solid fa-paper-plane"></i> <span>Gửi đáp án</span>
     </button>
 </div>
 
@@ -509,7 +603,8 @@
                 <div class="bg-gradient-to-r from-indigo-50 to-purple-50 p-4 rounded-xl border border-indigo-100 mb-4">
                     <div class="flex items-center justify-between mb-3">
                         <div class="flex items-center gap-2 text-indigo-700 font-bold"><i class="fa-solid fa-robot"></i>
-                            <span>AI Phân Tích</span></div>
+                            <span>AI Phân Tích</span>
+                        </div>
                         <button id="ai-generate-btn"
                             class="text-xs bg-white text-indigo-600 px-3 py-1.5 rounded-lg border border-indigo-200 font-semibold shadow-sm"><i
                                 class="fa-solid fa-wand-magic-sparkles"></i> Tạo mới</button>
@@ -665,7 +760,7 @@
                 currentBatch = state.currentBatch || [];
                 currentIndex = state.currentIndex || 0;
                 userAnswers = state.userAnswers || {};
-                sessionStats = state.sessionStats || { total: 0, correct: 0, total_questions: 0 };
+                sessionStats = state.sessionStats || { total: 0, correct: 0, total_questions: 0, streak: 0 };
                 lastAnswerResult = state.lastAnswerResult || null;
 
                 if (currentBatch.length === 0 || currentIndex >= currentBatch.length) return false;
@@ -737,7 +832,7 @@
                 grid.innerHTML = Object.entries(q.content.options || {}).map(([key, val]) => `
                     <div class="qb-option-label" data-key="${key}">
                         <span class="qb-option-letter-circle">${key}</span>
-                        <span class="text-slate-800 font-medium text-lg leading-tight mt-1">${val}</span>
+                        <span class="qb-option-text">${val}</span>
                     </div>
                 `).join('');
                 grid.querySelectorAll('.qb-option-label').forEach(el => el.addEventListener('click', () => selectOption(el.dataset.key)));
@@ -832,7 +927,8 @@
                 renderQuestion(currentBatch[currentIndex]);
                 saveState();
                 // Reset tabs to question
-                document.querySelectorAll('.qb-mobile-tab-item[data-tab="game"]').forEach(el => el.click());
+                document.querySelectorAll('.qb-tab-pane').forEach(p => p.classList.add('hidden'));
+                document.getElementById('tab-pane-game').classList.remove('hidden');
             } else {
                 loadFreshBatch();
             }
@@ -866,6 +962,7 @@
             const acc = sessionStats.total > 0 ? Math.round((sessionStats.correct / sessionStats.total) * 100) : 0;
             setText('.js-stat-accuracy', `${acc}%`);
             setText('.js-stat-progress-text', `${sessionStats.total}/${sessionStats.total_questions}`);
+            setText('.js-stat-streak', sessionStats.streak || 0);
             document.querySelectorAll('.js-stat-progress-bar').forEach(el => el.style.width = `${(sessionStats.total / (sessionStats.total_questions || 1)) * 100}%`);
         }
 
@@ -876,13 +973,14 @@
         });
 
         // Tabs
-        document.querySelectorAll('.qb-mobile-tab-item').forEach(tab => {
-            tab.addEventListener('click', () => {
-                document.querySelectorAll('.qb-mobile-tab-item').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('[data-tab-trigger]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const target = btn.dataset.tabTrigger;
                 document.querySelectorAll('.qb-tab-pane').forEach(p => p.classList.add('hidden'));
+                document.getElementById(`tab-pane-${target}`).classList.remove('hidden');
 
-                tab.classList.add('active');
-                document.getElementById(`tab-pane-${tab.dataset.tab}`).classList.remove('hidden');
+                // If it's the stats tab, we might want to show a back button or something, 
+                // but for now let's just allow switching.
             });
         });
 
