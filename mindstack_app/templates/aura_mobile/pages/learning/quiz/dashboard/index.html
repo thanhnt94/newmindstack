@@ -900,7 +900,6 @@
             // Reset UI
             els.headerTitle.forEach(el => {
                 el.textContent = "Đang tải...";
-                // Hide header info text initially for sticky effect in detail step
                 const parent = el.closest('.js-mobile-header-text');
                 const isDetailHeader = el.closest('#step-detail');
                 if (parent) parent.style.opacity = isDetailHeader ? '0' : '1';
@@ -914,6 +913,7 @@
 
                 if (data.success && data.set) {
                     const s = data.set;
+                    state.availableModes = data.modes || []; // Store modes from API
 
                     // Update List Button HREF
                     if (els.listBtn) els.listBtn.href = `/content-management/quizzes/${s.id}/items`;
@@ -927,7 +927,6 @@
                     els.detailTitle.forEach(el => el.textContent = s.title);
                     els.detailDesc.textContent = s.description || "Chưa có mô tả";
                     els.detailCount.textContent = s.question_count;
-                    // Mock progress if not in API
                     els.detailProgress.textContent = (s.access_count > 0 ? "Đang học" : "Mới");
 
                     els.creatorName.textContent = s.creator_name || "Admin";
@@ -946,6 +945,7 @@
                     }
                 }
             } catch (e) {
+                console.error("Detail load error:", e);
                 alert("Lỗi tải chi tiết.");
                 showStep('sets');
             }
@@ -954,27 +954,41 @@
         // --- MODES ---
         document.querySelector('.js-go-to-modes').addEventListener('click', () => {
             showStep('modes');
-            renderModes();
+            renderModes(state.availableModes);
         });
 
-        function renderModes() {
-            const modes = [
-                { id: 'all', name: 'Tất cả câu hỏi', icon: 'fa-layer-group', color: 'blue', desc: 'Làm toàn bộ câu hỏi trong bộ này' },
-                { id: 'random', name: 'Ngẫu nhiên', icon: 'fa-random', color: 'green', desc: 'Chọn ngẫu nhiên các câu hỏi' }
-            ];
+        function renderModes(modes) {
+            if (!modes || modes.length === 0) {
+                els.modesContainer.innerHTML = '<p class="text-center text-slate-500 py-4">Không có chế độ học khả dụng.</p>';
+                return;
+            }
 
-            els.modesContainer.innerHTML = modes.map(m => `
-                <div class="quiz-mode-card" onclick="selectMode(this, '${m.id}')">
-                    <div class="quiz-mode-icon ${m.color}">
-                        <i class="fas ${m.icon}"></i>
+            const modeUIMap = {
+                'new_only': { icon: 'fa-star', color: 'text-amber-500', bg: 'bg-amber-50', desc: 'Làm những câu hỏi bạn chưa từng học qua.' },
+                'due_only': { icon: 'fa-history', color: 'text-purple-500', bg: 'bg-purple-50', desc: 'Ôn tập lại các câu hỏi bạn đã làm.' },
+                'hard_only': { icon: 'fa-fire', color: 'text-red-500', bg: 'bg-red-50', desc: 'Tập trung vào những câu hỏi bạn thường sai.' },
+                'all': { icon: 'fa-layer-group', color: 'text-blue-500', bg: 'bg-blue-50', desc: 'Luyện tập toàn bộ câu hỏi trong bộ này.' },
+                'random': { icon: 'fa-random', color: 'text-green-500', bg: 'bg-green-50', desc: 'Chọn ngẫu nhiên câu hỏi để luyện tập.' }
+            };
+
+            els.modesContainer.innerHTML = modes.map(m => {
+                const ui = modeUIMap[m.id] || { icon: 'fa-rocket', color: 'text-blue-500', bg: 'bg-blue-50', desc: 'Bắt đầu luyện tập với chế độ này.' };
+                return `
+                <div class="quiz-mode-card flex items-center gap-4 p-4 mb-3 bg-white border-2 border-slate-100 rounded-2xl cursor-pointer transition-all hover:border-blue-200" 
+                     onclick="selectMode(this, '${m.id}')">
+                    <div class="w-12 h-12 flex items-center justify-center rounded-xl ${ui.bg} ${ui.color} text-xl flex-shrink-0">
+                        <i class="fas ${ui.icon}"></i>
                     </div>
-                    <div class="quiz-mode-info">
-                        <div class="quiz-mode-name">${m.name}</div>
-                        <div class="quiz-mode-desc">${m.desc}</div>
+                    <div class="flex-1">
+                        <div class="font-bold text-slate-800">${m.name}</div>
+                        <div class="text-xs text-slate-500 mt-0.5">${ui.desc}</div>
                     </div>
-                    <div class="text-slate-300 check-icon"><i class="fas fa-circle"></i></div>
+                    <div class="text-slate-200 check-icon">
+                        <i class="fas fa-circle text-lg"></i>
+                    </div>
                 </div>
-            `).join('');
+            `;
+            }).join('');
 
             els.startBtn.disabled = true;
             state.currentMode = null;
@@ -982,12 +996,14 @@
 
         window.selectMode = function (el, modeId) {
             document.querySelectorAll('.quiz-mode-card').forEach(c => {
-                c.classList.remove('selected');
-                c.querySelector('.check-icon').innerHTML = '<i class="fas fa-circle"></i>';
+                c.classList.remove('selected', 'border-blue-500', 'bg-blue-50/30');
+                c.classList.add('border-slate-100');
+                c.querySelector('.check-icon').innerHTML = '<i class="fas fa-circle text-lg"></i>';
                 c.querySelector('.check-icon').classList.remove('text-blue-500');
             });
-            el.classList.add('selected');
-            el.querySelector('.check-icon').innerHTML = '<i class="fas fa-check-circle"></i>';
+            el.classList.add('selected', 'border-blue-500', 'bg-blue-50/30');
+            el.classList.remove('border-slate-100');
+            el.querySelector('.check-icon').innerHTML = '<i class="fas fa-check-circle text-lg"></i>';
             el.querySelector('.check-icon').classList.add('text-blue-500');
 
             state.currentMode = modeId;
@@ -997,13 +1013,14 @@
         els.startBtn.addEventListener('click', () => {
             if (!state.currentSetId || !state.currentMode) return;
 
+            // Important: Backend expected mode in URL
             let url = api.start.replace('0', state.currentSetId).replace('MODE', state.currentMode);
-            // Append batch size
             const size = els.sizeSelect.value;
-            url += `?batch_size=${size}&shuffle=true`;
+            url += `?session_size=${size}&batch_size=${size}`; // Use session_size as expected by start_quiz_session_by_id
 
-            window.location.href = url;
+            els.startBtn.disabled = true;
             els.startBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang khởi tạo...';
+            window.location.href = url;
         });
 
         // --- EVENT BINDINGS ---

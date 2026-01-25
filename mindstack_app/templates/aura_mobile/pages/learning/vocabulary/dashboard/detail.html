@@ -106,7 +106,8 @@
                         <span class="js-header-progress-percent">3%</span>
                     </div>
                 </div>
-                <a href="#" class="step-edit-btn js-edit-set-btn" title="Sửa bộ thẻ" style="display: none;">
+                <a href="javascript:void(0)" class="step-edit-btn js-edit-set-btn open-modal-btn" title="Sửa bộ thẻ"
+                    style="display: none;">
                     <i class="fas fa-edit"></i>
                 </a>
                 <!-- Settings Button -->
@@ -260,17 +261,6 @@
     </div>
 </div>
 
-<!-- Edit Set Modal -->
-<div id="editSetModal" class="edit-modal-overlay">
-    <div class="edit-modal-container">
-        <div class="edit-modal-header">
-            <h3 class="edit-modal-title"><i class="fas fa-edit"></i> Chỉnh sửa bộ thẻ</h3>
-            <button class="edit-modal-close"
-                onclick="document.getElementById('editSetModal').classList.remove('active')"><i
-                    class="fas fa-times"></i></button>
-        </div>
-    </div>
-</div>
 
 <!-- Item Stats Modal -->
 {% include _v ~ '/pages/learning/vocabulary/stats/_modal_stats.html' %}

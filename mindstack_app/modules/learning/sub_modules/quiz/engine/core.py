@@ -296,8 +296,7 @@ class QuizEngine:
                 user_answer=stored_answer,
                 is_correct=is_correct,
                 score_change=score_change,
-                duration_ms=duration_ms,
-                retrievability_snapshot=getattr(srs_result, 'retrievability', None),
+                review_duration=duration_ms,
                 # Session context fields
                 session_id=session_id,
                 container_id=container_id or item.container_id,
