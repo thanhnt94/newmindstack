@@ -256,6 +256,14 @@ class HybridFSRSEngine:
     def preview_intervals(self, card_state: CardState, now: Optional[datetime] = None) -> Dict[int, float]:
         """
         Preview intervals for all 4 ratings without modifying state.
+        [DEPRECATED] Use preview_states for more data.
+        """
+        states = self.preview_states(card_state, now)
+        return {r: states[r]['interval'] for r in states}
+
+    def preview_states(self, card_state: CardState, now: Optional[datetime] = None) -> Dict[int, Dict[str, float]]:
+        """
+        Preview full next states (Stability, Difficulty, Interval) for all ratings.
         """
         if now is None:
             now = datetime.now(timezone.utc)
@@ -279,12 +287,21 @@ class HybridFSRSEngine:
             days_elapsed_rounded
         )
         
-        return {
-            Rating.Again: float(next_states.again.interval),
-            Rating.Hard: float(next_states.hard.interval),
-            Rating.Good: float(next_states.good.interval),
-            Rating.Easy: float(next_states.easy.interval)
+        rating_map = {
+            Rating.Again: next_states.again,
+            Rating.Hard: next_states.hard,
+            Rating.Good: next_states.good,
+            Rating.Easy: next_states.easy
         }
+
+        result = {}
+        for r, ns in rating_map.items():
+            result[r] = {
+                'stability': float(ns.memory.stability),
+                'difficulty': float(ns.memory.difficulty),
+                'interval': float(ns.interval)
+            }
+        return result
 
 # Alias
 FSRSEngineV5 = HybridFSRSEngine

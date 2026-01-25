@@ -657,29 +657,49 @@
                 }
             }
 
-            // Attach Hover Listeners (Always attach to ensure feedback)
-            btn.onmouseenter = function () {
-                // Construct fallback info if missing
-                const displayInfo = info || {
-                    interval: '?',
-                    points: 0,
-                    stability: 0,
-                    difficulty: 0,
-                    retrievability: 0
-                };
+            // [UX-UPDATE] Long Press to show Tooltip instead of Hover
+            // Also hide tooltip on click
+            let pressTimer = null;
+            const longPressDuration = 500; // ms
 
-                console.log('[FSRS Mobile] Hover enter:', rating, displayInfo);
-                if (window.showPreviewTooltip) {
-                    window.showPreviewTooltip(btn, displayInfo);
-                } else {
-                    console.warn('[FSRS Mobile] showPreviewTooltip not found');
-                }
+            const startPress = (e) => {
+                // Avoid capturing if disabled or currently processing
+                if (btn.classList.contains('is-disabled')) return;
+
+                pressTimer = setTimeout(() => {
+                    const displayInfo = info || {
+                        interval: '?', points: 0, stability: 0, difficulty: 0, retrievability: 0
+                    };
+                    if (window.showPreviewTooltip) {
+                        window.showPreviewTooltip(btn, displayInfo);
+                    }
+                    // Haptic feedback
+                    if (window.navigator.vibrate) window.navigator.vibrate(40);
+                    pressTimer = null;
+                }, longPressDuration);
             };
-            btn.onmouseleave = function () {
-                if (window.hidePreviewTooltip) {
-                    window.hidePreviewTooltip();
+
+            const cancelPress = () => {
+                if (pressTimer) {
+                    clearTimeout(pressTimer);
+                    pressTimer = null;
                 }
+                // Hide tooltip when release/leave
+                if (window.hidePreviewTooltip) window.hidePreviewTooltip();
             };
+
+            // Remove old hover listeners
+            btn.onmouseenter = null;
+            btn.onmouseleave = null;
+
+            // Attach new long press events
+            btn.addEventListener('touchstart', startPress, { passive: true });
+            btn.addEventListener('touchend', cancelPress);
+            btn.addEventListener('touchmove', cancelPress);
+
+            btn.addEventListener('mousedown', startPress);
+            btn.addEventListener('mouseup', cancelPress);
+            btn.addEventListener('mouseleave', cancelPress);
         });
     };
 
@@ -863,6 +883,10 @@
 
             setText('.js-card-streak', data.statistics.current_streak || 0);
             setText('.js-card-overlay-streak', data.statistics.current_streak || 0);
+
+            // Difficulty (NEW)
+            const difficulty = parseFloat(data.statistics.easiness_factor || 0).toFixed(1);
+            setText('.js-card-overlay-difficulty', difficulty);
         }
 
         if (data.memory_power) {
@@ -903,5 +927,23 @@
             if (window.updateStateBadge) window.updateStateBadge(data.new_progress_status);
         }
     };
+
+    // Card Overlay Stats Toggle Logic
+    document.addEventListener('click', function (e) {
+        const badge = e.target.closest('.js-card-overlay-status-badge');
+        if (badge) {
+            const stats = badge.parentNode.querySelector('.js-card-overlay-stats');
+            if (stats) {
+                const isHidden = stats.style.display === 'none';
+                stats.style.display = isHidden ? 'flex' : 'none';
+                stats.style.opacity = isHidden ? '0' : '1';
+                if (isHidden) {
+                    setTimeout(() => {
+                        stats.style.opacity = '1';
+                    }, 10);
+                }
+            }
+        }
+    });
 
 })();

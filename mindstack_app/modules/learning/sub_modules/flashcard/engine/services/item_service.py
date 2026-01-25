@@ -279,6 +279,41 @@ class FlashcardItemService:
         return items
     
     @classmethod
+    def get_sequential_items(
+        cls, 
+        user_id: int, 
+        container_id: Union[int, str, List], 
+        session_size: Optional[int] = None
+    ):
+        """
+        Get due or new items in sequential order.
+        
+        Args:
+            user_id: User ID
+            container_id: Container ID, 'all', or list of IDs
+            session_size: Max items to return (None = return query)
+            
+        Returns:
+            Query object or list of LearningItem
+        """
+        current_app.logger.debug(
+            f"FlashcardItemService.get_sequential_items: user={user_id}, container={container_id}"
+        )
+        
+        builder = (FlashcardQueryBuilder(user_id)
+            .for_container(container_id)
+            .only_due_or_new()
+            .exclude_archived()
+            .order_by_container_order())
+        
+        if session_size is None or session_size == 999999:
+            return builder.build()
+        
+        items = builder.execute(session_size)
+        current_app.logger.debug(f"FlashcardItemService.get_sequential_items: found {len(items)} items")
+        return items
+    
+    @classmethod
     def get_items_by_capability(
         cls, 
         user_id: int, 

@@ -85,6 +85,11 @@ def get_all_items_for_autoplay(user_id, container_id, session_size):
     return FlashcardItemService.get_autoplay_items(user_id, container_id, session_size)
 
 
+def get_sequential_items(user_id, container_id, session_size):
+    """Get due or new items in sequential order."""
+    return FlashcardItemService.get_sequential_items(user_id, container_id, session_size)
+
+
 def get_pronunciation_items(user_id, container_id, session_size):
     return FlashcardItemService.get_pronunciation_items(user_id, container_id, session_size)
 

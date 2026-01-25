@@ -12,43 +12,52 @@
                 {# Card Overlay - Top Layer #}
                 <div class="absolute inset-0 pointer-events-none z-20">
                     {# Top-Left Unified Header: Status Badge + Statistics #}
-                    <div class="absolute top-3 left-3 pointer-events-auto">
+                    <div class="absolute top-2.5 left-2.5 pointer-events-auto">
                         <div
-                            class="flex items-center bg-white/95 backdrop-blur-sm rounded-full shadow-lg border border-slate-200 overflow-hidden">
+                            class="flex items-center bg-white/95 backdrop-blur-sm rounded-full shadow-lg border border-slate-200 overflow-hidden h-8">
                             {# Status Part #}
                             <div
-                                class="js-card-overlay-status-badge flex items-center gap-1.5 px-3.5 py-2 bg-blue-500 text-white font-bold text-[10px] uppercase tracking-wider h-9">
-                                <i class="fas fa-layer-group"></i>
+                                class="js-card-overlay-status-badge flex items-center gap-1 px-2.5 bg-blue-500 text-white font-bold text-[9px] uppercase tracking-wider h-full cursor-pointer hover:brightness-110 active:scale-95 transition-all">
+                                <i class="fas fa-layer-group text-[10px]"></i>
                                 <span class="js-card-overlay-status-text">MỚI</span>
                             </div>
 
                             {# Stats Part #}
-                            <div class="js-card-overlay-stats flex items-center gap-3.5 px-4 h-9">
+                            <div
+                                class="js-card-overlay-stats flex items-center gap-2.5 px-3 h-full transition-all duration-300">
                                 {# Times Reviewed #}
-                                <div class="flex items-center gap-1.5">
-                                    <i class="fas fa-redo text-slate-400 text-[10px]"></i>
+                                <div class="flex items-center gap-1" title="Số lần ôn">
+                                    <i class="fas fa-redo text-slate-400 text-[9px]"></i>
                                     <span
-                                        class="text-xs font-bold text-slate-700 js-card-overlay-times-reviewed">0</span>
+                                        class="text-[11px] font-bold text-slate-700 js-card-overlay-times-reviewed">0</span>
                                 </div>
 
                                 {# Streak #}
-                                <div class="flex items-center gap-1.5">
-                                    <i class="fas fa-fire text-amber-500 text-[10px]"></i>
-                                    <span class="text-xs font-bold text-amber-700 js-card-overlay-streak">0</span>
+                                <div class="flex items-center gap-1" title="Chuỗi ghi nhớ">
+                                    <i class="fas fa-fire text-amber-500 text-[9px]"></i>
+                                    <span class="text-[11px] font-bold text-amber-700 js-card-overlay-streak">0</span>
+                                </div>
+
+                                {# Difficulty (NEW) #}
+                                <div class="flex items-center gap-1" title="Độ khó">
+                                    <i class="fas fa-mask text-rose-500 text-[9px]"></i>
+                                    <span
+                                        class="text-[11px] font-bold text-rose-700 js-card-overlay-difficulty">0.0</span>
                                 </div>
 
                                 {# Stability #}
-                                <div class="flex items-center gap-1.5">
-                                    <i class="fas fa-shield-alt text-emerald-500 text-[10px]"></i>
-                                    <span class="text-xs font-bold text-emerald-700 js-card-overlay-stability">0</span>
+                                <div class="flex items-center gap-1" title="Độ ổn định">
+                                    <i class="fas fa-shield-alt text-emerald-500 text-[9px]"></i>
+                                    <span
+                                        class="text-[11px] font-bold text-emerald-700 js-card-overlay-stability">0</span>
                                 </div>
 
                                 {# Retrievability #}
-                                <div class="flex items-center gap-1.5">
-                                    <i class="fas fa-brain text-purple-500 text-[10px]"></i>
+                                <div class="flex items-center gap-1" title="Khả năng nhớ">
+                                    <i class="fas fa-brain text-purple-500 text-[9px]"></i>
                                     <span
-                                        class="text-xs font-bold text-purple-700 js-card-overlay-retrievability">0</span>
-                                    <span class="text-[9px] text-purple-500 opacity-60">%</span>
+                                        class="text-[11px] font-bold text-purple-700 js-card-overlay-retrievability">0</span>
+                                    <span class="text-[8px] text-purple-500 opacity-60">%</span>
                                 </div>
                             </div>
                         </div>
@@ -74,7 +83,7 @@
                     {# Bottom-Left: Stats Detail Button #}
                     <div class="absolute bottom-3 left-3 pointer-events-auto z-30">
                         <button
-                            class="js-fc-stats-detail-overlay w-10 h-10 rounded-full bg-slate-700/90 backdrop-blur-sm text-white flex items-center justify-center hover:bg-slate-800 transition-all shadow-lg hover:scale-110"
+                            class="js-fc-stats-detail-overlay w-10 h-10 rounded-full bg-indigo-600/90 backdrop-blur-sm text-white flex items-center justify-center hover:bg-indigo-700 transition-all shadow-lg hover:scale-110"
                             title="Chi tiết thống kê">
                             <i class="fas fa-chart-pie text-sm"></i>
                         </button>

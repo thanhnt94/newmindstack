@@ -550,6 +550,10 @@ function renderCard(data) {
     if (!isAutoplaySession) {
         document.querySelectorAll('.actions .btn').forEach(b => b.addEventListener('click', ev => {
             ev.stopPropagation();
+
+            // [NEW] Hide any active preview tooltip on click
+            if (window.hidePreviewTooltip) window.hidePreviewTooltip();
+
             if (window.submitFlashcardAnswer) {
                 window.submitFlashcardAnswer(data.item_id, b.dataset.answer);
             }

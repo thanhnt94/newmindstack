@@ -235,7 +235,8 @@ async function getNextFlashcardBatch() {
             const statsForReset = {
                 statistics: {
                     times_reviewed: currentCardData.initial_stats.times_reviewed,
-                    current_streak: currentCardData.initial_stats.current_streak
+                    current_streak: currentCardData.initial_stats.current_streak,
+                    easiness_factor: currentCardData.initial_stats.easiness_factor // [NEW]
                 },
                 memory_power: {
                     stability: currentCardData.initial_stats.interval || 0, // Fallback to interval

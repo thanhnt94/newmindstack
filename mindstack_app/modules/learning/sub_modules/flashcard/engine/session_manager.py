@@ -22,6 +22,7 @@ from .algorithms import (
     get_mixed_items,
     get_all_review_items,
     get_all_items_for_autoplay,
+    get_sequential_items,
     get_accessible_flashcard_set_ids,
     get_pronunciation_items,
     get_writing_items,
@@ -160,7 +161,7 @@ class FlashcardSessionManager:
             'due_only': get_due_items,
             'hard_only': get_hard_items,
             'mixed_srs': get_mixed_items,
-            'sequential': get_all_items_for_autoplay,  # Fetch everything
+            'sequential': get_sequential_items,      # [FIXED] Skip learned items
             'random': get_all_items_for_autoplay,      # Fetch everything
             'all_review': get_all_review_items,
             'pronunciation_practice': get_pronunciation_items,
@@ -363,9 +364,9 @@ class FlashcardSessionManager:
             ).order_by(LearningItem.order_in_container.asc(), LearningItem.item_id.asc())
             next_item = query.first()
         elif self.mode == 'sequential':
-            # TRUE SEQUENTIAL: Strictly follow order_in_container
+            # TRUE SEQUENTIAL: Strictly follow order_in_container (Due/New only)
             query = apply_exclusion(
-                get_all_items_for_autoplay(self.user_id, self.set_id, None)
+                get_sequential_items(self.user_id, self.set_id, None)
             ).order_by(LearningItem.order_in_container.asc(), LearningItem.item_id.asc())
             next_item = query.first()
         elif self.mode == 'random':
@@ -472,19 +473,20 @@ class FlashcardSessionManager:
             else:
                 card_state = CardState()  # New card
             
-            # 2. Use HybridFSRSEngine to preview intervals for rating 1-4
+            # 2. Use HybridFSRSEngine to preview states for rating 1-4
             from mindstack_app.services.memory_power_config_service import MemoryPowerConfigService
             desired_retention = MemoryPowerConfigService.get('FSRS_DESIRED_RETENTION', 0.9)
             engine = HybridFSRSEngine(desired_retention=desired_retention)
             now_utc = datetime.datetime.now(datetime.timezone.utc)
-            intervals = engine.preview_intervals(card_state, now_utc)
+            simulated_states = engine.preview_states(card_state, now_utc)
             
             # 3. Build preview data for each rating (1-4)
             # [FIX] Check if this is first time for this card (for bonus calculation)
             is_first_time_card = (progress is None or progress.fsrs_state == LearningProgress.STATE_NEW)
             
             for rating in [Rating.Again, Rating.Hard, Rating.Good, Rating.Easy]:
-                interval_days = intervals.get(rating, 0.0)
+                sim_state = simulated_states.get(rating, {})
+                interval_days = sim_state.get('interval', 0.0)
                 interval_minutes = int(interval_days * 1440)  # Convert to minutes
                 
                 # Calculate points preview (include first-time bonus if applicable)
@@ -501,13 +503,15 @@ class FlashcardSessionManager:
                         is_first_time=is_first_time_card, correct_streak=0
                     ).total_points
                 
-                # FSRS metrics: After answering, retrievability resets to 100%
-                new_stability = interval_days
+                # FSRS metrics for frontend
+                new_stability = sim_state.get('stability', 0.0)
+                new_difficulty = sim_state.get('difficulty', 5.0)
                 new_retrievability = 100.0 if is_correct else 90.0  # % right after answer
                 
                 preview_data[str(rating)] = {
                     'interval': interval_minutes,
                     'stability': round(new_stability, 2),  # Days
+                    'difficulty': round(new_difficulty, 2),  # [NEW] FSRS D
                     'retrievability': round(new_retrievability, 1),  # %
                     'points': points,
                     'status': 'review' if rating >= Rating.Good else 'learning'

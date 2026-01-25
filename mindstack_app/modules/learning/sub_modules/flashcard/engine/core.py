@@ -170,7 +170,7 @@ class FlashcardEngine:
             'times_reviewed': 0, 'correct_count': 0, 'incorrect_count': 0, 'vague_count': 0,
             'correct_rate': 0.0, 'current_streak': 0, 'longest_streak': 0,
             'first_seen': None, 'last_reviewed': None, 'next_review': None,
-            'easiness_factor': 2.5, 'repetitions': 0, 'interval': 0,
+            'easiness_factor': 0.0, 'repetitions': 0, 'interval': 0,
             'status': 'new', 'mastery': 0.0, 'memory_power': 0.0,
             'preview_count': 0, 'has_real_reviews': False,
             'has_preview_history': False, 'has_preview_only': False,

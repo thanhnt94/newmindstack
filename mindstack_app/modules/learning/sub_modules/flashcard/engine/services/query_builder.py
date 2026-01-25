@@ -143,6 +143,23 @@ class FlashcardQueryBuilder:
         )
         return self
     
+    def only_due_or_new(self) -> 'FlashcardQueryBuilder':
+        """
+        Filter to only due or new items.
+        
+        Returns:
+            Self for chaining
+        """
+        self._join_progress(outer=True)
+        self._query = self._query.filter(
+            or_(
+                LearningProgress.item_id == None,
+                LearningProgress.fsrs_state == LearningProgress.STATE_NEW,
+                LearningProgress.fsrs_due <= func.now()
+            )
+        )
+        return self
+    
     def only_reviewed(self) -> 'FlashcardQueryBuilder':
         """
         Filter to items with learning progress (not NEW state).
