@@ -20,14 +20,9 @@ using the .flashcard-session-active class on the body #}
 
 {# Flashcard Session CSS - External Files stored in template directory #}
 {# ... imports ... #}
-<link rel="stylesheet" href="{{ url_for('learning.flashcard_learning.serve_session_asset', filename='css/core.css') }}">
 <link rel="stylesheet"
     href="{{ url_for('learning.flashcard_learning.serve_session_asset', filename='css/session.css') }}">
-<link rel="stylesheet" href="{{ url_for('learning.flashcard_learning.serve_session_asset', filename='css/card.css') }}">
-<link rel="stylesheet"
-    href="{{ url_for('learning.flashcard_learning.serve_session_asset', filename='css/components.css') }}">
-<link rel="stylesheet"
-    href="{{ url_for('learning.flashcard_learning.serve_session_asset', filename='css/mobile.css') }}">
+
 {% include _v ~ '/includes/assets/_markdown_assets.html' %}
 {% endblock %}
 
@@ -243,778 +238,9 @@ using the .flashcard-session-active class on the body #}
 </div>
 
 <script src="{{ url_for('learning.flashcard_learning.serve_session_asset', filename='js/audio_manager.js') }}"></script>
-<script
-    src="{{ url_for('learning.flashcard_learning.serve_session_asset', filename='js/render_card_mobile.js') }}"></script>
+<script src="{{ url_for('learning.flashcard_learning.serve_session_asset', filename='js/render_card.js') }}"></script>
 <script src="{{ url_for('learning.flashcard_learning.serve_session_asset', filename='js/ui_manager.js') }}"></script>
-<script>
-    (function () {
-        // Generate rating buttons dynamically based on user_button_count
-        function generateMobileRatingButtons() {
-            const container = document.getElementById('mobile-rating-btns');
-            if (!container) return;
-
-            const buttonCount = window.userButtonCount || 4;
-
-            // Standard FSRS 4-button system (rating 1-4)
-            const buttons = [
-                { cssClass: 'again', value: '1', label: 'Quên', icon: 'fas fa-undo', quality: 1 },
-                { cssClass: 'hard', value: '2', label: 'Khó', icon: 'fas fa-fire', quality: 2 },
-                { cssClass: 'good', value: '3', label: 'Được', icon: 'fas fa-thumbs-up', quality: 3 },
-                { cssClass: 'easy', value: '4', label: 'Dễ', icon: 'fas fa-star', quality: 4 }
-            ];
-
-            container.innerHTML = buttons.map(btn =>
-                `<button class="fc-rating-btn ${btn.cssClass} js-rating-btn" data-rating="${btn.value}" data-quality="${btn.quality}">
-                    <i class="${btn.icon}"></i>
-                    <span>${btn.label}</span>
-                </button>`
-            ).join('');
-        }
-
-        // Wait for window.userButtonCount to be set
-        function initMobileRatingButtons() {
-            if (typeof window.userButtonCount !== 'undefined') {
-                generateMobileRatingButtons();
-                setupRatingButtonHandlers();
-            } else {
-                setTimeout(initMobileRatingButtons, 100);
-            }
-        }
-
-        // Connect bottom bar buttons to existing flashcard logic
-        // Connect bottom bar buttons to existing flashcard logic
-        const flipBtn = document.querySelector('.js-fc-flip-btn');
-        const ratingBtnsContainer = document.querySelector('.js-fc-rating-btns');
-
-        // Note: Flip button logic is now handled in ui_manager.js to ensure consistent state and autoplays.
-
-
-        // Setup rating button handlers after buttons are generated
-        function setupRatingButtonHandlers() {
-            const ratingBtns = document.querySelectorAll('.js-rating-btn');
-            ratingBtns.forEach(btn => {
-                btn.addEventListener('click', function () {
-                    const rating = btn.dataset.rating;
-                    // Map our rating (1-6) to the answer values used by the card
-                    // [UPDATED] Direct mapping for forced 4-button/6-button layout
-                    const buttonCount = window.userButtonCount || 4;
-                    let answerMap;
-
-                    if (buttonCount === 6) {
-                        answerMap = { '1': 'fail', '2': 'very_hard', '3': 'hard', '4': 'medium', '5': 'good', '6': 'very_easy' };
-                    } else {
-                        // All other cases (3 or 4) default to 4-button FSRS
-                        answerMap = { '1': 'again', '2': 'hard', '3': 'good', '4': 'easy' };
-                    }
-
-                    const answerValue = answerMap[rating] || 'good';
-
-                    // Call submitFlashcardAnswer directly instead of simulating button click
-                    if (window.currentFlashcardBatch &&
-                        typeof window.currentFlashcardIndex !== 'undefined' &&
-                        typeof window.submitFlashcardAnswer === 'function') {
-                        const card = window.currentFlashcardBatch[window.currentFlashcardIndex];
-                        if (card && card.item_id) {
-                            window.submitFlashcardAnswer(card.item_id, answerValue);
-                        }
-                    }
-
-                    // [UX-FIX] Don't reset here - notificationComplete event will handle reset
-                    // after notification animation completes
-                });
-
-                // Hover / Tooltip Logic for Mobile/Desktop Fixed Buttons
-                btn.addEventListener('mouseenter', () => {
-                    const quality = btn.dataset.quality;
-                    console.log('[MobileTooltip] Hover on quality:', quality);
-
-                    if (window.currentFlashcardBatch &&
-                        typeof window.currentFlashcardIndex !== 'undefined') {
-                        const card = window.currentFlashcardBatch[window.currentFlashcardIndex];
-                        console.log('[MobileTooltip] Current Card:', card);
-
-                        if (card && card.preview) {
-                            console.log('[MobileTooltip] Preview Map:', card.preview);
-                            if (typeof window.showPreviewTooltip === 'function') {
-                                const previewData = card.preview[quality];
-                                if (previewData) {
-                                    window.showPreviewTooltip(btn, previewData);
-                                } else {
-                                    console.warn('[MobileTooltip] No preview data for quality:', quality);
-                                }
-                            } else {
-                                console.error('[MobileTooltip] window.showPreviewTooltip is missing');
-                            }
-                        } else {
-                            console.warn('[MobileTooltip] Card or preview data missing');
-                        }
-                    }
-                });
-
-                btn.addEventListener('mouseleave', () => {
-                    if (typeof window.hidePreviewTooltip === 'function') {
-                        window.hidePreviewTooltip();
-                    }
-                });
-            });
-        }
-
-
-        // Initialize rating buttons
-        initMobileRatingButtons();
-
-        // Update stats from custom event dispatched by main script
-        function updateMobileStats(stats) {
-            if (!stats) return;
-
-            // Update Progress Bar & Text (Header)
-            if (stats.total > 0) {
-                const percent = Math.min(100, Math.round((stats.processed / stats.total) * 100));
-                document.querySelectorAll('.js-fc-progress-fill').forEach(el => {
-                    el.style.width = percent + '%';
-                });
-
-                // [NEW] Update Pill Fill
-                document.querySelectorAll('.js-fc-progress-pill-fill').forEach(el => {
-                    el.style.width = percent + '%';
-                });
-
-                document.querySelectorAll('.js-fc-progress-text').forEach(el => {
-                    el.textContent = `${stats.processed}/${stats.total}`;
-                });
-            } else {
-                document.querySelectorAll('.js-fc-progress-text').forEach(el => {
-                    el.textContent = `0/0`;
-                });
-            }
-
-            // Update Header Badges
-            document.querySelectorAll('.js-fc-session-score').forEach(el => {
-                el.textContent = stats.session_score > 0 ? `+${stats.session_score}` : (stats.session_score || 0);
-            });
-            document.querySelectorAll('.js-fc-session-correct').forEach(el => {
-                el.textContent = stats.correct || 0;
-            });
-
-            // Update total score badge
-            if (typeof window.currentUserTotalScore !== 'undefined') {
-                document.querySelectorAll('.js-fc-score').forEach(el => {
-                    el.textContent = parseInt(window.currentUserTotalScore).toLocaleString();
-                });
-            }
-
-            // === UPDATE CARD INFO BAR ===
-            // Status Badge
-            const statusPill = document.querySelector('.js-card-status-pill');
-            const statusText = document.querySelector('.js-card-status-text');
-            if (statusPill && statusText) {
-                const status = stats.status || 'new';
-                const statusMap = {
-                    'new': { text: 'MỚI', bg: 'bg-blue-100', color: 'text-blue-700' },
-                    'learning': { text: 'ĐANG HỌC', bg: 'bg-amber-100', color: 'text-amber-700' },
-                    'review': { text: 'ÔN TẬP', bg: 'bg-emerald-100', color: 'text-emerald-700' },
-                    'hard': { text: 'KHÓ', bg: 'bg-rose-100', color: 'text-rose-700' },
-                    'mastered': { text: 'THÀNH THẠO', bg: 'bg-purple-100', color: 'text-purple-700' }
-                };
-                const s = statusMap[status] || statusMap['new'];
-                statusText.textContent = s.text;
-                statusPill.className = `inline-flex items-center gap-1 px-2 py-1 rounded-full font-bold js-card-status-pill ${s.bg} ${s.color}`;
-            }
-
-            // Times Reviewed
-            document.querySelectorAll('.js-card-times-reviewed').forEach(el => {
-                el.textContent = stats.times_reviewed || 0;
-            });
-
-            // Streak
-            document.querySelectorAll('.js-card-streak').forEach(el => {
-                el.textContent = stats.current_streak || 0;
-            });
-
-            // Stability
-            document.querySelectorAll('.js-card-stability').forEach(el => {
-                el.textContent = (stats.stability || 0).toFixed(1);
-            });
-
-            // Retrievability
-            document.querySelectorAll('.js-card-retrievability').forEach(el => {
-                el.textContent = Math.round(stats.retrievability || stats.memory_power || 0);
-            });
-
-            // Rating Dots (size based on count ratio)
-            const ratingCounts = stats.rating_counts || { 1: 0, 2: 0, 3: 0, 4: 0 };
-            const totalRatings = (ratingCounts[1] || 0) + (ratingCounts[2] || 0) + (ratingCounts[3] || 0) + (ratingCounts[4] || 0);
-            [1, 2, 3, 4].forEach(r => {
-                const dot = document.querySelector(`.js-rating-dot-${r}`);
-                if (dot && totalRatings > 0) {
-                    const ratio = (ratingCounts[r] || 0) / totalRatings;
-                    const size = Math.max(6, Math.min(16, 6 + ratio * 14)); // 6px to 20px
-                    dot.style.width = size + 'px';
-                    dot.style.height = size + 'px';
-                }
-            });
-
-            // --- RENDER BEAUTIFUL STATS INSIDE MODAL (Current Tab) ---
-            const container = document.getElementById('current-card-stats-mobile');
-            if (container) {
-                // Calculate percentages for Bar Chart
-                const totalRatings = stats.times_reviewed || 0;
-                const counts = stats.rating_counts || { 1: 0, 2: 0, 3: 0, 4: 0 };
-                const p = totalRatings > 0 ? {
-                    1: (counts[1] / totalRatings) * 100,
-                    2: (counts[2] / totalRatings) * 100,
-                    3: (counts[3] / totalRatings) * 100,
-                    4: (counts[4] / totalRatings) * 100
-                } : { 1: 0, 2: 0, 3: 0, 4: 0 };
-
-                const reviewHistory = stats.recent_reviews || [];
-
-                const html = `
-                    <div class="space-y-4">
-                        <!-- 1. Metrics Grid (Reviews & Streak) -->
-                        <div class="grid grid-cols-2 gap-3">
-                            <div class="bg-white rounded-xl p-3 border border-slate-100 shadow-sm flex flex-col items-center justify-center text-center">
-                                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Đã học</span>
-                                <span class="text-2xl font-black text-slate-700">${totalRatings}</span>
-                                <span class="text-[10px] text-slate-400">lần</span>
-                            </div>
-                            <div class="bg-white rounded-xl p-3 border border-slate-100 shadow-sm flex flex-col items-center justify-center text-center">
-                                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Chuỗi</span>
-                                <span class="text-2xl font-black text-amber-500">${stats.current_streak || 0}</span>
-                                <span class="text-[10px] text-slate-400">liên tiếp</span>
-                            </div>
-                        </div>
-
-                         <!-- 2. Rating Distribution -->
-                        <div class="bg-white rounded-xl p-3 border border-slate-100 shadow-sm">
-                            <div class="flex items-center justify-between mb-2">
-                                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Phân bố đánh giá</span>
-                                <span class="text-[10px] font-bold text-slate-500">${totalRatings} lượt</span>
-                            </div>
-                            <div class="h-3 w-full bg-slate-100 rounded-full overflow-hidden flex shadow-inner">
-                                ${totalRatings > 0 ? `
-                                    <div class="h-full bg-rose-500" style="width: ${p[1]}%"></div>
-                                    <div class="h-full bg-amber-500" style="width: ${p[2]}%"></div>
-                                    <div class="h-full bg-emerald-500" style="width: ${p[3]}%"></div>
-                                    <div class="h-full bg-blue-500" style="width: ${p[4]}%"></div>
-                                ` : '<div class="w-full h-full flex items-center justify-center text-[8px] text-slate-400 italic">Chưa có dữ liệu</div>'}
-                            </div>
-                             <div class="flex justify-between mt-2 px-1">
-                                <div class="flex items-center gap-1"><div class="w-1.5 h-1.5 rounded-full bg-rose-500"></div><span class="text-[9px] text-slate-500">Q</span></div>
-                                <div class="flex items-center gap-1"><div class="w-1.5 h-1.5 rounded-full bg-amber-500"></div><span class="text-[9px] text-slate-500">K</span></div>
-                                <div class="flex items-center gap-1"><div class="w-1.5 h-1.5 rounded-full bg-emerald-500"></div><span class="text-[9px] text-slate-500">Đ</span></div>
-                                <div class="flex items-center gap-1"><div class="w-1.5 h-1.5 rounded-full bg-blue-500"></div><span class="text-[9px] text-slate-500">D</span></div>
-                            </div>
-                        </div>
-
-                        <!-- 3. Next Review & Retention -->
-                        <div class="bg-blue-50 rounded-xl p-3 border border-blue-100 shadow-sm">
-                            <div class="flex items-center gap-3 mb-2">
-                                 <div class="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center shrink-0">
-                                    <i class="fas fa-calendar-alt text-sm"></i>
-                                </div>
-                                <div>
-                                    <span class="text-[10px] font-bold text-blue-400 uppercase block">Lần tới</span>
-                                    <span class="text-sm font-bold text-slate-700">
-                                         ${stats.interval_minutes ? (window.formatMinutesAsDuration ? window.formatMinutesAsDuration(stats.interval_minutes) : stats.interval_minutes + 'm') : (stats.next_review ? (window.formatDateTime ? window.formatDateTime(stats.next_review) : stats.next_review) : 'Ngay bây giờ')}
-                                    </span>
-                                </div>
-                            </div>
-                            <!-- Retention Bar -->
-                            <div class="w-full bg-white rounded-lg h-1.5 overflow-hidden flex mb-1">
-                                <div class="bg-blue-500 h-full rounded-full" style="width: ${stats.retrievability || 100}%"></div>
-                            </div>
-                             <div class="flex justify-between items-center">
-                                <span class="text-[9px] text-slate-400">Khả năng nhớ</span>
-                                <div class="text-right">
-                                     <span class="text-[9px] font-bold text-blue-600">${Math.round(stats.retrievability || 100)}%</span>
-                                     <span class="text-[8px] text-slate-400 ml-1">(${(stats.stability || 0).toFixed(1)}d)</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- 4. History Timeline -->
-                         <div class="bg-white rounded-xl p-3 border border-slate-100 shadow-sm">
-                            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-3">Lịch sử gần đây</span>
-                             <div class="relative pl-3 border-l-2 border-slate-100 space-y-3">
-                                ${reviewHistory.length > 0 ? reviewHistory.slice().reverse().slice(0, 5).map(h => `
-                                    <div class="relative">
-                                        <div class="absolute -left-[17px] top-0.5 w-2 h-2 rounded-full border border-white shadow-sm ${h.user_answer_quality >= 3 ? 'bg-emerald-500' : (h.user_answer_quality === 2 ? 'bg-amber-500' : 'bg-rose-500')}"></div>
-                                        <div class="flex justify-between items-start">
-                                            <div class="flex flex-col">
-                                                <span class="text-[11px] font-bold text-slate-700">
-                                                    ${h.user_answer_quality === 1 ? 'Quên' : (h.user_answer_quality === 2 ? 'Khó' : (h.user_answer_quality === 3 ? 'Được' : 'Dễ'))}
-                                                </span>
-                                                <span class="text-[9px] text-slate-400">${window.formatDateTime ? window.formatDateTime(h.timestamp) : h.timestamp}</span>
-                                            </div>
-                                            ${h.result === 'correct' ? '<i class="fas fa-check text-[10px] text-emerald-500"></i>' : ''}
-                                        </div>
-                                    </div>
-                                `).join('') : '<p class="text-[10px] text-slate-400 italic">Chưa có lịch sử</p>'}
-                             </div>
-                        </div>
-                    </div>
-                `;
-                container.innerHTML = html;
-            }
-        }
-
-        // Reset mobile card state when new card loads
-        function resetMobileCardState() {
-            const mobileView = document.querySelector('.flashcard-mobile-view');
-            if (!mobileView) return;
-
-            // Remove flipped class from card
-            const card = mobileView.querySelector('.js-flashcard-card');
-            if (card) {
-                card.classList.remove('flipped');
-            }
-
-            // Hide actions
-            const actions = mobileView.querySelector('.js-internal-actions');
-            if (actions) {
-                actions.classList.remove('visible');
-            }
-
-            // Reset bottom bar - show flip button, hide rating buttons
-            if (flipBtn) {
-                flipBtn.style.display = 'flex';
-            }
-            if (ratingBtnsContainer) {
-                ratingBtnsContainer.classList.remove('show');
-            }
-
-            // [NEW] Hide stats button when new card loads (front side)
-            const statsBtn = mobileView.querySelector('.js-fc-card-details-btn');
-            if (statsBtn) {
-                statsBtn.classList.add('hidden');
-            }
-        }
-
-        // Listen for stats update event (fired when new card loads)
-        document.addEventListener('flashcardStatsUpdated', function (e) {
-            updateMobileStats(e.detail);
-            // Reset card state for new card
-            resetMobileCardState();
-        });
-
-        // Initial update from window if available
-        setTimeout(function () {
-            if (window.flashcardSessionStats) {
-                updateMobileStats(window.flashcardSessionStats);
-            }
-        }, 1000);
-
-        // Audio button in header - play current card audio
-        const audioBtn = document.querySelector('.js-fc-audio-btn');
-        if (audioBtn) {
-            audioBtn.addEventListener('click', function () {
-                const mobileView = document.querySelector('.flashcard-mobile-view');
-                // Check if flipped, play back audio, else play front audio
-                const card = mobileView ? mobileView.querySelector('.js-flashcard-card') : null;
-                const isFlipped = card && card.classList.contains('flipped');
-                const audioTarget = isFlipped ? '#back-audio-mobile' : '#front-audio-mobile';
-                const audioEl = mobileView ? mobileView.querySelector(audioTarget) : null;
-
-                if (audioEl && audioEl.src) {
-                    audioEl.currentTime = 0;
-                    audioEl.play();
-                }
-            });
-        }
-
-        // Note button in header - open note panel for current card
-        const noteBtn = document.querySelector('.js-fc-note-btn');
-        if (noteBtn) {
-            noteBtn.addEventListener('click', function () {
-                if (window.currentFlashcardBatch &&
-                    typeof window.currentFlashcardIndex !== 'undefined' &&
-                    typeof window.openNotePanel === 'function') {
-                    const card = window.currentFlashcardBatch[window.currentFlashcardIndex];
-                    if (card && card.item_id) {
-                        window.openNotePanel(card.item_id);
-                    }
-                }
-            });
-        }
-
-        // Settings dropdown toggle
-        const settingsToggle = document.querySelector('.js-fc-settings-toggle');
-        const settingsMenu = document.querySelector('.js-fc-settings-menu');
-
-        if (settingsToggle && settingsMenu) {
-            settingsToggle.addEventListener('click', function (e) {
-                e.stopPropagation();
-                settingsMenu.classList.toggle('show');
-            });
-
-            // Close when clicking outside
-            document.addEventListener('click', function () {
-                settingsMenu.classList.remove('show');
-            });
-
-            settingsMenu.addEventListener('click', function (e) {
-                e.stopPropagation();
-            });
-        }
-
-        // Image toggle with dynamic text/icon
-        const imageToggleBtn = document.querySelector('.js-fc-image-toggle');
-        const imageIcon = document.querySelector('.js-fc-image-icon');
-        const imageText = document.querySelector('.js-fc-image-text');
-
-        // Get initial state from localStorage
-        const storedImageHidden = localStorage.getItem('flashcardHideImages');
-        let isImageHidden = storedImageHidden === 'true';
-
-        function updateImageToggleUI() {
-            if (imageIcon) {
-                imageIcon.className = isImageHidden ? 'fas fa-eye js-fc-image-icon' : 'fas fa-eye-slash js-fc-image-icon';
-            }
-            if (imageText) {
-                imageText.textContent = isImageHidden ? 'Hiện ảnh' : 'Ẩn ảnh';
-            }
-        }
-
-        function applyImageVisibility() {
-            const mediaContainers = document.querySelectorAll('.media-container');
-            mediaContainers.forEach(container => {
-                container.style.display = isImageHidden ? 'none' : '';
-            });
-        }
-
-        // Apply initial state
-        applyImageVisibility();
-        updateImageToggleUI();
-
-        if (imageToggleBtn) {
-            imageToggleBtn.addEventListener('click', function () {
-                isImageHidden = !isImageHidden;
-                localStorage.setItem('flashcardHideImages', isImageHidden);
-                applyImageVisibility();
-                updateImageToggleUI();
-
-                // [FIX] Sync to server
-                if (window.updateVisualSettings) {
-                    window.updateVisualSettings({ show_image: !isImageHidden });
-                }
-            });
-        }
-
-        // Re-apply image visibility when new cards load
-        document.addEventListener('flashcardStatsUpdated', function () {
-            setTimeout(applyImageVisibility, 100);
-        });
-
-        // Audio autoplay toggle with dynamic text/icon
-        const autoplayToggleBtn = document.querySelector('.js-fc-autoplay-toggle');
-        const autoplayIcon = document.querySelector('.js-fc-autoplay-icon');
-        const autoplayText = document.querySelector('.js-fc-autoplay-text');
-
-        // Get initial state from localStorage
-        const storedAutoplay = localStorage.getItem('flashcardAutoplayAudio');
-        let isAutoplayOn = storedAutoplay === 'true';
-
-        function updateAutoplayToggleUI() {
-            if (autoplayIcon) {
-                // When ON: show volume-up (audio playing), when OFF: show volume-mute (audio off)
-                autoplayIcon.className = isAutoplayOn ? 'fas fa-volume-up js-fc-autoplay-icon' : 'fas fa-volume-mute js-fc-autoplay-icon';
-            }
-            if (autoplayText) {
-                autoplayText.textContent = isAutoplayOn ? 'Tắt tự động' : 'Tự động phát';
-            }
-        }
-        updateAutoplayToggleUI();
-
-        if (autoplayToggleBtn) {
-            autoplayToggleBtn.addEventListener('click', function () {
-                isAutoplayOn = !isAutoplayOn;
-                localStorage.setItem('flashcardAutoplayAudio', isAutoplayOn);
-                // Try to call global toggle function if exists
-                if (typeof window.toggleAudioAutoplay === 'function') {
-                    window.toggleAudioAutoplay();
-                }
-                updateAutoplayToggleUI();
-
-                // [FIX] Sync to server
-                if (window.updateVisualSettings) {
-                    window.updateVisualSettings({ autoplay: isAutoplayOn });
-                }
-            });
-        }
-
-        // Stats row toggle
-        const statsToggleBtn = document.querySelector('.js-fc-stats-toggle');
-        const statsIcon = document.querySelector('.js-fc-stats-icon');
-        const statsText = document.querySelector('.js-fc-stats-text');
-        // Fix: Target new container ID instead of old class
-        const statsContainer = document.getElementById('fc-stats-container');
-        let isStatsHidden = false;
-
-        function updateStatsToggleUI() {
-            if (statsIcon) {
-                statsIcon.className = isStatsHidden ? 'fas fa-chart-line js-fc-stats-icon' : 'fas fa-chart-line js-fc-stats-icon';
-            }
-            if (statsText) {
-                statsText.textContent = isStatsHidden ? 'Hiện tiến độ' : 'Ẩn tiến độ';
-            }
-            if (statsContainer) {
-                statsContainer.style.display = isStatsHidden ? 'none' : 'block';
-            }
-        }
-
-        if (statsToggleBtn) {
-            statsToggleBtn.addEventListener('click', function () {
-                isStatsHidden = !isStatsHidden;
-                updateStatsToggleUI();
-
-                // [FIX] Sync to server
-                if (window.updateVisualSettings) {
-                    window.updateVisualSettings({ show_stats: !isStatsHidden });
-                }
-            });
-        }
-
-        // Feedback button - call existing function
-        const feedbackBtn = document.querySelector('.js-fc-feedback-btn');
-        if (feedbackBtn) {
-            feedbackBtn.addEventListener('click', function () {
-                if (typeof window.openFeedbackModal === 'function' &&
-                    window.currentFlashcardBatch &&
-                    typeof window.currentFlashcardIndex !== 'undefined') {
-                    const card = window.currentFlashcardBatch[window.currentFlashcardIndex];
-                    if (card) {
-                        window.openFeedbackModal(card.item_id, card.content?.front || '');
-                    }
-                }
-            });
-        }
-
-        // Edit button - construct URL and open modal
-        const editBtn = document.querySelector('.js-fc-edit-btn');
-        if (editBtn) {
-            // Use Jinja2 generated URL template same as index.html
-            const editUrlTemplate = "{{ url_for('content_management.content_management_flashcards.edit_flashcard_item', set_id=0, item_id=0) }}";
-            editBtn.addEventListener('click', function () {
-                if (window.currentFlashcardBatch &&
-                    typeof window.currentFlashcardIndex !== 'undefined') {
-                    const card = window.currentFlashcardBatch[window.currentFlashcardIndex];
-                    if (card && card.item_id && card.container_id) {
-                        // Replace placeholder IDs with actual values
-                        const editUrl = editUrlTemplate.replace('/0', '/' + card.container_id).replace('/0', '/' + card.item_id) + '?is_modal=true';
-                        if (typeof window.openModal === 'function') {
-                            window.openModal(editUrl);
-                        } else if (window.parent && typeof window.parent.openModal === 'function') {
-                            window.parent.openModal(editUrl);
-                        } else {
-                            // Fallback: navigate directly
-                            window.location.href = editUrl;
-                        }
-                    }
-                }
-            });
-        }
-
-        // Render session answer history as compact icons in mobile stats
-        function renderSessionHistoryList() {
-            const container = document.getElementById('session-history-icons-mobile');
-            if (!container) return;
-
-            const history = window.sessionAnswerHistory || [];
-
-            if (history.length === 0) {
-                container.innerHTML = `<span class="text-xs text-slate-300">Chưa có dữ liệu</span>`;
-                return;
-            }
-
-            // Render compact icons - green check for correct, red x for wrong
-            const iconsHtml = history.map((item, index) => {
-                const isCorrect = item.scoreChange > 0;
-                const isWrong = item.scoreChange < 0;
-                const colorClass = isCorrect ? 'bg-emerald-500' : (isWrong ? 'bg-rose-500' : 'bg-slate-400');
-                const icon = isCorrect ? 'fa-check' : (isWrong ? 'fa-times' : 'fa-minus');
-                const num = index + 1;
-                const scoreText = item.scoreChange > 0 ? `+${item.scoreChange}` : item.scoreChange;
-
-                return `<span class="history-icon w-6 h-6 rounded-full ${colorClass} flex items-center justify-center cursor-pointer hover:ring-2 hover:ring-offset-1 hover:ring-slate-300 transition-all"
-                    data-num="${num}"
-                    data-front="${item.front.replace(/"/g, '&quot;')}"
-                    data-answer="${item.answer}"
-                    data-score="${scoreText}"
-                    data-time="${item.timestamp}">
-                    <i class="fas ${icon} text-white text-[10px]"></i>
-                </span>`;
-            }).join('');
-
-            container.innerHTML = iconsHtml;
-
-            // Add click handlers for tooltip
-            container.querySelectorAll('.history-icon').forEach(icon => {
-                icon.addEventListener('click', function (e) {
-                    e.stopPropagation();
-                    showHistoryTooltip(this);
-                });
-            });
-        }
-
-        // Show tooltip for history icon
-        function showHistoryTooltip(iconEl) {
-            // Remove existing tooltip
-            const existingTooltip = document.querySelector('.history-tooltip');
-            if (existingTooltip) existingTooltip.remove();
-
-            const num = iconEl.dataset.num;
-            const front = iconEl.dataset.front;
-            const answer = iconEl.dataset.answer;
-            const score = iconEl.dataset.score;
-            const timestamp = parseInt(iconEl.dataset.time);
-            const timeStr = timestamp ? new Date(timestamp).toLocaleString('vi-VN', {
-                day: '2-digit', month: '2-digit', year: 'numeric',
-                hour: '2-digit', minute: '2-digit', second: '2-digit'
-            }) : '';
-            const scoreClass = score.startsWith('+') ? 'text-emerald-600' : (score.startsWith('-') ? 'text-rose-600' : 'text-slate-500');
-
-            const tooltip = document.createElement('div');
-            tooltip.className = 'history-tooltip absolute z-50 bg-white rounded-xl shadow-lg border border-slate-200 p-3 min-w-[200px] max-w-[280px]';
-            tooltip.innerHTML = `
-                <div class="flex items-center justify-between mb-2">
-                    <span class="text-xs font-bold text-slate-400">#${num}</span>
-                    <span class="${scoreClass} font-bold text-sm">${score} điểm</span>
-                </div>
-                <p class="text-sm font-semibold text-slate-800 mb-1">${front}</p>
-                <p class="text-xs text-slate-500">Đáp án: <span class="font-medium">${answer}</span></p>
-                ${timeStr ? `<p class="text-xs text-slate-400 mt-1"><i class="fas fa-clock mr-1"></i>${timeStr}</p>` : ''}
-            `;
-
-            // Position tooltip
-            const rect = iconEl.getBoundingClientRect();
-            const container = document.getElementById('session-history-icons-mobile').parentElement;
-            container.style.position = 'relative';
-            container.appendChild(tooltip);
-
-            // Close tooltip when clicking outside
-            setTimeout(() => {
-                document.addEventListener('click', function closeTooltip() {
-                    tooltip.remove();
-                    document.removeEventListener('click', closeTooltip);
-                });
-            }, 10);
-        }
-
-        // Update history when new card is answered
-        document.addEventListener('flashcardStatsUpdated', function () {
-            renderSessionHistoryList();
-        });
-        // Exit button
-        const exitBtn = document.getElementById('mobile-exit-btn');
-        if (exitBtn) {
-            // Remove previous listeners if any (though replaced onclick handles it primarily)
-            // But if there was logic before, ensure it calls showExitModal()
-            exitBtn.onclick = function () {
-                window.showExitModal();
-            };
-        }
-
-        // Initialize Rating Buttons
-        initMobileRatingButtons();
-
-        // --- NEW: Mobile Stats Modal Logic ---
-        function openMobileStatsModal() {
-            // Check if modal already exists in DOM
-            let modal = document.getElementById('mobile-stats-modal-instance');
-
-            if (!modal) {
-                const template = document.getElementById('mobile-stats-template');
-                if (!template) {
-                    console.error("Mobile stats template not found!");
-                    return;
-                }
-
-                // Clone template
-                const clone = template.content.cloneNode(true);
-
-                // create wrapper
-                modal = document.createElement('div');
-                modal.id = 'mobile-stats-modal-instance';
-                modal.className = 'fixed inset-0 z-[100] flex flex-col justify-end bg-black/50 backdrop-blur-sm transition-opacity opacity-0';
-                modal.style.transition = 'opacity 0.2s ease-out';
-
-                // Append content
-                // Note: The template content (child div) should have click-stop-propagation
-                modal.appendChild(clone);
-
-                document.body.appendChild(modal);
-
-                // Setup Close Button
-                const closeBtn = modal.querySelector('#close-stats-mobile-btn');
-                if (closeBtn) {
-                    closeBtn.addEventListener('click', closeMobileStatsModal);
-                }
-
-                // Close on backdrop click (optional, if clicking outside the panel)
-                modal.addEventListener('click', function (e) {
-                    if (e.target === modal) closeMobileStatsModal();
-                });
-
-                // Setup Tabs
-                const tabs = modal.querySelectorAll('.stats-mobile-tab');
-                const callback = function () {
-                    const targetId = this.getAttribute('data-target');
-                    // Toggle tabs
-                    tabs.forEach(t => t.classList.remove('active', 'bg-white', 'shadow-sm', 'text-slate-800'));
-                    this.classList.add('active', 'bg-white', 'shadow-sm', 'text-slate-800'); // Add active styles
-                    this.classList.remove('text-slate-500');
-
-                    // Toggle Panes
-                    const panes = modal.querySelectorAll('.stats-mobile-pane');
-                    panes.forEach(p => p.classList.add('hidden'));
-                    const targetPane = modal.querySelector('#' + targetId);
-                    if (targetPane) targetPane.classList.remove('hidden');
-                };
-                tabs.forEach(t => t.addEventListener('click', callback));
-                // Init first tab
-                if (tabs.length > 0) callback.call(tabs[0]);
-
-                // Trigger an update if data is available
-                if (window.flashcardSessionStats) {
-                    updateMobileStats(window.flashcardSessionStats);
-                }
-            }
-
-            // Show Modal
-            modal.classList.remove('hidden'); // Ensure it's displayable
-            // Trigger animation
-            requestAnimationFrame(() => {
-                modal.classList.remove('opacity-0');
-            });
-        }
-
-        function closeMobileStatsModal() {
-            const modal = document.getElementById('mobile-stats-modal-instance');
-            if (modal) {
-                modal.classList.add('opacity-0');
-                setTimeout(() => {
-                    modal.classList.add('hidden'); // Or remove? better to keep for state
-                    // Use 'hidden' class to actually hide it from pointer events if opacity is 0
-                    // Or just remove from DOM if we want to refresh every time?
-                    // Let's remove to ensure clean state or keep hidden. 
-                    // Since I use 'hidden' in tailwind, adding 'hidden' class works.
-                    modal.classList.add('hidden');
-                }, 200);
-            }
-        }
-
-        // Export needed functions? No, just bind events.
-
-        // Card Details / Stats Button (New)
-        const cardDetailsBtn = document.querySelector('.js-fc-card-details-btn');
-        if (cardDetailsBtn) {
-            cardDetailsBtn.addEventListener('click', function () {
-                openMobileStatsModal();
-            });
-        }
-
-    })();
+<script src="{{ url_for('learning.flashcard_learning.serve_session_asset', filename='js/session_ui.js') }}"></script>
 </script>
 {#
 File: _stats_mobile.html
@@ -1114,126 +340,181 @@ MỤC ĐÍCH: Giao diện thống kê phiên học tối ưu cho Mobile (App-lik
 
 {# ... #}
 
+<!-- Reusable Confirmation Modal -->
+<div id="exit-confirm-modal"
+    class="fixed inset-0 bg-slate-900/40 z-[100] hidden items-center justify-center p-4 backdrop-blur-sm opacity-0 transition-opacity duration-300"
+    style="display: none;">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6 transform scale-95 transition-transform duration-300"
+        id="exit-modal-panel">
+        <div class="text-center">
+            <div
+                class="w-16 h-16 bg-rose-50 text-rose-500 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl ring-4 ring-rose-50">
+                <i class="fa-solid fa-right-from-bracket"></i>
+            </div>
+            <h3 class="text-xl font-bold text-slate-800 mb-2">Kết thúc phiên học?</h3>
+            <p class="text-slate-500 text-sm mb-6 leading-relaxed">Tiến độ của thẻ chưa trả lời sẽ không được lưu. Bạn
+                có muốn
+                xem thống kê ngay không?</p>
+            <div class="flex gap-3">
+                <button onclick="closeExitModal()"
+                    class="flex-1 py-2.5 rounded-xl font-bold text-slate-600 bg-slate-50 hover:bg-slate-100 border border-slate-200 transition-colors">Ở
+                    lại</button>
+                <button onclick="confirmExit()"
+                    class="flex-1 py-2.5 rounded-xl font-bold text-white bg-rose-500 hover:bg-rose-600 shadow-lg shadow-rose-500/30 transition-all">Kết
+                    thúc</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div id="statsModal" class="stats-modal-overlay">
     <div id="statsModalContent" class="stats-modal-content">
         <header class="bg-white shadow-md p-4">
-            <h3 class="font-bold text-lg">Mindstack</h3>
+            <h3 class="font-bold text-lg">Thống kê phiên học</h3>
         </header>
+        <div class="stats-modal-header">
+            <h3>Thống kê</h3>
+            <button id="closeStatsModalBtn" class="stats-modal-close-btn">&times;</button>
+        </div>
+        <div id="statsModalBody" class="stats-modal-body">
+        </div>
+    </div>
+</div>
 
-        {# ... #}
+{# Nhúng modal AI #}
+{% include _v ~ '/includes/ai_services/_ai_modal.html' %}
+
+{# Nhúng modal Ghi chú #}
+{% include _v ~ '/pages/notes/_note_panel.html' %}
+
+{# Nhúng modal Memory Power #}
+{% include _v ~ '/includes/notification/_memory_power.html' %}
+
+{# Nhúng modal Feedback #}
+{% include _v ~ '/pages/feedback/_feedback_modal.html' %}
+
+{# Nhúng modal Item Stats (Dùng chung với Dashboard) #}
+{% include _v ~ '/pages/learning/vocabulary/stats/_modal_stats.html' %}
 
 
-        <script src="{{ url_for('learning.flashcard_learning.serve_session_asset', filename='js/utils.js') }}"></script>
+<script src="{{ url_for('learning.flashcard_learning.serve_session_asset', filename='js/utils.js') }}"></script>
 
-        {% endblock %}
+{% endblock %}
 
-        {% block scripts %}
-        {{ super() }}
+{% block scripts %}
+{{ super() }}
 
-        <script>
-            // Define Jinja variables outside the config object to prevent the auto-formatter from inserting spaces into braces
-            const _userButtonCount = {{ user_button_count | default (4) }};
-            const _isAutoplaySession = {{ is_autoplay_session | default (false) | tojson }};
-            const _autoplayMode = "{{ autoplay_mode | default('') }}";
-            const _visualSettings = {{ (saved_visual_settings or { }) | tojson }};
-            const _autoSaveOn = {{ saved_auto_save | default (true) | tojson }};
-            const _currentUserTotalScore = {{ current_user.total_score | default (0) }};
-            const _scoreAgain = {{ config.SCORE_FSRS_AGAIN | default (1) }};
-            const _scoreHard = {{ config.SCORE_FSRS_HARD | default (5) }};
-            const _scoreGood = {{ config.SCORE_FSRS_GOOD | default (10) }};
-            const _scoreEasy = {{ config.SCORE_FSRS_EASY | default (15) }};
+<script>
+    // Define Jinja variables outside the config object to prevent the auto-formatter from inserting spaces into braces
+    const _userButtonCount = {{ user_button_count | default (4) }};
+    const _isAutoplaySession = {{ is_autoplay_session | default (false) | tojson }};
+    const _autoplayMode = "{{ autoplay_mode | default('') }}";
+    const _visualSettings = {{ (saved_visual_settings or { }) | tojson }};
+    const _autoSaveOn = {{ saved_auto_save | default (true) | tojson }};
+    const _currentUserTotalScore = {{ current_user.total_score | default (0) }};
+    const _scoreAgain = {{ config.SCORE_FSRS_AGAIN | default (1) }};
+    const _scoreHard = {{ config.SCORE_FSRS_HARD | default (5) }};
+    const _scoreGood = {{ config.SCORE_FSRS_GOOD | default (10) }};
+    const _scoreEasy = {{ config.SCORE_FSRS_EASY | default (15) }};
 
-            window.FlashcardConfig = {
-                getFlashcardBatchUrl: "{{ url_for('learning.flashcard_learning.get_flashcard_batch') }}",
-                flashcardItemApiUrlTemplate: "{{ url_for('learning.flashcard_learning.get_flashcard_item_api', item_id=0) }}",
-                submitAnswerUrl: "{{ url_for('learning.flashcard_learning.submit_flashcard_answer') }}",
-                endSessionUrl: "{{ url_for('learning.flashcard_learning.end_session_flashcard') }}",
-                regenerateAudioUrl: "{{ url_for('learning.flashcard_learning.regenerate_audio_from_content') }}",
-                saveSettingsUrl: "{{ url_for('learning.flashcard_learning.save_flashcard_settings') }}",
-                vocabDashboardUrl: "{{ url_for('learning.vocabulary.dashboard') }}",
-                getNoteUrl: "{{ url_for('notes.get_note', item_id=0) }}",
-                saveNoteUrl: "{{ url_for('notes.save_note', item_id=0) }}",
-                editFlashcardUrlTemplate: "{{ url_for('content_management.content_management_flashcards.edit_flashcard_item', set_id=0, item_id=0) }}",
-                itemStatsUrlTemplate: "{{ url_for('learning.vocabulary.item_stats_page', item_id=0) }}",
-                csrfHeaders: { "X-CSRFToken": "{{ csrf_token() }}" },
-                userButtonCount: _userButtonCount,
-                isAutoplaySession: _isAutoplaySession,
-                autoplayMode: _autoplayMode,
-                visualSettings: _visualSettings,
-                autoSaveOn: _autoSaveOn,
-                modeDisplayName: "{{ mode_display_text }}",
-                displaySettings: {{ (display_settings or { }) | tojson }},
-            scores: {
-                again: _scoreAgain,
-                    hard: _scoreHard,
-                        good: _scoreGood,
-                            easy: _scoreEasy
-            }
+    window.FlashcardConfig = {
+        getFlashcardBatchUrl: "{{ url_for('learning.flashcard_learning.get_flashcard_batch') }}",
+        flashcardItemApiUrlTemplate: "{{ url_for('learning.flashcard_learning.get_flashcard_item_api', item_id=0) }}",
+        submitAnswerUrl: "{{ url_for('learning.flashcard_learning.submit_flashcard_answer') }}",
+        endSessionUrl: "{{ url_for('learning.flashcard_learning.end_session_flashcard') }}",
+        regenerateAudioUrl: "{{ url_for('learning.flashcard_learning.regenerate_audio_from_content') }}",
+        saveSettingsUrl: "{{ url_for('learning.flashcard_learning.save_flashcard_settings') }}",
+        vocabDashboardUrl: "{{ url_for('learning.vocabulary.dashboard') }}",
+        getNoteUrl: "{{ url_for('notes.get_note', item_id=0) }}",
+        saveNoteUrl: "{{ url_for('notes.save_note', item_id=0) }}",
+        editFlashcardUrlTemplate: "{{ url_for('content_management.content_management_flashcards.edit_flashcard_item', set_id=0, item_id=0) }}",
+        itemStatsUrlTemplate: "{{ url_for('learning.vocabulary.item_stats_page', item_id=0) }}",
+        csrfHeaders: { "X-CSRFToken": "{{ csrf_token() }}" },
+        userButtonCount: _userButtonCount,
+        isAutoplaySession: _isAutoplaySession,
+        autoplayMode: _autoplayMode,
+        visualSettings: _visualSettings,
+        autoSaveOn: _autoSaveOn,
+        modeDisplayName: "{{ mode_display_text }}",
+        displaySettings: {{ (display_settings or { }) | tojson }},
+    scores: {
+        again: _scoreAgain,
+            hard: _scoreHard,
+                good: _scoreGood,
+                    easy: _scoreEasy
+    }
   };
 
 
-            const csrfTokenMeta = document.querySelector('meta[name="csrf-token"]');
-            const csrfToken = csrfTokenMeta ? csrfTokenMeta.getAttribute('content') : '';
-            if (csrfToken) {
-                window.FlashcardConfig.csrfHeaders = { "X-CSRFToken": csrfToken };
-            }
+    const csrfTokenMeta = document.querySelector('meta[name="csrf-token"]');
+    const csrfToken = csrfTokenMeta ? csrfTokenMeta.getAttribute('content') : '';
+    if (csrfToken) {
+        window.FlashcardConfig.csrfHeaders = { "X-CSRFToken": csrfToken };
+    }
 
-            window.currentUserTotalScoreInit = _currentUserTotalScore;
-            window.sessionScore = 0;
+    window.currentUserTotalScoreInit = _currentUserTotalScore;
+    window.sessionScore = 0;
 
-            // Global Exit Modal Logic for Flashcard
-            window.showExitModal = function () {
-                const exitModal = document.getElementById('exit-confirm-modal');
-                const exitPanel = document.getElementById('exit-modal-panel');
-                if (exitModal) {
-                    exitModal.style.display = 'flex';
-                    setTimeout(() => {
-                        exitModal.classList.remove('opacity-0', 'hidden');
-                        exitPanel.classList.remove('scale-95');
-                        exitPanel.classList.add('scale-100');
-                    }, 10);
+    // Global Exit Modal Logic for Flashcard
+    window.showExitModal = function () {
+        const exitModal = document.getElementById('exit-confirm-modal');
+        const exitPanel = document.getElementById('exit-modal-panel');
+        if (exitModal) {
+            exitModal.style.display = 'flex';
+            setTimeout(() => {
+                exitModal.classList.remove('opacity-0', 'hidden');
+                exitPanel.classList.remove('scale-95');
+                exitPanel.classList.add('scale-100');
+            }, 10);
+        }
+    };
+
+    window.closeExitModal = function () {
+        const exitModal = document.getElementById('exit-confirm-modal');
+        const exitPanel = document.getElementById('exit-modal-panel');
+        if (exitModal) {
+            exitModal.classList.add('opacity-0');
+            exitPanel.classList.remove('scale-100');
+            exitPanel.classList.add('scale-95');
+            setTimeout(() => {
+                exitModal.classList.add('hidden');
+                exitModal.style.display = 'none';
+            }, 300);
+        }
+    };
+
+    window.confirmExit = function () {
+        // We can rely on MindStackModal handling the UI close.
+        // Proceed with logic.
+        fetch(window.FlashcardConfig.endSessionUrl, {
+            method: 'POST',
+            headers: window.FlashcardConfig.csrfHeaders
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.session_id) {
+                    window.location.href = `/learn/session/${data.session_id}/summary`;
+                } else {
+                    window.location.href = "{{ url_for('learning.manage_sessions') }}";
                 }
-            };
+            })
+            .catch(err => {
+                console.error(err);
+                alert("Lỗi kết nối. Vui lòng thử lại.");
+            });
+    };
+</script>
 
-            window.closeExitModal = function () {
-                const exitModal = document.getElementById('exit-confirm-modal');
-                const exitPanel = document.getElementById('exit-modal-panel');
-                if (exitModal) {
-                    exitModal.classList.add('opacity-0');
-                    exitPanel.classList.remove('scale-100');
-                    exitPanel.classList.add('scale-95');
-                    setTimeout(() => {
-                        exitModal.classList.add('hidden');
-                        exitModal.style.display = 'none';
-                    }, 300);
-                }
-            };
-
-            window.confirmExit = function () {
-                // We can rely on MindStackModal handling the UI close.
-                // Proceed with logic.
-                fetch(window.FlashcardConfig.endSessionUrl, {
-                    method: 'POST',
-                    headers: window.FlashcardConfig.csrfHeaders
-                })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.session_id) {
-                            window.location.href = `/learn/session/${data.session_id}/summary`;
-                        } else {
-                            window.location.href = "{{ url_for('learning.manage_sessions') }}";
-                        }
-                    })
-                    .catch(err => {
-                        console.error(err);
-                        alert("Lỗi kết nối. Vui lòng thử lại.");
-                    });
-            };
-        </script>
-
-        <script
-            src="{{ url_for('learning.flashcard_learning.serve_session_asset', filename='js/session_manager.js') }}"></script>
-        <script src="{{ url_for('learning.flashcard_learning.serve_session_asset', filename='js/index.js') }}"></script>
-        <script
-            src="{{ url_for('learning.flashcard_learning.serve_session_asset', filename='js/flashcard_viewport.js') }}"></script>
-        {% endblock %}
+<script src="{{ url_for('learning.flashcard_learning.serve_session_asset', filename='js/session_init.js') }}"></script>
+<script src="{{ url_for('learning.flashcard_learning.serve_session_asset', filename='js/utils.js') }}"></script>
+<script src="{{ url_for('learning.flashcard_learning.serve_session_asset', filename='js/renderers.js') }}"></script>
+<script src="{{ url_for('learning.flashcard_learning.serve_session_asset', filename='js/render_card.js') }}"></script>
+<script src="{{ url_for('learning.flashcard_learning.serve_session_asset', filename='js/audio_manager.js') }}"></script>
+<script src="{{ url_for('learning.flashcard_learning.serve_session_asset', filename='js/session_ui.js') }}"></script>
+<script src="{{ url_for('learning.flashcard_learning.serve_session_asset', filename='js/ui_manager.js') }}"></script>
+<script
+    src="{{ url_for('learning.flashcard_learning.serve_session_asset', filename='js/session_manager.js') }}"></script>
+<script src="{{ url_for('learning.flashcard_learning.serve_session_asset', filename='js/index.js') }}"></script>
+<script
+    src="{{ url_for('learning.flashcard_learning.serve_session_asset', filename='js/flashcard_viewport.js') }}"></script>
+{% endblock %}

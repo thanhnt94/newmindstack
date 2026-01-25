@@ -141,19 +141,17 @@
     }
 }
 
-/* Mobile Adjustments */
-@media (max-width: 1023px) {
-    .vocab-detail-hero {
-        height: 200px;
-    }
-
-    .vocab-step {
-        z-index: 100;
-        background: #f8fafc;
-    }
+/* Standard Hero Height for all screens */
+.vocab-detail-hero {
+    height: 200px;
 }
 
-/* [NEW] Desktop Specific Hero Style */
+.vocab-step {
+    z-index: 100;
+    background: #f8fafc;
+}
+
+/* Desktop Hero Support - can remain but shouldn't be toggled by JS/CSS media queries if we want consistency */
 .vocab-detail-hero.desktop {
     width: 200px;
     height: 200px;
@@ -161,7 +159,8 @@
     background-color: #f1f5f9;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
     border: 1px solid rgba(0, 0, 0, 0.03);
-    display: flex;
+    display: none;
+    /* Hide by default in unified mobile-first view */
     align-items: center;
     justify-content: center;
 }
@@ -169,10 +168,4 @@
 .vocab-detail-hero.desktop i {
     font-size: 3rem;
     color: #cbd5e1;
-}
-
-@media (max-width: 1024px) {
-    .vocab-detail-hero.desktop {
-        display: none;
-    }
 }

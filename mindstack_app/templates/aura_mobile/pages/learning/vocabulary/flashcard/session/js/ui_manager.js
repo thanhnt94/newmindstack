@@ -297,15 +297,15 @@ function renderCard(data) {
     // Unified Mobile Rendering
     let mobileHtml = "";
 
-    if (window.renderMobileCardHtml) {
-        mobileHtml = window.renderMobileCardHtml(data, renderOptions);
+    if (window.renderCardHtml) {
+        mobileHtml = window.renderCardHtml(data, renderOptions);
     } else {
-        console.error("renderMobileCardHtml function not found!");
+        console.error("renderCardHtml function not found!");
         return;
     }
 
     if (!mobileHtml) {
-        console.error("renderMobileCardHtml returned empty content!");
+        console.error("renderCardHtml returned empty content!");
         return;
     }
 
@@ -1553,7 +1553,7 @@ document.addEventListener('flashcardStatsUpdated', function (e) {
 // =========================================
 
 // Track if we should defer audio playback
-window.pendingAudioAutoplay = false;
+let pendingAudioAutoplay = false;
 
 // When notification starts: hide card content and bottom bar
 document.addEventListener('notificationStart', function () {
@@ -1568,7 +1568,7 @@ document.addEventListener('notificationStart', function () {
         bottomBar.style.display = 'none';
     }
     // Set flag so renderCard knows to defer audio
-    window.pendingAudioAutoplay = true;
+    pendingAudioAutoplay = true;
 });
 
 // When notification completes: show card content and play audio
