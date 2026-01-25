@@ -778,9 +778,16 @@ def edit_quiz_set(set_id):
             flash_message = f'Lỗi khi xử lý: {exc}'
             flash_category = 'danger'
 
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            if flash_category == 'danger':
+                return error_response(message=flash_message, status_code=500)
+            return success_response(message=flash_message)
+        
         flash(flash_message, flash_category)
         return redirect(url_for('content_management.content_dashboard', tab='quizzes'))
     
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest' and request.method == 'POST':
+        return jsonify({'success': False, 'errors': form.errors}), 400
     if request.method == 'GET' and request.args.get('is_modal') == 'true':
         return render_dynamic_template('pages/content_management/quizzes/sets/_add_edit_quiz_set_bare.html',
             form=form,

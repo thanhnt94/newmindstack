@@ -1,4 +1,4 @@
-{% set _v = template_version %}
+{% set _v = template_version or 'aura_mobile' %}
 {% extends _v ~ '/base.html' %}
 {% block title %}Quản Lý Nội Dung - MindStack{% endblock %}
 
@@ -9,22 +9,23 @@
     .cm-tab-bar::-webkit-scrollbar {
         display: none;
     }
+
+    /* Ensure the main container doesn't have extra padding on desktop */
+    @media (min-width: 1024px) {
+        body>main.app-container {
+            padding: 0 !important;
+            max-width: none !important;
+        }
+    }
 </style>
 {% endblock %}
 
 {% block content %}
-{# --- Mobile Interface --- #}
-<div class="lg:hidden">
+<div class="h-screen w-full overflow-hidden bg-slate-50">
     {% include _v ~ '/pages/content_management/_index_mobile.html' %}
-</div>
-
-{# --- Desktop Interface --- #}
-<div class="hidden lg:block">
-    {% include _v ~ '/pages/content_management/_index_desktop.html' %}
 </div>
 {% endblock %}
 
 {% block scripts %}
 {{ super() }}
-{# Scripts are included in the respective mobile/desktop templates #}
 {% endblock %}

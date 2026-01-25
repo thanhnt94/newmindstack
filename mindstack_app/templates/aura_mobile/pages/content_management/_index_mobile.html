@@ -126,20 +126,17 @@
         gap: 0.5rem;
     }
 
-    /* Mobile dashboard adjustments */
-    @media (max-width: 1023px) {
+    /* Mobile-First Layout - Applied everywhere */
+    body>header,
+    body>nav,
+    body>footer {
+        display: none !important;
+    }
 
-        body>header,
-        body>nav,
-        body>footer {
-            display: none !important;
-        }
-
-        main {
-            padding: 0 !important;
-            margin: 0 !important;
-            max-width: 100% !important;
-        }
+    main.app-container {
+        padding: 0 !important;
+        margin: 0 !important;
+        max-width: 100% !important;
     }
 </style>
 

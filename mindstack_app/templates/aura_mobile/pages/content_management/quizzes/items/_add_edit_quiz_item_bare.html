@@ -1,99 +1,83 @@
-{#
-File: mindstack_app/modules/content_management/quizzes/items/_add_edit_quiz_item_bare.html
-Phiên bản: 2.0
-MỤC ĐÍCH: Refactor giao diện sửa câu hỏi Quiz sử dụng Tab (giống Flashcard).
-#}
-<!doctype html>
-<html lang="vi">
+<!-- File: _add_edit_quiz_item_bare.html -->
+<!-- Phiên bản: 2.1 (Partial) -->
 
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>{{ title }}</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+{% set is_modal_view = request.args.get('is_modal') == 'true' %}
+{% set modal_suffix = '?is_modal=true' if is_modal_view else '' %}
 
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+    /* Scoped Styles for Quiz Item Editor */
+    #quiz-item-editor-wrapper {
+        font-family: 'Inter', sans-serif;
+        color: #1e293b;
+        background-color: #fff;
+        display: flex;
+        flex-direction: column;
+        height: 100vh;
+        width: 100%;
+        overflow: hidden;
+    }
 
-    <style>
-        /* Force full height and disable body scroll */
-        html,
-        body {
-            height: 100vh;
-            width: 100%;
-            margin: 0;
-            padding: 0;
-            overflow: hidden;
-            font-family: 'Inter', sans-serif;
-            color: #1e293b;
-            background-color: #fff;
+    #quiz-item-editor-wrapper .custom-scrollbar::-webkit-scrollbar {
+        width: 5px;
+    }
+
+    #quiz-item-editor-wrapper .custom-scrollbar::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    #quiz-item-editor-wrapper .custom-scrollbar::-webkit-scrollbar-thumb {
+        background-color: #cbd5e1;
+        border-radius: 3px;
+    }
+
+    #quiz-item-editor-wrapper .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+        background-color: #94a3b8;
+    }
+
+    #quiz-item-editor-wrapper .animate-fade-in {
+        animation: quizFadeIn 0.3s ease-out forwards;
+    }
+
+    @keyframes quizFadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(5px);
         }
 
-        .custom-scrollbar::-webkit-scrollbar {
-            width: 5px;
+        to {
+            opacity: 1;
+            transform: translateY(0);
         }
+    }
 
-        .custom-scrollbar::-webkit-scrollbar-track {
-            background: transparent;
-        }
+    /* Tab state styling */
+    #quiz-item-editor-wrapper .tab-content {
+        display: none;
+    }
 
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-            background-color: #cbd5e1;
-            border-radius: 3px;
-        }
+    #quiz-item-editor-wrapper .tab-content.active {
+        display: block;
+        animation: quizFadeIn 0.3s ease-out;
+    }
 
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-            background-color: #94a3b8;
-        }
+    #quiz-item-editor-wrapper .active-tab {
+        color: #2563eb;
+    }
 
-        .animate-fade-in {
-            animation: fadeIn 0.3s ease-out forwards;
-        }
+    #quiz-item-editor-wrapper .active-tab::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 2px;
+        background-color: #2563eb;
+        border-top-left-radius: 2px;
+        border-top-right-radius: 2px;
+    }
+</style>
 
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-                transform: translateY(5px);
-            }
-
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        /* Tab state styling */
-        .tab-content {
-            display: none;
-        }
-
-        .tab-content.active {
-            display: block;
-            animation: fadeIn 0.3s ease-out;
-        }
-
-        .active-tab {
-            color: #2563eb;
-            /* blue-600 */
-        }
-
-        .active-tab::after {
-            content: '';
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            height: 2px;
-            background-color: #2563eb;
-            border-top-left-radius: 2px;
-            border-top-right-radius: 2px;
-        }
-    </style>
-</head>
-
-<body class="flex flex-col">
+<div id="quiz-item-editor-wrapper">
 
     {% set modal_suffix = '?is_modal=true' if is_modal_view else '' %}
 
@@ -727,6 +711,4 @@ MỤC ĐÍCH: Refactor giao diện sửa câu hỏi Quiz sử dụng Tab (giốn
         }
         });
     </script>
-</body>
-
-</html>
+</div>

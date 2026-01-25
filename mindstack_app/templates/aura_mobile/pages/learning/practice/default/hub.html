@@ -4,13 +4,11 @@
 
 {% block content %}
 {# === MOBILE NAVIGATION === #}
-{# Top Navbar (Mobile Only) #}
-<div class="lg:hidden">
-    {% include _v ~ '/includes/navbar/_app_header.html' %}
-</div>
+{# Top Navbar #}
+{% include _v ~ '/includes/navbar/_app_header.html' %}
 
-{# Bottom Nav (Mobile Only) #}
-<div class="lg:hidden fixed bottom-0 left-0 right-0 z-[200]" style="padding-bottom: env(safe-area-inset-bottom, 0px);">
+{# Bottom Nav #}
+<div class="fixed bottom-0 left-0 right-0 z-[200]" style="padding-bottom: env(safe-area-inset-bottom, 0px);">
     {% set active_page = '' %}
     {% include _v ~ '/includes/navbar/_bottom_nav.html' %}
 </div>
@@ -62,13 +60,6 @@
         background: linear-gradient(135deg, #f0fdf4 0%, #ecfeff 100%);
         padding: 1.5rem;
         padding-bottom: 100px;
-    }
-
-    @media (min-width: 1024px) {
-        .practice-page {
-            min-height: 60vh;
-            padding-bottom: 2rem;
-        }
     }
 
     .practice-header {

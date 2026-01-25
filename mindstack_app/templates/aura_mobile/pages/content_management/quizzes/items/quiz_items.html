@@ -12,8 +12,7 @@
 
 {% block content %}
 <div class="cm-shell">
-    {% include _v ~ '/pages/content_management/quizzes/items/_quiz_items_list_mobile.html' %}
-    {% include _v ~ '/pages/content_management/quizzes/items/_quiz_items_list_desktop.html' %}
+    {% include _v ~ '/pages/content_management/quizzes/items/_quiz_items_list.html' %}
 </div>
 {% endblock %}
 
@@ -23,7 +22,8 @@
     (function () {
         window.addEventListener('content-management:refresh', function (event) {
             const detail = event?.detail || {};
-            if (detail.scope === 'quiz-item' && Number(detail.setId || detail.containerId) === {{ quiz_set.container_id }}) {
+            if (detail.scope === 'quiz-item' && Number(detail.setId || detail.containerId) === {{ quiz_set.container_id }
+        }) {
             window.location.reload();
         }
     });

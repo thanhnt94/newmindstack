@@ -28,8 +28,8 @@
         <div class="p-4 flex-1 flex flex-col">
             <h3
                 class="font-bold text-slate-800 text-base line-clamp-2 mb-1 group-hover:text-rose-600 transition-colors">
-                <a
-                    href="{{ url_for('content_management.content_management_quizzes.edit_quiz_set', set_id=set.container_id) }}">
+                <a href="javascript:void(0)" class="open-modal-btn"
+                    data-modal-url="{{ url_for('content_management.content_management_quizzes.edit_quiz_set', set_id=set.container_id) }}">
                     {{ set.title }}
                 </a>
             </h3>
@@ -46,13 +46,14 @@
                 </div>
 
                 <div class="flex gap-2">
-                    <a href="{{ url_for('content_management.content_management_quizzes.manage_quiz_items', set_id=set.container_id) }}"
+                    <a href="{{ url_for('content_management.content_management_quizzes.list_quiz_items', set_id=set.container_id) }}"
                         class="w-8 h-8 rounded-full bg-rose-50 text-rose-600 flex items-center justify-center hover:bg-rose-100 transition-colors"
                         title="Quản lý câu hỏi">
                         <i class="fa-solid fa-list-check text-xs"></i>
                     </a>
-                    <a href="{{ url_for('content_management.content_management_quizzes.edit_quiz_set', set_id=set.container_id) }}"
-                        class="w-8 h-8 rounded-full bg-slate-50 text-slate-600 flex items-center justify-center hover:bg-slate-100 transition-colors"
+                    <a href="javascript:void(0)"
+                        class="open-modal-btn w-8 h-8 rounded-full bg-slate-50 text-slate-600 flex items-center justify-center hover:bg-slate-100 transition-colors"
+                        data-modal-url="{{ url_for('content_management.content_management_quizzes.edit_quiz_set', set_id=set.container_id) }}"
                         title="Chỉnh sửa">
                         <i class="fa-solid fa-pen text-xs"></i>
                     </a>
@@ -76,8 +77,9 @@
     <h3 class="text-slate-900 font-bold mb-1">Chưa có bộ câu hỏi nào</h3>
     <p class="text-slate-500 text-sm mb-4">Tạo bộ câu hỏi mới để bắt đầu</p>
     {% if current_user.user_role != 'free' %}
-    <a href="{{ url_for('content_management.content_management_quizzes.add_quiz_set') }}"
-        class="inline-flex items-center gap-2 bg-rose-600 text-white px-4 py-2 rounded-xl font-bold text-sm shadow-sm hover:scale-105 transition-transform">
+    <a href="javascript:void(0)"
+        class="open-modal-btn inline-flex items-center gap-2 bg-rose-600 text-white px-4 py-2 rounded-xl font-bold text-sm shadow-sm hover:scale-105 transition-transform"
+        data-modal-url="{{ url_for('content_management.content_management_quizzes.add_quiz_set') }}">
         <i class="fa-solid fa-plus"></i> Tạo mới
     </a>
     {% endif %}
