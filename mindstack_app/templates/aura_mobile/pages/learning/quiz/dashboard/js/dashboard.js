@@ -2,7 +2,7 @@
  * Quiz Dashboard JavaScript
  * Version: 1.0
  * 
- * Unified logic for both mobile step navigation and desktop sidebar view.
+ * Unified logic for mobile step navigation.
  */
 
 (function () {
@@ -28,9 +28,7 @@
     let setsGrid, searchInput, modesContainer, startSessionBtn;
     let paginationBar, prevPageBtn, nextPageBtn;
 
-    // DOM Elements - Desktop
-    let desktopSetsGrid, desktopSearchInput, desktopPagination;
-    let setDetailPanel, panelOverlay;
+
 
     /**
      * Initialize the dashboard
@@ -54,12 +52,7 @@
         prevPageBtn = document.querySelector('.js-prev-page');
         nextPageBtn = document.querySelector('.js-next-page');
 
-        // Desktop elements
-        desktopSetsGrid = document.getElementById('desktop-sets-grid');
-        desktopSearchInput = document.getElementById('desktop-search-input');
-        desktopPagination = document.getElementById('desktop-pagination');
-        setDetailPanel = document.getElementById('set-detail-panel');
-        panelOverlay = document.getElementById('panel-overlay');
+
 
         bindEvents();
         initToggleState();
@@ -149,44 +142,7 @@
         // Start Session button (mobile)
         startSessionBtn?.addEventListener('click', () => startSession('mobile'));
 
-        // Desktop: Close panel
-        document.querySelector('.js-close-panel')?.addEventListener('click', closeDetailPanel);
-        panelOverlay?.addEventListener('click', closeDetailPanel);
 
-        // Desktop: Start session
-        document.querySelector('.js-desktop-start-session')?.addEventListener('click', () => startSession('desktop'));
-
-        // Toggle logic
-        document.addEventListener('change', handleToggleChange);
-
-        // Pagination (mobile)
-        prevPageBtn?.addEventListener('click', () => {
-            if (currentPage > 1) loadSets(currentPage - 1);
-        });
-
-        nextPageBtn?.addEventListener('click', () => {
-            loadSets(currentPage + 1);
-        });
-
-        // Browser back button
-        window.addEventListener('popstate', handlePopState);
-
-        // Desktop: Mode buttons in sidebar
-        document.querySelectorAll('.mode-item[data-mode]').forEach(btn => {
-            btn.addEventListener('click', function () {
-                if (!selectedSetId) {
-                    alert('Vui lòng chọn một bộ quiz trước');
-                    return;
-                }
-                const mode = this.dataset.mode;
-                // Navigate directly or show panel
-                if (mode === 'battle') {
-                    window.location.href = '/learn/quiz/battle/' + selectedSetId;
-                } else {
-                    openDetailPanel(selectedSetId);
-                }
-            });
-        });
     }
 
     /**
@@ -263,79 +219,6 @@
                 });
             });
         }
-
-        // Desktop render
-        if (desktopSetsGrid) {
-            let html = '';
-            sets.forEach(s => {
-                html += renderSetCardDesktop(s);
-            });
-            desktopSetsGrid.innerHTML = html;
-
-            // Bind click - desktop opens side panel
-            document.querySelectorAll('#desktop-sets-grid .set-card-desktop').forEach(card => {
-                card.addEventListener('click', () => {
-                    const setId = card.dataset.setId;
-                    openDetailPanel(setId);
-                });
-            });
-        }
-    }
-
-    /**
-     * Render mobile set card
-     */
-    function renderSetCardMobile(s) {
-        const coverStyle = s.cover_image ? 'background-image: url(/static/' + s.cover_image + ')' : '';
-        const authorInitial = (s.creator_name || 'U').charAt(0).toUpperCase();
-        const authorName = s.creator_name || 'Unknown';
-
-        return `
-            <div class="quiz-set-card" data-set-id="${s.id}">
-                <div class="quiz-set-cover" style="${coverStyle}">
-                    ${!s.cover_image ? '<i class="fas fa-question-circle"></i>' : ''}
-                </div>
-                <div class="quiz-set-info">
-                    <div class="quiz-set-title">${s.title}</div>
-                    <div class="quiz-set-meta">
-                        <div class="quiz-set-author">
-                            <span class="quiz-set-avatar">${authorInitial}</span>
-                            <span>${authorName}</span>
-                        </div>
-                        <div class="quiz-set-count"><i class="fas fa-list-check"></i>${s.question_count}</div>
-                    </div>
-                </div>
-            </div>`;
-    }
-
-    /**
-     * Render desktop set card
-     */
-    function renderSetCardDesktop(s) {
-        const authorInitial = (s.creator_name || 'U').charAt(0).toUpperCase();
-        const authorName = s.creator_name || 'Unknown';
-
-        return `
-            <div class="set-card-desktop" data-set-id="${s.id}">
-                <div class="set-card-cover">
-                    ${s.cover_image
-                ? `<img src="/static/${s.cover_image}" alt="${s.title}">`
-                : '<i class="fas fa-question-circle set-card-cover-placeholder"></i>'}
-                </div>
-                <div class="set-card-body">
-                    <div class="set-card-title">${s.title}</div>
-                    <div class="set-card-meta">
-                        <div class="set-card-author">
-                            <span class="set-card-author-avatar">${authorInitial}</span>
-                            <span>${authorName}</span>
-                        </div>
-                        <div class="set-card-count">
-                            <i class="fas fa-list-check"></i>
-                            ${s.question_count}
-                        </div>
-                    </div>
-                </div>
-            </div>`;
     }
 
     /**
@@ -343,10 +226,8 @@
      */
     function renderEmptyState() {
         const html = '<div class="quiz-empty" style="grid-column: 1/-1;"><i class="fas fa-folder-open"></i><p>Không có bộ quiz nào</p></div>';
-        const desktopHtml = '<div class="empty-state"><i class="fas fa-folder-open"></i><p>Không có bộ quiz nào</p></div>';
 
         if (setsGrid) setsGrid.innerHTML = html;
-        if (desktopSetsGrid) desktopSetsGrid.innerHTML = desktopHtml;
     }
 
     /**
@@ -354,81 +235,8 @@
      */
     function renderErrorState() {
         const html = '<div class="quiz-empty" style="grid-column: 1/-1;"><i class="fas fa-exclamation-triangle"></i><p>Lỗi tải dữ liệu</p></div>';
-        const desktopHtml = '<div class="empty-state"><i class="fas fa-exclamation-triangle"></i><p>Lỗi tải dữ liệu</p></div>';
 
         if (setsGrid) setsGrid.innerHTML = html;
-        if (desktopSetsGrid) desktopSetsGrid.innerHTML = desktopHtml;
-    }
-
-    /**
-     * Update pagination (mobile)
-     */
-    function updatePagination(page, hasPrev, hasNext, total) {
-        if (!paginationBar) return;
-
-        const totalPages = Math.max(1, Math.ceil(total / 10));
-
-        paginationBar.classList.add('visible');
-        if (prevPageBtn) prevPageBtn.disabled = !hasPrev;
-        if (nextPageBtn) nextPageBtn.disabled = !hasNext;
-
-        const pageContainer = document.querySelector('.js-page-numbers');
-        if (pageContainer) {
-            let html = '';
-            for (let i = 1; i <= totalPages; i++) {
-                if (i === 1 || i === totalPages || (i >= page - 1 && i <= page + 1)) {
-                    html += `<span class="page-num${i === page ? ' active' : ''}" data-page="${i}">${i}</span>`;
-                } else if (i === 2 && page > 3) {
-                    html += '<span class="page-num dots">...</span>';
-                } else if (i === totalPages - 1 && page < totalPages - 2) {
-                    html += '<span class="page-num dots">...</span>';
-                }
-            }
-            pageContainer.innerHTML = html;
-
-            pageContainer.querySelectorAll('.page-num:not(.dots)').forEach(el => {
-                el.addEventListener('click', () => {
-                    const p = parseInt(el.dataset.page);
-                    if (p !== currentPage) loadSets(p);
-                });
-            });
-        }
-
-        // Desktop pagination
-        if (desktopPagination) {
-            desktopPagination.innerHTML = `
-                <button class="pagination-nav-btn" ${!hasPrev ? 'disabled' : ''} onclick="QuizDashboard.loadSets(${page - 1})">
-                    <i class="fas fa-chevron-left"></i>
-                </button>
-                <span class="page-info">Trang ${page} / ${totalPages}</span>
-                <button class="pagination-nav-btn" ${!hasNext ? 'disabled' : ''} onclick="QuizDashboard.loadSets(${page + 1})">
-                    <i class="fas fa-chevron-right"></i>
-                </button>
-            `;
-        }
-    }
-
-    /**
-     * Hide pagination
-     */
-    function hidePagination() {
-        if (paginationBar) paginationBar.classList.remove('visible');
-        if (desktopPagination) desktopPagination.innerHTML = '';
-    }
-
-    /**
-     * Update desktop stats sidebar
-     */
-    function updateDesktopStats(stats) {
-        const setEl = document.getElementById('desktop-total-sets');
-        const questionEl = document.getElementById('desktop-total-questions');
-        const masteredEl = document.getElementById('desktop-mastered-count');
-        const dueEl = document.getElementById('desktop-due-count');
-
-        if (setEl) setEl.textContent = stats.total_sets || '-';
-        if (questionEl) questionEl.textContent = stats.total_questions || '-';
-        if (masteredEl) masteredEl.textContent = stats.mastered || '-';
-        if (dueEl) dueEl.textContent = stats.due || '-';
     }
 
     /**
@@ -500,115 +308,7 @@
         }
     }
 
-    /**
-     * Open desktop detail panel
-     */
-    function openDetailPanel(setId) {
-        selectedSetId = setId;
 
-        if (setDetailPanel) setDetailPanel.classList.add('open');
-        if (panelOverlay) panelOverlay.classList.add('visible');
-
-        const url = apiSetDetailUrl.replace('/0', '/' + setId);
-
-        fetch(url)
-            .then(r => r.json())
-            .then(data => {
-                if (data.success) {
-                    selectedSetData = data.set;
-                    renderDesktopDetail(data.set, data.modes);
-                }
-            });
-    }
-
-    /**
-     * Close desktop detail panel
-     */
-    function closeDetailPanel() {
-        if (setDetailPanel) setDetailPanel.classList.remove('open');
-        if (panelOverlay) panelOverlay.classList.remove('visible');
-        selectedSetId = null;
-        selectedMode = null;
-    }
-
-    /**
-     * Render detail in desktop panel
-     */
-    function renderDesktopDetail(set, modes) {
-        const els = {
-            title: document.querySelector('.js-desktop-detail-title'),
-            desc: document.querySelector('.js-desktop-detail-desc'),
-            avatar: document.querySelector('.js-desktop-creator-avatar'),
-            name: document.querySelector('.js-desktop-creator-name'),
-            count: document.querySelector('.js-desktop-question-count'),
-            progress: document.querySelector('.js-desktop-progress-count')
-        };
-
-        if (els.title) els.title.textContent = set.title;
-        if (els.desc) els.desc.textContent = set.description || 'Không có mô tả';
-        if (els.avatar) els.avatar.textContent = (set.creator_name || 'U').charAt(0).toUpperCase();
-        if (els.name) els.name.textContent = set.creator_name || 'Unknown';
-        if (els.count) els.count.textContent = set.question_count;
-        if (els.progress) els.progress.textContent = '0/' + set.question_count;
-
-        // Cover
-        const cover = document.querySelector('.js-desktop-detail-cover');
-        if (cover && set.cover_image) {
-            cover.style.backgroundImage = 'url(/static/' + set.cover_image + ')';
-            cover.innerHTML = '';
-        }
-
-        // Render modes
-        const modesContainer = document.querySelector('.js-desktop-modes-container');
-        if (modesContainer && modes) {
-            renderDesktopModes(modes, modesContainer);
-        }
-    }
-
-    /**
-     * Render modes in desktop panel
-     */
-    function renderDesktopModes(modes, container) {
-        const icons = {
-            'new_only': { icon: 'fa-star', color: 'yellow' },
-            'due_only': { icon: 'fa-sync', color: 'green' },
-            'hard_only': { icon: 'fa-times-circle', color: 'red' }
-        };
-
-        let html = '';
-        modes.forEach(mode => {
-            const iconData = icons[mode.id] || { icon: 'fa-question', color: 'blue' };
-            const isDisabled = mode.count === 0;
-            const disabledStyle = isDisabled ? 'opacity: 0.4; filter: grayscale(100%); pointer-events: none;' : '';
-
-            html += `
-                <div class="quiz-mode-card" data-mode-id="${mode.id}" style="${disabledStyle}">
-                    <div class="quiz-mode-icon ${iconData.color}"><i class="fas ${iconData.icon}"></i></div>
-                    <div class="quiz-mode-info">
-                        <div class="quiz-mode-name">${mode.name}</div>
-                        <div class="quiz-mode-desc">${mode.count} câu hỏi</div>
-                    </div>
-                    <div class="quiz-mode-count">${mode.count}</div>
-                </div>`;
-        });
-
-        container.innerHTML = html;
-
-        // Bind mode selection
-        container.querySelectorAll('.quiz-mode-card').forEach(card => {
-            card.addEventListener('click', () => {
-                const count = parseInt(card.querySelector('.quiz-mode-count')?.textContent || '0');
-                if (count === 0) return;
-
-                container.querySelectorAll('.quiz-mode-card').forEach(c => c.classList.remove('selected'));
-                card.classList.add('selected');
-                selectedMode = card.dataset.modeId;
-
-                const startBtn = document.querySelector('.js-desktop-start-session');
-                if (startBtn) startBtn.disabled = false;
-            });
-        });
-    }
 
     /**
      * Load modes (mobile)

@@ -117,17 +117,7 @@
     padding: 0.5rem 0;
 }
 
-@media (min-width: 768px) {
-    .js-word-list {
-        grid-template-columns: repeat(2, 1fr);
-    }
-}
 
-@media (min-width: 1280px) {
-    .js-word-list {
-        grid-template-columns: repeat(3, 1fr);
-    }
-}
 
 @keyframes slideIn {
     from {

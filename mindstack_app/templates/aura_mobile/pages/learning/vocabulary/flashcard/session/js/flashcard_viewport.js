@@ -91,64 +91,18 @@
       layout.style.minHeight = '';
     }
 
-    const wrapper = document.querySelector('.flashcard-wrapper');
     if (wrapper) {
       wrapper.style.height = '';
       wrapper.style.minHeight = '';
     }
-
-    const content = document.querySelector('.flashcard-desktop-view .js-flashcard-content');
-    if (content) {
-      content.style.maxHeight = '';
-    }
   }
 
-  function applyDesktopSizing() {
-    updateChromeOffsets();
-    const vh = window.innerHeight;
-    const headerHeight = parseFloat(getComputedStyle(document.documentElement)
-      .getPropertyValue('--flashcard-header-height')) || 0;
-    const footerHeight = parseFloat(getComputedStyle(document.documentElement)
-      .getPropertyValue('--flashcard-footer-height')) || 0;
 
-    const availableHeight = Math.max(vh - headerHeight - footerHeight, MIN_VIEWPORT_HEIGHT);
-    const gap = parseFloat(getComputedStyle(document.documentElement)
-      .getPropertyValue('--flashcard-shell-gap')) || 24;
-
-    const shell = document.querySelector('.flashcard-desktop-view .page-shell');
-    if (shell) {
-      shell.style.height = `${availableHeight}px`;
-      shell.style.minHeight = `${availableHeight}px`;
-    }
-
-    const layout = document.querySelector('.flashcard-desktop-view .session-layout');
-    if (layout) {
-      const layoutHeight = Math.max(availableHeight - gap * 2, MIN_VIEWPORT_HEIGHT);
-      layout.style.height = `${layoutHeight}px`;
-      layout.style.minHeight = `${layoutHeight}px`;
-    }
-
-    const wrapper = document.querySelector('.flashcard-desktop-view .flashcard-wrapper');
-    if (wrapper) {
-      wrapper.style.height = '100%';
-      wrapper.style.minHeight = `${MIN_CONTENT_HEIGHT}px`;
-    }
-
-    const content = document.querySelector('.flashcard-desktop-view .js-flashcard-content');
-    if (content) {
-      content.style.height = '100%';
-      content.style.maxHeight = 'none';
-    }
-  }
 
   const applyViewportSizing = schedule(() => {
     updateChromeOffsets();
 
-    if (window.innerWidth > MOBILE_MAX_WIDTH) {
-      // Desktop: apply proper sizing instead of resetting
-      applyDesktopSizing();
-      return;
-    }
+
 
     const adjustedHeight = getAdjustedViewportHeight();
     setHeights(adjustedHeight);

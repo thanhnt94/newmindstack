@@ -9,18 +9,16 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <style>
     /* CRITICAL: Hide global header/footer on mobile */
-    @media (max-width: 1023px) {
+    /* CRITICAL: Hide global header/footer always for session */
+    body>header,
+    body>footer {
+        display: none !important;
+    }
 
-        body>header,
-        body>footer {
-            display: none !important;
-        }
-
-        body>main {
-            padding: 0 !important;
-            margin: 0 !important;
-            max-width: none !important;
-        }
+    body>main {
+        padding: 0 !important;
+        margin: 0 !important;
+        max-width: none !important;
     }
 
     :root {
@@ -63,11 +61,7 @@
         position: relative;
     }
 
-    @media (min-width: 768px) {
-        .session-container {
-            max-width: 800px;
-        }
-    }
+
 
 
     /* Header - Static Top Block */

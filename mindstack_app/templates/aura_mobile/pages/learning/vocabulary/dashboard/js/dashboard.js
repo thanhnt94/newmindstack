@@ -134,62 +134,13 @@ document.addEventListener('DOMContentLoaded', function () {
 
                 currentCategory = tab.dataset.category;
 
-                // Sync desktop tabs
-                syncDesktopTabs(currentCategory);
-
                 loadSets();
 
             });
 
         });
 
-        // Category tabs (Desktop)
-        document.querySelectorAll('.content-tab').forEach(function (tab) {
 
-            tab.addEventListener('click', function () {
-
-                document.querySelectorAll('.content-tab').forEach(function (t) { t.classList.remove('active'); });
-
-                tab.classList.add('active');
-
-                // Map data-tab to category
-                const tabValue = tab.dataset.tab;
-                if (tabValue === 'learning') {
-                    currentCategory = 'learning';
-                } else if (tabValue === 'explore') {
-                    currentCategory = 'explore';
-                }
-
-                // Sync mobile tabs
-                syncMobileTabs(currentCategory);
-
-                loadSets();
-
-            });
-
-        });
-
-        // Helper function to sync mobile tabs with desktop
-        function syncMobileTabs(category) {
-            document.querySelectorAll('.vocab-tab').forEach(function (t) {
-                t.classList.remove('active');
-                if (t.dataset.category === category) {
-                    t.classList.add('active');
-                }
-            });
-        }
-
-        // Helper function to sync desktop tabs with mobile
-        function syncDesktopTabs(category) {
-            const tabMapping = { 'learning': 'learning', 'explore': 'explore' };
-            const tabValue = tabMapping[category];
-            document.querySelectorAll('.content-tab').forEach(function (t) {
-                t.classList.remove('active');
-                if (t.dataset.tab === tabValue) {
-                    t.classList.add('active');
-                }
-            });
-        }
 
 
 
@@ -513,15 +464,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
                 });
 
-            // Desktop Back Button
-            document.querySelectorAll('.js-back-to-dashboard-desktop').forEach(btn => {
-                btn.addEventListener('click', function (e) {
-                    e.preventDefault();
-                    showStep('browser');
-                    // Update URL to dashboard
-                    history.pushState({ step: 'browser' }, '', '/learn/vocabulary/dashboard');
-                });
-            });
+
 
             function loadActiveSessions() {
                 const container = document.getElementById('active-sessions-container');
