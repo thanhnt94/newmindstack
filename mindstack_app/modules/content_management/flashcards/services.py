@@ -104,6 +104,15 @@ class FlashcardExcelService:
         Trả về thông báo kết quả (string).
         """
         temp_filepath = None
+        
+        def log_debug(msg):
+            try:
+                with open(r"c:\Code\MindStack\newmindstack\import_debug.log", "a", encoding="utf-8") as f:
+                    f.write(f"{msg}\n")
+            except Exception as e:
+                 print(f"Failed to write log: {e}")
+
+        log_debug("--- process_import START ---")
         try:
             with tempfile.NamedTemporaryFile(delete=False, suffix='.xlsx') as tmp_file:
                 excel_file.save(tmp_file.name)
@@ -124,7 +133,10 @@ class FlashcardExcelService:
             info_notices: list[str] = []
             media_overrides: dict[str, str] = {}
             cover_value = None
+            log_debug(f"Attempting extraction from {temp_filepath}")
             info_mapping, info_warnings = extract_info_sheet_mapping(temp_filepath)
+            log_debug(f"Info Mapping found: {bool(info_mapping)}")
+            log_debug(f"Info Warnings count: {len(info_warnings)}")
             
             if info_mapping:
                 image_folder_override = normalize_media_folder(info_mapping.get('image_base_folder'))
@@ -194,13 +206,6 @@ class FlashcardExcelService:
             delete_ids = set()
             ordered_entries = []
 
-            def log_debug(msg):
-                try:
-                    with open(r"c:\Code\MindStack\newmindstack\import_debug.log", "a", encoding="utf-8") as f:
-                        f.write(f"{msg}\n")
-                except Exception as e:
-                     current_app.logger.error(f"Failed to write log: {e}")
-
             # Define local aliases for usage in processing loops
             standard_columns = cls.get_standard_columns()
 
@@ -211,6 +216,7 @@ class FlashcardExcelService:
             # ============ COLUMN CLASSIFICATION ============
             log_debug("--- NEW IMPORT STARTED ---")
             log_debug(f"DataFrame Columns: {list(df.columns)}")
+            log_debug(f"Total Rows in DF: {len(df)}")
             
             # Detect custom columns using Class Constants
             all_known_columns = cls.get_system_columns() | cls.get_standard_columns() | cls.get_ai_columns()
@@ -250,6 +256,12 @@ class FlashcardExcelService:
             for index, row in df.iterrows():
                 item_id_value = _get_cell(row, 'item_id')
                 order_value = _get_cell(row, 'order_in_container')
+                
+                front_content = _get_cell(row, 'front')
+                back_content = _get_cell(row, 'back')
+                
+                log_debug(f"Row {index + 2}: item_id={item_id_value}, front={front_content}, back={back_content}")
+
                 order_number = None
                 if order_value:
                     try:
@@ -447,7 +459,7 @@ class FlashcardExcelService:
             if stats['created'] > 0 or stats['updated'] > 0:
                 content_created.send(
                     None,
-                    user_id=flashcard_set.owner_id,
+                    user_id=flashcard_set.creator_user_id,
                     content_type='flashcard_import',
                     content_id=container_id,
                     title=flashcard_set.title,

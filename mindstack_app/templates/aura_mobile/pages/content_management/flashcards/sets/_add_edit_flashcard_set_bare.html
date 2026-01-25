@@ -1339,18 +1339,49 @@
     }
 
     form.addEventListener('submit', async function (event) {
+        // ALWAYS prevent default immediately to avoid accidental normal submission
+        event.preventDefault();
+
+        console.log("Submit button clicked, starting validation...");
+
         if (!form.checkValidity()) {
-            console.error("Form is invalid!");
+            console.error("Form validation failed via browser's checkValidity().");
+            // Highlight the first invalid field
+            const firstInvalid = form.querySelector(':invalid');
+            if (firstInvalid) {
+                console.log("First invalid field:", firstInvalid.name);
+                firstInvalid.focus();
+                // If it's in a hidden tab, switch to that tab
+                const parentTab = firstInvalid.closest('.main-tab-content');
+                if (parentTab && parentTab.classList.contains('hidden')) {
+                    const tabId = parentTab.id.replace('tab-main-', '');
+                    switchMainTab(tabId);
+                }
+            }
+
+            if (window.parent && window.parent.showFlashMessage) {
+                window.parent.showFlashMessage('Vui lòng kiểm tra lại các trường thông tin (Tiêu đề bắt buộc).', 'warning');
+            } else {
+                alert('Vui lòng kiểm tra lại các trường thông tin (Tiêu đề bắt buộc).');
+            }
             return;
         }
 
-        event.preventDefault();
+        console.log("Validation passed, proceeding with fetch...");
+
+        // Show loading state on button
+        const submitBtn = event.submitter || form.querySelector('button[type="submit"]');
+        const originalBtnContent = submitBtn ? submitBtn.innerHTML : '';
+        if (submitBtn) {
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Đang lưu...';
+            submitBtn.disabled = true;
+        }
 
         // NOTE: Settings are already synced to input via saveToInput() calls.
-        // No need to manually rebuild them here (which was causing bugs).
-
         const formData = new FormData(form);
-        const actionUrl = form.action;
+        const actionUrl = form.action || window.location.href; // Fallback to current URL
+
+        console.log("Submitting to:", actionUrl);
 
         try {
             const response = await fetch(actionUrl, {
@@ -1359,37 +1390,62 @@
                 headers: { 'X-Requested-With': 'XMLHttpRequest' },
                 credentials: 'same-origin'
             });
+
+            console.log("Response status:", response.status);
             const result = await response.json();
+            console.log("JSON Result:", result);
 
             if (response.ok && result.success) {
                 if (window.parent && window.parent.showFlashMessage) {
-                    window.parent.showFlashMessage(result.message, 'success');
+                    window.parent.showFlashMessage(result.message || 'Thành công!', 'success');
                 } else if (result.message) {
                     alert(result.message);
                 }
 
                 if (window.parent && window.parent.closeModal) {
-                    window.parent.closeModal();
+                    // Give a small delay for the user to see success state if needed
                     setTimeout(() => {
-                        if (window.parent.location) window.parent.location.reload();
-                    }, 500);
+                        // Dispatch refresh event to parent BEFORE closing if possible
+                        if (window.parent.dispatchEvent) {
+                            console.log("Dispatching refresh event to parent...");
+                            window.parent.dispatchEvent(new CustomEvent('content-management:refresh', {
+                                detail: { targetTab: 'flashcards' }
+                            }));
+                        }
+
+                        window.parent.closeModal();
+
+                        // Fallback reload if the event wasn't handled or as a backup
+                        setTimeout(() => {
+                            if (window.parent.location && !window.parent.contentManagementRefreshing) {
+                                // Only reload if we don't have a more granular refresh mechanism active
+                                // window.parent.location.reload(); 
+                            }
+                        }, 300);
+                    }, 800);
                 }
             } else {
-                if (result.errors) {
-                    // Handle server errors
-                    if (window.parent && window.parent.showFlashMessage) {
-                        window.parent.showFlashMessage('Lỗi xác thực dữ liệu.', 'danger');
-                    }
+                if (submitBtn) {
+                    submitBtn.innerHTML = originalBtnContent;
+                    submitBtn.disabled = false;
+                }
+
+                const errorMsg = result.message || (result.errors ? 'Dữ liệu không hợp lệ.' : 'Có lỗi xảy ra khi lưu.');
+                console.error("Submission failed:", errorMsg);
+
+                if (window.parent && window.parent.showFlashMessage) {
+                    window.parent.showFlashMessage(errorMsg, 'danger');
                 } else {
-                    if (window.parent && window.parent.showFlashMessage) {
-                        window.parent.showFlashMessage(result.message || 'Có lỗi xảy ra.', 'danger');
-                    } else {
-                        alert(result.message || 'Có lỗi xảy ra.');
-                    }
+                    alert(errorMsg);
                 }
             }
         } catch (error) {
-            console.error("Fetch error:", error);
+            console.error("Fetch error during submission:", error);
+            if (submitBtn) {
+                submitBtn.innerHTML = originalBtnContent;
+                submitBtn.disabled = false;
+            }
+
             if (window.parent && window.parent.showFlashMessage) {
                 window.parent.showFlashMessage('Không thể kết nối đến máy chủ.', 'danger');
             } else {

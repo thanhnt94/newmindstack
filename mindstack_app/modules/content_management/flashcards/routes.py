@@ -1091,8 +1091,10 @@ def add_flashcard_set():
                 flash_message = 'Bộ thẻ mới đã được tạo thành công!'
                 flash_category = 'success'
             db.session.commit() # Lưu các thay đổi vào DB
+            current_app.logger.info(f"Successfully created flashcard set {new_set.container_id}")
         except Exception as e:
             db.session.rollback() # Hoàn tác nếu có lỗi
+            current_app.logger.error(f"FATAL ERROR in add_flashcard_set: {str(e)}", exc_info=True)
             flash_message = f'Lỗi khi xử lý: {str(e)}'
             flash_category = 'danger'
         finally:
@@ -1102,6 +1104,8 @@ def add_flashcard_set():
         
         # Trả về phản hồi JSON hoặc chuyển hướng tùy theo yêu cầu
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            if flash_category == 'danger':
+                return error_response(message=flash_message, status_code=500)
             return success_response(message=flash_message)
         else:
             flash(flash_message, flash_category)
