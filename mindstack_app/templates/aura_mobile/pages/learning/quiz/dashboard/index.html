@@ -1,7 +1,8 @@
 {# Quiz Learning Hub - Refactored Modular Structure #}
-{% set _v = template_version %}
-{# FIX: Explicitly default to aura_mobile/base.html if _v is missing #}
-{% extends (template_version or 'aura_mobile') ~ '/base.html' %}
+{% set _v = template_version or 'aura_mobile' %}
+{% extends _v ~ '/base.html' %}
+
+{% from _v ~ '/includes/components/_mobile_components.html' import mobile_header, mobile_footer %}
 
 {% block title %}Hoc Quiz - MindStack{% endblock %}
 
@@ -425,22 +426,81 @@
         justify-content: center;
         gap: 1rem;
         z-index: 50;
+        box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.05);
     }
 
     .pagination-nav-btn {
         width: 40px;
         height: 40px;
         border-radius: 0.75rem;
-        border: 1px solid #e2e8f0;
         background: white;
-        color: #64748b;
+        border: 1px solid #e2e8f0;
         display: flex;
         align-items: center;
         justify-content: center;
+        color: #64748b;
+        cursor: pointer;
+        transition: all 0.2s;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    }
+
+    .pagination-nav-btn:hover:not(:disabled) {
+        background: #f8fafc;
+        color: #1e293b;
+    }
+
+    .pagination-nav-btn:active:not(:disabled) {
+        transform: scale(0.95);
     }
 
     .pagination-nav-btn:disabled {
-        opacity: 0.5;
+        background: #f8fafc;
+        border-color: #f1f5f9;
+        color: #cbd5e1;
+        cursor: not-allowed;
+    }
+
+    .pagination-pages {
+        display: flex;
+        align-items: center;
+        background: white;
+        border-radius: 0.75rem;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        padding: 0.25rem;
+    }
+
+    .page-num {
+        width: 36px;
+        height: 36px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 0.5rem;
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: #64748b;
+        cursor: pointer;
+        transition: all 0.15s;
+        margin: 0 2px;
+    }
+
+    .page-num:hover:not(.active):not(.dots) {
+        background: #f8fafc;
+        color: #1e293b;
+    }
+
+    .page-num.active {
+        background: var(--quiz-primary);
+        color: white;
+        font-weight: 700;
+        box-shadow: 0 2px 6px rgba(59, 130, 246, 0.3);
+    }
+
+    .page-num.dots {
+        cursor: default;
+        color: #cbd5e1;
+        font-size: 0.75rem;
     }
 
     /* === STATES === */
@@ -472,12 +532,8 @@
 {% block content %}
 {# ========== STEP 1: SETS BROWSER ========== #}
 <div id="step-sets" class="quiz-step active">
-    <!-- Header -->
-    <div class="quiz-header">
-        <a href="{{ url_for('stats.dashboard') }}" class="quiz-back-btn"><i class="fas fa-arrow-left"></i></a>
-        <span class="quiz-title">Học Quiz</span>
-        <a href="/dashboard" class="quiz-back-btn" style="margin-left: auto;"><i class="fas fa-home"></i></a>
-    </div>
+    {% call mobile_header(title='Học Quiz', back_url=url_for('stats.dashboard')) %}
+    {% endcall %}
 
     <!-- Search -->
     <div class="quiz-search-wrap">
@@ -502,33 +558,36 @@
     </div>
 
     <!-- Pagination -->
-    <div id="pagination-bar" class="quiz-pagination-bar">
-        <button class="pagination-nav-btn js-prev-page" disabled><i class="fas fa-chevron-left"></i></button>
-        <span class="text-sm font-bold text-slate-600">Trang <span class="js-current-page">1</span></span>
-        <button class="pagination-nav-btn js-next-page" disabled><i class="fas fa-chevron-right"></i></button>
+    <div id="pagination-bar" class="quiz-pagination-bar js-pagination-bar"
+        style="position: fixed; bottom: 0; left: 0; right: 0; background: white; padding: 0.75rem; border-top: 1px solid #e2e8f0; display: flex; justify-content: center; gap: 1rem; box-shadow: 0 -4px 12px rgba(0,0,0,0.05); z-index: 50;">
+        <button class="pagination-nav-btn js-prev-page" disabled>
+            <i class="fas fa-chevron-left"></i>
+        </button>
+
+        <div class="pagination-pages js-page-numbers">
+            <span class="page-num active">1</span>
+        </div>
+
+        <button class="pagination-nav-btn js-next-page" disabled>
+            <i class="fas fa-chevron-right"></i>
+        </button>
     </div>
 </div>
 
 {# ========== STEP 2: SET DETAIL ========== #}
 <div id="step-detail" class="quiz-step">
-    <div class="quiz-header">
-        <button class="quiz-back-btn js-back-to-sets"><i class="fas fa-arrow-left"></i></button>
-        <div class="flex-1 flex flex-col overflow-hidden ml-3">
-            <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Bộ câu hỏi</span>
-            <span class="text-sm font-bold text-slate-800 truncate js-header-title">--</span>
-        </div>
-
-        <!-- Header Buttons (Edit, List, Home) -->
-        <button class="quiz-back-btn js-open-edit-modal ml-2" title="Sửa bộ quiz">
-            <i class="fas fa-pen"></i>
-        </button>
-        <a href="#" class="quiz-back-btn js-go-to-list ml-2" title="Danh sách câu hỏi">
-            <i class="fas fa-list"></i>
-        </a>
-        <a href="/dashboard" class="quiz-back-btn ml-2" title="Về trang chủ">
-            <i class="fas fa-home"></i>
-        </a>
-    </div>
+    {% call mobile_header(title='...', subtitle='BỘ CÂU HỎI', back_func="showStep('sets')") %}
+    <button
+        class="w-9 h-9 flex items-center justify-center rounded-xl bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-slate-800 transition-colors cursor-pointer border-none shadow-none js-open-edit-modal ml-2"
+        title="Sửa bộ quiz">
+        <i class="fas fa-pen"></i>
+    </button>
+    <a href="#"
+        class="w-9 h-9 flex items-center justify-center rounded-xl bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-slate-800 transition-colors cursor-pointer border-none shadow-none js-go-to-list ml-2"
+        title="Danh sách câu hỏi">
+        <i class="fas fa-list"></i>
+    </a>
+    {% endcall %}
 
     <div class="quiz-scroll">
         <!-- Hero -->
@@ -565,11 +624,12 @@
         </div>
     </div>
 
-    <div class="quiz-footer">
-        <button class="quiz-start-btn js-go-to-modes">
-            <i class="fas fa-play"></i> Luyện tập ngay
-        </button>
-    </div>
+    {% call mobile_footer() %}
+    <button
+        class="vocab-start-btn js-go-to-modes w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-lg shadow-lg shadow-blue-500/30 flex items-center justify-center gap-2 transition-all">
+        <i class="fas fa-play"></i> Luyện tập ngay
+    </button>
+    {% endcall %}
 </div>
 
 <!-- Edit Set Modal -->
@@ -594,10 +654,8 @@
 
 {# ========== STEP 3: MODES SELECTION ========== #}
 <div id="step-modes" class="quiz-step">
-    <div class="quiz-header">
-        <button class="quiz-back-btn js-back-to-detail"><i class="fas fa-arrow-left"></i></button>
-        <span class="quiz-title">Chế độ học</span>
-    </div>
+    {% call mobile_header(title='Chế độ học', subtitle='QUY TRÌNH HỌC', back_func="showStep('detail')") %}
+    {% endcall %}
 
     <div class="quiz-scroll" style="padding: 1rem;">
         <div class="js-modes-container">
@@ -621,11 +679,13 @@
         </div>
     </div>
 
-    <div class="quiz-footer">
-        <button class="quiz-start-btn js-start-session" disabled>
-            <i class="fas fa-rocket"></i> Bắt đầu phiên
-        </button>
-    </div>
+    {% call mobile_footer() %}
+    <button
+        class="vocab-start-btn js-start-session w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-lg shadow-lg shadow-blue-500/30 flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+        disabled>
+        <i class="fas fa-rocket"></i> Bắt đầu phiên
+    </button>
+    {% endcall %}
 </div>
 
 {% endblock %}
@@ -660,9 +720,12 @@
             input: document.getElementById('search-input'),
             tabs: document.querySelectorAll('.quiz-tab'),
             pagination: document.getElementById('pagination-bar'),
+            pageNumbers: document.querySelector('.js-page-numbers'),
             // Detail
             detailTitle: document.querySelectorAll('.js-detail-title'), // both header and hero title
-            headerTitle: document.querySelector('.js-header-title'),
+            headerTitle: document.querySelectorAll('.js-mobile-title'),
+            headerSubtitle: document.querySelectorAll('.js-mobile-subtitle'),
+            headerText: document.querySelectorAll('.js-mobile-header-text'),
             detailDesc: document.querySelector('.js-detail-desc'),
             detailCount: document.querySelector('.js-question-count'),
             detailProgress: document.querySelector('.js-progress-count'),
@@ -715,6 +778,23 @@
         if (els.openModalBtn) els.openModalBtn.addEventListener('click', openEditModal);
         if (els.closeModalBtn) els.closeModalBtn.addEventListener('click', closeEditModal);
 
+        // --- SCROLL EFFECTS ---
+        const detailScroll = document.querySelector('#step-detail .quiz-scroll');
+        const detailHeaderInfo = document.querySelector('#step-detail .js-mobile-header-text');
+        const detailMainTitle = document.querySelector('.quiz-detail-title');
+
+        if (detailScroll && detailHeaderInfo && detailMainTitle) {
+            detailScroll.addEventListener('scroll', function () {
+                const titleRect = detailMainTitle.getBoundingClientRect();
+                const headerHeight = 60;
+                if (titleRect.bottom < headerHeight) {
+                    detailHeaderInfo.style.opacity = '1';
+                } else {
+                    detailHeaderInfo.style.opacity = '0';
+                }
+            });
+        }
+
         // --- NAVIGATION ---
         function showStep(stepId) {
             Object.values(steps).forEach(el => el.classList.remove('active'));
@@ -732,8 +812,13 @@
                 const res = await fetch(url);
                 const data = await res.json();
 
-                renderSets(data.sets);
-                updatePagination(data.has_next);
+                if (data.sets && data.sets.length > 0) {
+                    renderSets(data.sets);
+                    updatePagination(data.has_next, data.total, true);
+                } else {
+                    renderSets([]);
+                    updatePagination(false, 0, false);
+                }
             } catch (e) {
                 console.error(e);
                 els.grid.innerHTML = '<div class="quiz-empty"><i class="fas fa-exclamation-triangle"></i><p>Lỗi tải dữ liệu</p></div>';
@@ -764,18 +849,47 @@
             `).join('');
         }
 
-        function updatePagination(hasNext) {
+        function updatePagination(hasNext, total, hasData) {
+            const bar = document.getElementById('pagination-bar');
+            if (!hasData) {
+                if (bar) bar.style.display = 'none';
+                return;
+            }
+
+            if (bar) bar.style.display = 'flex';
             const prevBtn = document.querySelector('.js-prev-page');
             const nextBtn = document.querySelector('.js-next-page');
-            const pageSpan = document.querySelector('.js-current-page');
-
             if (prevBtn) prevBtn.disabled = state.page <= 1;
             if (nextBtn) nextBtn.disabled = !hasNext;
-            if (pageSpan) pageSpan.textContent = state.page;
 
-            // Show/Hide bar
-            const bar = document.getElementById('pagination-bar');
-            if (bar) bar.style.display = (!hasNext && state.page === 1) ? 'none' : 'flex';
+            // Render page numbers
+            if (els.pageNumbers) {
+                const totalPages = Math.max(1, Math.ceil(total / 10));
+                const page = state.page;
+                let html = '';
+
+                for (let i = 1; i <= totalPages; i++) {
+                    if (i === 1 || i === totalPages || (i >= page - 1 && i <= page + 1)) {
+                        html += `<span class="page-num${i === page ? ' active' : ''}" data-page="${i}">${i}</span>`;
+                    } else if (i === 2 && page > 3) {
+                        html += '<span class="page-num dots">...</span>';
+                    } else if (i === totalPages - 1 && page < totalPages - 2) {
+                        html += '<span class="page-num dots">...</span>';
+                    }
+                }
+                els.pageNumbers.innerHTML = html;
+
+                // Bind click to page numbers
+                els.pageNumbers.querySelectorAll('.page-num:not(.dots)').forEach(el => {
+                    el.addEventListener('click', () => {
+                        const p = parseInt(el.dataset.page);
+                        if (p !== state.page) {
+                            state.page = p;
+                            loadSets();
+                        }
+                    });
+                });
+            }
         }
 
         // --- DETAIL ---
@@ -784,7 +898,13 @@
             showStep('detail');
 
             // Reset UI
-            els.headerTitle.textContent = "Đang tải...";
+            els.headerTitle.forEach(el => {
+                el.textContent = "Đang tải...";
+                // Hide header info text initially for sticky effect in detail step
+                const parent = el.closest('.js-mobile-header-text');
+                const isDetailHeader = el.closest('#step-detail');
+                if (parent) parent.style.opacity = isDetailHeader ? '0' : '1';
+            });
             els.detailTitle.forEach(el => el.textContent = "--");
             els.detailDesc.textContent = "";
 
@@ -798,7 +918,12 @@
                     // Update List Button HREF
                     if (els.listBtn) els.listBtn.href = `/content-management/quizzes/${s.id}/items`;
 
-                    els.headerTitle.textContent = s.title;
+                    els.headerTitle.forEach(el => el.textContent = s.title);
+                    els.headerSubtitle.forEach(el => {
+                        const isDetailHeader = el.closest('#step-detail');
+                        if (isDetailHeader) el.textContent = s.question_count + ' câu hỏi • Học Quiz';
+                        else el.textContent = 'QUY TRÌNH HỌC';
+                    });
                     els.detailTitle.forEach(el => el.textContent = s.title);
                     els.detailDesc.textContent = s.description || "Chưa có mô tả";
                     els.detailCount.textContent = s.question_count;
@@ -912,8 +1037,9 @@
         });
 
         // Back Buttons
-        document.querySelector('.js-back-to-sets').addEventListener('click', () => showStep('sets'));
-        document.querySelector('.js-back-to-detail').addEventListener('click', () => showStep('detail'));
+        // REMOVED: js-back-to-sets and js-back-to-detail listeners. 
+        // Standard mobile components handle this via back_func or history.back()
+        // showStep('detail'); // Example if needed. But already in header.
 
         // Init
         loadSets();

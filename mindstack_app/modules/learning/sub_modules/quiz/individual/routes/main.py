@@ -392,10 +392,9 @@ def api_get_quiz_sets():
         # Also filter to only QUIZ_SET within those IDs
         query = query.filter(LearningContainer.container_id.in_(learning_ids))
     elif category == 'explore':
-        # Public sets not created by user
+        # All public sets (including user's own)
         query = query.filter(
-            LearningContainer.is_public == True,
-            LearningContainer.creator_user_id != current_user.user_id
+            LearningContainer.is_public == True
         )
     
     # Search filter

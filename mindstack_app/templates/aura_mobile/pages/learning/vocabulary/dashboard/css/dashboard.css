@@ -47,37 +47,22 @@ body {
 
 
 .vocab-back-btn {
-
     width: 36px;
-
     height: 36px;
-
     border-radius: 0.75rem;
-
-    background: #f1f5f9;
-
+    background: #f8fafc;
+    border: 1px solid #f1f5f9;
     display: flex;
-
     align-items: center;
-
     justify-content: center;
-
-    color: #64748b;
-
+    color: #94a3b8;
     cursor: pointer;
-
     transition: all 0.2s;
-
 }
 
-
-
 .vocab-back-btn:hover {
-
-    background: #e2e8f0;
-
-    color: #1e293b;
-
+    background: #f1f5f9;
+    color: #64748b;
 }
 
 
@@ -1589,45 +1574,27 @@ animation: gradientShift 8s ease infinite;
 
 
 .step-back-btn,
-
 .step-home-btn {
-
     width: 36px;
-
     height: 36px;
-
     border-radius: 0.75rem;
-
-    background: #f1f5f9;
-
-    border: none;
-
+    background: #f8fafc;
+    border: 1px solid #f1f5f9;
     display: flex;
-
     align-items: center;
-
     justify-content: center;
-
-    color: #64748b;
-
+    color: #94a3b8;
     cursor: pointer;
-
     transition: all 0.2s;
-
     text-decoration: none;
-
 }
 
 
 
 .step-back-btn:hover,
-
 .step-home-btn:hover {
-
-    background: #e2e8f0;
-
-    color: #1e293b;
-
+    background: #f1f5f9;
+    color: #64748b;
 }
 
 /* Edit button - Sửa bộ thẻ */
@@ -1635,26 +1602,30 @@ animation: gradientShift 8s ease infinite;
     width: 36px;
     height: 36px;
     border-radius: 0.75rem;
-    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-    border: none;
+    background: #f8fafc;
+    border: 1px solid #f1f5f9;
     display: flex;
     align-items: center;
     justify-content: center;
-    color: white;
+    color: #94a3b8;
     cursor: pointer;
     transition: all 0.2s;
     text-decoration: none;
-    box-shadow: 0 2px 8px rgba(245, 87, 108, 0.3);
     margin-right: 0.5rem;
 }
 
 .step-edit-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(245, 87, 108, 0.4);
+    background: #f1f5f9;
+    color: #64748b;
+}
+
+.step-edit-btn:hover {
+    background: #e2e8f0;
+    color: #1e293b;
 }
 
 .step-edit-btn:active {
-    transform: translateY(0);
+    opacity: 0.8;
 }
 
 

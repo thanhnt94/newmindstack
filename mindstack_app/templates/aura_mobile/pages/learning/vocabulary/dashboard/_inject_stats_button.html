@@ -20,23 +20,23 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            width: 40px;
-            height: 40px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border: none;
-            border-radius: 0.5rem;
-            font-size: 1.1rem;
+            width: 36px;
+            height: 36px;
+            background: #f8fafc;
+            color: #94a3b8;
+            border: 1px solid #f1f5f9;
+            border-radius: 0.75rem;
+            font-size: 1rem;
             cursor: pointer;
             transition: all 0.2s;
-            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+            margin-right: 0.5rem;
         }
         .step-stats-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+            background: #f1f5f9;
+            color: #64748b;
         }
         .step-stats-btn:active {
-            transform: translateY(0);
+            opacity: 0.8;
         }
     `;
         document.head.appendChild(style);
@@ -44,7 +44,7 @@
         // Insert before Settings button if exists, otherwise Home button
         const settingsBtn = header.querySelector('.js-open-flashcard-settings');
         const homeBtn = header.querySelector('.step-home-btn');
-        
+
         if (settingsBtn) {
             header.insertBefore(statsBtn, settingsBtn);
         } else if (homeBtn) {

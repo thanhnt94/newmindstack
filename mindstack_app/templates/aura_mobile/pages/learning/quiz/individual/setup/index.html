@@ -1,6 +1,7 @@
 {# Quiz Setup Template - Wizard Style #}
-{% set _v = template_version %}
+{% set _v = template_version or 'aura_mobile' %}
 {% extends _v ~ '/base.html' %}
+{% from _v ~ '/includes/components/_mobile_components.html' import mobile_header, mobile_footer %}
 {% block title %}Kiểm tra - {{ container.title }}{% endblock %}
 {% block head %}
 {{ super() }}
@@ -31,35 +32,13 @@
         padding: 0 1rem;
     }
 
-    .wizard-header {
-        padding: 0.75rem;
+    /* Content */
+    .wizard-content {
+        flex: 1;
+        padding: 75px 1.5rem 100px 1.5rem;
         display: flex;
-        align-items: center;
-        justify-content: space-between;
-        background: var(--surface);
-        border-bottom: 1px solid var(--border);
-        position: fixed;
-        top: 0;
-        left: 0;
-        right: 0;
-        max-width: 800px;
-        margin: 0 auto;
-        z-index: 100;
-    }
-
-    .nav-btn {
-        width: 40px;
-        height: 40px;
-        border-radius: 12px;
-        background: transparent;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: var(--text-main);
-        font-size: 1.1rem;
-        cursor: pointer;
-        text-decoration: none;
-        border: 1px solid var(--border);
+        flex-direction: column;
+        overflow-y: auto;
     }
 
     .header-info {
@@ -329,18 +308,9 @@
 
 {% block content %}
 <div class="wizard-container">
-    <div class="wizard-header">
-        <a id="header-back-btn" href="{{ url_for('learning.quiz_learning.dashboard') }}" class="nav-btn">
-            <i class="fas fa-chevron-left"></i>
-        </a>
-        <div class="header-info">
-            <span class="mode-badge"><i class="fas fa-tasks"></i> Kiểm tra</span>
-            <h1 class="set-title">{{ container.title }}</h1>
-        </div>
-        <a href="/dashboard" class="nav-btn" title="Về trang chủ">
-            <i class="fas fa-home"></i>
-        </a>
-    </div>
+    {% call mobile_header(title=container.title, subtitle='KIỂM TRA',
+    back_url=url_for('learning.quiz_learning.dashboard')) %}
+    {% endcall %}
 
     <div class="wizard-content">
         <div class="title-area">
@@ -437,11 +407,13 @@
         </div>
     </div>
 
-    <div class="wizard-footer">
-        <button class="action-btn" id="start-btn">
-            Bắt đầu học ngay <i class="fas fa-rocket"></i>
-        </button>
-    </div>
+    {% call mobile_footer() %}
+    <button
+        class="vocab-start-btn w-full py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-bold text-lg shadow-lg shadow-blue-500/30 flex items-center justify-center gap-2 transition-all"
+        id="start-btn">
+        Bắt đầu học ngay <i class="fas fa-rocket"></i>
+    </button>
+    {% endcall %}
 </div>
 {% endblock %}
 
