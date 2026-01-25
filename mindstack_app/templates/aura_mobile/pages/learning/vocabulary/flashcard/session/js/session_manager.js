@@ -184,6 +184,69 @@ async function getNextFlashcardBatch() {
             mobileCurrent.innerHTML = html;
         }
 
+        // [UX-RESET] Reset the Info Bar stats for the new card
+        if (window.updateFlashcardStats && currentCardData.initial_stats) {
+            // Create a wrapper object that matches structure expected by updateFlashcardStats
+            // The API returns 'statistics' and 'memory_power' separate, but initial_stats is flat?
+            // Need to check core.py/get_item_statistics structure.
+            // core.py returns flat dict with keys: stability, retrievability, current_streak, etc.
+            // updateFlashcardStats expects { statistics: {...}, memory_power: {...} } OR it checks data.statistics / data.memory_power properties.
+
+            // Let's adapt the call to match updateFlashcardStats structure:
+            const statsWrapper = {
+                statistics: currentCardData.initial_stats,
+                memory_power: {
+                    stability: currentCardData.initial_stats.stability, // might be 'memory_power' or 'stability'? core.py says 'stability' isn't in flat dict?
+                    // core.py get_item_statistics returns: 'memory_power' (percentage), and 'mastery' (stability-like?).
+                    // Wait, let's re-read core.py output for get_item_statistics key names.
+                    // It returns: 'memory_power' (retrievability), 'easiness_factor', 'current_streak', 'times_reviewed'.
+                    // It does NOT seem to return explicit 'stability' in days in the flat dict?
+                    // core.py line 202: 'mastery': round((stability or 0)/21.0, ...). 
+                    // It doesn't seem to pass raw stability days in initial_stats?
+                    // But wait, the previous code for 'renderCardStatsHtml' uses `stats.stability`.
+
+                    // Let's assume initial_stats HAS the keys if they exist.
+                    // If not, we might display 0, which is fine for "new card".
+                    // Ideally we pass the full object.
+
+                    retrievability: currentCardData.initial_stats.memory_power, // In initial_stats this is %?
+                    stability: currentCardData.initial_stats.stability
+                }
+            };
+            // Actually, let's look at updateFlashcardStats again.
+            // It checks data.statistics.times_reviewed, data.memory_power.stability.
+
+            // core.py 'get_item_statistics' returns:
+            // - 'times_reviewed'
+            // - 'current_streak'
+            // - 'memory_power' (FLOAT 0-100) -> This maps to retrievability in UI?
+            // - 'stability'? core.py line 198: 'easiness_factor'. 
+            // - It seems 'stability' days acts as 'interval' in some contexts? logic check needed.
+            // Looking at session_manager.js line 273 (previous update), the API returns 'memory_power' object with 'stability'.
+
+            // BUT for initial_stats (get_item_statistics), does it have 'stability'?
+            // core.py line 281 returns stats.
+            // line 197: 'next_review'
+            // line 200: 'interval' (current interval days) -> This is essentially stability for display?
+            // line 202: 'mastery'
+
+            // If 'stability' key is missing in initial_stats, we might need to use 'interval'.
+
+            const statsForReset = {
+                statistics: {
+                    times_reviewed: currentCardData.initial_stats.times_reviewed,
+                    current_streak: currentCardData.initial_stats.current_streak
+                },
+                memory_power: {
+                    stability: currentCardData.initial_stats.interval || 0, // Fallback to interval
+                    retrievability: currentCardData.initial_stats.memory_power // This is % in initial_stats
+                },
+                new_progress_status: currentCardData.initial_stats.status // For badge
+            };
+
+            window.updateFlashcardStats(statsForReset);
+        }
+
         window.renderCard(currentCardData);
 
         // [NEW] Update card state badge (NEW/LEARNED/HARD/MASTER)
@@ -278,12 +341,8 @@ async function submitFlashcardAnswer(itemId, answer) {
         currentUserTotalScore = data.updated_total_score;
 
         // [UX-IMMEDIATE] 3. Update Current Card Stats Immediately
-        if (window.updateCurrentCardStats) {
-            const mergedStats = {
-                ...(data.statistics || {}),
-                ...(data.memory_power || {})
-            };
-            window.updateCurrentCardStats(mergedStats);
+        if (window.updateFlashcardStats) {
+            window.updateFlashcardStats(data);
         }
 
         // [SMART TRANSITION] 2. Notification & Dynamic Wait

@@ -778,39 +778,34 @@
     };
 
     // [UX-IMMEDIATE] Update specific card stats immediately after rating (before transition)
-    window.updateCurrentCardStats = function (stats) {
-        if (!stats) return;
-        console.log('[FSRS Mobile] Immediate Stats Update:', stats);
+    window.updateFlashcardStats = function (data) {
+        console.log('[UI] Updating stats immediate:', data);
 
-        // 1. Streak
-        if (stats.current_streak !== undefined) {
-            document.querySelectorAll('.js-fc-streak-count').forEach(el => el.textContent = stats.current_streak);
+        // Helper cập nhật text
+        const setText = (selector, value) => {
+            document.querySelectorAll(selector).forEach(el => el.innerText = value);
+        };
+
+        if (data.statistics) {
+            setText('.js-card-times-reviewed', data.statistics.times_reviewed || 0);
+            setText('.js-card-streak', data.statistics.current_streak || 0);
         }
 
-        // 2. Stability
-        if (stats.stability !== undefined) {
-            const val = parseFloat(stats.stability).toFixed(1);
-            const displayVal = (val === '0.0' || val === '0.00') ? '0' : val;
-            document.querySelectorAll('.js-fc-stability-days').forEach(el => el.textContent = displayVal);
+        if (data.memory_power) {
+            // Stability: làm tròn 1 số lẻ (vd: 2.5)
+            const stab = parseFloat(data.memory_power.stability || 0).toFixed(1);
+            setText('.js-card-stability', stab);
+
+            // Retrievability: Backend đã trả về % (vd: 90.5), chỉ cần làm tròn
+            const retriev = Math.round(data.memory_power.retrievability || 0);
+            setText('.js-card-retrievability', retriev);
         }
 
-        // 3. Retention (Memory Power / Retrievability)
-        // Backend might return 'memory_power' or 'retrievability'
-        const retention = (stats.retrievability !== undefined) ? stats.retrievability : stats.memory_power;
-        if (retention !== undefined) {
-            document.querySelectorAll('.js-fc-retention-percent').forEach(el => el.textContent = Math.round(retention) + '%');
-        }
-
-        // 4. Review Count
-        if (stats.times_reviewed !== undefined) {
-            document.querySelectorAll('.js-fc-review-count').forEach(el => el.textContent = stats.times_reviewed + ' lần');
-        }
-
-        // 5. Status Badge
-        // API 'statistics' might have 'status' or 'custom_state'
-        const status = stats.status || stats.custom_state;
-        if (status && window.updateStateBadge) {
-            window.updateStateBadge(status);
+        // Cập nhật trạng thái (Badge)
+        if (data.new_progress_status) {
+            setText('.js-card-status-text', data.new_progress_status.toUpperCase());
+            // (Tùy chọn) Gọi lại hàm updateStateBadge nếu cần đổi màu
+            if (window.updateStateBadge) window.updateStateBadge(data.new_progress_status);
         }
     };
 

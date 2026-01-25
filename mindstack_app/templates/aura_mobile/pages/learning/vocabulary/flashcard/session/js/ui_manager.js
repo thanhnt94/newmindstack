@@ -609,9 +609,9 @@ function showPreviewTooltip(targetBtn, data) {
     const difficulty = data.difficulty || 0;
     const difficultyColor = difficulty > 8 ? '#f87171' : (difficulty > 5 ? '#fbbf24' : '#4ade80'); // High difficulty = Red
 
-    // Retrievability (R) - Percentage 0-1
+    // Retrievability (R) - Backend returns percentage (0-100)
     const retrievability = data.retrievability !== undefined ? data.retrievability : 0;
-    const rPercent = (retrievability * 100).toFixed(1) + '%';
+    const rPercent = Number(retrievability).toFixed(1) + '%';
     const rColor = retrievability > 0.9 ? '#4ade80' : (retrievability > 0.7 ? '#fbbf24' : '#f87171');
 
     tooltip.innerHTML = `
