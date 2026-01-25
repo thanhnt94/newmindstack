@@ -597,7 +597,7 @@ class QuizSessionManager:
                 history = mode_data.get('review_history', [])
                 recent_history = history[-5:][::-1] if history else []
                     
-                last_reviewed_str = progress.last_reviewed.strftime("%d/%m %H:%M") if progress.last_reviewed else "--"
+                last_reviewed_str = progress.fsrs_last_review.strftime("%d/%m %H:%M") if progress.fsrs_last_review else "--"
 
                 item_dict['user_stats'] = {
                     'has_data': True,

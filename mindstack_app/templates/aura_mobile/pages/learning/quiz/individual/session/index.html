@@ -1,9 +1,3 @@
-{# =============================== #}
-{# File: mindstack_app/templates/aura_mobile/pages/learning/quiz/individual/session/index.html #}
-{# Purpose: Unified Mobile Quiz Session (Stand-alone) #}
-{# Based on Aura 4.4 Logic #}
-{# =============================== #}
-
 {% set _v = template_version or 'aura_mobile' %}
 {% extends _v ~ '/base.html' %}
 
@@ -11,580 +5,1517 @@
 
 {% block head %}
 {{ super() }}
-{% include 'aura_mobile/includes/assets/_aura_learning_assets.html' %}
+<link rel="stylesheet" href="{{ url_for('learning.quiz_learning.static', filename='css/session_batch.css') }}">
 <style>
-    :root {
-        --aura-primary: #4f46e5;
-        --aura-secondary: #7c3aed;
+    /* Mobile-specific overrides if needed */
+    .hidden {
+        display: none !important;
+    }
+
+    /* Ensure modals display correctly on mobile */
+    .qb-modal-container {
+        max-height: 85vh;
+        border-radius: 20px 20px 0 0;
+    }
+
+    /* Fix Bottom Bar spacing */
+    .qb-bottom-bar {
+        padding-bottom: calc(16px + env(safe-area-inset-bottom));
+    }
+
+    /* Mobile Header Tweaks */
+    .qb-mobile-header {
+        padding-top: env(safe-area-inset-top);
     }
 </style>
 {% endblock %}
 
-<body class="antialiased aura-session">
+{% block content %}
 
-    {% block content %}
-    {# === MOBILE AURA HEADER === #}
-    {% with badge_text='QUIZ', title='Phiên học Quiz', points=150 %}
-    {% include 'aura_mobile/includes/components/learning/_session_header.html' %}
-    {% endwith %}
+{# === MOBILE INTERFACE (Inlined from Aura _batch_mobile.html) === #}
+<div class="lg:hidden">
+    {# === MOBILE APP HEADER === #}
+    <div class="qb-mobile-sticky-wrapper">
+        <div class="qb-mobile-header flex-col items-stretch !p-0">
 
-    {# === MOBILE STATUS BAR (Pills) === #}
-    {% include 'aura_mobile/includes/components/learning/_session_status_bar.html' %}
-
-    <div class="container mx-auto px-4 py-8 max-w-lg">
-        {# --- TAB: GAMEPLAY --- #}
-        <div id="tab-pane-game" class="qb-tab-pane active">
-            <div class="cm-card">
-                <div class="cm-card-header">
-                    <div class="flex items-center gap-3">
-                        <div
-                            class="w-10 h-10 rounded-xl bg-blue-50 text-blue-500 flex items-center justify-center text-lg">
-                            <i class="fa-solid fa-circle-question"></i>
-                        </div>
-                        <span class="font-black text-slate-800 js-question-header">Câu hỏi 1</span>
-                    </div>
-                    <button class="text-slate-300 hover:text-blue-500 transition-colors">
-                        <i class="fa-regular fa-bookmark text-xl"></i>
-                    </button>
+            {# --- Row 1: Quiz Badge + Title + Score --- #}
+            <div class="flex items-center justify-between px-3 py-2 bg-gradient-to-r from-indigo-600 to-indigo-700">
+                {# Quiz Badge + Title #}
+                <div class="flex items-center gap-2.5 overflow-hidden max-w-[75%]">
+                    <span
+                        class="flex-shrink-0 flex items-center gap-1 px-2.5 py-1 bg-gradient-to-r from-amber-400 to-amber-500 rounded-lg shadow-md">
+                        <i class="fa-solid fa-bolt text-[10px] text-amber-900"></i>
+                        <span class="text-[10px] font-black text-amber-900 uppercase tracking-wide">Quiz</span>
+                    </span>
+                    <span class="text-sm font-bold text-white truncate js-quiz-set-title"
+                        style="text-shadow: 0 1px 3px rgba(0,0,0,0.3);">Đang tải...</span>
                 </div>
-                <div class="cm-card-body">
-                    <!-- Loading State -->
-                    <div id="quiz-loading"
-                        class="flex flex-col items-center justify-center py-20 text-indigo-500 js-quiz-loading">
-                        <div
-                            class="w-12 h-12 border-4 border-indigo-200 border-t-indigo-500 rounded-full animate-spin mb-4">
-                        </div>
-                        <p class="font-bold">Đang chuẩn bị câu hỏi...</p>
-                    </div>
 
-                    <!-- Question Content -->
-                    <div id="quiz-content" class="hidden js-quiz-content">
-                        <h2 id="question-text" class="qb-question-text js-question-text">--</h2>
-                        <div id="question-media" class="qb-question-media hidden js-question-media"></div>
-
-                        <div id="question-options" class="qb-options-grid mt-6 js-options-grid">
-                            <!-- Options injected here -->
-                        </div>
-                    </div>
+                {# Score Badge #}
+                <div class="flex items-center gap-1.5 h-8 px-3 bg-white/20 rounded-full">
+                    <i class="fa-solid fa-gem text-amber-300 text-xs"></i>
+                    <span id="header-total-score" class="text-sm font-black text-white font-mono">{{
+                        current_user.total_score }}</span>
                 </div>
             </div>
 
-            <!-- Feedback Panel -->
-            <div id="result-panel" class="hidden js-result-panel animate-slide-in-up mt-[-0.5rem] mb-6">
-                <div class="cm-card !bg-slate-900 border-none shadow-xl">
-                    <div class="cm-card-body py-4">
-                        <div class="flex items-center gap-4">
-                            <span class="js-feedback-icon text-3xl">🎉</span>
-                            <div class="flex-1">
-                                <h3 class="text-white font-black js-feedback-title">Chính xác!</h3>
-                                <p class="text-slate-400 text-xs">Đáp án đúng là: <span
-                                        class="text-emerald-400 font-bold js-feedback-answer">--</span></p>
-                            </div>
+            {# --- Row 2: Stats (Always Visible) --- #}
+            <div class="bg-white border-b border-slate-200">
+                <div class="flex items-center justify-between px-3 py-2">
+                    {# Stats - 4 distinct groups with tooltips #}
+                    <div class="flex items-center gap-1.5 text-xs">
+                        {# Progress: answered/total #}
+                        <div class="stat-pill flex items-center gap-1 px-2 py-1 bg-slate-100 rounded-lg"
+                            data-tooltip="Tiến độ: Số câu đã làm / Tổng số câu">
+                            <i class="fa-solid fa-list-check text-slate-500 text-[9px]"></i>
+                            <span class="text-slate-700 font-semibold js-quiz-total-label">0/0</span>
                         </div>
-                    </div>
-                </div>
-            </div>
-        </div>
 
-        {# --- TAB: STATS (Repurposed for summary) --- #}
-        <div id="tab-pane-stats" class="qb-tab-pane hidden space-y-6">
-            <!-- (Stats content preserved but matching new styles) -->
-            <div class="cm-card">
-                <div class="cm-card-header border-none pb-0">
-                    <span class="font-black text-slate-800 text-xl">Thống kê phiên</span>
-                </div>
-                <div class="cm-card-body">
-                    <div class="grid grid-cols-2 gap-4">
-                        <div class="p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                            <span class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Đã
-                                làm</span>
-                            <div class="text-3xl font-black text-slate-800 js-stat-total">0</div>
+                        {# Correct count #}
+                        <div class="stat-pill flex items-center gap-1 px-2 py-1 bg-emerald-50 rounded-lg"
+                            data-tooltip="Số câu trả lời đúng trong phiên">
+                            <i class="fa-solid fa-check text-emerald-500 text-[9px]"></i>
+                            <span class="text-emerald-600 font-bold js-session-correct-count">0</span>
                         </div>
-                        <div class="p-4 bg-emerald-50 rounded-2xl border border-emerald-100">
-                            <span
-                                class="block text-[10px] font-bold text-emerald-400 uppercase tracking-widest mb-1">Chính
-                                xác</span>
-                            <div class="text-3xl font-black text-emerald-700 js-stat-accuracy">0%</div>
+
+                        {# Accuracy % #}
+                        <div class="stat-pill flex items-center gap-1 px-2 py-1 bg-blue-50 rounded-lg"
+                            data-tooltip="Tỉ lệ chính xác (%)">
+                            <i class="fa-solid fa-bullseye text-blue-500 text-[9px]"></i>
+                            <span class="text-blue-600 font-bold js-session-accuracy">0%</span>
+                        </div>
+
+                        {# Session Points #}
+                        <div class="stat-pill flex items-center gap-1 px-2 py-1 bg-amber-50 rounded-lg"
+                            data-tooltip="Điểm kim cương kiếm được trong phiên">
+                            <i class="fa-solid fa-gem text-amber-500 text-[9px]"></i>
+                            <span class="text-amber-600 font-bold font-mono js-stat-session-points">+0</span>
                         </div>
                     </div>
-                    <div class="mt-8">
-                        <div class="flex justify-between items-end mb-2">
-                            <span class="text-sm font-bold text-slate-600">Tiến độ tổng thể</span>
-                            <span class="text-xs font-black text-indigo-600 js-stat-progress-text">0/0</span>
-                        </div>
-                        <div class="w-full bg-slate-100 rounded-full h-3 overflow-hidden">
-                            <div class="bg-indigo-500 h-full rounded-full transition-all duration-500 js-stat-progress-bar"
-                                style="width: 0%"></div>
-                        </div>
+
+                    {# Action Buttons - No stats in batch mode #}
+                    <div class="flex items-center gap-1.5">
+                        <a href="/"
+                            class="w-7 h-7 rounded-full bg-slate-100 text-slate-500 flex items-center justify-center hover:bg-slate-200">
+                            <i class="fa-solid fa-house text-[10px]"></i>
+                        </a>
+                        <button
+                            class="w-7 h-7 rounded-full bg-rose-50 text-rose-500 flex items-center justify-center hover:bg-rose-100 js-end-session-btn">
+                            <i class="fa-solid fa-right-from-bracket text-[10px]"></i>
+                        </button>
                     </div>
                 </div>
             </div>
         </div>
+    </div>
+
+    {# Mobile Tooltip Popup #}
+    <div id="mobile-tooltip-batch"
+        class="fixed z-[999] hidden px-3 py-2 bg-slate-800 text-white text-xs rounded-lg shadow-lg max-w-[200px] text-center"
+        style="pointer-events: none;"></div>
+
+    {# === MOBILE CONTENT === #}
+    <div class="container mx-auto px-3 py-4 pb-32 max-w-7xl mt-[110px]">
+        <div class="js-quiz-content flex flex-col gap-4">
+            <!-- Loading State -->
+            <div class="flex flex-col items-center justify-center py-12 text-blue-500">
+                <i class="fas fa-spinner fa-spin text-4xl mb-3"></i>
+                <p>Đang tải câu hỏi...</p>
+            </div>
+        </div>
+    </div>
+
+    {# === QUICK NAVIGATION BAR === #}
+    <div id="batch-quick-nav" class="qb-quick-nav-wrapper">
+        <button id="quick-nav-left" class="qb-nav-scroll-btn"><i class="fa-solid fa-chevron-left"></i></button>
+        <div class="qb-quick-nav-scroll" id="batch-quick-nav-content">
+            <!-- Nav Items Injected by JS -->
+        </div>
+        <button id="quick-nav-right" class="qb-nav-scroll-btn"><i class="fa-solid fa-chevron-right"></i></button>
     </div>
 
     {# === MOBILE BOTTOM BAR === #}
     <div class="qb-bottom-bar">
-        <button type="button" id="open-hub-btn" class="qb-icon-btn hidden" aria-label="Gợi ý">
-            <i class="fa-solid fa-lightbulb"></i>
+        <button type="button"
+            class="qb-mobile-chat-toggle bg-indigo-50 text-indigo-600 border-indigo-200 js-batch-explain-btn js-mobile-hub-btn hidden">
+            <i class="fa-solid fa-lightbulb text-xl"></i>
         </button>
-        <button type="button" id="mobile-action-btn" class="cm-btn cm-btn-primary flex-1 shadow-indigo-200" disabled>
-            <i class="fa-solid fa-paper-plane"></i> <span>Gửi đáp án</span>
+
+        <button type="button" class="cm-btn cm-btn-primary w-full shadow-lg js-submit-batch-btn">
+            <i class="fa-solid fa-paper-plane"></i> Gửi đáp án
+        </button>
+
+        <button type="button" class="cm-btn cm-btn-primary w-full shadow-lg js-next-batch-btn" style="display: none;">
+            <i class="fas fa-arrow-right"></i> Tiếp theo
         </button>
     </div>
+</div>
 
-    {# === HUB MODAL (Explanation, AI, Notes) === #}
-    <div id="explanation-hub-modal" class="qb-modal-overlay">
-        <div class="qb-modal-container">
-            <div class="qb-hub-header">
-                <h3 class="font-bold text-slate-800 text-lg">Chi tiết & Học tập</h3>
-                <button id="close-hub-btn"
-                    class="w-8 h-8 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center hover:bg-slate-200"><i
-                        class="fa-solid fa-xmark"></i></button>
-            </div>
-            <div class="qb-hub-tabs">
-                <div class="qb-hub-tab-item active" data-target="hub-expl">📖 Giải thích</div>
-                <div class="qb-hub-tab-item" data-target="hub-ai">🤖 AI Coach</div>
-                <div class="qb-hub-tab-item" data-target="hub-note">📝 Ghi chú</div>
-            </div>
-            <div class="qb-hub-content">
-                <!-- Expl Tab -->
-                <div id="hub-expl" class="qb-hub-pane active">
-                    <div class="p-4 bg-blue-50 rounded-xl border border-blue-100 text-slate-700 leading-relaxed">
-                        <h4 class="font-bold text-blue-800 mb-2"><i class="fa-solid fa-circle-info"></i> Giải thích:
-                        </h4>
-                        <div id="hub-explanation-text">Chưa có giải thích.</div>
-                    </div>
+{# === SHARED MODALS & CONTENT === #}
+{# Hub Modal (Shared) #}
+<div id="explanation-hub-modal" class="qb-modal-overlay">
+    <div class="qb-modal-container desktop:max-w-xl desktop:mx-auto desktop:h-[80vh] desktop:rounded-2xl">
+
+        <div class="qb-hub-header">
+            <h3 class="font-bold text-slate-800 text-lg">Chi tiết & Học tập</h3>
+            <button id="close-hub-btn"
+                class="w-8 h-8 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center hover:bg-slate-200"><i
+                    class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="qb-hub-tabs">
+            <div class="qb-hub-tab-item active" data-target="hub-expl">📖 Giải thích</div>
+            <div class="qb-hub-tab-item" data-target="hub-ai">🤖 AI Coach</div>
+            <div class="qb-hub-tab-item" data-target="hub-note">📝 Ghi chú</div>
+        </div>
+        <div class="qb-hub-content">
+            <!-- Expl Tab -->
+            <div id="hub-expl" class="qb-hub-pane active">
+                <div class="p-4 bg-blue-50 rounded-xl border border-blue-100 text-slate-700 leading-relaxed">
+                    <h4 class="font-bold text-blue-800 mb-2"><i class="fa-solid fa-circle-info"></i> Giải thích:</h4>
+                    <div id="hub-explanation-text">Chưa có giải thích.</div>
                 </div>
-                <!-- AI Tab -->
-                <div id="hub-ai" class="qb-hub-pane">
-                    <div
-                        class="bg-gradient-to-r from-indigo-50 to-purple-50 p-4 rounded-xl border border-indigo-100 mb-4">
-                        <div class="flex items-center justify-between mb-3">
-                            <div class="flex items-center gap-2 text-indigo-700 font-bold"><i
-                                    class="fa-solid fa-robot"></i>
-                                <span>AI Phân Tích</span>
-                            </div>
-                            <button id="ai-generate-btn"
-                                class="text-xs bg-white text-indigo-600 px-3 py-1.5 rounded-lg border border-indigo-200 font-semibold shadow-sm"><i
-                                    class="fa-solid fa-wand-magic-sparkles"></i> Tạo mới</button>
+            </div>
+            <!-- AI Tab -->
+            <div id="hub-ai" class="qb-hub-pane">
+                <div class="bg-gradient-to-r from-indigo-50 to-purple-50 p-4 rounded-xl border border-indigo-100 mb-4">
+                    <div class="flex items-center justify-between mb-3">
+                        <div class="flex items-center gap-2 text-indigo-700 font-bold"><i class="fa-solid fa-robot"></i>
+                            <span>AI Phân Tích</span>
                         </div>
-                        <div id="hub-ai-content"
-                            class="text-sm text-slate-700 leading-relaxed min-h-[100px] markdown-body">
-                            Nhấn nút để yêu cầu AI phân tích...</div>
+                        <button id="ai-generate-btn"
+                            class="text-xs bg-white text-indigo-600 px-3 py-1.5 rounded-lg border border-indigo-200 font-semibold shadow-sm"><i
+                                class="fa-solid fa-wand-magic-sparkles"></i> Tạo mới</button>
+                    </div>
+                    <div id="hub-ai-content"
+                        class="content-display markdown-body text-sm text-slate-700 leading-relaxed min-h-[100px]">Nhấn
+                        nút để yêu cầu AI phân tích...</div>
+                </div>
+            </div>
+
+            <!-- Note Tab -->
+            <div id="hub-note" class="qb-hub-pane">
+                <div class="flex justify-between items-center mb-2">
+                    <h4 class="font-bold text-slate-700">Ghi chú của bạn</h4>
+                    <button id="hub-note-edit-btn"
+                        class="hidden text-xs bg-blue-100 text-blue-600 border border-blue-200 px-3 py-1.5 rounded hover:bg-blue-200 font-medium"><i
+                            class="fa-solid fa-pencil"></i> Sửa</button>
+                </div>
+                <div id="hub-note-display-mode" class="hidden">
+                    <div id="hub-note-content"
+                        class="content-display min-h-[100px] bg-slate-50 p-3 rounded-lg text-slate-700 whitespace-pre-wrap">
                     </div>
                 </div>
-                <!-- Note Tab -->
-                <div id="hub-note" class="qb-hub-pane">
+                <div id="hub-note-edit-mode" class="hidden">
                     <textarea id="hub-note-input"
                         class="w-full p-3 rounded-xl border border-slate-200 text-sm bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-200 outline-none transition"
                         rows="8" placeholder="Ghi chú của bạn..."></textarea>
-                    <button id="hub-note-save"
-                        class="mt-2 w-full py-2 rounded-lg bg-blue-100 text-blue-700 font-semibold text-sm hover:bg-blue-200">Lưu
-                        ghi chú</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Exit Confirmation Modal (Reused) -->
-    <div id="exit-confirm-modal"
-        class="fixed inset-0 bg-slate-900/40 z-[100] hidden items-center justify-center p-4 backdrop-blur-sm opacity-0 transition-opacity duration-300"
-        style="display: none;">
-        <div class="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6 transform scale-95 transition-transform duration-300"
-            id="exit-modal-panel">
-            <div class="text-center">
-                <div
-                    class="w-16 h-16 bg-rose-50 text-rose-500 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl ring-4 ring-rose-50">
-                    <i class="fa-solid fa-right-from-bracket"></i>
-                </div>
-                <h3 class="text-xl font-bold text-slate-800 mb-2">Kết thúc phiên học?</h3>
-                <p class="text-slate-500 text-sm mb-6 leading-relaxed">Kết quả hiện tại sẽ được lưu vào lịch sử.</p>
-                <div class="flex gap-3">
-                    <button onclick="closeExitModal()"
-                        class="flex-1 py-2.5 rounded-xl font-bold text-slate-600 bg-slate-50 hover:bg-slate-100 border border-slate-200 transition-colors">Ở
-                        lại</button>
-                    <button onclick="confirmExit()"
-                        class="flex-1 py-2.5 rounded-xl font-bold text-white bg-rose-500 hover:bg-rose-600 shadow-lg shadow-rose-500/30 transition-all">Kết
-                        thúc</button>
-                </div>
-            </div>
-        </div>
-    </div>
-    {% endblock %}
-
-    {% block scripts %}
-    {{ super() }}
-    <script>
-        (function () {
-            // URLs & Meta
-            const getQuestionBatchUrl = "{{ url_for('learning.quiz_learning.get_question_batch') }}";
-            const submitAnswerBatchUrl = "{{ url_for('learning.quiz_learning.submit_answer_batch') }}";
-            const endSessionUrl = "{{ url_for('learning.quiz_learning.end_session') }}";
-            const getAiResponseUrl = "{{ url_for('ai_services.get_ai_response') }}";
-            const saveNoteUrlTemplate = "{{ url_for('notes.save_note', item_id=0) }}";
-            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
-            const SESSION_KEY = 'quiz_session_single_state_mobile';
-
-            // Modal Logic
-            const exitModal = document.getElementById('exit-confirm-modal');
-            const exitPanel = document.getElementById('exit-modal-panel');
-
-            window.endQuizSession = function () {
-                if (exitModal) {
-                    exitModal.style.display = 'flex';
-                    setTimeout(() => {
-                        exitModal.classList.remove('opacity-0', 'hidden');
-                        exitPanel.classList.remove('scale-95');
-                        exitPanel.classList.add('scale-100');
-                    }, 10);
-                }
-            };
-
-            window.closeExitModal = function () {
-                if (exitModal) {
-                    exitModal.classList.add('opacity-0');
-                    exitPanel.classList.remove('scale-100');
-                    exitPanel.classList.add('scale-95');
-                    setTimeout(() => {
-                        exitModal.classList.add('hidden');
-                        exitModal.style.display = 'none';
-                    }, 300);
-                }
-            };
-
-            window.confirmExit = function () {
-                const btn = document.querySelector('button[onclick="confirmExit()"]');
-                if (btn) {
-                    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Xử lý...';
-                    btn.disabled = true;
-                }
-
-                fetch(endSessionUrl, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken }
-                })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success && data.session_id) {
-                            window.location.href = `/learn/session/${data.session_id}/summary`;
-                        } else {
-                            window.location.href = "{{ url_for('learning.manage_sessions') }}";
-                        }
-                    })
-                    .catch(err => {
-                        alert("Lỗi kết nối.");
-                        if (btn) { btn.innerHTML = 'Kết thúc'; btn.disabled = false; }
-                    });
-            };
-
-            // State
-            let currentBatch = [];
-            let currentIndex = 0;
-            let userAnswers = {};
-            let sessionStats = { total: 0, correct: 0, total_questions: 0 };
-            let currentQuestion = null;
-            let lastAnswerResult = null;
-            let startTime = 0;
-
-            // Helper: Update text/html for matching hooks
-            const setText = (selector, text) => document.querySelectorAll(selector).forEach(el => el.textContent = text);
-            const setHtml = (selector, html) => document.querySelectorAll(selector).forEach(el => el.innerHTML = html);
-            const toggleClass = (selector, cls, force) => document.querySelectorAll(selector).forEach(el => el.classList.toggle(cls, force));
-
-            // Elements
-            const dom = {
-                loading: document.getElementById('quiz-loading'),
-                content: document.getElementById('quiz-content'),
-                mobileActionBtn: document.getElementById('mobile-action-btn'),
-                // Hub
-                hubModal: document.getElementById('explanation-hub-modal'),
-                openHubBtn: document.getElementById('open-hub-btn'),
-                closeHubBtn: document.getElementById('close-hub-btn'),
-                hubExplText: document.getElementById('hub-explanation-text'),
-                hubAiContent: document.getElementById('hub-ai-content'),
-                aiGenerateBtn: document.getElementById('ai-generate-btn'),
-                hubNoteInput: document.getElementById('hub-note-input'),
-                hubNoteSave: document.getElementById('hub-note-save'),
-            };
-
-            function saveState() {
-                const state = { currentBatch, currentIndex, userAnswers, sessionStats, lastAnswerResult };
-                sessionStorage.setItem(SESSION_KEY, JSON.stringify(state));
-            }
-
-            function loadState() {
-                const savedState = sessionStorage.getItem(SESSION_KEY);
-                if (!savedState) return false;
-                try {
-                    const state = JSON.parse(savedState);
-                    currentBatch = state.currentBatch || [];
-                    currentIndex = state.currentIndex || 0;
-                    userAnswers = state.userAnswers || {};
-                    sessionStats = state.sessionStats || { total: 0, correct: 0, total_questions: 0, streak: 0 };
-                    lastAnswerResult = state.lastAnswerResult || null;
-
-                    if (currentBatch.length === 0 || currentIndex >= currentBatch.length) return false;
-
-                    currentQuestion = currentBatch[currentIndex];
-                    showLoading(false);
-                    renderQuestion(currentQuestion);
-                    updateStatsUI();
-
-                    if (lastAnswerResult && lastAnswerResult.item_id === currentQuestion.item_id) {
-                        showFeedback(lastAnswerResult);
-                        updateActionButtons(false, '<i class="fa-solid fa-arrow-right"></i> Tiếp theo', 'next');
-                    } else if (userAnswers[currentQuestion.item_id]) {
-                        selectOption(userAnswers[currentQuestion.item_id]);
-                    }
-                    return true;
-                } catch (e) { return false; }
-            }
-
-            async function loadFreshBatch() {
-                showLoading(true);
-                try {
-                    const res = await fetch(getQuestionBatchUrl, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
-                    if (!res.ok) {
-                        if (res.status === 404) return finishSession();
-                        throw new Error('Load failed');
-                    }
-                    const data = await res.json();
-                    currentBatch = data.items || [];
-                    currentIndex = 0;
-                    userAnswers = {};
-                    lastAnswerResult = null;
-                    sessionStats.total_questions = data.total_question_groups_in_session || data.total_items_in_session || 0;
-
-                    if (currentBatch.length > 0) {
-                        renderQuestion(currentBatch[currentIndex]);
-                        updateStatsUI();
-                        saveState();
-                    } else {
-                        finishSession();
-                    }
-                } catch (e) {
-                    alert('Lỗi tải câu hỏi.');
-                } finally {
-                    showLoading(false);
-                }
-            }
-
-            function renderQuestion(q) {
-                currentQuestion = q;
-                const qNum = (sessionStats.total + currentIndex + 1);
-                setText('.js-question-header', `Câu hỏi ${qNum}`);
-                setHtml('.js-question-text', q.content.question);
-
-                // Media
-                const mediaContainer = document.querySelectorAll('.js-question-media');
-                let mediaHtml = '';
-                if (q.content.question_image_file) {
-                    mediaHtml += `<img src="${q.content.question_image_file}" alt="Question Image">`;
-                }
-                mediaContainer.forEach(el => {
-                    if (mediaHtml) { el.innerHTML = mediaHtml; el.classList.remove('hidden'); }
-                    else { el.innerHTML = ''; el.classList.add('hidden'); }
-                });
-
-                // Options
-                const grid = document.querySelector('.js-options-grid');
-                if (grid) {
-                    grid.innerHTML = Object.entries(q.content.options || {}).map(([key, val]) => `
-                    <div class="qb-option-label" data-key="${key}">
-                        <span class="qb-option-letter-circle">${key}</span>
-                        <span class="qb-option-text">${val}</span>
+                    <div class="flex justify-end mt-2 gap-2">
+                        <button id="hub-note-cancel"
+                            class="cm-btn bg-white hover:bg-slate-100 text-slate-600 border border-slate-300 py-1.5 px-4 text-sm rounded-md">Hủy</button>
+                        <button id="hub-note-save"
+                            class="cm-btn bg-blue-600 text-white hover:bg-blue-700 py-1.5 px-4 text-sm rounded-md">Lưu</button>
                     </div>
-                `).join('');
-                    grid.querySelectorAll('.qb-option-label').forEach(el => el.addEventListener('click', () => selectOption(el.dataset.key)));
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Item Modal -->
+<div id="edit-item-modal" class="qb-modal-overlay">
+    <div class="qb-modal-container"
+        style="max-width: 900px; margin: 0 auto; height: 90vh; top: 50%; bottom: auto; transform: translate(0, -50%) scale(1); border-radius: 1rem;">
+        <div class="qb-hub-header">
+            <h3 class="font-bold text-slate-800 text-lg"><i
+                    class="fa-solid fa-pen-to-square text-blue-600 mr-2"></i>Chỉnh sửa câu hỏi</h3>
+            <button id="close-edit-modal-btn"
+                class="w-8 h-8 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center hover:bg-slate-200"><i
+                    class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="flex-1 bg-slate-50 relative overflow-hidden">
+            <iframe id="edit-item-iframe" src="" class="w-full h-full border-none" title="Edit Item"></iframe>
+        </div>
+    </div>
+</div>
+
+<!-- Feedback Modal -->
+<div id="feedback-modal" class="qb-modal-overlay">
+    <div class="qb-modal-container"
+        style="max-width: 500px; margin: 0 auto; height: auto; top: 50%; bottom: auto; transform: translate(0, -50%) scale(1); border-radius: 1rem;">
+        <div class="qb-hub-header">
+            <h3 class="font-bold text-slate-800 text-lg"><i class="fa-solid fa-flag text-red-500 mr-2"></i>Báo lỗi / Góp
+                ý</h3>
+            <button id="close-feedback-btn"
+                class="w-8 h-8 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center hover:bg-slate-200"><i
+                    class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="p-4">
+            <p class="text-sm text-slate-600 mb-3">Hãy mô tả vấn đề bạn gặp phải với câu hỏi này. Đóng góp của bạn giúp
+                chúng tôi cải thiện chất lượng!</p>
+            <textarea id="feedback-input"
+                class="w-full p-3 rounded-xl border border-slate-200 text-sm bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-200 outline-none transition mb-4"
+                rows="4" placeholder="Nhập nội dung phản hồi..."></textarea>
+            <div class="flex justify-end gap-2">
+                <button id="feedback-cancel-btn"
+                    class="cm-btn bg-white hover:bg-slate-100 text-slate-600 border border-slate-300 py-2 px-4 text-sm rounded-lg">Hủy</button>
+                <button id="feedback-submit-btn"
+                    class="cm-btn bg-blue-600 text-white hover:bg-blue-700 py-2 px-4 text-sm rounded-lg">Gửi phản
+                    hồi</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Transcript Modal -->
+<div id="transcript-modal" class="fixed inset-0 z-50 flex items-center justify-center hidden"
+    aria-labelledby="modal-title" role="dialog" aria-modal="true">
+    <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity backdrop-blur-sm"
+        id="transcript-modal-backdrop"></div>
+
+    <div
+        class="relative bg-white rounded-xl shadow-2xl transform transition-all sm:my-8 sm:w-full sm:max-w-xl mx-4 overflow-hidden flex flex-col max-h-[90vh]">
+        {# Modal Header #}
+        <div class="bg-slate-50 px-6 py-4 border-b border-slate-100 flex items-center justify-between shadow-sm z-10">
+            <h3 class="text-lg leading-6 font-bold text-slate-800 flex items-center gap-2" id="modal-title">
+                <i class="fa-solid fa-file-audio text-blue-600"></i>
+                Transcript
+            </h3>
+            <button type="button" id="close-transcript-modal"
+                class="text-slate-400 hover:text-slate-600 transition focus:outline-none">
+                <i class="fa-solid fa-xmark text-xl"></i>
+            </button>
+        </div>
+
+        {# Modal Body #}
+        <div class="px-6 py-6 overflow-y-auto flex-1 bg-white relative">
+
+            <div id="transcript-loading"
+                class="absolute inset-0 bg-white/90 z-20 flex flex-col items-center justify-center text-blue-600 hidden">
+                <i class="fas fa-spinner fa-spin text-3xl mb-3"></i>
+                <p class="font-medium animate-pulse">Đang chuyển đổi giọng nói thành văn bản...</p>
+                <p class="text-xs text-slate-400 mt-2">Việc này có thể mất vài giây với audio dài.</p>
+            </div>
+
+            <!-- View Mode -->
+            <div id="transcript-content"
+                class="text-slate-700 text-base leading-relaxed whitespace-pre-wrap font-serif">
+                <!-- Content will be injected here -->
+            </div>
+
+            <!-- Edit Mode -->
+            <div id="transcript-edit-container" class="hidden">
+                <textarea id="transcript-editor"
+                    class="w-full h-64 p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-serif text-base leading-relaxed"
+                    placeholder="Nhập nội dung transcript..."></textarea>
+            </div>
+
+            <div id="transcript-empty" class="hidden text-center py-8 text-slate-400 flex flex-col items-center">
+                <i class="fas fa-quote-right text-4xl mb-3 opacity-20"></i>
+                <p>Chưa có nội dung transcript.</p>
+            </div>
+
+            <div id="transcript-error"
+                class="hidden bg-red-50 text-red-700 p-4 rounded-lg flex items-start gap-3 border border-red-100">
+                <i class="fas fa-exclamation-circle mt-0.5 shrink-0"></i>
+                <div>
+                    <h4 class="font-bold text-sm">Không thể lấy transcript</h4>
+                    <p class="text-sm mt-1" id="transcript-error-msg">Lỗi kết nối.</p>
+                </div>
+            </div>
+        </div>
+
+        {# Modal Footer with Actions #}
+        <div class="px-6 py-4 border-t border-slate-100 bg-slate-50 flex justify-between items-center rounded-b-2xl">
+            <!-- Left: Status/Info -->
+            <div class="text-xs text-slate-400 italic">
+                AI Speech-to-Text
+            </div>
+
+            <!-- Right: Buttons -->
+            <div class="flex items-center gap-2">
+                <button type="button" id="transcript-edit-btn"
+                    class="hidden text-blue-600 hover:text-blue-700 px-3 py-1.5 text-sm font-medium transition">
+                    <i class="fas fa-pen mr-1"></i> Sửa
+                </button>
+
+                <div id="transcript-edit-actions" class="hidden flex items-center gap-2">
+                    <button type="button" id="transcript-cancel-btn"
+                        class="text-slate-500 hover:text-slate-700 px-3 py-1.5 text-sm font-medium transition">
+                        Hủy
+                    </button>
+                    <button type="button" id="transcript-save-btn"
+                        class="bg-blue-600 text-white hover:bg-blue-700 px-4 py-1.5 rounded-lg text-sm font-medium transition shadow-sm">
+                        Lưu
+                    </button>
+                </div>
+
+                <button type="button" onclick="document.getElementById('transcript-modal').classList.add('hidden')"
+                    class="text-slate-500 hover:text-slate-700 px-4 py-2 rounded-lg transition"
+                    id="transcript-close-main-btn">
+                    Đóng
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Exit Confirmation Modal -->
+<div id="exit-confirm-modal"
+    class="fixed inset-0 bg-slate-900/40 z-[100] hidden items-center justify-center p-4 backdrop-blur-sm opacity-0 transition-opacity duration-300"
+    style="display: none;">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6 transform scale-95 transition-transform duration-300"
+        id="exit-modal-panel">
+        <div class="text-center">
+            <div
+                class="w-16 h-16 bg-rose-50 text-rose-500 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl ring-4 ring-rose-50">
+                <i class="fa-solid fa-right-from-bracket"></i>
+            </div>
+            <h3 class="text-xl font-bold text-slate-800 mb-2">Kết thúc phiên học?</h3>
+            <p class="text-slate-500 text-sm mb-6 leading-relaxed">Kết quả hiện tại sẽ được lưu vào lịch sử.</p>
+            <div class="flex gap-3">
+                <button onclick="closeExitModal()"
+                    class="flex-1 py-2.5 rounded-xl font-bold text-slate-600 bg-slate-50 hover:bg-slate-100 border border-slate-200 transition-colors">Ở
+                    lại</button>
+                <button onclick="confirmExit()"
+                    class="flex-1 py-2.5 rounded-xl font-bold text-white bg-rose-500 hover:bg-rose-600 shadow-lg shadow-rose-500/30 transition-all">Kết
+                    thúc</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+    // Mobile Tooltip Logic (Inline)
+    document.addEventListener('DOMContentLoaded', function () {
+        const tooltip = document.getElementById('mobile-tooltip-batch');
+        const pills = document.querySelectorAll('.stat-pill[data-tooltip]');
+
+        pills.forEach(pill => {
+            pill.addEventListener('click', function (e) {
+                e.stopPropagation();
+                const text = this.dataset.tooltip;
+                const rect = this.getBoundingClientRect();
+
+                tooltip.textContent = text;
+                tooltip.classList.remove('hidden');
+
+                tooltip.style.left = Math.max(8, rect.left + rect.width / 2 - tooltip.offsetWidth / 2) + 'px';
+                tooltip.style.top = (rect.bottom + 8) + 'px';
+
+                setTimeout(() => tooltip.classList.add('hidden'), 2000);
+            });
+        });
+
+        document.addEventListener('click', () => tooltip?.classList.add('hidden'));
+    });
+</script>
+
+<script>
+    // === DUAL RENDERING UPDATE HELPER ===
+    const setText = (selector, text) => document.querySelectorAll(selector).forEach(el => el.textContent = text);
+    const setHtml = (selector, html) => document.querySelectorAll(selector).forEach(el => el.innerHTML = html);
+    const toggleClass = (selector, cls, force) => document.querySelectorAll(selector).forEach(el => el.classList.toggle(cls, force));
+    const setStyle = (selector, prop, val) => document.querySelectorAll(selector).forEach(el => el.style[prop] = val);
+    const setAttr = (selector, attr, val) => document.querySelectorAll(selector).forEach(el => el.setAttribute(attr, val));
+
+    // --- Global State ---
+    let currentQuestionBatch = [];
+    let currentBatchMeta = { startIndex: 0, totalItemsInSession: 0 };
+    let userAnswers = {};
+    let isBatchSubmitted = false;
+    let totalQuestionsInSession = 0;
+    let sessionTotalAnswered = 0;
+    let activeHubItemId = null; // Currently tracked question ID
+    let activeFeedbackItemId = null;
+    let sessionPoints = 0; // Track points earned in this session
+    const SESSION_KEY = 'quiz_session_batch_state';
+
+    // URLs
+    const getQuestionBatchUrl = "{{ url_for('learning.quiz_learning.get_question_batch') }}";
+    const submitAnswerBatchUrl = "{{ url_for('learning.quiz_learning.submit_answer_batch') }}";
+    const endSessionUrl = "{{ url_for('learning.quiz_learning.end_session') }}";
+    const getAiResponseUrl = "{{ url_for('ai_services.get_ai_response') }}";
+    const saveNoteUrlTemplate = "{{ url_for('notes.save_note', item_id=0) }}";
+    const transcriptUrlTemplate = "{{ url_for('learning.quiz_learning.get_quiz_transcript', item_id=0) }}";
+    const quizDashboardUrl = "{{ url_for('learning.quiz_learning.dashboard') }}";
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+    const csrfHeaders = csrfToken ? { 'X-CSRFToken': csrfToken } : {};
+
+    // --- Init ---
+    document.addEventListener('DOMContentLoaded', init);
+    window.addEventListener('scroll', handleScroll);
+
+    function init() {
+        loadQuizTitleFromStorage();
+        if (!loadState()) {
+            getNextQuestionBatch();
+        }
+    }
+
+    function loadQuizTitleFromStorage() {
+        try {
+            // Title
+            const storedTitles = localStorage.getItem('selectedQuizSetTitles');
+            if (storedTitles) {
+                const titles = JSON.parse(storedTitles);
+                const titleString = Object.values(titles).join(', ');
+                if (titleString) {
+                    setText('.js-quiz-set-title', titleString); // Full title, no truncation
                 }
+            }
+            // Mode Label - Static as per user request
+            setText('.js-quiz-mode-label', "QUIZ INDIVIDUAL BATCH");
+        } catch (e) {
+            console.error('Error loading titles', e);
+        }
+    }
 
-                // Reset UI
-                toggleClass('.js-result-panel', 'hidden', true);
-                if (dom.openHubBtn) dom.openHubBtn.classList.add('hidden');
+    // --- State Management ---
+    function saveState() {
+        const state = {
+            currentQuestionBatch,
+            currentBatchMeta,
+            userAnswers,
+            isBatchSubmitted,
+            totalQuestionsInSession,
+            sessionTotalAnswered
+        };
+        try {
+            sessionStorage.setItem(SESSION_KEY, JSON.stringify(state));
+        } catch (e) { console.error('Error saving state', e); }
+    }
 
-                updateActionButtons(true, '<i class="fa-solid fa-paper-plane"></i> Gửi đáp án', 'submit', true);
+    function clearState() {
+        try {
+            sessionStorage.removeItem(SESSION_KEY);
+        } catch (e) { console.error('Error clearing state', e); }
+    }
 
-                // Reset Hub
-                setText('#hub-explanation-text', "Chưa có giải thích.");
-                setText('#hub-ai-content', "Nhấn nút để yêu cầu AI phân tích...");
-                if (dom.hubNoteInput) dom.hubNoteInput.value = q.note_content || "";
-                if (dom.aiGenerateBtn) dom.aiGenerateBtn.disabled = false;
+    function loadState() {
+        try {
+            const raw = sessionStorage.getItem(SESSION_KEY);
+            if (!raw) return false;
+            const state = JSON.parse(raw);
 
-                startTime = Date.now();
+            // Validate basic integrity
+            if (!state.currentQuestionBatch || !Array.isArray(state.currentQuestionBatch) || state.currentQuestionBatch.length === 0) {
+                return false;
             }
 
-            function selectOption(key) {
-                if (lastAnswerResult && lastAnswerResult.item_id === currentQuestion.item_id) return;
-                document.querySelectorAll('.qb-option-label').forEach(el => {
-                    el.classList.toggle('selected', el.dataset.key === key);
-                });
-                userAnswers[currentQuestion.item_id] = key;
-                updateActionButtons(false, null, null, true);
+            // Restore
+            currentQuestionBatch = state.currentQuestionBatch;
+            currentBatchMeta = state.currentBatchMeta || {};
+            userAnswers = state.userAnswers || {};
+            isBatchSubmitted = state.isBatchSubmitted || false;
+            totalQuestionsInSession = state.totalQuestionsInSession || 0;
+            sessionTotalAnswered = state.sessionTotalAnswered || 0;
+
+            restoreUI();
+            return true;
+        } catch (e) {
+            console.error('Error loading state', e);
+            clearState();
+            return false;
+        }
+    }
+
+    function restoreUI() {
+        // Construct a batchData-like object to reuse display logic
+        // We only need basic fields for displayQuestionBatch to run
+        const batchData = {
+            items: currentQuestionBatch,
+            start_index: currentBatchMeta.startIndex,
+            total_items_in_session: currentBatchMeta.totalItemsInSession,
+            // These might be stale but displayQuestionBatch recalculates or we override below
+            session_correct_answers: 0, // Placeholder, will update later
+            session_total_answered: sessionTotalAnswered,
+            question_number_min: currentBatchMeta.startIndex + 1,
+            question_number_max: currentBatchMeta.startIndex + currentQuestionBatch.length
+        };
+
+        displayQuestionBatch(batchData, true); // true = restoring
+
+        // Restore Selections
+        Object.entries(userAnswers).forEach(([itemId, answer]) => {
+            const qId = parseInt(itemId);
+            document.querySelectorAll(`.option-button[data-question-id="${qId}"]`).forEach(b => b.classList.remove('selected'));
+            document.querySelectorAll(`.option-button[data-question-id="${qId}"][data-option="${answer}"]`).forEach(b => b.classList.add('selected'));
+        });
+
+        // Restore Feedback if submitted
+        if (isBatchSubmitted) {
+            toggleControlButtons('submitted');
+            currentQuestionBatch.forEach(q => {
+                renderFeedbackForQuestion(q); // Helper to render feedback
+            });
+            // Reveal all hints/explanations after submission
+            document.querySelectorAll('.js-hint-btn').forEach(btn => btn.classList.remove('hidden'));
+            document.querySelectorAll('.js-batch-explain-btn').forEach(btn => btn.classList.remove('hidden'));
+        }
+    }
+
+    function renderFeedbackForQuestion(result) {
+        const questionCards = document.querySelectorAll(`.question-card[data-item-id="${result.item_id}"]`);
+        questionCards.forEach(card => {
+            const feedbackArea = card.querySelector('.feedback-area');
+            let feedbackHtml = result.is_correct ?
+                `<div class="feedback-box feedback-correct flex items-center gap-3 p-3 bg-green-50 rounded-lg border border-green-200 text-green-800"><span class="feedback-icon text-xl"><i class="fas fa-check-circle"></i></span><div class="feedback-text"><strong>Chính xác!</strong></div></div>` :
+                `<div class="feedback-box feedback-incorrect flex items-center gap-3 p-3 bg-red-50 rounded-lg border border-red-200 text-red-800"><span class="feedback-icon text-xl"><i class="fas fa-times-circle"></i></span><div class="feedback-text flex flex-col"><strong>Sai rồi</strong><span class="text-sm mt-1">Đáp án đúng: ${result.correct_answer}</span></div></div>`;
+
+            feedbackArea.innerHTML = feedbackHtml;
+            card.querySelectorAll('.option-button').forEach(btn => {
+                btn.classList.remove('selected');
+                const opt = btn.dataset.option;
+                if (opt === result.correct_answer) btn.classList.add('correct');
+                else if (opt === userAnswers[result.item_id] && !result.is_correct) btn.classList.add('incorrect');
+                btn.style.pointerEvents = 'none';
+            });
+        });
+    }
+
+    // --- Functions ---
+    const numberFormatter = new Intl.NumberFormat('vi-VN');
+    const percentageFormatter = new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 1, minimumFractionDigits: 0 });
+
+    function formatTextForHtml(text) {
+        if (!text) return '';
+        return text.replace(/\n/g, '<br>');
+    }
+
+    function updateProgressCard() {
+        const totalInSession = Number(totalQuestionsInSession) || 0;
+        const answered = Number(sessionTotalAnswered) || 0;
+        const hasTotal = totalInSession > 0;
+
+        if (hasTotal) {
+            const cappedAnswered = Math.min(answered, totalInSession);
+            setText('.js-quiz-total-label', `${numberFormatter.format(cappedAnswered)} / ${numberFormatter.format(totalInSession)}`);
+        } else {
+            setText('.js-quiz-total-label', numberFormatter.format(answered));
+        }
+    }
+
+    function updateSessionSummary(correct = 0, total = 0) {
+        const safeTotal = Number(total) || 0;
+        const safeCorrect = Number(correct) || 0;
+        sessionTotalAnswered = safeTotal;
+        setText('.js-session-correct-count', numberFormatter.format(safeCorrect));
+        const accuracy = safeTotal > 0 ? (safeCorrect / safeTotal) * 100 : 0;
+        setText('.js-session-accuracy', `${percentageFormatter.format(accuracy)}%`);
+        updateProgressCard();
+    }
+
+    async function getNextQuestionBatch() {
+        setHtml('.js-quiz-content', `<div class="flex flex-col items-center justify-center h-full text-blue-500 min-h-[300px]"><i class="fas fa-spinner fa-spin text-4xl mb-3"></i><p>Đang tải câu hỏi...</p></div>`);
+        toggleControlButtons('loading');
+
+        try {
+            const response = await fetch(getQuestionBatchUrl, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+            if (!response.ok) {
+                if (response.status === 404) {
+                    const data = await response.json();
+                    handleSessionComplete(data);
+                    return;
+                }
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            const batchData = await response.json();
+
+            // Reset state for new batch
+            userAnswers = {};
+            isBatchSubmitted = false;
+            // Clear nav
+            const navContainer = document.getElementById('batch-quick-nav-content');
+            if (navContainer) navContainer.innerHTML = '';
+
+            displayQuestionBatch(batchData);
+            saveState();
+        }
+        catch (error) {
+            console.error('Lỗi khi tải nhóm câu hỏi:', error);
+            setHtml('.js-quiz-content', `<p class="text-red-500 text-center p-4">Không thể tải câu hỏi. Vui lòng thử lại.</p>`);
+            toggleControlButtons('error');
+        }
+    }
+
+    function displayQuestionBatch(batchData, isRestoring = false) {
+        if (!isRestoring) {
+            currentQuestionBatch = batchData.items;
+            currentBatchMeta = {
+                startIndex: batchData.start_index || 0,
+                totalItemsInSession: batchData.total_items_in_session || batchData.items.length
+            };
+            const totalGroupsFallback = batchData.total_question_groups_in_session || currentBatchMeta.totalItemsInSession;
+            totalQuestionsInSession = Number(totalGroupsFallback) || currentQuestionBatch.length;
+        }
+
+        updateSessionSummary(batchData.session_correct_answers, batchData.session_total_answered);
+
+        // Render HTML
+        const fullBatchContentHtml = currentQuestionBatch
+            .map((questionData, index) => buildQuestionCardHtml(questionData, index))
+            .join('');
+
+        setHtml('.js-quiz-content', fullBatchContentHtml);
+
+        const startRange = batchData.question_number_min || (currentBatchMeta.startIndex + 1);
+        const endRange = batchData.question_number_max || (currentBatchMeta.startIndex + currentQuestionBatch.length);
+
+        updateProgressCard();
+        attachOptionHandlers();
+        if (!isRestoring) toggleControlButtons('answering');
+
+        renderQuickNav();
+        checkCompletionStatus(); // Validate initially (likely disabled)
+
+        // Allow DOM to settle then trigger scroll check
+        setTimeout(handleScroll, 500);
+    }
+
+    function renderQuickNav() {
+        const container = document.getElementById('batch-quick-nav-content');
+        if (!container) return;
+
+        const navHtml = currentQuestionBatch.map((q, idx) => {
+            const num = (currentBatchMeta.startIndex || 0) + idx + 1;
+            const isAnswered = userAnswers.hasOwnProperty(q.item_id);
+            let statusClass = '';
+
+            if (isAnswered) {
+                statusClass = 'answered';
+                if (isBatchSubmitted) {
+                    if (q.is_correct) statusClass += ' correct';
+                    else statusClass += ' incorrect';
+                }
+            }
+            return `<div class="qb-nav-item ${statusClass}" data-index="${idx}">${num}</div>`;
+        }).join('');
+
+        container.innerHTML = navHtml;
+
+        // Attach click handlers
+        container.querySelectorAll('.qb-nav-item').forEach(item => {
+            item.addEventListener('click', () => {
+                const idx = parseInt(item.dataset.index);
+                const card = document.querySelectorAll('.question-card')[idx];
+                if (card) {
+                    // Mobile header offset approx 140px
+                    const offset = 140;
+                    const bodyRect = document.body.getBoundingClientRect().top;
+                    const elementRect = card.getBoundingClientRect().top;
+                    const elementPosition = elementRect - bodyRect;
+                    const offsetPosition = elementPosition - offset;
+
+                    window.scrollTo({
+                        top: offsetPosition,
+                        behavior: 'smooth'
+                    });
+
+                    // Update active state manually
+                    container.querySelectorAll('.qb-nav-item').forEach(el => el.classList.remove('active'));
+                    item.classList.add('active');
+                }
+            });
+        });
+
+        // Scroll logic for nav
+        const leftBtn = document.getElementById('quick-nav-left');
+        const rightBtn = document.getElementById('quick-nav-right');
+        const scrollAmount = 150;
+
+        if (leftBtn && rightBtn) {
+            // Remove old listeners to be safe (though this function re-renders content, buttons are static)
+            // But actually buttons are static in HTML, so we should check if listeners already attached or use a flag.
+            // Simplified: clone nodes to wipe listeners or just add if not present.
+            // Better: Let's just assume this function runs on new batch load mainly.
+            leftBtn.onclick = () => container.scrollBy({ left: -scrollAmount, behavior: 'smooth' });
+            rightBtn.onclick = () => container.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+        }
+    }
+
+    function buildQuestionCardHtml(questionData, index) {
+        const questionNumber = questionData.display_number || ((currentBatchMeta.startIndex || 0) + index + 1);
+        const content = questionData.content || {};
+
+        // Build Options
+        let optionsHtml = '';
+        const options = content.options || {};
+        ['A', 'B', 'C', 'D'].forEach(key => {
+            if (options[key]) {
+                optionsHtml += `
+                        <button class="option-button" data-question-id="${questionData.item_id}" data-option="${key}">
+                            <span>${key}</span> <span>${formatTextForHtml(options[key])}</span>
+                        </button>`;
+            }
+        });
+
+        // Build Media
+        let mediaHtml = '';
+        if (content.question_image_file) {
+            mediaHtml += `<img src="${content.question_image_file}" alt="Hình ảnh" class="quiz-image mb-4">`;
+        }
+        if (content.question_audio_file) {
+            mediaHtml += `<audio controls src="${content.question_audio_file}" class="w-full mb-2"></audio>`;
+        }
+
+        // Action Buttons Group (Edit, Transcript, Report)
+        let actionButtonsHtml = '';
+
+        // 1. Edit Button (Orange) - Check if editable
+        if (questionData.can_edit) {
+            actionButtonsHtml += `
+            <button class="w-8 h-8 flex items-center justify-center text-orange-500 hover:text-orange-600 transition-colors js-edit-question-btn"
+                    data-question-id="${questionData.item_id}" 
+                    data-container-id="${questionData.container_id}"
+                    title="Cập nhật">
+                <i class="fa-solid fa-pen-to-square text-lg"></i>
+            </button>
+        `;
+        }
+
+        // 2. Transcript Button (Blue) - Check multiple audio sources
+        const hasAudio = (content.question_audio_file) || (questionData.question_audio) || (questionData.audio_url);
+
+        if (hasAudio) {
+            actionButtonsHtml += `
+                <button class="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-blue-600 transition-colors js-open-transcript-btn" 
+                    data-item-id="${questionData.item_id}"
+                    title="Nội dung nghe">
+                    <i class="fa-solid fa-file-lines text-lg"></i>
+                </button>`;
+        }
+
+        // 3. Report Button (Grey)
+        actionButtonsHtml += `
+            <button class="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-red-500 transition-colors js-report-error-btn"
+                    data-question-id="${questionData.item_id}" title="Báo lỗi">
+                <i class="fa-regular fa-flag text-lg"></i>
+            </button>
+        `;
+
+        // 4. Hint Button (Yellow)
+        // Keep hidden by default unless logic requires it
+        actionButtonsHtml += `
+            <button class="w-8 h-8 flex items-center justify-center text-yellow-500 hover:text-yellow-600 transition-colors js-hint-btn hidden"
+                    data-question-id="${questionData.item_id}" title="Gợi ý">
+                <i class="fa-regular fa-lightbulb text-lg"></i>
+            </button>
+        `;
+
+        return `
+                <div class="question-card" data-item-id="${questionData.item_id}">
+                    <div class="flex justify-between items-center text-sm font-bold text-slate-500 uppercase tracking-wider mb-2">
+                        <span>Câu ${questionNumber}</span>
+                        <div class="flex items-center gap-1">
+                            ${actionButtonsHtml}
+                        </div>
+                    </div>
+                    <h2 class="text-xl font-bold text-slate-900 mb-4">${formatTextForHtml(content.question)}</h2>
+                    ${mediaHtml}
+                    <div class="options-container">${optionsHtml}</div>
+                    <div class="feedback-area mt-4"></div>
+                </div>
+            `;
+    }
+
+    function attachOptionHandlers() {
+        document.querySelectorAll('.option-button').forEach(button => {
+            button.removeEventListener('click', handleOptionClick);
+            button.addEventListener('click', handleOptionClick);
+        });
+
+        // Transcript Buttons
+        document.querySelectorAll('.js-open-transcript-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const itemId = e.currentTarget.dataset.itemId;
+                openTranscript(itemId);
+            });
+        });
+        // Edit Question Buttons (via Modal)
+        document.querySelectorAll('.js-edit-question-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                const qId = btn.dataset.questionId;
+                const containerId = btn.dataset.containerId;
+
+                if (qId && containerId) {
+                    const editUrl = `/content/quizzes/${containerId}/items/edit/${qId}`;
+                    if (window.openEditModal) window.openEditModal(editUrl, qId);
+                } else {
+                    alert("Thiếu thông tin để sửa câu hỏi.");
+                }
+            });
+        });
+
+        // Report Buttons
+        document.querySelectorAll('.js-report-error-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const itemId = e.currentTarget.dataset.questionId;
+                activeFeedbackItemId = itemId;
+                const modal = document.getElementById('feedback-modal');
+                const input = document.getElementById('feedback-input');
+                if (modal && input) {
+                    input.value = ''; // Reset input
+                    modal.classList.add('open');
+                }
+            });
+        });
+        // Mobile Bottom Hub Button
+        document.querySelectorAll('.js-mobile-hub-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                if (activeHubItemId) openHub(activeHubItemId);
+                else {
+                    // Default to first item if none active (e.g. top of page)
+                    if (currentQuestionBatch.length > 0) openHub(currentQuestionBatch[0].item_id);
+                }
+            });
+        });
+
+        // Lightbulb Button (Open Hub Modal)
+        document.querySelectorAll('.js-hint-btn').forEach(btn => {
+            btn.classList.remove('hidden'); // Ensure visible
+            btn.addEventListener('click', (e) => {
+                const itemId = e.currentTarget.dataset.questionId;
+                if (itemId) openHub(itemId);
+            });
+        });
+
+        // End session button
+        document.querySelectorAll('.js-end-session-btn').forEach(btn => {
+            btn.onclick = handleEndSession;
+        });
+
+        attachInsightsHandlers(); // Attach handlers for AI and Notes
+    }
+
+    // ... [Insights Handlers Omitted for brevity, assuming standard logic] ...
+    // Re-implementing simplified insights handlers for completeness
+
+    function attachInsightsHandlers() {
+        // AI Generate
+        const aiBtn = document.getElementById('ai-generate-btn');
+        if (aiBtn) {
+            aiBtn.removeEventListener('click', handleBatchAiGenerate);
+            aiBtn.addEventListener('click', handleBatchAiGenerate);
+        }
+
+        // Note Save
+        const noteBtn = document.getElementById('hub-note-save');
+        if (noteBtn) {
+            noteBtn.removeEventListener('click', handleBatchNoteSave);
+            noteBtn.addEventListener('click', handleBatchNoteSave);
+        }
+        // Note Edit Toggle
+        const noteEditBtn = document.getElementById('hub-note-edit-btn');
+        if (noteEditBtn) {
+            noteEditBtn.onclick = () => {
+                document.getElementById('hub-note-display-mode').classList.add('hidden');
+                document.getElementById('hub-note-edit-mode').classList.remove('hidden');
+                noteEditBtn.classList.add('hidden');
+            };
+        }
+        const noteCancelBtn = document.getElementById('hub-note-cancel');
+        if (noteCancelBtn) {
+            noteCancelBtn.onclick = () => {
+                const q = currentQuestionBatch.find(q => q.item_id == activeHubItemId);
+                updateNoteUI(q ? (q.note_content || "") : "");
+            };
+        }
+    }
+
+    async function handleBatchAiGenerate(e) {
+        if (!activeHubItemId) return;
+        const btn = e.currentTarget;
+        const contentDiv = document.getElementById(`hub-ai-content`);
+        const originalText = btn.innerHTML;
+
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+
+        try {
+            const res = await fetch(getAiResponseUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+                body: JSON.stringify({ item_id: activeHubItemId, prompt_type: 'explanation' })
+            });
+            const data = await res.json();
+            const content = data.html_content || data.response;
+
+            if (contentDiv) contentDiv.innerHTML = content;
+
+            // Update Local State
+            const qIdx = currentQuestionBatch.findIndex(q => q.item_id == activeHubItemId);
+            if (qIdx !== -1) {
+                currentQuestionBatch[qIdx].ai_explanation = content;
                 saveState();
             }
+        } catch (err) {
+            if (contentDiv) contentDiv.innerHTML = '<span class="text-red-500 text-xs">Lỗi tải AI.</span>';
+        } finally {
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+        }
+    }
 
-            async function submitAnswer() {
-                const itemId = currentQuestion.item_id;
-                const answer = userAnswers[itemId];
-                if (!answer) return;
+    async function handleBatchNoteSave(e) {
+        if (!activeHubItemId) return;
+        const btn = e.currentTarget;
+        const input = document.getElementById(`hub-note-input`);
 
-                updateActionButtons(true, '<i class="fas fa-circle-notch fa-spin"></i> Đang gửi...');
-                const duration_ms = Date.now() - startTime;
+        if (!input) return;
+        const content = input.value;
+        const originalText = btn.innerHTML;
 
-                try {
-                    const res = await fetch(submitAnswerBatchUrl, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
-                        body: JSON.stringify({ answers: [{ item_id: itemId, user_answer: answer, duration_ms: duration_ms }] })
-                    });
-                    const data = await res.json();
-                    lastAnswerResult = data.results[0];
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
 
-                    sessionStats.total++;
-                    if (lastAnswerResult.is_correct) sessionStats.correct++;
-                    updateStatsUI();
+        try {
+            await fetch(saveNoteUrlTemplate.replace('0', activeHubItemId), {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+                body: JSON.stringify({ content })
+            });
 
-                    showFeedback(lastAnswerResult);
-                    updateActionButtons(false, '<i class="fa-solid fa-arrow-right"></i> Tiếp theo', 'next', false);
-                    if (dom.openHubBtn) dom.openHubBtn.classList.remove('hidden');
+            // Update State
+            const qIdx = currentQuestionBatch.findIndex(q => q.item_id == activeHubItemId);
+            if (qIdx !== -1) {
+                currentQuestionBatch[qIdx].note_content = content;
+                saveState();
+            }
+            updateNoteUI(content);
+            alert("Đã lưu ghi chú.");
 
-                    saveState();
-                } catch (e) {
-                    alert('Lỗi gửi đáp án.');
-                    updateActionButtons(false);
-                }
+        } catch (err) {
+            alert("Lỗi lưu ghi chú.");
+        } finally {
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+        }
+    }
+
+    function handleOptionClick(e) {
+        if (isBatchSubmitted) return;
+        const btn = e.currentTarget;
+        const questionId = btn.dataset.questionId;
+        const selectedOption = btn.dataset.option;
+        userAnswers[questionId] = selectedOption;
+        document.querySelectorAll(`.option-button[data-question-id="${questionId}"]`).forEach(b => b.classList.remove('selected'));
+        document.querySelectorAll(`.option-button[data-question-id="${questionId}"][data-option="${selectedOption}"]`).forEach(b => b.classList.add('selected'));
+        saveState();
+        updateQuickNavState(questionId);
+        checkCompletionStatus();
+    }
+
+    function updateQuickNavState(questionId) {
+        // Find index of question
+        const idx = currentQuestionBatch.findIndex(q => q.item_id == questionId);
+        if (idx !== -1) {
+            const navItem = document.querySelector(`.qb-nav-item[data-index="${idx}"]`);
+            if (navItem) navItem.classList.add('answered');
+        }
+    }
+
+    function checkCompletionStatus() {
+        if (isBatchSubmitted) return;
+        const allAnswered = currentQuestionBatch.every(q => userAnswers.hasOwnProperty(q.item_id));
+        const submits = document.querySelectorAll('.js-submit-batch-btn');
+        if (allAnswered) {
+            submits.forEach(btn => {
+                btn.style.opacity = '1';
+                btn.classList.remove('opacity-50', 'cursor-not-allowed');
+            });
+        } else {
+            submits.forEach(btn => {
+                btn.style.opacity = '0.5';
+                btn.classList.add('opacity-50');
+            });
+        }
+    }
+
+    async function submitAnswerBatch() {
+        if (isBatchSubmitted) return;
+        const allAnswered = currentQuestionBatch.every(q => userAnswers.hasOwnProperty(q.item_id));
+        if (!allAnswered) {
+            alert("Vui lòng trả lời tất cả các câu hỏi.");
+            return;
+        }
+
+        isBatchSubmitted = true;
+        toggleControlButtons('submitting');
+        const answersToSend = Object.keys(userAnswers).map(itemId => ({ item_id: parseInt(itemId), user_answer: userAnswers[itemId] }));
+
+        try {
+            const response = await fetch(submitAnswerBatchUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', ...csrfHeaders },
+                body: JSON.stringify({ answers: answersToSend })
+            });
+            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+            const responseData = await response.json();
+
+            // Update Score HUD
+            if (responseData.new_total_score !== undefined) {
+                const scoreEl = document.getElementById('header-total-score');
+                if (scoreEl) scoreEl.textContent = responseData.new_total_score;
             }
 
-            function showFeedback(result) {
-                document.querySelectorAll('.qb-option-label').forEach(el => {
-                    el.classList.add('disabled');
-                    el.classList.remove('selected');
-                    if (el.dataset.key === result.correct_answer) el.classList.add('correct');
-                    if (el.dataset.key === userAnswers[result.item_id] && !result.is_correct) el.classList.add('incorrect');
+            // Process Results
+            let totalScoreChange = 0;
+            responseData.results.forEach(result => {
+                // Update Local data
+                const qIndex = currentQuestionBatch.findIndex(q => q.item_id === result.item_id);
+                if (qIndex !== -1) {
+                    currentQuestionBatch[qIndex].explanation = result.explanation;
+                    currentQuestionBatch[qIndex].correct_answer = result.correct_answer;
+                    currentQuestionBatch[qIndex].is_correct = result.is_correct;
+                }
+                renderFeedbackForQuestion(result);
+                if (result.score_change) totalScoreChange += result.score_change;
+            });
+
+            // Update session points display
+            sessionPoints += totalScoreChange;
+            document.querySelectorAll('.js-stat-session-points').forEach(el => {
+                el.textContent = '+' + sessionPoints;
+            });
+
+            updateSessionSummary(responseData.session_correct_answers, responseData.session_total_answered);
+            toggleControlButtons('submitted');
+            saveState();
+
+        } catch (error) {
+            console.error(error);
+            alert('Có lỗi xảy ra khi gửi đáp án.');
+            isBatchSubmitted = false;
+            toggleControlButtons('answering');
+        }
+    }
+
+    // === SCROLL TRACKING LOGIC ===
+    function handleScroll() {
+        // Logic to track active card based on viewport position
+        let maxVisibility = 0;
+        let bestCardId = null;
+
+        const cards = document.querySelectorAll('.question-card');
+        const viewHeight = window.innerHeight;
+
+        cards.forEach(card => {
+            const rect = card.getBoundingClientRect();
+
+            // Intersection height
+            const intersectTop = Math.max(0, rect.top);
+            const intersectBottom = Math.min(viewHeight, rect.bottom);
+            const intersectHeight = Math.max(0, intersectBottom - intersectTop);
+
+            if (intersectHeight > maxVisibility) {
+                maxVisibility = intersectHeight;
+                bestCardId = card.dataset.itemId;
+            }
+        });
+
+        if (bestCardId && bestCardId !== activeHubItemId) {
+            activeHubItemId = bestCardId;
+            // Highlight nav item
+            const idx = currentQuestionBatch.findIndex(q => q.item_id == bestCardId);
+            if (idx !== -1) {
+                document.querySelectorAll('.qb-nav-item').forEach(el => el.classList.remove('active'));
+                document.querySelector(`.qb-nav-item[data-index="${idx}"]`)?.classList.add('active');
+            }
+        }
+    }
+
+
+    // === HUB LOGIC ===
+    const dom = {
+        hubModal: document.getElementById('explanation-hub-modal'),
+        closeHubBtn: document.getElementById('close-hub-btn'),
+        hubExplText: document.getElementById('hub-explanation-text'),
+        hubAiContent: document.getElementById('hub-ai-content'),
+        aiGenerateBtn: document.getElementById('ai-generate-btn'),
+        hubNoteInput: document.getElementById('hub-note-input'),
+        hubNoteSave: document.getElementById('hub-note-save'),
+        hubNoteEditBtn: document.getElementById('hub-note-edit-btn'),
+        hubNoteCancelBtn: document.getElementById('hub-note-cancel'),
+        hubNoteDisplay: document.getElementById('hub-note-display-mode'),
+        hubNoteEdit: document.getElementById('hub-note-edit-mode'),
+        hubNoteContent: document.getElementById('hub-note-content'),
+        // Transcript Elements
+        transcriptModal: document.getElementById('transcript-modal'),
+        transcriptContent: document.getElementById('transcript-content'),
+        transcriptLoading: document.getElementById('transcript-loading'),
+        transcriptError: document.getElementById('transcript-error'),
+        transcriptEmpty: document.getElementById('transcript-empty'),
+        transcriptEditContainer: document.getElementById('transcript-edit-container'),
+        transcriptEditor: document.getElementById('transcript-editor'),
+        transcriptEditBtn: document.getElementById('transcript-edit-btn'),
+        transcriptEditActions: document.getElementById('transcript-edit-actions'),
+        transcriptSaveBtn: document.getElementById('transcript-save-btn'),
+        transcriptCancelBtn: document.getElementById('transcript-cancel-btn'),
+    };
+
+    function openHub(itemId) {
+        const questionData = currentQuestionBatch.find(q => q.item_id == itemId);
+        if (!questionData) return;
+        activeHubItemId = itemId;
+
+        // Populate Hub
+        if (questionData.explanation) {
+            dom.hubExplText.innerHTML = formatTextForHtml(questionData.explanation);
+        } else if (isBatchSubmitted) {
+            dom.hubExplText.innerHTML = "Chưa có giải thích cho câu hỏi này.";
+        } else {
+            dom.hubExplText.innerHTML = "Hãy hoàn thành câu hỏi để xem giải thích.";
+        }
+
+        if (questionData.ai_explanation) {
+            dom.hubAiContent.innerHTML = questionData.ai_explanation;
+        } else {
+            dom.hubAiContent.innerHTML = "Nhấn nút để yêu cầu AI phân tích...";
+        }
+
+        updateNoteUI(questionData.note_content || "");
+        dom.hubModal.classList.add('open');
+    }
+
+    function updateNoteUI(content) {
+        if (content && content.trim()) {
+            dom.hubNoteDisplay.classList.remove('hidden');
+            dom.hubNoteEdit.classList.add('hidden');
+            dom.hubNoteEditBtn.classList.remove('hidden');
+            dom.hubNoteContent.textContent = content;
+            dom.hubNoteInput.value = content;
+        } else {
+            dom.hubNoteDisplay.classList.add('hidden');
+            dom.hubNoteEdit.classList.remove('hidden');
+            dom.hubNoteEditBtn.classList.add('hidden');
+            dom.hubNoteInput.value = '';
+        }
+    }
+
+    // Hub Listeners
+    dom.closeHubBtn.addEventListener('click', () => dom.hubModal.classList.remove('open'));
+
+    // Close Hub when clicking outside content (on the overlay)
+    dom.hubModal.addEventListener('click', (e) => {
+        if (e.target === dom.hubModal) {
+            dom.hubModal.classList.remove('open');
+        }
+    });
+
+    document.querySelectorAll('.qb-hub-tab-item').forEach(tab => {
+        tab.addEventListener('click', () => {
+            document.querySelectorAll('.qb-hub-tab-item').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.qb-hub-pane').forEach(p => p.classList.remove('active'));
+            tab.classList.add('active');
+            document.getElementById(tab.dataset.target)?.classList.add('active');
+        });
+    });
+
+    // Transcript Listeners
+    if (dom.transcriptEditBtn) {
+        dom.transcriptEditBtn.addEventListener('click', () => {
+            dom.transcriptContent.classList.add('hidden');
+            dom.transcriptEditContainer.classList.remove('hidden');
+            dom.transcriptEditBtn.classList.add('hidden');
+            dom.transcriptEditActions.classList.remove('hidden');
+            dom.transcriptEditor.value = dom.transcriptContent.textContent;
+        });
+    }
+
+    if (dom.transcriptCancelBtn) {
+        dom.transcriptCancelBtn.addEventListener('click', () => {
+            dom.transcriptEditContainer.classList.add('hidden');
+            dom.transcriptContent.classList.remove('hidden');
+            dom.transcriptEditBtn.classList.remove('hidden');
+            dom.transcriptEditActions.classList.add('hidden');
+        });
+    }
+
+    if (dom.transcriptSaveBtn) {
+        dom.transcriptSaveBtn.addEventListener('click', async () => {
+            if (!activeHubItemId) return;
+            const content = dom.transcriptEditor.value;
+            const btn = dom.transcriptSaveBtn;
+
+            btn.disabled = true;
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+
+            try {
+                const url = transcriptUrlTemplate.replace('0', activeHubItemId);
+                const updateUrl = url + '/update';
+
+                await fetch(updateUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', ...csrfHeaders },
+                    body: JSON.stringify({ transcript: content })
                 });
 
-                toggleClass('.js-result-panel', 'hidden', false);
+                const q = currentQuestionBatch.find(q => q.item_id == activeHubItemId);
+                if (q) q.transcript_content = content;
 
-                if (result.is_correct) {
-                    setText('.js-feedback-icon', '🎉');
-                    setText('.js-feedback-title', 'Chính xác!');
-                    document.querySelectorAll('.js-feedback-title').forEach(el => el.classList.replace('text-rose-600', 'text-emerald-600'));
+                renderTranscriptUI(content, true); // Keep edit permission
+                alert("Đã lưu transcript");
+
+                // Switch back to view mode
+                dom.transcriptEditContainer.classList.add('hidden');
+                dom.transcriptContent.classList.remove('hidden');
+                dom.transcriptEditActions.classList.add('hidden');
+                dom.transcriptEditBtn.classList.remove('hidden');
+
+            } catch (e) {
+                console.error(e);
+                alert("Lỗi lưu transcript");
+            }
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+        });
+    }
+
+    // Close Modal Listeners
+    const closeTranscriptModal = () => {
+        if (dom.transcriptModal) dom.transcriptModal.classList.add('hidden');
+    };
+    document.getElementById('close-transcript-modal')?.addEventListener('click', closeTranscriptModal);
+    document.getElementById('close-transcript-modal-btn')?.addEventListener('click', closeTranscriptModal);
+    document.getElementById('transcript-close-main-btn')?.addEventListener('click', closeTranscriptModal);
+
+    async function loadTranscript(itemId) {
+        activeHubItemId = itemId; // Track active item
+        const q = currentQuestionBatch.find(q => q.item_id == itemId);
+        if (!q) return;
+
+        // Reset UI in Modal
+        dom.transcriptLoading.classList.remove('hidden');
+        dom.transcriptContent.classList.add('hidden');
+        dom.transcriptEmpty.classList.add('hidden');
+        dom.transcriptError.classList.add('hidden');
+        dom.transcriptEditContainer.classList.add('hidden');
+
+        if (q.transcript_content !== undefined) {
+            renderTranscriptUI(q.transcript_content, q.can_edit_transcript);
+            dom.transcriptLoading.classList.add('hidden');
+            return;
+        }
+
+        try {
+            const url = transcriptUrlTemplate.replace('0', itemId);
+            const res = await fetch(url.replace('0', itemId), {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', ...csrfHeaders }
+            });
+            const data = await res.json();
+
+            if (data.success) {
+                const text = data.transcript;
+                q.transcript_content = text || null;
+                q.can_edit_transcript = data.can_edit;
+                renderTranscriptUI(text, data.can_edit);
+            } else {
+                if (res.status === 404) {
+                    q.transcript_content = null;
+                    q.can_edit_transcript = data.can_edit || false;
+                    renderTranscriptUI(null, q.can_edit_transcript);
                 } else {
-                    setText('.js-feedback-icon', '🤔');
-                    setText('.js-feedback-title', 'Sai rồi');
-                    document.querySelectorAll('.js-feedback-title').forEach(el => el.classList.replace('text-emerald-600', 'text-rose-600'));
-                }
-                setText('.js-feedback-answer', result.correct_answer);
-
-                if (result.explanation) dom.hubExplText.innerHTML = result.explanation;
-                if (currentQuestion.ai_explanation) dom.hubAiContent.innerHTML = currentQuestion.ai_explanation;
-            }
-
-            function nextQuestion() {
-                lastAnswerResult = null;
-                currentIndex++;
-                if (currentIndex < currentBatch.length) {
-                    renderQuestion(currentBatch[currentIndex]);
-                    saveState();
-                    // Reset tabs to question
-                    document.querySelectorAll('.qb-tab-pane').forEach(p => p.classList.add('hidden'));
-                    document.getElementById('tab-pane-game').classList.remove('hidden');
-                } else {
-                    loadFreshBatch();
+                    throw new Error(data.message);
                 }
             }
+        } catch (e) {
+            dom.transcriptError.classList.remove('hidden');
+            if (document.getElementById('transcript-error-msg'))
+                document.getElementById('transcript-error-msg').textContent = e.message || "Lỗi kết nối.";
+        } finally {
+            dom.transcriptLoading.classList.add('hidden');
+        }
+    }
 
-            function finishSession() {
-                sessionStorage.removeItem(SESSION_KEY);
-                alert('Đã hoàn thành phiên học!');
-                window.location.href = "{{ url_for('learning.quiz_learning.dashboard') }}";
-            }
+    function renderTranscriptUI(content, canEdit) {
+        if (canEdit && dom.transcriptEditBtn) {
+            dom.transcriptEditBtn.classList.remove('hidden');
+        } else if (dom.transcriptEditBtn) {
+            dom.transcriptEditBtn.classList.add('hidden');
+        }
 
-            function showLoading(show) {
-                toggleClass('.js-quiz-loading', 'hidden', !show);
-                toggleClass('.js-quiz-content', 'hidden', show);
-            }
+        if (content) {
+            dom.transcriptContent.classList.remove('hidden');
+            dom.transcriptContent.textContent = content;
+            dom.transcriptEmpty.classList.add('hidden');
+        } else {
+            dom.transcriptEmpty.classList.remove('hidden');
+            dom.transcriptContent.classList.add('hidden');
+        }
+    }
 
-            function updateActionButtons(disabled, text, action, primary) {
-                const btn = dom.mobileActionBtn;
-                if (!btn) return;
-                if (disabled !== undefined) btn.disabled = disabled;
-                if (text) btn.innerHTML = text;
-                if (action) btn.dataset.action = action;
-                if (primary !== undefined) {
-                    // logic for primary style if needed, currently CSS handles it
-                }
-            }
+    function openTranscript(itemId) {
+        if (dom.transcriptModal) {
+            dom.transcriptModal.classList.remove('hidden');
+            loadTranscript(itemId);
+        }
+    }
 
-            function updateStatsUI() {
-                setText('.js-stat-total', sessionStats.total);
-                setText('.js-stat-correct', sessionStats.correct);
-                const acc = sessionStats.total > 0 ? Math.round((sessionStats.correct / sessionStats.total) * 100) : 0;
-                setText('.js-stat-accuracy', `${acc}%`);
-                setText('.js-stat-progress-text', `${sessionStats.total}/${sessionStats.total_questions}`);
-                setText('.js-stat-streak', sessionStats.streak || 0);
-                document.querySelectorAll('.js-stat-progress-bar').forEach(el => el.style.width = `${(sessionStats.total / (sessionStats.total_questions || 1)) * 100}%`);
-            }
+    function toggleControlButtons(state) {
+        const submits = document.querySelectorAll('.js-submit-batch-btn');
+        const nexts = document.querySelectorAll('.js-next-batch-btn');
+        const hubBtns = document.querySelectorAll('.js-batch-explain-btn');
 
-            // --- Event Listeners ---
-            dom.mobileActionBtn.addEventListener('click', () => {
-                if (dom.mobileActionBtn.dataset.action === 'submit') submitAnswer();
-                else nextQuestion();
+        submits.forEach(btn => btn.style.display = 'none');
+        nexts.forEach(btn => btn.style.display = 'none');
+        hubBtns.forEach(btn => btn.classList.add('hidden'));
+
+        if (state === 'answering') {
+            submits.forEach(btn => {
+                btn.style.display = 'inline-flex';
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-paper-plane"></i> <span class="control-button-text">Gửi đáp án</span>';
             });
-
-            // Tabs
-            document.querySelectorAll('[data-tab-trigger]').forEach(btn => {
-                btn.addEventListener('click', () => {
-                    const target = btn.dataset.tabTrigger;
-                    document.querySelectorAll('.qb-tab-pane').forEach(p => p.classList.add('hidden'));
-                    document.getElementById(`tab-pane-${target}`).classList.remove('hidden');
-
-                    // If it's the stats tab, we might want to show a back button or something, 
-                    // but for now let's just allow switching.
-                });
+            checkCompletionStatus();
+        } else if (state === 'submitting') {
+            submits.forEach(btn => {
+                btn.style.display = 'inline-flex';
+                btn.disabled = true;
+                btn.style.opacity = '1';
+                btn.classList.remove('opacity-50');
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang gửi...';
             });
+        } else if (state === 'submitted') {
+            nexts.forEach(btn => btn.style.display = 'inline-flex');
+            hubBtns.forEach(btn => btn.classList.remove('hidden'));
+        }
+    }
 
-            // Hub
-            if (dom.openHubBtn) dom.openHubBtn.addEventListener('click', () => dom.hubModal.classList.add('open'));
-            if (dom.closeHubBtn) dom.closeHubBtn.addEventListener('click', () => dom.hubModal.classList.remove('open'));
+    function handleSessionComplete(endMessage) {
+        // setText('.js-quiz-group-range', 'Hoàn thành');
 
-            // Hub Tabs
-            document.querySelectorAll('.qb-hub-tab-item').forEach(tab => {
-                tab.addEventListener('click', () => {
-                    document.querySelectorAll('.qb-hub-tab-item').forEach(t => t.classList.remove('active'));
-                    document.querySelectorAll('.qb-hub-pane').forEach(p => p.classList.remove('active'));
-                    tab.classList.add('active');
-                    document.getElementById(tab.dataset.target).classList.add('active');
-                });
-            });
+        let statsHtml = '';
+        if (endMessage.stats) {
+            statsHtml = `
+             <div class="grid grid-cols-2 gap-4 max-w-sm mx-auto mb-6 text-left">
+                <div class="bg-emerald-50 p-4 rounded-xl border border-emerald-100">
+                    <div class="text-xs text-slate-500 uppercase font-bold">Chính xác</div>
+                    <div class="text-2xl font-black text-emerald-600">${endMessage.stats.correct_count}</div>
+                </div>
+                <div class="bg-red-50 p-4 rounded-xl border border-red-100">
+                    <div class="text-xs text-slate-500 uppercase font-bold">Sai</div>
+                    <div class="text-2xl font-black text-red-600">${endMessage.stats.incorrect_count}</div>
+                </div>
+                <div class="bg-blue-50 p-4 rounded-xl border border-blue-100 col-span-2">
+                    <div class="text-xs text-slate-500 uppercase font-bold">Tiến độ</div>
+                    <div class="text-xl font-bold text-blue-700">${endMessage.stats.processed_count} / ${endMessage.stats.total_items} câu</div>
+                </div>
+             </div>
+             `;
+        }
 
-            // AI & Note API Calls
-            // (Simplified for brevity, similar to Aura)
-            dom.aiGenerateBtn.addEventListener('click', async () => {
-                dom.aiGenerateBtn.disabled = true;
-                dom.hubAiContent.textContent = "Đang tạo...";
-                try {
-                    const res = await fetch(getAiResponseUrl, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken }, body: JSON.stringify({ item_id: currentQuestion.item_id, prompt_type: 'explanation' }) });
-                    const data = await res.json();
-                    const content = data.html_content || data.response;
-                    dom.hubAiContent.innerHTML = content;
-                    currentQuestion.ai_explanation = content;
-                } catch (e) { dom.hubAiContent.textContent = "Lỗi khi gọi AI."; }
-                dom.aiGenerateBtn.disabled = false;
-            });
+        const msgHtml = `<div class="text-center py-12 px-6"><i class="fas fa-check-circle text-5xl text-green-500 mb-4"></i><h3 class="text-xl font-bold text-slate-800 mb-2">Hoàn thành phiên học!</h3><p class="text-slate-500 mb-6">${formatTextForHtml(endMessage.message)}</p>${statsHtml}<a href="${quizDashboardUrl}" class="cm-btn cm-btn-primary"><i class="fas fa-home"></i> Về Dashboard</a></div>`;
+        setHtml('.js-quiz-content', msgHtml);
+        toggleControlButtons('complete');
+        document.querySelectorAll('.js-end-session-btn').forEach(btn => btn.style.display = 'none');
+        document.getElementById('batch-quick-nav').style.display = 'none';
+        document.querySelector('.qb-mobile-chat-toggle').style.display = 'none';
+    }
 
-            dom.hubNoteSave.addEventListener('click', async () => {
-                try {
-                    await fetch(saveNoteUrlTemplate.replace('0', currentQuestion.item_id), { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken }, body: JSON.stringify({ content: dom.hubNoteInput.value }) });
-                    currentQuestion.note_content = dom.hubNoteInput.value;
-                    alert('Đã lưu.');
-                } catch (e) { alert('Lỗi lưu.'); }
-            });
+    async function handleEndSession() {
+        // Show the exit confirmation modal logic 
+        const exitModal = document.getElementById('exit-confirm-modal');
+        const exitPanel = document.getElementById('exit-modal-panel');
 
-            // Check Previous State
-            if (!loadState()) {
-                loadFreshBatch();
+        if (exitModal) {
+            exitModal.style.display = 'flex';
+            setTimeout(() => {
+                exitModal.classList.remove('opacity-0', 'hidden');
+                exitPanel.classList.remove('scale-95');
+                exitPanel.classList.add('scale-100');
+            }, 10);
+            return;
+        }
+
+        if (confirm('Bạn có chắc chắn muốn kết thúc phiên học hiện tại?')) {
+            confirmExit(); // Fallback if modal not present
+        }
+    }
+
+    // Exit Modal Helper Functions (Global to be accessible by inline onclick)
+    window.closeExitModal = function () {
+        const exitModal = document.getElementById('exit-confirm-modal');
+        const exitPanel = document.getElementById('exit-modal-panel');
+        if (exitModal) {
+            exitModal.classList.add('opacity-0');
+            exitPanel.classList.remove('scale-100');
+            exitPanel.classList.add('scale-95');
+            setTimeout(() => {
+                exitModal.classList.add('hidden');
+                exitModal.style.display = 'none';
+            }, 300);
+        }
+    };
+
+    window.confirmExit = async function () {
+        const btn = document.querySelector('button[onclick="confirmExit()"]');
+        if (btn) {
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Xử lý...';
+            btn.disabled = true;
+        }
+
+        try {
+            const res = await fetch(endSessionUrl, { method: 'POST', headers: { 'Content-Type': 'application/json', ...csrfHeaders }, body: JSON.stringify({}) });
+            const data = await res.json();
+            clearState();
+
+            if (data.stats) {
+                // Hide modal first
+                window.closeExitModal();
+                handleSessionComplete({ message: data.message, stats: data.stats });
+            } else {
+                window.location.href = quizDashboardUrl;
             }
-        })();
-    </script>
-    {% endblock %}
+        } catch (e) {
+            alert('Lỗi kết thúc phiên.');
+            if (btn) { btn.innerHTML = 'Kết thúc'; btn.disabled = false; }
+        }
+    };
+
+    document.body.addEventListener('click', (e) => {
+        const btn = e.target.closest('button');
+        if (!btn) return;
+        if (btn.classList.contains('js-submit-batch-btn')) submitAnswerBatch();
+        if (btn.classList.contains('js-next-batch-btn')) getNextQuestionBatch();
+        // End session handled by specific handler attachment or onclick
+    });
+
+    // === EDIT MODAL LOGIC ===
+    const editModal = document.getElementById('edit-item-modal');
+    if (editModal) {
+        const closeBtn = document.getElementById('close-edit-modal-btn');
+        const iframe = document.getElementById('edit-item-iframe');
+        let currentEditItemId = null;
+
+        window.openEditModal = (url, itemId) => {
+            currentEditItemId = itemId;
+            if (iframe) iframe.src = url + (url.includes('?') ? '&' : '?') + 'is_modal=true';
+            editModal.classList.add('open');
+        };
+
+        const closeEditModal = () => {
+            editModal.classList.remove('open');
+            if (iframe) iframe.src = '';
+            // Refresh
+            if (currentEditItemId) refreshQuestionData(currentEditItemId);
+        };
+
+        if (closeBtn) closeBtn.addEventListener('click', closeEditModal);
+        editModal.addEventListener('click', (e) => { if (e.target === editModal) closeEditModal(); });
+    }
+
+    async function refreshQuestionData(itemId) {
+        // Simplified refresh
+        // alert("Refresh data for " + itemId);
+        // For now, let's just re-fetch the batch or assume user won't mind stale data until next batch
+    }
+
+</script>
+{% endblock %}

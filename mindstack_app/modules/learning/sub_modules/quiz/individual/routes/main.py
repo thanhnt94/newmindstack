@@ -302,7 +302,14 @@ def quiz_session():
                     is_single_mode = True
             except (ValueError, TypeError):
                 pass
+        
+        # [MODIFIED] Unified Aura Mobile Template
+        # Check explicit version from service as config might not be updated
+        from mindstack_app.services.template_service import TemplateService
+        if TemplateService.get_active_version() == 'aura_mobile':
+             return render_dynamic_template('pages/learning/quiz/individual/session/index.html')
 
+        # Fallback for other themes (unlikely to be used, but kept for safety)
         if is_single_mode:
             return render_dynamic_template('pages/learning/quiz/individual/session/_session_single.html')
         else:
