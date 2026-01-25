@@ -6,9 +6,12 @@
 
 {% block head %}
 {{ super() }}
+{% include 'aura_mobile/includes/assets/_aura_learning_assets.html' %}
 <style>
-    .hidden {
-        display: none !important;
+    :root {
+        --aura-primary: #8b5cf6;
+        --aura-secondary: #7c3aed;
+        --aura-gradient: linear-gradient(135deg, var(--aura-primary) 0%, var(--aura-secondary) 100%);
     }
 </style>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -417,70 +420,20 @@
 {% endblock %}
 
 {% block content %}
-<div class="session-container">
+<div class="session-container aura-session">
     <div id="session-data" data-set-id="{{ container.container_id }}" data-count="{{ count }}"
         data-custom-pairs='{{ custom_pairs| tojson if custom_pairs else "null" }}' style="display:none">
     </div>
 
     <header class="session-header">
-        <div class="flex flex-col items-stretch !p-0">
-            {# Row 1: Banner #}
-            <div class="flex items-center justify-between px-3 py-2 bg-gradient-to-r from-purple-600 to-purple-500">
-                <div class="flex items-center gap-2.5 overflow-hidden flex-1 mr-2">
-                    <span class="flex-shrink-0 flex items-center gap-1 px-2.5 py-1 bg-white/20 rounded-lg shadow-sm">
-                        <i class="fas fa-headphones text-white text-[10px]"></i>
-                        <span class="text-[10px] font-bold text-white uppercase tracking-wide">LISTENING</span>
-                    </span>
-                    <span class="text-sm font-bold text-white truncate"
-                        style="text-shadow: 0 1px 3px rgba(0,0,0,0.3);">{{ container.title }}</span>
-                </div>
+        {# --- Aura Header --- #}
+        {% with badge_text='LISTENING', icon='fa-headphones', title=container.title, points=current_user.total_score or
+        0 %}
+        {% include 'aura_mobile/includes/components/learning/_session_header.html' %}
+        {% endwith %}
 
-                <div class="flex-shrink-0 flex items-center gap-1 h-7 px-2.5 bg-white/20 rounded-full">
-                    <i class="fa-solid fa-gem text-white text-[10px]"></i>
-                    <span class="text-xs font-black text-white font-mono" id="total-score-display">
-                        {{ "{:,}".format(current_user.total_score if current_user.total_score is not none else 0) }}
-                    </span>
-                </div>
-            </div>
-
-            {# Row 2: Stats Pills #}
-            <div class="bg-white border-b border-slate-200">
-                <div class="flex items-center justify-between px-3 py-2">
-                    <div class="flex items-center gap-1.5 text-xs overflow-x-auto no-scrollbar max-w-[80%]">
-                        <div class="stat-pill flex-shrink-0 flex items-center gap-1 px-2 py-1 bg-slate-100 rounded-lg">
-                            <i class="fa-solid fa-bars-progress text-slate-500 text-[9px]"></i>
-                            <span class="text-slate-700 font-semibold">
-                                <span class="js-fc-progress">1/10</span>
-                            </span>
-                        </div>
-                        <div class="stat-pill flex-shrink-0 flex items-center gap-1 px-2 py-1 bg-emerald-50 rounded-lg">
-                            <i class="fa-solid fa-check text-emerald-500 text-[9px]"></i>
-                            <span class="text-emerald-600 font-bold js-fc-learned">0</span>
-                        </div>
-                        <div class="stat-pill flex-shrink-0 flex items-center gap-1 px-2 py-1 bg-rose-50 rounded-lg">
-                            <i class="fa-solid fa-times text-rose-500 text-[9px]"></i>
-                            <span class="text-rose-600 font-bold js-fc-relearn">0</span>
-                        </div>
-                    </div>
-
-                    <div class="flex items-center gap-1.5 flex-shrink-0">
-                        {# Home Button #}
-                        <a href="{{ url_for('dashboard.dashboard') }}"
-                            class="w-7 h-7 rounded-full bg-slate-50 text-slate-500 flex items-center justify-center hover:bg-slate-100"
-                            title="Về trang chủ">
-                            <i class="fas fa-home text-[10px]"></i>
-                        </a>
-
-                        {# Exit Button #}
-                        <button onclick="endListeningSession()"
-                            class="w-7 h-7 rounded-full bg-rose-50 text-rose-500 flex items-center justify-center hover:bg-rose-100"
-                            title="Thoát">
-                            <i class="fa-solid fa-right-from-bracket text-[10px]"></i>
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
+        {# --- Aura Status Bar --- #}
+        {% include 'aura_mobile/includes/components/learning/_session_status_bar.html' %}
     </header>
 
     <main class="session-main">
