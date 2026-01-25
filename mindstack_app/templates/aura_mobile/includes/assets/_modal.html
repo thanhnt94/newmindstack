@@ -13,15 +13,17 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        z-index: 1000;
+        z-index: 10000;
         opacity: 0;
         visibility: hidden;
         transition: opacity 0.3s ease, visibility 0.3s ease;
+        pointer-events: none;
     }
 
     .modal-overlay.open {
         opacity: 1;
         visibility: visible !important;
+        pointer-events: auto;
     }
 
     .modal-content {
@@ -29,7 +31,7 @@
         border-radius: 0.75rem;
         box-shadow: none !important;
         overflow: hidden;
-        max-height: 90vh;
+        max-height: 95vh;
         min-height: 200px;
         display: flex;
         flex-direction: column;
@@ -38,17 +40,20 @@
         transition: transform 0.3s ease;
         border: none;
         visibility: hidden;
+        pointer-events: none;
     }
 
     .modal-overlay.open .modal-content {
         transform: scale(1);
         visibility: visible !important;
+        pointer-events: auto !important;
     }
 
     .modal-iframe {
         width: 100%;
         height: 100%;
         border: none;
+        pointer-events: auto !important;
     }
 </style>
 

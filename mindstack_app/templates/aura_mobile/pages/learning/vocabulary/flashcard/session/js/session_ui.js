@@ -307,6 +307,33 @@
         }
     });
 
+    // Item stats detail button in card overlay
+    document.addEventListener('click', function (e) {
+        const statsDetailBtn = e.target.closest('.js-fc-stats-detail-overlay');
+        if (statsDetailBtn) {
+            if (window.currentFlashcardBatch &&
+                typeof window.currentFlashcardIndex !== 'undefined') {
+                const card = window.currentFlashcardBatch[window.currentFlashcardIndex];
+                if (card && card.item_id) {
+                    if (typeof window.openVocabularyItemStats === 'function') {
+                        window.openVocabularyItemStats(card.item_id);
+                    } else {
+                        // Fallback to iframe modal if specialized modal not found
+                        const urlTemplate = (window.FlashcardConfig && window.FlashcardConfig.itemStatsUrlTemplate) || "";
+                        if (urlTemplate) {
+                            const statsUrl = urlTemplate.replace('/0', '/' + card.item_id) + '?is_modal=true';
+                            if (typeof window.openModal === 'function') {
+                                window.openModal(statsUrl);
+                            } else if (window.parent && typeof window.parent.openModal === 'function') {
+                                window.parent.openModal(statsUrl);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    });
+
     // Re-apply image visibility when new cards load
     document.addEventListener('flashcardStatsUpdated', function () {
         setTimeout(applyImageVisibility, 100);

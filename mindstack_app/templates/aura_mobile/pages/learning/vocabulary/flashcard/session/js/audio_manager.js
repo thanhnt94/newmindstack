@@ -36,6 +36,7 @@ function initAudioSettings() {
     } catch (err) {
         console.warn('Không thể đọc cấu hình AutoPlay:', err);
     }
+    window.isAudioAutoplayEnabled = isAudioAutoplayEnabled;
 }
 
 function persistAudioAutoplayPreference(enabled) {
@@ -47,19 +48,33 @@ function persistAudioAutoplayPreference(enabled) {
 }
 
 function updateAudioAutoplayToggleButtons() {
+    const isEnabled = isAudioAutoplayEnabled;
     document.querySelectorAll('.audio-autoplay-toggle-btn').forEach((btn) => {
-        btn.classList.toggle('is-active', isAudioAutoplayEnabled);
-        btn.setAttribute('aria-pressed', isAudioAutoplayEnabled ? 'true' : 'false');
-        btn.title = isAudioAutoplayEnabled ? 'Tắt tự động phát audio' : 'Bật tự động phát audio';
+        btn.classList.toggle('is-active', isEnabled);
+        btn.setAttribute('aria-pressed', isEnabled ? 'true' : 'false');
+        btn.title = isEnabled ? 'Tắt tự động phát audio' : 'Bật tự động phát audio';
         const icon = btn.querySelector('i');
         if (icon) {
-            icon.className = `fas ${isAudioAutoplayEnabled ? 'fa-volume-up' : 'fa-volume-mute'}`;
+            icon.className = `fas ${isEnabled ? 'fa-volume-up' : 'fa-volume-mute'}`;
         }
     });
+
+    // Update overlay badge
+    const badge = document.querySelector('.js-fc-autoplay-badge');
+    if (badge) {
+        if (isEnabled) {
+            badge.classList.remove('scale-0');
+            badge.classList.add('scale-100');
+        } else {
+            badge.classList.remove('scale-100');
+            badge.classList.add('scale-0');
+        }
+    }
 }
 
 function setAudioAutoplayEnabled(enabled) {
     isAudioAutoplayEnabled = enabled;
+    window.isAudioAutoplayEnabled = enabled; // Update global state
     persistAudioAutoplayPreference(enabled);
     updateAudioAutoplayToggleButtons();
     if (!enabled) {
@@ -399,6 +414,7 @@ window.playAudioForButton = playAudioForButton;
 window.setupAudioErrorHandler = setupAudioErrorHandler;
 window.autoPlayFrontSide = autoPlayFrontSide;
 window.autoPlayBackSide = autoPlayBackSide;
+window.autoPlaySide = autoPlaySide;
 window.startAutoplaySequence = startAutoplaySequence;
 window.cancelAutoplaySequence = cancelAutoplaySequence;
 window.autoplayDelaySeconds = autoplayDelaySeconds;

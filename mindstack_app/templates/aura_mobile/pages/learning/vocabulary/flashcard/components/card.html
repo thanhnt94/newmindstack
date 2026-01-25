@@ -56,10 +56,27 @@
 
                     {# Top-Right: Audio Button #}
                     <div class="absolute top-3 right-3 pointer-events-auto">
+                        <div class="relative group/audio">
+                            <button
+                                class="js-fc-audio-btn-overlay w-10 h-10 rounded-full bg-blue-500/90 backdrop-blur-sm text-white flex items-center justify-center hover:bg-blue-600 transition-all shadow-lg hover:scale-110"
+                                data-has-audio="false">
+                                <i class="fa-solid fa-volume-xmark text-sm js-fc-audio-icon-overlay"></i>
+                            </button>
+
+                            {# Autoplay Indicator Badge #}
+                            <div
+                                class="js-fc-autoplay-badge absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-emerald-500 border-2 border-white shadow-sm flex items-center justify-center scale-0 transition-transform duration-300">
+                                <i class="fas fa-bolt text-[8px] text-white"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    {# Bottom-Left: Stats Detail Button #}
+                    <div class="absolute bottom-3 left-3 pointer-events-auto z-30">
                         <button
-                            class="js-fc-audio-btn-overlay w-10 h-10 rounded-full bg-blue-500/90 backdrop-blur-sm text-white flex items-center justify-center hover:bg-blue-600 transition-all shadow-lg hover:scale-110"
-                            data-has-audio="false">
-                            <i class="fa-solid fa-volume-xmark text-sm js-fc-audio-icon-overlay"></i>
+                            class="js-fc-stats-detail-overlay w-10 h-10 rounded-full bg-slate-700/90 backdrop-blur-sm text-white flex items-center justify-center hover:bg-slate-800 transition-all shadow-lg hover:scale-110"
+                            title="Chi tiết thống kê">
+                            <i class="fas fa-chart-pie text-sm"></i>
                         </button>
                     </div>
 

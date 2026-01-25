@@ -105,11 +105,14 @@ using the .flashcard-session-active class on the body #}
     </div>
 </div>
 
+{# Reusable Item Stats Modal #}
+{% include _v ~ '/pages/learning/vocabulary/stats/_modal_stats.html' %}
+
+
 <script src="{{ url_for('learning.flashcard_learning.serve_session_asset', filename='js/audio_manager.js') }}"></script>
 <script src="{{ url_for('learning.flashcard_learning.serve_session_asset', filename='js/render_card.js') }}"></script>
 <script src="{{ url_for('learning.flashcard_learning.serve_session_asset', filename='js/ui_manager.js') }}"></script>
 <script src="{{ url_for('learning.flashcard_learning.serve_session_asset', filename='js/session_ui.js') }}"></script>
-</script>
 {#
 File: _stats_mobile.html
 MỤC ĐÍCH: Giao diện thống kê phiên học tối ưu cho Mobile (App-like design)

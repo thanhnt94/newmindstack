@@ -40,6 +40,70 @@ function initUiSettings() {
         const mobileStats = document.getElementById('current-card-stats-mobile');
         if (mobileStats) mobileStats.style.display = 'none';
     }
+
+    // --- LONG PRESS TO TOGGLE AUTOPLAY ---
+    const overlayAudioBtn = document.querySelector('.js-fc-audio-btn-overlay');
+    if (overlayAudioBtn) {
+        let longPressTimer;
+        const longPressDuration = 600; // ms
+
+        const startLongPress = (e) => {
+            longPressTimer = setTimeout(() => {
+                e.preventDefault();
+                // Toggle Autoplay
+                const newState = !window.isAudioAutoplayEnabled;
+                window.setAudioAutoplayEnabled(newState);
+
+                // Haptic feedback if available
+                if (window.navigator.vibrate) {
+                    window.navigator.vibrate(50);
+                }
+
+                if (window.showFlashMessage) {
+                    window.showFlashMessage(newState ? 'Đã BẬT tự động phát âm thanh' : 'Đã TẮT tự động phát âm thanh', 'info');
+                }
+
+                longPressTimer = null;
+            }, longPressDuration);
+        };
+
+        const cancelLongPress = () => {
+            if (longPressTimer) {
+                clearTimeout(longPressTimer);
+                longPressTimer = null;
+            }
+        };
+
+        // Mobile touch events
+        overlayAudioBtn.addEventListener('touchstart', startLongPress);
+        overlayAudioBtn.addEventListener('touchend', cancelLongPress);
+        overlayAudioBtn.addEventListener('touchmove', cancelLongPress);
+
+        // Desktop mouse events (optional but good for testing)
+        overlayAudioBtn.addEventListener('mousedown', startLongPress);
+        overlayAudioBtn.addEventListener('mouseup', cancelLongPress);
+        overlayAudioBtn.addEventListener('mouseleave', cancelLongPress);
+
+        // Normal click to play audio
+        overlayAudioBtn.addEventListener('click', (e) => {
+            if (overlayAudioBtn.dataset.hasAudio === 'false') return;
+            window.stopAllFlashcardAudio();
+
+            // Find current active audio and play
+            const card = document.querySelector('.js-flashcard-card');
+            const isFlipped = card && card.classList.contains('flipped');
+            const side = isFlipped ? 'back' : 'front';
+
+            if (window.autoPlaySide) {
+                window.autoPlaySide(side);
+            }
+        });
+    }
+
+    // Initial badge sync
+    if (window.updateAudioAutoplayToggleButtons) {
+        window.updateAudioAutoplayToggleButtons();
+    }
 }
 
 // --- Viewport & Layout ---
