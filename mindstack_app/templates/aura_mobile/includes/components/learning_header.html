@@ -1,32 +1,40 @@
 {% macro render_learning_header(title_selector, badge_text, badge_icon, theme_gradient, badge_text_color='text-white',
 badge_icon_color='text-yellow-300', exit_func=None, show_score=False, score_selector='js-header-score', score_value='0',
-left_btn_func='history.back()', left_btn_icon='fa-solid fa-chevron-left', stats_content=None, hide_second_row=False) %}
+left_btn_func='history.back()', left_btn_icon='fa-solid fa-chevron-left', stats_content=None, hide_second_row=False,
+hide_left_btn=False, align_left=False) %}
 <div class="fc-header flex-col items-stretch !p-0 shadow-md z-50 relative">
 
     {# --- Row 1: Navigation & Title (Themed) --- #}
     <div id="learning-header-container"
-        class="relative flex items-center justify-between px-4 py-3 {{ theme_gradient }} text-white shadow-sm transition-colors duration-500">
+        class="relative flex items-center gap-3 px-4 py-3 {{ theme_gradient }} text-white shadow-sm transition-all duration-500">
+
         {# Left Button (Back / Toggle) #}
+        {% if not hide_left_btn %}
         <button
-            class="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center hover:bg-white/30 transition-colors backdrop-blur-sm z-10 relative"
+            class="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center hover:bg-white/30 transition-colors backdrop-blur-sm z-10 relative flex-shrink-0"
             onclick="{{ left_btn_func }}">
             <i id="header-toggle-icon" class="{{ left_btn_icon }} text-sm transition-all duration-300"></i>
         </button>
+        {% endif %}
 
-        {# Center Content (Title vs Stats) #}
+        {# Header Content (Title vs Stats) #}
         <div id="header-center-container"
-            class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-[60%] h-full flex items-center justify-center pointer-events-none transition-all duration-300">
-            {# View 1: Title (Default) #}
+            class="{% if align_left %} flex-1 min-w-0 {% else %} absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-[60%] pointer-events-none {% endif %} h-full flex items-center {% if align_left %} justify-start {% else %} justify-center {% endif %} transition-all duration-300 overflow-hidden">
+
+            {# View 1: Title (Default) - Enhanced Premium Typography #}
             <div id="header-title-view"
-                class="flex flex-col items-center justify-center w-full transition-all duration-300 opacity-100 scale-100">
-                <div class="flex items-center gap-1.5 opacity-90 mb-0.5 pointer-events-auto">
+                class="flex flex-col {% if align_left %} items-start {% else %} items-center justify-center {% endif %} w-full transition-all duration-300 opacity-100 scale-100 overflow-hidden">
+                <div class="flex items-center gap-2 opacity-90 mb-0.5 pointer-events-auto">
                     <i class="{{ badge_icon }} text-[10px] {{ badge_icon_color }}"></i>
                     <span
-                        class="text-[10px] font-bold uppercase tracking-widest {{ badge_text_color }} cursor-pointer">{{
-                        badge_text }}</span>
+                        class="text-[9px] font-black uppercase tracking-[0.15em] {{ badge_text_color }} cursor-pointer">
+                        {{ badge_text }}
+                    </span>
                 </div>
                 <span
-                    class="text-sm font-bold text-white truncate w-full text-center {{ title_selector }} leading-tight pointer-events-auto">...</span>
+                    class="text-[17px] font-extrabold text-white truncate w-full {% if align_left %} text-left {% else %} text-center {% endif %} {{ title_selector }} leading-tight pointer-events-auto tracking-tight">
+                    ...
+                </span>
             </div>
 
             {# View 2: Stats (Hidden) #}
@@ -39,29 +47,30 @@ left_btn_func='history.back()', left_btn_icon='fa-solid fa-chevron-left', stats_
         </div>
 
         {# Right Actions #}
-        <div id="header-right-actions" class="flex items-center gap-2 z-10 relative transition-all duration-300">
+        <div id="header-right-actions"
+            class="flex items-center gap-2.5 z-10 relative transition-all duration-300 flex-shrink-0">
             {# Score Display #}
             {% if show_score %}
             <div
-                class="px-2.5 py-1 rounded-full bg-white/20 backdrop-blur-sm border border-white/10 flex items-center gap-1.5 animate-fadeIn">
-                <i class="fas fa-star text-[10px] text-yellow-300"></i>
-                <span class="{{ score_selector }} text-xs font-extrabold text-white">{{ score_value }}</span>
+                class="px-3 py-1.5 rounded-full bg-white/20 backdrop-blur-md border border-white/20 flex items-center gap-2 animate-fadeIn shadow-inner">
+                <i class="fas fa-gem text-[11px] text-yellow-300 drop-shadow-sm"></i>
+                <span class="{{ score_selector }} text-xs font-black text-white font-mono">{{ score_value }}</span>
             </div>
             {% endif %}
 
             {# Exit Button #}
             {% if exit_func %}
             <button onclick="{{ exit_func }}"
-                class="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center hover:bg-white/30 transition-colors backdrop-blur-sm text-red-100 hover:text-red-50"
+                class="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition-all backdrop-blur-md text-red-100 hover:text-white border border-white/5 active:scale-90"
                 title="Thoát">
-                <i class="fa-solid fa-right-from-bracket text-sm"></i>
+                <i class="fa-solid fa-right-from-bracket text-base"></i>
             </button>
             {% endif %}
 
             {# Home Button #}
             <a href="/"
-                class="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center hover:bg-white/30 transition-colors backdrop-blur-sm">
-                <i class="fa-solid fa-house text-sm"></i>
+                class="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition-all backdrop-blur-md text-white border border-white/5 active:scale-90">
+                <i class="fa-solid fa-house text-base"></i>
             </a>
         </div>
     </div>
@@ -77,8 +86,8 @@ left_btn_func='history.back()', left_btn_icon='fa-solid fa-chevron-left', stats_
 
     {# Progress Line Slot (Optional) #}
     {% if kwargs.get('show_progress_line') %}
-    <div class="h-0.5 bg-slate-100 w-full">
-        <div class="h-full {{ kwargs.get('progress_color', 'bg-blue-500') }} {{ kwargs.get('progress_selector', '') }} transition-all duration-300"
+    <div class="h-1 bg-black/10 w-full overflow-hidden relative">
+        <div class="h-full {{ kwargs.get('progress_color', 'bg-blue-500') }} {{ kwargs.get('progress_selector', '') }} transition-all duration-500 rounded-r-full shadow-[0_0_10px_rgba(255,255,255,0.5)]"
             style="width: 0%"></div>
     </div>
     {% endif %}

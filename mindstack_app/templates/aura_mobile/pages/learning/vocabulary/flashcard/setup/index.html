@@ -133,11 +133,13 @@
         display: flex;
         flex-direction: column;
         overflow-y: auto;
+        width: 100%;
     }
 
     .step-screen {
         display: none;
         animation: fadeIn 0.4s ease-out;
+        width: 100%;
     }
 
     .step-screen.active {
@@ -159,6 +161,7 @@
     .title-area {
         margin-bottom: 2rem;
         text-align: center;
+        width: 100%;
     }
 
     .title-area h2 {
@@ -180,62 +183,71 @@
         display: grid;
         grid-template-columns: 1fr;
         gap: 1rem;
+        width: 100%;
+        justify-items: stretch;
+        align-items: stretch;
     }
 
     .mode-card {
+        width: 100%;
         background: var(--surface);
         border: 2px solid transparent;
         border-radius: 20px;
-        padding: 1.25rem;
+        padding: 1.5rem 1.25rem;
         display: flex;
         align-items: center;
-        gap: 1rem;
+        gap: 1.25rem;
         cursor: pointer;
-        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         box-shadow: var(--shadow-sm);
         position: relative;
         overflow: hidden;
+        min-height: 90px;
     }
 
     .mode-card:hover:not(.disabled) {
-        transform: translateY(-2px);
-        border-color: rgba(37, 99, 235, 0.3);
+        transform: translateY(-3px);
+        border-color: var(--primary);
+        box-shadow: var(--shadow-lg);
     }
 
     .mode-card.selected {
         background: var(--primary-bg);
         border-color: var(--primary);
-        box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1);
+        box-shadow: 0 10px 20px -5px rgba(16, 185, 129, 0.2);
     }
 
     .mode-card.disabled {
         opacity: 0.5;
         filter: grayscale(1);
         cursor: not-allowed;
-        background: var(--background);
+        background: #f1f5f9;
+        border-color: transparent;
     }
 
     .mode-icon {
-        width: 50px;
-        height: 50px;
-        border-radius: 16px;
+        width: 56px;
+        height: 56px;
+        border-radius: 18px;
         background: var(--background);
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 1.5rem;
+        font-size: 1.6rem;
         color: var(--text-sub);
-        transition: all 0.3s;
+        transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        flex-shrink: 0;
     }
 
     .mode-card.selected .mode-icon {
         background: var(--primary);
         color: white;
-        transform: scale(1.1) rotate(-5deg);
+        transform: scale(1.1) rotate(-8deg);
     }
 
     .mode-info {
         flex: 1;
+        min-width: 0;
     }
 
     .mode-title {
@@ -374,8 +386,8 @@
             </div>
 
             <div class="mode-grid">
-                <!-- Mixed SRS (NEW + DUE, SRS Order) - Primary mode -->
-                <div class="mode-card selected" data-value="mixed_srs">
+                <!-- Sequential Learning (Strict Order) -->
+                <div class="mode-card selected" data-value="sequential">
                     <div class="mode-icon"><i class="fas fa-seedling"></i></div>
                     <div class="mode-info">
                         <span class="mode-title">Học tập tuần tự</span>
@@ -383,7 +395,7 @@
                     </div>
                 </div>
 
-                <!-- All Review (All learned items, not just due) -->
+                <!-- All Review (All learned items) -->
                 <div class="mode-card {% if mode_counts.learned == 0 %}disabled{% endif %}" data-value="all_review">
                     <div class="mode-icon"><i class="fas fa-history"></i></div>
                     <div class="mode-info">
@@ -401,7 +413,7 @@
                     </div>
                 </div>
 
-                <!-- Random / Learn ALL -->
+                <!-- Random Learning -->
                 <div class="mode-card {% if mode_counts.total == 0 %}disabled{% endif %}" data-value="random">
                     <div class="mode-icon"><i class="fas fa-random"></i></div>
                     <div class="mode-info">
@@ -470,7 +482,7 @@
 
     // --- State ---
     let currentStep = 1;
-    let selectedMode = 'mixed_srs'; // Default to SRS learning
+    let selectedMode = 'sequential'; // Default to Sequential learning
 
     let isAutoplay = false;
     let isShowImage = true;
@@ -709,14 +721,8 @@
             .then(r => r.json())
             .then(data => {
                 if (data.success) {
-                    // Determine start URL based on mode
-                    // Mode values now match backend directly: mixed_srs, all_review, hard_only, random
-                    let backendMode = selectedMode;
-                    // 'random' maps to 'mixed_srs' for "tất cả" behavior
-                    if (selectedMode === 'random') backendMode = 'mixed_srs';
-
-                    // Construct URL manually or use a helper if available. 
-                    // The pattern is /start_flashcard_session/<set_id>/<mode>
+                    // Start URL based on mode ID
+                    const backendMode = selectedMode;
                     const url = `{{ url_for('learning.flashcard_learning.start_flashcard_session_by_id', set_id=set_id, mode='placeholder') }}`.replace('placeholder', backendMode);
                     window.location.href = url;
                 } else {

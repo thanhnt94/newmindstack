@@ -160,6 +160,8 @@ class FlashcardSessionManager:
             'due_only': get_due_items,
             'hard_only': get_hard_items,
             'mixed_srs': get_mixed_items,
+            'sequential': get_all_items_for_autoplay,  # Fetch everything
+            'random': get_all_items_for_autoplay,      # Fetch everything
             'all_review': get_all_review_items,
             'pronunciation_practice': get_pronunciation_items,
             'writing_practice': get_writing_items,
@@ -359,6 +361,18 @@ class FlashcardSessionManager:
             query = apply_exclusion(
                 get_quiz_items(self.user_id, self.set_id, None)
             ).order_by(LearningItem.order_in_container.asc(), LearningItem.item_id.asc())
+            next_item = query.first()
+        elif self.mode == 'sequential':
+            # TRUE SEQUENTIAL: Strictly follow order_in_container
+            query = apply_exclusion(
+                get_all_items_for_autoplay(self.user_id, self.set_id, None)
+            ).order_by(LearningItem.order_in_container.asc(), LearningItem.item_id.asc())
+            next_item = query.first()
+        elif self.mode == 'random':
+            # TRUE RANDOM: Shuffle everything matching criteria
+            query = apply_exclusion(
+                get_all_items_for_autoplay(self.user_id, self.set_id, None)
+            ).order_by(func.random())
             next_item = query.first()
         else:
             due_query = apply_exclusion(

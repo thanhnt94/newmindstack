@@ -215,8 +215,8 @@
   .face {
       position: absolute;
       inset: 0;
-      /* Padding-top để tạo khoảng trống an toàn cho toolbar */
-      padding: 72px 1.25rem 1.25rem 1.25rem;
+      /* Padding-top để tạo khoảng trống an toàn cho toolbar/overlay */
+      padding: 80px 1.25rem 1.25rem 1.25rem;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
@@ -1181,7 +1181,7 @@
       height: 100%;
       display: flex;
       flex-direction: column;
-      padding: 0.5rem !important;
+      padding: 80px 1.25rem 1.25rem 1.25rem !important;
   }
 
   /* Card Toolbar - HIDDEN on mobile, moved to header */
@@ -1633,4 +1633,59 @@
       margin-left: auto;
       white-space: nowrap;
   }
+
+  /* ===== Premium Header Enhancements ===== */
+  #learning-header-container {
+      box-shadow: 0 4px 20px -5px rgba(0, 0, 0, 0.15);
+      z-index: 60;
+  }
+
+  /* Glassmorphism Utilities (in case not in tailwind) */
+  .backdrop-blur-md {
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+  }
+
+  /* Header Title Refinement */
+  #header-title-view span {
+      letter-spacing: -0.015em;
+  }
+
+  /* Badge styling refinement */
+  #header-title-view .flex.items-center.gap-2 span {
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  }
+
+  /* Right action icons animation */
+  #header-right-actions button,
+  #header-right-actions a {
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  #header-right-actions button:hover,
+  #header-right-actions a:hover {
+      background-color: rgba(255, 255, 255, 0.25);
+      transform: translateY(-1px);
+  }
+
+  /* Progress Line Enhancement */
+  .fc-header .h-1 {
+      box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.05);
+  }
+
+  /* Animation for score */
+  @keyframes gem-pulse {
+
+      0%,
+      100% {
+          transform: scale(1);
+      }
+
+      50% {
+          transform: scale(1.1);
+      }
+  }
+
+  #header-right-actions .fa-gem {
+      animation: gem-pulse 3s infinite ease-in-out;
   }

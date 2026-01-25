@@ -14,7 +14,9 @@ class FlashcardLearningConfig:
     # THAY ĐỔI: Thêm chế độ học "Học và ôn tập" lên đầu danh sách
     
     FLASHCARD_MODES = [
-        {'id': 'mixed_srs', 'name': 'Học tập tuần tự', 'algorithm_func_name': 'get_mixed_items'},
+        {'id': 'mixed_srs', 'name': 'Học và ôn tập', 'algorithm_func_name': 'get_mixed_items'},
+        {'id': 'sequential', 'name': 'Học tập tuần tự', 'algorithm_func_name': 'get_all_items_for_autoplay'},
+        {'id': 'random', 'name': 'Ôn tập ngẫu nhiên', 'algorithm_func_name': 'get_all_items_for_autoplay'},
         {'id': 'new_only', 'name': 'Chỉ học thẻ mới', 'algorithm_func_name': 'get_new_only_items'},
         {'id': 'due_only', 'name': 'Ôn tập thẻ đến hạn', 'algorithm_func_name': 'get_due_items'},
         {'id': 'all_review', 'name': 'Ôn tập toàn bộ thẻ đã học', 'algorithm_func_name': 'get_all_review_items'},

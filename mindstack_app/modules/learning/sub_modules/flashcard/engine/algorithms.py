@@ -320,6 +320,8 @@ def get_flashcard_mode_counts(user_id, set_identifier):
                 due_count = get_due_items(user_id, set_identifier, None).count()
                 new_count = get_new_only_items(user_id, set_identifier, None).count()
                 count = due_count + new_count
+            elif mode_id in ('sequential', 'random'):
+                count = get_all_items_for_autoplay(user_id, set_identifier, None).count()
             else:
                 count = algorithm_func(user_id, set_identifier, None).count()
 

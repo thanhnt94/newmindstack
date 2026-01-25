@@ -619,22 +619,16 @@ function showPreviewTooltip(targetBtn, data) {
 
     console.log('[PreviewTooltip] Showing data:', data);
 
-    const { formatMinutesAsDuration } = window;
+    const { formatMinutesAsDuration, formatRecentTimestamp } = window;
 
-    // Calculate Interval Display
-    let intervalDisplay = '';
-    if (data.interval_minutes && formatMinutesAsDuration) {
-        intervalDisplay = formatMinutesAsDuration(data.interval_minutes);
-    } else if (data.interval !== undefined) {
-        if (data.unit) {
-            intervalDisplay = data.interval + data.unit; // e.g. "4d"
-        } else {
-            // Fallback if unit missing (assume days if small, minutes if large? safely suffix 'm' or 'd'?)
-            // Better to just show value
-            intervalDisplay = data.interval + (data.interval > 100 ? 'm' : 'd');
-        }
-    } else {
-        intervalDisplay = '0m';
+    // Calculate Next Review Time
+    let nextReviewDisplay = 'Lúc này';
+    const intervalMinutes = data.interval_minutes !== undefined ? data.interval_minutes : (data.interval || 0);
+
+    if (intervalMinutes > 0) {
+        const now = new Date();
+        const nextReviewDate = new Date(now.getTime() + intervalMinutes * 60000); // 60000 ms per minute
+        nextReviewDisplay = formatRecentTimestamp ? formatRecentTimestamp(nextReviewDate) : nextReviewDate.toLocaleString();
     }
 
     // Determine Color based on Points
@@ -659,7 +653,7 @@ function showPreviewTooltip(targetBtn, data) {
         </div>
         <div style="display:flex; justify-content:space-between; margin-bottom:4px">
             <span style="color:#94a3b8">Lịch ôn:</span>
-            <span style="font-weight:600; color:#fff">${intervalDisplay}</span>
+            <span style="font-weight:600; color:#fff">${nextReviewDisplay}</span>
         </div>
         <div style="display:flex; justify-content:space-between; margin-bottom:4px">
             <span style="color:#94a3b8">Điểm:</span>
