@@ -202,13 +202,14 @@ function getPreviewButtonHtml() {
 
 function generateDynamicButtons(buttonCount) {
     // Standard FSRS 4-button system (rating 1-4)
+    // Enforced for Aura Mobile/Unified View
     const scores = window.FlashcardConfig.scores || { again: 1, hard: 5, good: 10, easy: 15 };
 
     const buttons = [
-        { variant: 'again', value: 'again', title: 'Quên', icon: 'fas fa-undo', quality: 1, points: scores.again },
+        { variant: 'again', value: 'again', title: 'Học lại', icon: 'fas fa-undo', quality: 1, points: scores.again },
         { variant: 'hard', value: 'hard', title: 'Khó', icon: 'fas fa-fire', quality: 2, points: scores.hard },
-        { variant: 'good', value: 'good', title: 'Được', icon: 'fas fa-thumbs-up', quality: 3, points: scores.good },
-        { variant: 'easy', value: 'easy', title: 'Dễ', icon: 'fas fa-star', quality: 4, points: scores.easy }
+        { variant: 'good', value: 'good', title: 'Ổn', icon: 'fas fa-thumbs-up', quality: 3, points: scores.good },
+        { variant: 'easy', value: 'easy', title: 'Dễ', icon: 'fas fa-smile', quality: 4, points: scores.easy }
     ];
     return buttons.map(btn => {
         const iconHtml = btn.icon ? `<span class="rating-btn__icon"><i class="${btn.icon}"></i></span>` : '';
@@ -525,6 +526,11 @@ function renderCard(data) {
             if (window.autoPlayFrontSide) window.autoPlayFrontSide();
         }
     }
+
+    // [NEW] Update FSRS estimates on rating buttons
+    if (window.updateRatingButtonEstimates) {
+        window.updateRatingButtonEstimates(data);
+    }
 }
 
 // --- Preview Tooltip Helper Functions ---
@@ -583,11 +589,23 @@ function showPreviewTooltip(targetBtn, data) {
     const { formatMinutesAsDuration } = window;
     const intervalDisplay = formatMinutesAsDuration ? formatMinutesAsDuration(data.interval) : (data.interval + 'm');
 
+    console.log('[PreviewTooltip] TRIGGERED via window function. Data:', data);
+
     // Determine Color based on Points
     const pointsColor = data.points > 0 ? '#4ade80' : (data.points < 0 ? '#f87171' : '#94a3b8');
     // Stability color (higher = better)
     const stabilityDays = data.stability || 0;
     const stabilityColor = stabilityDays >= 30 ? '#4ade80' : (stabilityDays >= 7 ? '#fbbf24' : '#94a3b8');
+
+    // Difficulty (D) - Lower is better usually, or context dependent. 1-10 scale?
+    // Let's assume standard FSRS 1-10.
+    const difficulty = data.difficulty || 0;
+    const difficultyColor = difficulty > 8 ? '#f87171' : (difficulty > 5 ? '#fbbf24' : '#4ade80'); // High difficulty = Red
+
+    // Retrievability (R) - Percentage 0-1
+    const retrievability = data.retrievability !== undefined ? data.retrievability : 0;
+    const rPercent = (retrievability * 100).toFixed(1) + '%';
+    const rColor = retrievability > 0.9 ? '#4ade80' : (retrievability > 0.7 ? '#fbbf24' : '#f87171');
 
     tooltip.innerHTML = `
         <div style="display:flex; justify-content:space-between; margin-bottom:8px; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:4px">
@@ -601,9 +619,17 @@ function showPreviewTooltip(targetBtn, data) {
             <span style="color:#94a3b8">Điểm:</span>
             <span style="font-weight:600; color:${pointsColor}">${data.points > 0 ? '+' : ''}${data.points}</span>
         </div>
+        <div style="display:flex; justify-content:space-between; margin-bottom:4px">
+            <span style="color:#94a3b8">Ổn định (S):</span>
+            <span style="font-weight:600; color:${stabilityColor}">${stabilityDays.toFixed(1)}d</span>
+        </div>
+        <div style="display:flex; justify-content:space-between; margin-bottom:4px">
+            <span style="color:#94a3b8">Khó (D):</span>
+            <span style="font-weight:600; color:${difficultyColor}">${difficulty.toFixed(1)}</span>
+        </div>
         <div style="display:flex; justify-content:space-between;">
-            <span style="color:#94a3b8">Ổn định:</span>
-            <span style="font-weight:600; color:${stabilityColor}">${stabilityDays.toFixed(1)} ngày</span>
+            <span style="color:#94a3b8">Khả năng nhớ (R):</span>
+            <span style="font-weight:600; color:${rColor}">${rPercent}</span>
         </div>
     `;
 

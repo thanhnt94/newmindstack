@@ -1,4 +1,6 @@
 (function () {
+    console.error('[FSRS Mobile] session_ui.js LOADED (Updated Version)');
+
     // --- Mobile Logic & Events ---
 
     // Helper to get mobile stats container safely
@@ -455,36 +457,19 @@
         renderSessionHistoryList();
     });
 
-    // Generate rating buttons dynamically based on user_button_count
+    // Generate rating buttons (Strictly 4 buttons for Aura Mobile)
     function generateMobileRatingButtons() {
         const container = document.getElementById('mobile-rating-btns');
         if (!container) return;
 
-        const buttonCount = getUserButtonCount();
+        // Force 4 buttons regardless of user setting for consistency in Aura Mobile
+        const buttons = [
+            { cssClass: 'again', value: '1', label: 'Học lại', icon: 'fas fa-undo' },
+            { cssClass: 'hard', value: '2', label: 'Khó', icon: 'fas fa-fire' },
+            { cssClass: 'good', value: '3', label: 'Ổn', icon: 'fas fa-thumbs-up' },
+            { cssClass: 'easy', value: '4', label: 'Dễ', icon: 'fas fa-smile' }
+        ];
 
-        const buttonSets = {
-            3: [
-                { cssClass: 'again', value: '1', label: 'Quên', icon: 'fas fa-times' },
-                { cssClass: 'hard', value: '2', label: 'Mơ hồ', icon: 'fas fa-question' },
-                { cssClass: 'good', value: '3', label: 'Nhớ', icon: 'fas fa-check' }
-            ],
-            4: [
-                { cssClass: 'again', value: '1', label: 'Học lại', icon: 'fas fa-undo' },
-                { cssClass: 'hard', value: '2', label: 'Khó', icon: 'fas fa-fire' },
-                { cssClass: 'good', value: '3', label: 'Ổn', icon: 'fas fa-thumbs-up' },
-                { cssClass: 'easy', value: '4', label: 'Dễ', icon: 'fas fa-smile' }
-            ],
-            6: [
-                { cssClass: 'again', value: '1', label: 'Rất khó', icon: 'fas fa-exclamation-circle' },
-                { cssClass: 'hard', value: '2', label: 'Khó', icon: 'fas fa-fire' },
-                { cssClass: 'medium', value: '3', label: 'TB', icon: 'fas fa-adjust' },
-                { cssClass: 'good', value: '4', label: 'Dễ', icon: 'fas fa-leaf' },
-                { cssClass: 'easy', value: '5', label: 'Rất dễ', icon: 'fas fa-thumbs-up' },
-                { cssClass: 'veryeasy', value: '6', label: 'Dễ dàng', icon: 'fas fa-star' }
-            ]
-        };
-
-        const buttons = buttonSets[buttonCount] || buttonSets[3];
         container.innerHTML = buttons.map(btn =>
             `<button class="fc-rating-btn ${btn.cssClass} js-rating-btn" data-rating="${btn.value}">
                     <i class="${btn.icon}"></i>
@@ -679,5 +664,50 @@
     }
 
     initMobileRatingButtons();
+
+
+    // Update rating buttons with FSRS intervals
+    window.updateRatingButtonEstimates = function (cardData) {
+        if (!cardData) return;
+
+        // Ensure buttons are generated (if this is first load)
+        const btnContainer = document.getElementById('mobile-rating-btns');
+        if (btnContainer && btnContainer.children.length === 0) {
+            generateMobileRatingButtons();
+            setupRatingButtonHandlers();
+        }
+
+        const stats = cardData.initial_stats || {};
+        const schedule = cardData.scheduling_info || {};
+        const buttons = document.querySelectorAll('.js-rating-btn');
+
+        buttons.forEach(btn => {
+            const rating = btn.dataset.rating;
+            const info = schedule[rating];
+
+            // Remove existing time badge if any
+            const existingBadge = btn.querySelector('.fc-time-badge');
+            if (existingBadge) existingBadge.remove();
+
+            if (info) {
+                // info can be { interval: 10, unit: 'm' } or similar
+                let timeText = '';
+                if (window.formatMinutesAsDuration && info.interval_minutes) {
+                    timeText = window.formatMinutesAsDuration(info.interval_minutes);
+                } else if (info.interval_display) {
+                    timeText = info.interval_display;
+                } else if (info.interval !== undefined && info.unit) {
+                    timeText = info.interval + info.unit;
+                }
+
+                if (timeText) {
+                    const badge = document.createElement('span');
+                    badge.className = 'fc-time-badge block text-[10px] font-bold opacity-80 mt-0.5';
+                    badge.textContent = timeText;
+                    btn.appendChild(badge);
+                }
+            }
+        });
+    };
 
 })();
