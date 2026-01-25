@@ -36,77 +36,58 @@
 <div class="lg:hidden">
     {# === MOBILE APP HEADER === #}
     <div class="qb-mobile-sticky-wrapper">
-        <div class="qb-mobile-header flex-col items-stretch !p-0">
+        {# Import Shared Header #}
+        {% from 'aura_mobile/includes/components/learning_header.html' import render_learning_header %}
 
-            {# --- Row 1: Quiz Badge + Title + Score --- #}
-            <div class="flex items-center justify-between px-3 py-2 bg-gradient-to-r from-indigo-600 to-indigo-700">
-                {# Quiz Badge + Title #}
-                <div class="flex items-center gap-2.5 overflow-hidden max-w-[75%]">
-                    <span
-                        class="flex-shrink-0 flex items-center gap-1 px-2.5 py-1 bg-gradient-to-r from-amber-400 to-amber-500 rounded-lg shadow-md">
-                        <i class="fa-solid fa-bolt text-[10px] text-amber-900"></i>
-                        <span class="text-[10px] font-black text-amber-900 uppercase tracking-wide">Quiz</span>
-                    </span>
-                    <span class="text-sm font-bold text-white truncate js-quiz-set-title"
-                        style="text-shadow: 0 1px 3px rgba(0,0,0,0.3);">Đang tải...</span>
-                </div>
-
-                {# Score Badge #}
-                <div class="flex items-center gap-1.5 h-8 px-3 bg-white/20 rounded-full">
-                    <i class="fa-solid fa-gem text-amber-300 text-xs"></i>
-                    <span id="header-total-score" class="text-sm font-black text-white font-mono">{{
-                        current_user.total_score }}</span>
-                </div>
+        {% call render_learning_header(
+        title_selector='js-quiz-set-title',
+        badge_text='QUIZ BATCH',
+        badge_icon='fa-solid fa-bolt',
+        theme_gradient='bg-gradient-to-r from-indigo-600 to-blue-700',
+        badge_text_color='text-indigo-100',
+        badge_icon_color='text-yellow-300'
+        ) %}
+        {# Left: Score & Stats #}
+        <div class="flex items-center gap-3 overflow-x-auto no-scrollbar mask-gradient-right flex-1 mr-2">
+            {# Total Score #}
+            <div
+                class="flex items-center gap-1.5 px-2.5 py-1 bg-amber-50 rounded-full border border-amber-100 flex-shrink-0">
+                <i class="fa-solid fa-gem text-amber-500 text-xs shadow-amber-glow"></i>
+                <span id="header-total-score" class="text-xs font-black text-amber-600 font-mono tracking-tight">{{
+                    current_user.total_score }}</span>
             </div>
 
-            {# --- Row 2: Stats (Always Visible) --- #}
-            <div class="bg-white border-b border-slate-200">
-                <div class="flex items-center justify-between px-3 py-2">
-                    {# Stats - 4 distinct groups with tooltips #}
-                    <div class="flex items-center gap-1.5 text-xs">
-                        {# Progress: answered/total #}
-                        <div class="stat-pill flex items-center gap-1 px-2 py-1 bg-slate-100 rounded-lg"
-                            data-tooltip="Tiến độ: Số câu đã làm / Tổng số câu">
-                            <i class="fa-solid fa-list-check text-slate-500 text-[9px]"></i>
-                            <span class="text-slate-700 font-semibold js-quiz-total-label">0/0</span>
-                        </div>
+            {# Divider #}
+            <div class="w-px h-4 bg-slate-200 flex-shrink-0"></div>
 
-                        {# Correct count #}
-                        <div class="stat-pill flex items-center gap-1 px-2 py-1 bg-emerald-50 rounded-lg"
-                            data-tooltip="Số câu trả lời đúng trong phiên">
-                            <i class="fa-solid fa-check text-emerald-500 text-[9px]"></i>
-                            <span class="text-emerald-600 font-bold js-session-correct-count">0</span>
-                        </div>
+            {# Progress #}
+            <div class="flex items-center gap-1.5 flex-shrink-0" data-tooltip="Tiến độ">
+                <i class="fa-solid fa-list-check text-slate-400 text-[10px]"></i>
+                <span class="text-xs font-bold text-slate-600 js-quiz-total-label">0/0</span>
+            </div>
 
-                        {# Accuracy % #}
-                        <div class="stat-pill flex items-center gap-1 px-2 py-1 bg-blue-50 rounded-lg"
-                            data-tooltip="Tỉ lệ chính xác (%)">
-                            <i class="fa-solid fa-bullseye text-blue-500 text-[9px]"></i>
-                            <span class="text-blue-600 font-bold js-session-accuracy">0%</span>
-                        </div>
+            {# Correct #}
+            <div class="flex items-center gap-1.5 flex-shrink-0" data-tooltip="Số câu đúng">
+                <i class="fa-solid fa-check text-emerald-500 text-[10px]"></i>
+                <span class="text-xs font-bold text-emerald-600 js-session-correct-count">0</span>
+            </div>
 
-                        {# Session Points #}
-                        <div class="stat-pill flex items-center gap-1 px-2 py-1 bg-amber-50 rounded-lg"
-                            data-tooltip="Điểm kim cương kiếm được trong phiên">
-                            <i class="fa-solid fa-gem text-amber-500 text-[9px]"></i>
-                            <span class="text-amber-600 font-bold font-mono js-stat-session-points">+0</span>
-                        </div>
-                    </div>
-
-                    {# Action Buttons - No stats in batch mode #}
-                    <div class="flex items-center gap-1.5">
-                        <a href="/"
-                            class="w-7 h-7 rounded-full bg-slate-100 text-slate-500 flex items-center justify-center hover:bg-slate-200">
-                            <i class="fa-solid fa-house text-[10px]"></i>
-                        </a>
-                        <button
-                            class="w-7 h-7 rounded-full bg-rose-50 text-rose-500 flex items-center justify-center hover:bg-rose-100 js-end-session-btn">
-                            <i class="fa-solid fa-right-from-bracket text-[10px]"></i>
-                        </button>
-                    </div>
-                </div>
+            {# Points #}
+            <div class="flex items-center gap-1.5 flex-shrink-0" data-tooltip="Điểm phiên">
+                <span class="text-xs font-bold text-amber-500 font-mono js-stat-session-points">+0</span>
             </div>
         </div>
+
+        {# Right: Tools #}
+        <div class="flex items-center gap-2 flex-shrink-0 pl-2 border-l border-slate-100">
+            {# Exit Button #}
+            <button
+                class="w-8 h-8 rounded-full bg-rose-50 text-rose-500 flex items-center justify-center hover:bg-rose-100 transition-colors js-end-session-btn"
+                title="Kết thúc">
+                <i class="fa-solid fa-right-from-bracket text-[10px]"></i>
+            </button>
+        </div>
+        {% endcall %}
     </div>
 
     {# Mobile Tooltip Popup #}

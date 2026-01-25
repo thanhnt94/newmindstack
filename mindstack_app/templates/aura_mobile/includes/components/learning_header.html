@@ -1,0 +1,48 @@
+{% macro render_learning_header(title_selector, badge_text, badge_icon, theme_gradient, badge_text_color='text-white',
+badge_icon_color='text-yellow-300') %}
+<div class="fc-header flex-col items-stretch !p-0 shadow-md z-50 relative">
+
+    {# --- Row 1: Navigation & Title (Themed) --- #}
+    <div class="flex items-center justify-between px-4 py-3 {{ theme_gradient }} text-white shadow-sm">
+        {# Back Button #}
+        <button
+            class="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center hover:bg-white/30 transition-colors backdrop-blur-sm"
+            onclick="history.back()">
+            <i class="fa-solid fa-chevron-left text-sm"></i>
+        </button>
+
+        {# Title & Badge #}
+        <div class="flex flex-col items-center mx-2 overflow-hidden flex-1">
+            <div class="flex items-center gap-1.5 opacity-90 mb-0.5">
+                <i class="{{ badge_icon }} text-[10px] {{ badge_icon_color }}"></i>
+                <span class="text-[10px] font-bold uppercase tracking-widest {{ badge_text_color }} cursor-pointer">{{
+                    badge_text }}</span>
+            </div>
+            <span
+                class="text-sm font-bold text-white truncate w-full text-center {{ title_selector }} leading-tight">...</span>
+        </div>
+
+        {# Home Button #}
+        <a href="/"
+            class="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center hover:bg-white/30 transition-colors backdrop-blur-sm">
+            <i class="fa-solid fa-house text-sm"></i>
+        </a>
+    </div>
+
+    {# --- Row 2: Stats & Tools (White) --- #}
+    <div class="bg-white border-b border-slate-200 shadow-sm relative z-10">
+        <div class="flex items-center justify-between px-4 py-2.5">
+            {{ caller() }}
+        </div>
+    </div>
+
+    {# Progress Line Slot (Optional) #}
+    {% if kwargs.get('show_progress_line') %}
+    <div class="h-0.5 bg-slate-100 w-full">
+        <div class="h-full {{ kwargs.get('progress_color', 'bg-blue-500') }} {{ kwargs.get('progress_selector', '') }} transition-all duration-300"
+            style="width: 0%"></div>
+    </div>
+    {% endif %}
+
+</div>
+{% endmacro %}

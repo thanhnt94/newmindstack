@@ -563,18 +563,21 @@
     </div>
 
     <!-- Pagination -->
-    <div id="pagination-bar" class="quiz-pagination-bar js-pagination-bar"
-        style="position: fixed; bottom: 0; left: 0; right: 0; background: white; padding: 0.75rem; border-top: 1px solid #e2e8f0; display: flex; justify-content: center; gap: 1rem; box-shadow: 0 -4px 12px rgba(0,0,0,0.05); z-index: 50;">
-        <button class="pagination-nav-btn js-prev-page" disabled>
-            <i class="fas fa-chevron-left"></i>
+    <div id="pagination-bar" class="js-pagination-bar"
+        style="position: fixed; bottom: 0; left: 0; right: 0; background: white; padding: 0.75rem; border-top: 1px solid #e2e8f0; display: flex; justify-content: center; align-items: center; gap: 0.5rem; box-shadow: 0 -4px 12px rgba(0,0,0,0.05); z-index: 50;">
+
+        <button
+            class="js-prev-page w-10 h-10 flex items-center justify-center rounded-xl bg-white border border-slate-200 text-slate-600 shadow-sm hover:bg-slate-50 active:scale-95 transition-all disabled:bg-slate-50 disabled:border-slate-100 disabled:text-slate-300 disabled:cursor-not-allowed disabled:shadow-none disabled:active:scale-100">
+            <i class="fas fa-chevron-left text-sm"></i>
         </button>
 
-        <div class="pagination-pages js-page-numbers">
-            <span class="page-num active">1</span>
+        <div class="flex items-center bg-white rounded-xl border border-slate-200 shadow-sm p-1 js-page-numbers">
+            <!-- Injected via JS -->
         </div>
 
-        <button class="pagination-nav-btn js-next-page" disabled>
-            <i class="fas fa-chevron-right"></i>
+        <button
+            class="js-next-page w-10 h-10 flex items-center justify-center rounded-xl bg-white border border-slate-200 text-slate-600 shadow-sm hover:bg-slate-50 active:scale-95 transition-all disabled:bg-slate-50 disabled:border-slate-100 disabled:text-slate-300 disabled:cursor-not-allowed disabled:shadow-none disabled:active:scale-100">
+            <i class="fas fa-chevron-right text-sm"></i>
         </button>
     </div>
 </div>
@@ -922,19 +925,27 @@
                 const page = state.page;
                 let html = '';
 
+                const activeClass = 'w-9 h-9 flex items-center justify-center rounded-lg bg-blue-600 text-white font-bold text-sm shadow-sm mx-0.5';
+                const inactiveClass = 'w-9 h-9 flex items-center justify-center rounded-lg text-slate-600 hover:bg-slate-50 font-medium text-sm mx-0.5 transition-colors cursor-pointer js-page-link';
+                const dotsClass = 'px-2 text-slate-300 text-xs';
+
                 for (let i = 1; i <= totalPages; i++) {
                     if (i === 1 || i === totalPages || (i >= page - 1 && i <= page + 1)) {
-                        html += `<span class="page-num${i === page ? ' active' : ''}" data-page="${i}">${i}</span>`;
+                        if (i === page) {
+                            html += `<span class="${activeClass}">${i}</span>`;
+                        } else {
+                            html += `<div class="${inactiveClass}" data-page="${i}">${i}</div>`;
+                        }
                     } else if (i === 2 && page > 3) {
-                        html += '<span class="page-num dots">...</span>';
+                        html += `<span class="${dotsClass}">...</span>`;
                     } else if (i === totalPages - 1 && page < totalPages - 2) {
-                        html += '<span class="page-num dots">...</span>';
+                        html += `<span class="${dotsClass}">...</span>`;
                     }
                 }
                 els.pageNumbers.innerHTML = html;
 
                 // Bind click to page numbers
-                els.pageNumbers.querySelectorAll('.page-num:not(.dots)').forEach(el => {
+                els.pageNumbers.querySelectorAll('.js-page-link').forEach(el => {
                     el.addEventListener('click', () => {
                         const p = parseInt(el.dataset.page);
                         if (p !== state.page) {
