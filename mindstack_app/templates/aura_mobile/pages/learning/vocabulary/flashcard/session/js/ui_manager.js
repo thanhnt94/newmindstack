@@ -412,6 +412,23 @@ function renderCard(data) {
         const mobileStatsBtn = document.querySelector('.js-fc-card-details-btn');
         if (mobileStatsBtn) mobileStatsBtn.classList.remove('hidden');
 
+        // [NEW] Update overlay audio button for back side
+        const overlayAudioBtn = document.querySelector('.js-fc-audio-btn-overlay');
+        const overlayAudioIcon = document.querySelector('.js-fc-audio-icon-overlay');
+        if (overlayAudioBtn && overlayAudioIcon) {
+            if (hasBackAudio) {
+                overlayAudioBtn.classList.remove('opacity-50', 'cursor-not-allowed', 'bg-slate-500/90');
+                overlayAudioBtn.classList.add('bg-blue-500/90', 'hover:bg-blue-600');
+                overlayAudioIcon.className = 'fa-solid fa-volume-high text-sm js-fc-audio-icon-overlay';
+                overlayAudioBtn.dataset.hasAudio = 'true';
+            } else {
+                overlayAudioBtn.classList.add('opacity-50', 'cursor-not-allowed', 'bg-slate-500/90');
+                overlayAudioBtn.classList.remove('bg-blue-500/90', 'hover:bg-blue-600');
+                overlayAudioIcon.className = 'fa-solid fa-volume-xmark text-sm js-fc-audio-icon-overlay';
+                overlayAudioBtn.dataset.hasAudio = 'false';
+            }
+        }
+
         setTimeout(adjustCardLayout, 0);
         if (!isAutoplaySession && window.autoPlayBackSide) {
             window.autoPlayBackSide();
@@ -530,6 +547,28 @@ function renderCard(data) {
     // [NEW] Update FSRS estimates on rating buttons
     if (window.updateRatingButtonEstimates) {
         window.updateRatingButtonEstimates(data);
+    }
+
+    // [NEW] Update overlay audio button state based on audio availability
+    const overlayAudioBtn = document.querySelector('.js-fc-audio-btn-overlay');
+    const overlayAudioIcon = document.querySelector('.js-fc-audio-icon-overlay');
+    if (overlayAudioBtn && overlayAudioIcon) {
+        // Check if front side has audio (card starts on front)
+        const hasAudio = hasFrontAudio;
+
+        if (hasAudio) {
+            overlayAudioBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+            overlayAudioBtn.classList.add('bg-blue-500/90', 'hover:bg-blue-600');
+            overlayAudioBtn.classList.remove('bg-slate-500/90');
+            overlayAudioIcon.className = 'fa-solid fa-volume-high text-sm js-fc-audio-icon-overlay';
+            overlayAudioBtn.dataset.hasAudio = 'true';
+        } else {
+            overlayAudioBtn.classList.add('opacity-50', 'cursor-not-allowed');
+            overlayAudioBtn.classList.remove('bg-blue-500/90', 'hover:bg-blue-600');
+            overlayAudioBtn.classList.add('bg-slate-500/90');
+            overlayAudioIcon.className = 'fa-solid fa-volume-xmark text-sm js-fc-audio-icon-overlay';
+            overlayAudioBtn.dataset.hasAudio = 'false';
+        }
     }
 }
 

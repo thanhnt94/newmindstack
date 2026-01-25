@@ -103,6 +103,8 @@
       height: 100%;
       padding: 1rem;
       background: linear-gradient(135deg, rgba(255, 255, 255, 0.96), rgba(248, 250, 252, 0.96));
+      position: relative;
+      /* CRITICAL: For overlay positioning */
   }
 
   .page-title {

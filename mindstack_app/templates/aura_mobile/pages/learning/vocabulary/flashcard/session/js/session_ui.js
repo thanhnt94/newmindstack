@@ -221,6 +221,25 @@
         });
     }
 
+    // Audio button in card overlay - sync with header audio button
+    document.addEventListener('click', function (e) {
+        const overlayAudioBtn = e.target.closest('.js-fc-audio-btn-overlay');
+        if (overlayAudioBtn) {
+            // Find the corresponding audio button in the visible container
+            const headerAudioBtn = document.querySelector('.js-fc-audio-btn');
+            if (headerAudioBtn) {
+                headerAudioBtn.click();
+            } else {
+                // Fallback: try to play audio directly
+                const visibleContainer = window.getVisibleFlashcardContentDiv ? window.getVisibleFlashcardContentDiv() : document;
+                const audioButton = visibleContainer.querySelector('.play-audio-btn');
+                if (audioButton && window.playAudioForButton) {
+                    window.playAudioForButton(audioButton, { suppressLoadingUi: false });
+                }
+            }
+        }
+    });
+
     // Image toggle with dynamic text/icon
     const imageToggleBtn = document.querySelector('.js-fc-image-toggle');
     const imageIcon = document.querySelector('.js-fc-image-icon');
@@ -231,11 +250,18 @@
     let isImageHidden = storedImageHidden === 'true';
 
     function updateImageToggleUI() {
+        // Update header toggle button
         if (imageIcon) {
             imageIcon.className = isImageHidden ? 'fas fa-eye js-fc-image-icon' : 'fas fa-eye-slash js-fc-image-icon';
         }
         if (imageText) {
             imageText.textContent = isImageHidden ? 'Hiện ảnh' : 'Ẩn ảnh';
+        }
+
+        // Update overlay toggle button icon
+        const overlayIcon = document.querySelector('.js-fc-image-icon-overlay');
+        if (overlayIcon) {
+            overlayIcon.className = isImageHidden ? 'fas fa-eye text-sm js-fc-image-icon-overlay' : 'fas fa-image text-sm js-fc-image-icon-overlay';
         }
     }
 
@@ -250,6 +276,7 @@
     applyImageVisibility();
     updateImageToggleUI();
 
+    // Header image toggle button
     if (imageToggleBtn) {
         imageToggleBtn.addEventListener('click', function () {
             isImageHidden = !isImageHidden;
@@ -263,6 +290,22 @@
             }
         });
     }
+
+    // Overlay image toggle button
+    document.addEventListener('click', function (e) {
+        const overlayImageBtn = e.target.closest('.js-fc-image-toggle-overlay');
+        if (overlayImageBtn) {
+            isImageHidden = !isImageHidden;
+            localStorage.setItem('flashcardHideImages', isImageHidden);
+            applyImageVisibility();
+            updateImageToggleUI();
+
+            // [FIX] Sync to server
+            if (window.updateVisualSettings) {
+                window.updateVisualSettings({ show_image: !isImageHidden });
+            }
+        }
+    });
 
     // Re-apply image visibility when new cards load
     document.addEventListener('flashcardStatsUpdated', function () {
@@ -787,23 +830,48 @@
         };
 
         if (data.statistics) {
+            // Update both info bar and overlay
             setText('.js-card-times-reviewed', data.statistics.times_reviewed || 0);
+            setText('.js-card-overlay-times-reviewed', data.statistics.times_reviewed || 0);
+
             setText('.js-card-streak', data.statistics.current_streak || 0);
+            setText('.js-card-overlay-streak', data.statistics.current_streak || 0);
         }
 
         if (data.memory_power) {
             // Stability: làm tròn 1 số lẻ (vd: 2.5)
             const stab = parseFloat(data.memory_power.stability || 0).toFixed(1);
             setText('.js-card-stability', stab);
+            setText('.js-card-overlay-stability', stab);
 
             // Retrievability: Backend đã trả về % (vd: 90.5), chỉ cần làm tròn
             const retriev = Math.round(data.memory_power.retrievability || 0);
             setText('.js-card-retrievability', retriev);
+            setText('.js-card-overlay-retrievability', retriev);
         }
 
-        // Cập nhật trạng thái (Badge)
+        // Cập nhật trạng thái (Badge) - both info bar and overlay
         if (data.new_progress_status) {
             setText('.js-card-status-text', data.new_progress_status.toUpperCase());
+            setText('.js-card-overlay-status-text', data.new_progress_status.toUpperCase());
+
+            // Update badge color based on status
+            const overlayBadge = document.querySelector('.js-card-overlay-status-badge');
+            if (overlayBadge) {
+                // Remove old status classes
+                overlayBadge.className = overlayBadge.className.replace(/bg-\w+-\d+\/\d+/g, '');
+
+                // Apply new color based on status
+                const statusColors = {
+                    'new': 'bg-blue-500/90',
+                    'learning': 'bg-amber-500/90',
+                    'review': 'bg-emerald-500/90',
+                    'relearning': 'bg-rose-500/90'
+                };
+                const colorClass = statusColors[data.new_progress_status.toLowerCase()] || 'bg-slate-500/90';
+                overlayBadge.classList.add(colorClass);
+            }
+
             // (Tùy chọn) Gọi lại hàm updateStateBadge nếu cần đổi màu
             if (window.updateStateBadge) window.updateStateBadge(data.new_progress_status);
         }
