@@ -1,172 +1,933 @@
 {# Quiz Learning Hub - Refactored Modular Structure #}
 {% set _v = template_version %}
-{% extends _v ~ '/base.html' %}
+{# FIX: Explicitly default to aura_mobile/base.html if _v is missing #}
+{% extends (template_version or 'aura_mobile') ~ '/base.html' %}
+
 {% block title %}Hoc Quiz - MindStack{% endblock %}
+
 {% block head %}
 {{ super() }}
-{% include _v ~ '/includes/assets/_markdown_assets.html' %}
+{% include (template_version or 'aura_mobile') ~ '/includes/assets/_markdown_assets.html' %}
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-{# Load modular CSS files #}
 <style>
-    {
-        % include _v~'/pages/learning/quiz/dashboard/css/dashboard.css' %
+    /* =============================================
+   Quiz Dashboard - Premium Mobile Styles
+   Aligned with Vocabulary Dashboard
+   ============================================= */
+
+    :root {
+        --quiz-primary: #3b82f6;
+        --quiz-primary-light: #60a5fa;
+        --quiz-primary-dark: #2563eb;
+        --quiz-bg: #f8fafc;
+    }
+
+    body {
+        font-family: 'Inter', sans-serif;
+        background-color: var(--quiz-bg);
+    }
+
+    /* Force Hidden Header/Footer for Mobile View */
+    body>header,
+    body>footer,
+    .site-footer {
+        display: none !important;
+    }
+
+    body>main {
+        padding: 0 !important;
+        margin: 0 !important;
+        max-width: none !important;
+    }
+
+    /* === STEPS ARCHITECTURE === */
+    .quiz-step {
+        display: none;
+        position: fixed;
+        inset: 0;
+        z-index: 100;
+        background: var(--quiz-bg);
+        flex-direction: column;
+        overflow-y: auto;
+    }
+
+    .quiz-step.active {
+        display: flex;
+    }
+
+    /* === HEADERS === */
+    .quiz-header {
+        background: white;
+        padding: 0.75rem 1rem;
+        border-bottom: 1px solid #e2e8f0;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        flex-shrink: 0;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+    }
+
+    .quiz-back-btn,
+    .step-back-btn,
+    .step-home-btn {
+        width: 36px;
+        height: 36px;
+        border-radius: 0.75rem;
+        background: #f1f5f9;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #64748b;
+        cursor: pointer;
+        transition: all 0.2s;
+        text-decoration: none;
+        border: none;
+    }
+
+    .quiz-back-btn:hover,
+    .step-back-btn:hover,
+    .step-home-btn:hover {
+        background: #e2e8f0;
+        color: #1e293b;
+    }
+
+    .quiz-title,
+    .step-header-title {
+        font-weight: 700;
+        color: #1e293b;
+        font-size: 1.125rem;
+        flex: 1;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    /* === SEARCH === */
+    .quiz-search-wrap {
+        padding: 0.75rem 1rem;
+        background: white;
+        border-bottom: 1px solid #e2e8f0;
+    }
+
+    .quiz-search {
+        display: flex;
+        align-items: center;
+        background: #f1f5f9;
+        border-radius: 0.75rem;
+        padding: 0.5rem 0.75rem;
+        gap: 0.5rem;
+    }
+
+    .quiz-search i {
+        color: #94a3b8;
+    }
+
+    .quiz-search input {
+        border: none;
+        background: transparent;
+        flex: 1;
+        font-size: 0.875rem;
+        outline: none;
+        color: #1e293b;
+    }
+
+    /* === TABS === */
+    .quiz-tabs {
+        display: flex;
+        gap: 0.25rem;
+        padding: 0.5rem 1rem;
+        background: white;
+        border-bottom: 1px solid #e2e8f0;
+    }
+
+    .quiz-tab {
+        flex: 1;
+        padding: 0.5rem;
+        text-align: center;
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: #64748b;
+        border-radius: 0.5rem;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .quiz-tab.active {
+        background: var(--quiz-primary);
+        color: white;
+        box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2);
+    }
+
+    /* === GRID & CARDS === */
+    .quiz-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.75rem;
+        padding: 1rem;
+        padding-bottom: 100px;
+        /* Space for pagination/footer */
+    }
+
+    @media (min-width: 640px) {
+        .quiz-grid {
+            grid-template-columns: repeat(3, 1fr);
+        }
+    }
+
+    @media (min-width: 1024px) {
+        .quiz-grid {
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1rem;
+        }
+    }
+
+    .quiz-set-card {
+        background: white;
+        border-radius: 1rem;
+        overflow: hidden;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        cursor: pointer;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        border: 1px solid rgba(0, 0, 0, 0.05);
+        display: flex;
+        flex-direction: column;
+    }
+
+    .quiz-set-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 12px 24px rgba(59, 130, 246, 0.15);
+        border-color: rgba(59, 130, 246, 0.3);
+    }
+
+    .quiz-set-cover {
+        height: 110px;
+        background: linear-gradient(135deg, #3b82f6 0%, #0ea5e9 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .quiz-set-cover::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(180deg, transparent 50%, rgba(0, 0, 0, 0.1) 100%);
+    }
+
+    .quiz-set-cover i {
+        font-size: 2.5rem;
+        color: rgba(255, 255, 255, 0.9);
+        text-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+        z-index: 1;
+    }
+
+    .quiz-set-info {
+        padding: 0.875rem;
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .quiz-set-title {
+        font-weight: 700;
+        color: #1e293b;
+        font-size: 0.9rem;
+        margin-bottom: auto;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        line-height: 1.35;
+    }
+
+    .quiz-set-meta {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        font-size: 0.75rem;
+        color: #64748b;
+        margin-top: 0.75rem;
+    }
+
+    .quiz-set-count {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+        font-weight: 600;
+        color: #3b82f6;
+        background: #eff6ff;
+        padding: 0.2rem 0.5rem;
+        border-radius: 0.375rem;
+    }
+
+    /* === DETAIL HERO === */
+    .quiz-detail-hero {
+        height: 240px;
+        background: linear-gradient(135deg, #3b82f6 0%, #2563eb 50%, #0284c7 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+        overflow: hidden;
+        animation: gradientShift 8s ease infinite;
+        background-size: 200% 200%;
+    }
+
+    @keyframes gradientShift {
+
+        0%,
+        100% {
+            background-position: 0% 50%;
+        }
+
+        50% {
+            background-position: 100% 50%;
+        }
+    }
+
+    .quiz-detail-hero i {
+        font-size: 5rem;
+        color: white;
+        opacity: 0.9;
+        animation: floatIcon 3s ease-in-out infinite;
+    }
+
+    @keyframes floatIcon {
+
+        0%,
+        100% {
+            transform: translateY(0);
+        }
+
+        50% {
+            transform: translateY(-10px);
+        }
+    }
+
+    .quiz-detail-content {
+        padding: 1.5rem;
+    }
+
+    .quiz-detail-title {
+        font-size: 1.75rem;
+        font-weight: 900;
+        background: linear-gradient(135deg, #1e293b 0%, #3b82f6 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        margin-bottom: 1rem;
+        line-height: 1.2;
+    }
+
+    .quiz-detail-stats {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1rem;
+        margin-bottom: 2rem;
+    }
+
+    .quiz-stat {
+        text-align: center;
+        padding: 1.25rem;
+        background: white;
+        border-radius: 1rem;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        border: 1px solid #e2e8f0;
+    }
+
+    .quiz-stat-value {
+        font-size: 2rem;
+        font-weight: 900;
+        color: #3b82f6;
+        line-height: 1;
+        margin-bottom: 0.25rem;
+    }
+
+    .quiz-stat-label {
+        font-size: 0.7rem;
+        font-weight: 700;
+        color: #64748b;
+        text-transform: uppercase;
+    }
+
+    /* === FOOTER & BUTTONS === */
+    .quiz-footer {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        padding: 1rem;
+        background: white;
+        border-top: 1px solid #e2e8f0;
+        z-index: 50;
+        box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.05);
+    }
+
+    .quiz-start-btn {
+        width: 100%;
+        padding: 1rem;
+        background: #3b82f6;
+        color: white;
+        font-weight: 700;
+        border: none;
+        border-radius: 0.75rem;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        transition: background 0.2s;
+    }
+
+    .quiz-start-btn:disabled {
+        background: #cbd5e1;
+        cursor: not-allowed;
+    }
+
+    .quiz-start-btn:hover:not(:disabled) {
+        background: #2563eb;
+    }
+
+    /* === MODE CARDS === */
+    .quiz-mode-card {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding: 1rem;
+        background: white;
+        border: 2px solid #e2e8f0;
+        border-radius: 1rem;
+        margin-bottom: 0.75rem;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .quiz-mode-card.selected {
+        border-color: #3b82f6;
+        background: #eff6ff;
+        box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+    }
+
+    .quiz-mode-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        color: white;
+        font-size: 1.25rem;
+    }
+
+    /* === PAGINATION === */
+    .quiz-pagination-bar {
+        position: fixed;
+        bottom: 0px;
+        left: 0;
+        right: 0;
+        background: white;
+        padding: 0.75rem;
+        border-top: 1px solid #e2e8f0;
+        display: flex;
+        justify-content: center;
+        gap: 1rem;
+        z-index: 50;
+    }
+
+    .pagination-nav-btn {
+        width: 40px;
+        height: 40px;
+        border-radius: 0.75rem;
+        border: 1px solid #e2e8f0;
+        background: white;
+        color: #64748b;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .pagination-nav-btn:disabled {
+        opacity: 0.5;
+    }
+
+    /* === STATES === */
+    .quiz-loading,
+    .quiz-empty {
+        padding: 4rem 1rem;
+        text-align: center;
+        color: #94a3b8;
+    }
+
+    .quiz-loading i {
+        font-size: 2rem;
+        color: #3b82f6;
+        margin-bottom: 1rem;
+    }
+
+    .quiz-empty i {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+    }
+
+    /* === UTILS === */
+    .hidden {
+        display: none !important;
     }
 </style>
 {% endblock %}
+
 {% block content %}
-{# ========== UNIFIED MOBILE VIEW ========== #}
-<div id="unified-quiz-dashboard">
-    <div id="step-browser" class="quiz-step active">
-        <div class="quiz-header">
-            <a href="{{ url_for('stats.dashboard') }}" class="quiz-back-btn"><i class="fas fa-arrow-left"></i></a>
-            <span class="quiz-title">Hoc Quiz</span>
-            <a href="/dashboard" class="quiz-back-btn" title="Ve trang chu" style="margin-left: auto;"><i
-                    class="fas fa-home"></i></a>
-        </div>
-        <div class="quiz-search-wrap">
-            <div class="quiz-search">
-                <i class="fas fa-search"></i>
-                <input type="text" id="search-input" placeholder="Tim kiem bo quiz...">
-            </div>
-        </div>
-        <div class="quiz-tabs">
-            <div class="quiz-tab active" data-category="my">Cua toi</div>
-            <div class="quiz-tab" data-category="learning">Dang hoc</div>
-            <div class="quiz-tab" data-category="explore">Kham pha</div>
-        </div>
-        <div class="quiz-scroll" style="padding-bottom: 80px;">
-            <div id="sets-grid" class="quiz-grid">
-                <div class="quiz-loading"><i class="fas fa-spinner fa-spin"></i>
-                    <p>Dang tai...</p>
-                </div>
-            </div>
-        </div>
-        <div id="pagination-bar" class="quiz-pagination-bar">
-            <button class="pagination-nav-btn js-prev-page" disabled><i class="fas fa-chevron-left"></i></button>
-            <div class="pagination-pages js-page-numbers"><span class="page-num active">1</span></div>
-            <button class="pagination-nav-btn js-next-page" disabled><i class="fas fa-chevron-right"></i></button>
+{# ========== STEP 1: SETS BROWSER ========== #}
+<div id="step-sets" class="quiz-step active">
+    <!-- Header -->
+    <div class="quiz-header">
+        <a href="{{ url_for('stats.dashboard') }}" class="quiz-back-btn"><i class="fas fa-arrow-left"></i></a>
+        <span class="quiz-title">Học Quiz</span>
+        <a href="/dashboard" class="quiz-back-btn" style="margin-left: auto;"><i class="fas fa-home"></i></a>
+    </div>
+
+    <!-- Search -->
+    <div class="quiz-search-wrap">
+        <div class="quiz-search">
+            <i class="fas fa-search"></i>
+            <input type="text" id="search-input" placeholder="Tìm kiếm bộ quiz...">
         </div>
     </div>
-    <div id="step-detail" class="quiz-step">
-        <div class="step-header">
-            <a href="javascript:void(0)" class="step-back-btn js-back-to-browser"><i class="fas fa-arrow-left"></i></a>
-            <div class="step-header-info" style="opacity: 0; transition: opacity 0.3s;">
-                <div class="step-header-title js-header-title">Ten bo quiz</div>
-                <div class="step-header-meta"><span class="js-header-count">0</span> cau hoi</div>
-            </div>
-            <a href="/dashboard" class="step-home-btn" title="Ve trang chu"><i class="fas fa-home"></i></a>
-        </div>
-        <div class="quiz-scroll">
-            <div class="quiz-detail-hero js-detail-cover"><i class="fas fa-question-circle"></i></div>
-            <div class="quiz-detail-content" style="opacity: 0; transition: opacity 0.3s;">
-                <h1 class="quiz-detail-title js-detail-title">Ten bo quiz</h1>
-                <div class="quiz-creator-inline">
-                    <div class="quiz-creator-avatar-small js-creator-avatar">A</div>
-                    <span class="quiz-creator-name-small js-creator-name">Admin</span>
-                </div>
-                <p class="quiz-detail-desc js-detail-desc">Mo ta bo quiz...</p>
-                <div class="quiz-detail-stats">
-                    <div class="quiz-stat">
-                        <div class="quiz-stat-value js-question-count">0</div>
-                        <div class="quiz-stat-label">Cau hoi</div>
-                    </div>
-                    <div class="quiz-stat">
-                        <div class="quiz-stat-value quiz-stat-count js-progress-count">0/0</div>
-                        <div class="quiz-stat-label">Da hoc</div>
-                    </div>
-                </div>
-                <h3 class="font-bold text-slate-700 mb-3 mt-6">Danh sach cau hoi</h3>
-                <div class="js-question-list">
-                    <div class="py-12 flex justify-center"><i class="fas fa-spinner fa-spin text-2xl text-blue-500"></i>
-                    </div>
-                </div>
-                <div style="height: 100px;"></div>
-            </div>
-        </div>
-        <div class="quiz-footer"><button class="quiz-start-btn js-start-learning"><i class="fas fa-play-circle"></i> Bat
-                dau hoc</button></div>
+
+    <!-- Tabs -->
+    <div class="quiz-tabs">
+        <div class="quiz-tab active" data-category="learning">Đang học</div>
+        <div class="quiz-tab" data-category="explore">Khám phá</div>
     </div>
-    <div id="step-modes" class="quiz-step">
-        <div class="step-header">
-            <a href="javascript:void(0)" class="step-back-btn js-back-to-detail"><i class="fas fa-arrow-left"></i></a>
-            <div class="step-header-info">
-                <div class="step-header-title">Chon che do hoc</div>
-            </div>
-            <a href="/dashboard" class="step-home-btn" title="Ve trang chu"><i class="fas fa-home"></i></a>
+
+    <!-- Grid -->
+    <div id="sets-grid" class="quiz-grid">
+        <div class="quiz-loading">
+            <i class="fas fa-spinner fa-spin"></i>
+            <p>Đang tải...</p>
         </div>
-        <div class="quiz-scroll" style="padding: 1rem;">
-            <div class="js-modes-container"></div>
+    </div>
+
+    <!-- Pagination -->
+    <div id="pagination-bar" class="quiz-pagination-bar">
+        <button class="pagination-nav-btn js-prev-page" disabled><i class="fas fa-chevron-left"></i></button>
+        <span class="text-sm font-bold text-slate-600">Trang <span class="js-current-page">1</span></span>
+        <button class="pagination-nav-btn js-next-page" disabled><i class="fas fa-chevron-right"></i></button>
+    </div>
+</div>
+
+{# ========== STEP 2: SET DETAIL ========== #}
+<div id="step-detail" class="quiz-step">
+    <div class="quiz-header">
+        <button class="quiz-back-btn js-back-to-sets"><i class="fas fa-arrow-left"></i></button>
+        <div class="flex-1 flex flex-col overflow-hidden ml-3">
+            <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Bộ câu hỏi</span>
+            <span class="text-sm font-bold text-slate-800 truncate js-header-title">--</span>
         </div>
-        <div class="quiz-footer">
-            <div class="config-card">
-                <div class="flex justify-between items-center">
-                    <div class="config-header"><i class="fas fa-sort-numeric-up"></i> So luong: <span
-                            id="limit-status-text" class="text-blue-500 font-semibold">Tat ca</span></div>
-                    <label class="flex items-center cursor-pointer">
-                        <span class="mr-2 text-sm font-medium text-gray-600">Tuy chinh</span>
-                        <div class="relative">
-                            <input type="checkbox" id="limit-toggle" class="sr-only">
-                            <div class="block bg-gray-200 w-10 h-6 rounded-full transition-colors toggle-bg"></div>
-                            <div
-                                class="dot absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform transform">
-                            </div>
-                        </div>
-                    </label>
+
+        <!-- Header Buttons (Edit, List, Home) -->
+        <button class="quiz-back-btn js-open-edit-modal ml-2" title="Sửa bộ quiz">
+            <i class="fas fa-pen"></i>
+        </button>
+        <a href="#" class="quiz-back-btn js-go-to-list ml-2" title="Danh sách câu hỏi">
+            <i class="fas fa-list"></i>
+        </a>
+        <a href="/dashboard" class="quiz-back-btn ml-2" title="Về trang chủ">
+            <i class="fas fa-home"></i>
+        </a>
+    </div>
+
+    <div class="quiz-scroll">
+        <!-- Hero -->
+        <div class="quiz-detail-hero">
+            <i class="fas fa-question-circle"></i>
+        </div>
+
+        <div class="quiz-detail-content">
+            <h1 class="quiz-detail-title js-detail-title">--</h1>
+            <div class="quiz-creator-inline">
+                <div class="quiz-creator-avatar-small js-creator-avatar">U</div>
+                <span class="quiz-creator-name-small js-creator-name">--</span>
+            </div>
+            <p class="quiz-detail-desc js-detail-desc">--</p>
+
+            <div class="quiz-detail-stats">
+                <div class="quiz-stat">
+                    <div class="quiz-stat-value js-question-count">0</div>
+                    <div class="quiz-stat-label">Câu hỏi</div>
                 </div>
-                <div id="limit-options" class="hidden mt-3">
-                    <select id="session-size-select" class="session-size-select w-full">
-                        <option value="5">5 cau</option>
-                        <option value="10" selected>10 cau</option>
-                        <option value="20">20 cau</option>
-                        <option value="30">30 cau</option>
-                        <option value="50">50 cau</option>
-                        <option value="100">100 cau</option>
-                    </select>
+                <div class="quiz-stat">
+                    <div class="quiz-stat-value js-progress-count">0%</div>
+                    <div class="quiz-stat-label">Đã hoàn thành</div>
                 </div>
             </div>
-            <div class="config-card mt-3">
-                <div class="flex justify-between items-center">
-                    <div class="config-header"><i class="fas fa-layer-group"></i> Luot: <span id="turn-status-text"
-                            class="text-blue-500 font-semibold">1 cau</span></div>
-                    <label class="flex items-center cursor-pointer">
-                        <span class="mr-2 text-sm font-medium text-gray-600">Tuy chinh</span>
-                        <div class="relative">
-                            <input type="checkbox" id="turn-toggle" class="sr-only">
-                            <div class="block bg-gray-200 w-10 h-6 rounded-full transition-colors toggle-bg"></div>
-                            <div
-                                class="dot absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform transform">
-                            </div>
-                        </div>
-                    </label>
-                </div>
-                <div id="turn-options" class="hidden mt-3">
-                    <select id="turn-size-select" class="session-size-select w-full">
-                        <option value="1" selected>1 cau moi luot</option>
-                        <option value="2">2 cau moi luot</option>
-                        <option value="3">3 cau moi luot</option>
-                        <option value="5">5 cau moi luot</option>
-                        <option value="10">10 cau moi luot</option>
-                    </select>
+
+            <!-- Question List Preview (Optional) -->
+            <div class="mt-6">
+                <h3 class="font-bold text-slate-700 mb-3">Danh sách câu hỏi</h3>
+                <div class="js-question-list space-y-3">
+                    <!-- Populated by JS -->
                 </div>
             </div>
-            <button class="quiz-start-btn js-start-session" disabled><i class="fas fa-play-circle"></i> Bat dau phien
-                hoc</button>
+        </div>
+    </div>
+
+    <div class="quiz-footer">
+        <button class="quiz-start-btn js-go-to-modes">
+            <i class="fas fa-play"></i> Luyện tập ngay
+        </button>
+    </div>
+</div>
+
+<!-- Edit Set Modal -->
+<div id="edit-set-modal"
+    class="fixed inset-0 z-[200] hidden items-center justify-center bg-black/50 backdrop-blur-sm p-4 opacity-0 transition-opacity duration-300">
+    <div
+        class="bg-white w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden transform scale-95 transition-transform duration-300 flex flex-col max-h-[90vh]">
+        <div class="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+            <h3 class="font-bold text-slate-800 text-lg">Sửa bộ câu hỏi</h3>
+            <button
+                class="w-8 h-8 rounded-full bg-slate-200 text-slate-500 flex items-center justify-center hover:bg-slate-300 js-close-edit-modal">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div id="edit-modal-content" class="p-4 overflow-y-auto flex-1">
+            <div class="flex justify-center py-8">
+                <i class="fas fa-spinner fa-spin text-3xl text-blue-500"></i>
+            </div>
         </div>
     </div>
 </div>
-{% endblock content %}
+
+{# ========== STEP 3: MODES SELECTION ========== #}
+<div id="step-modes" class="quiz-step">
+    <div class="quiz-header">
+        <button class="quiz-back-btn js-back-to-detail"><i class="fas fa-arrow-left"></i></button>
+        <span class="quiz-title">Chế độ học</span>
+    </div>
+
+    <div class="quiz-scroll" style="padding: 1rem;">
+        <div class="js-modes-container">
+            <!-- Mode Cards Injected Here -->
+        </div>
+
+        <!-- Settings Card -->
+        <div class="bg-slate-50 border border-slate-200 rounded-xl p-4 mt-4">
+            <h3 class="font-bold text-slate-700 mb-3 text-sm uppercase">Cấu hình phiên</h3>
+
+            <!-- Batch Size -->
+            <div class="flex items-center justify-between mb-3">
+                <span class="text-sm font-semibold text-slate-600">Số lượng câu</span>
+                <select id="session-size-select" class="session-size-select">
+                    <option value="5">5 câu</option>
+                    <option value="10" selected>10 câu</option>
+                    <option value="20">20 câu</option>
+                    <option value="50">50 câu</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <div class="quiz-footer">
+        <button class="quiz-start-btn js-start-session" disabled>
+            <i class="fas fa-rocket"></i> Bắt đầu phiên
+        </button>
+    </div>
+</div>
+
+{% endblock %}
+
 {% block scripts %}
 {{ super() }}
-<script>{% include _v ~ '/pages/learning/quiz/dashboard/js/dashboard.js' %}</script>
 <script>
     document.addEventListener('DOMContentLoaded', function () {
-        QuizDashboard.init({
-            apiSetsUrl: "{{ url_for('learning.quiz_learning.api_get_quiz_sets') }}",
-            apiSetDetailUrl: "{{ url_for('learning.quiz_learning.api_get_quiz_set_detail', set_id=0) }}",
-            startSessionUrl: "{{ url_for('learning.quiz_learning.start_quiz_session_by_id', set_id=0, mode='MODE') }}",
-            initialSetId: {{ initial_set_id|default('null') }},
-        savedBatchSize: {{ user_default_batch_size|default(10) | int }}
+        // --- CONFIG & STATE ---
+        const api = {
+            sets: "{{ url_for('learning.quiz_learning.api_get_quiz_sets') }}",
+            detail: "{{ url_for('learning.quiz_learning.api_get_quiz_set_detail', set_id=0) }}",
+            start: "{{ url_for('learning.quiz_learning.start_quiz_session_by_id', set_id=0, mode='MODE') }}"
+        };
+
+        const state = {
+            currentSetId: null,
+            currentMode: null,
+            page: 1,
+            category: 'learning',
+            loading: false
+        };
+
+        // --- ELEMENTS ---
+        const steps = {
+            sets: document.getElementById('step-sets'),
+            detail: document.getElementById('step-detail'),
+            modes: document.getElementById('step-modes')
+        };
+        const els = {
+            grid: document.getElementById('sets-grid'),
+            input: document.getElementById('search-input'),
+            tabs: document.querySelectorAll('.quiz-tab'),
+            pagination: document.getElementById('pagination-bar'),
+            // Detail
+            detailTitle: document.querySelectorAll('.js-detail-title'), // both header and hero title
+            headerTitle: document.querySelector('.js-header-title'),
+            detailDesc: document.querySelector('.js-detail-desc'),
+            detailCount: document.querySelector('.js-question-count'),
+            detailProgress: document.querySelector('.js-progress-count'),
+            creatorName: document.querySelector('.js-creator-name'),
+            creatorAvatar: document.querySelector('.js-creator-avatar'),
+            questionList: document.querySelector('.js-question-list'),
+            listBtn: document.querySelector('.js-go-to-list'),
+            // Modes
+            modesContainer: document.querySelector('.js-modes-container'),
+            startBtn: document.querySelector('.js-start-session'),
+            sizeSelect: document.getElementById('session-size-select'),
+            // Modal
+            modal: document.getElementById('edit-set-modal'),
+            modalContent: document.getElementById('edit-modal-content'),
+            closeModalBtn: document.querySelector('.js-close-edit-modal'),
+            openModalBtn: document.querySelector('.js-open-edit-modal')
+        };
+
+        // --- MODAL LOGIC ---
+        function openEditModal() {
+            if (!state.currentSetId) return;
+            els.modal.classList.remove('hidden');
+            // Trigger reflow
+            els.modal.offsetHeight;
+            els.modal.classList.remove('opacity-0');
+            els.modal.querySelector('div').classList.remove('scale-95');
+
+            // Fetch content
+            els.modalContent.innerHTML = '<div class="flex justify-center py-8"><i class="fas fa-spinner fa-spin text-3xl text-blue-500"></i></div>';
+
+            fetch(`/content-management/quizzes/edit/${state.currentSetId}?is_modal=true`)
+                .then(r => r.text())
+                .then(html => {
+                    els.modalContent.innerHTML = html;
+                    // Re-bind forms if necessary (handled by standard form submission usually, but might need Ajax handling if we want to stay in page)
+                })
+                .catch(() => {
+                    els.modalContent.innerHTML = '<p class="text-red-500 text-center">Lỗi tải dữ liệu.</p>';
+                });
+        }
+
+        function closeEditModal() {
+            els.modal.classList.add('opacity-0');
+            els.modal.querySelector('div').classList.add('scale-95');
+            setTimeout(() => {
+                els.modal.classList.add('hidden');
+            }, 300);
+        }
+
+        if (els.openModalBtn) els.openModalBtn.addEventListener('click', openEditModal);
+        if (els.closeModalBtn) els.closeModalBtn.addEventListener('click', closeEditModal);
+
+        // --- NAVIGATION ---
+        function showStep(stepId) {
+            Object.values(steps).forEach(el => el.classList.remove('active'));
+            if (steps[stepId]) steps[stepId].classList.add('active');
+        }
+
+        // --- LOAD SETS ---
+        async function loadSets() {
+            if (state.loading) return;
+            state.loading = true;
+            els.grid.innerHTML = '<div class="quiz-loading"><i class="fas fa-spinner fa-spin"></i><p>Đang tải...</p></div>';
+
+            try {
+                const url = `${api.sets}?category=${state.category}&page=${state.page}&q=${els.input.value}`;
+                const res = await fetch(url);
+                const data = await res.json();
+
+                renderSets(data.sets);
+                updatePagination(data.has_next);
+            } catch (e) {
+                console.error(e);
+                els.grid.innerHTML = '<div class="quiz-empty"><i class="fas fa-exclamation-triangle"></i><p>Lỗi tải dữ liệu</p></div>';
+            } finally {
+                state.loading = false;
+            }
+        }
+
+        function renderSets(sets) {
+            if (!sets || sets.length === 0) {
+                els.grid.innerHTML = '<div class="quiz-empty col-span-full"><i class="fas fa-folder-open"></i><p>Không có bộ quiz nào</p></div>';
+                return;
+            }
+
+            els.grid.innerHTML = sets.map(set => `
+                <div class="quiz-set-card" onclick="openSetDetail(${set.id})">
+                    <div class="quiz-set-cover">
+                        <i class="fas fa-layer-group"></i>
+                    </div>
+                    <div class="quiz-set-info">
+                        <h3 class="quiz-set-title">${set.title}</h3>
+                        <div class="quiz-set-meta">
+                            <span class="quiz-set-author"><i class="fas fa-user-circle"></i> ${set.creator_name || 'Admin'}</span>
+                            <span class="quiz-set-count"><i class="fas fa-list-ol"></i> ${set.question_count}</span>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function updatePagination(hasNext) {
+            const prevBtn = document.querySelector('.js-prev-page');
+            const nextBtn = document.querySelector('.js-next-page');
+            const pageSpan = document.querySelector('.js-current-page');
+
+            if (prevBtn) prevBtn.disabled = state.page <= 1;
+            if (nextBtn) nextBtn.disabled = !hasNext;
+            if (pageSpan) pageSpan.textContent = state.page;
+
+            // Show/Hide bar
+            const bar = document.getElementById('pagination-bar');
+            if (bar) bar.style.display = (!hasNext && state.page === 1) ? 'none' : 'flex';
+        }
+
+        // --- DETAIL ---
+        window.openSetDetail = async function (setId) {
+            state.currentSetId = setId;
+            showStep('detail');
+
+            // Reset UI
+            els.headerTitle.textContent = "Đang tải...";
+            els.detailTitle.forEach(el => el.textContent = "--");
+            els.detailDesc.textContent = "";
+
+            try {
+                const res = await fetch(api.detail.replace('0', setId));
+                const data = await res.json();
+
+                if (data.success && data.set) {
+                    const s = data.set;
+
+                    // Update List Button HREF
+                    if (els.listBtn) els.listBtn.href = `/content-management/quizzes/${s.id}/items`;
+
+                    els.headerTitle.textContent = s.title;
+                    els.detailTitle.forEach(el => el.textContent = s.title);
+                    els.detailDesc.textContent = s.description || "Chưa có mô tả";
+                    els.detailCount.textContent = s.question_count;
+                    // Mock progress if not in API
+                    els.detailProgress.textContent = (s.access_count > 0 ? "Đang học" : "Mới");
+
+                    els.creatorName.textContent = s.creator_name || "Admin";
+                    if (s.creator_name && els.creatorAvatar) els.creatorAvatar.textContent = s.creator_name[0].toUpperCase();
+
+                    // Render Questions Preview (First 5)
+                    if (data.questions) {
+                        els.questionList.innerHTML = data.questions.slice(0, 5).map(q => `
+                            <div class="p-3 bg-white border border-slate-200 rounded-lg shadow-sm">
+                                <div class="text-sm font-medium text-slate-700 line-clamp-2">${q.content.question}</div>
+                            </div>
+                        `).join('');
+                        if (data.questions.length > 5) {
+                            els.questionList.innerHTML += `<div class="text-center text-xs text-slate-500 mt-2">+ ${data.questions.length - 5} câu hỏi khác</div>`;
+                        }
+                    }
+                }
+            } catch (e) {
+                alert("Lỗi tải chi tiết.");
+                showStep('sets');
+            }
+        };
+
+        // --- MODES ---
+        document.querySelector('.js-go-to-modes').addEventListener('click', () => {
+            showStep('modes');
+            renderModes();
+        });
+
+        function renderModes() {
+            const modes = [
+                { id: 'all', name: 'Tất cả câu hỏi', icon: 'fa-layer-group', color: 'blue', desc: 'Làm toàn bộ câu hỏi trong bộ này' },
+                { id: 'random', name: 'Ngẫu nhiên', icon: 'fa-random', color: 'green', desc: 'Chọn ngẫu nhiên các câu hỏi' }
+            ];
+
+            els.modesContainer.innerHTML = modes.map(m => `
+                <div class="quiz-mode-card" onclick="selectMode(this, '${m.id}')">
+                    <div class="quiz-mode-icon ${m.color}">
+                        <i class="fas ${m.icon}"></i>
+                    </div>
+                    <div class="quiz-mode-info">
+                        <div class="quiz-mode-name">${m.name}</div>
+                        <div class="quiz-mode-desc">${m.desc}</div>
+                    </div>
+                    <div class="text-slate-300 check-icon"><i class="fas fa-circle"></i></div>
+                </div>
+            `).join('');
+
+            els.startBtn.disabled = true;
+            state.currentMode = null;
+        }
+
+        window.selectMode = function (el, modeId) {
+            document.querySelectorAll('.quiz-mode-card').forEach(c => {
+                c.classList.remove('selected');
+                c.querySelector('.check-icon').innerHTML = '<i class="fas fa-circle"></i>';
+                c.querySelector('.check-icon').classList.remove('text-blue-500');
+            });
+            el.classList.add('selected');
+            el.querySelector('.check-icon').innerHTML = '<i class="fas fa-check-circle"></i>';
+            el.querySelector('.check-icon').classList.add('text-blue-500');
+
+            state.currentMode = modeId;
+            els.startBtn.disabled = false;
+        };
+
+        els.startBtn.addEventListener('click', () => {
+            if (!state.currentSetId || !state.currentMode) return;
+
+            let url = api.start.replace('0', state.currentSetId).replace('MODE', state.currentMode);
+            // Append batch size
+            const size = els.sizeSelect.value;
+            url += `?batch_size=${size}&shuffle=true`;
+
+            window.location.href = url;
+            els.startBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang khởi tạo...';
+        });
+
+        // --- EVENT BINDINGS ---
+        // Tabs
+        els.tabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                els.tabs.forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                state.category = tab.dataset.category;
+                state.page = 1;
+                loadSets();
+            });
+        });
+
+        // Search (Debounce)
+        let debounceTimer;
+        els.input.addEventListener('input', () => {
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(() => {
+                state.page = 1;
+                loadSets();
+            }, 500);
+        });
+
+        // Pagination
+        document.querySelector('.js-prev-page').addEventListener('click', () => {
+            if (state.page > 1) { state.page--; loadSets(); }
+        });
+        document.querySelector('.js-next-page').addEventListener('click', () => {
+            state.page++; loadSets();
+        });
+
+        // Back Buttons
+        document.querySelector('.js-back-to-sets').addEventListener('click', () => showStep('sets'));
+        document.querySelector('.js-back-to-detail').addEventListener('click', () => showStep('detail'));
+
+        // Init
+        loadSets();
     });
-});
 </script>
 {% endblock scripts %}
