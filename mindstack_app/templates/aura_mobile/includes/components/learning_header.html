@@ -1,31 +1,45 @@
 {% macro render_learning_header(title_selector, badge_text, badge_icon, theme_gradient, badge_text_color='text-white',
-badge_icon_color='text-yellow-300', exit_func=None, show_score=False, score_selector='js-header-score', score_value='0')
-%}
+badge_icon_color='text-yellow-300', exit_func=None, show_score=False, score_selector='js-header-score', score_value='0',
+left_btn_func='history.back()', left_btn_icon='fa-solid fa-chevron-left', stats_content=None, hide_second_row=False) %}
 <div class="fc-header flex-col items-stretch !p-0 shadow-md z-50 relative">
 
     {# --- Row 1: Navigation & Title (Themed) --- #}
-    <div class="relative flex items-center justify-between px-4 py-3 {{ theme_gradient }} text-white shadow-sm">
-        {# Back Button #}
+    <div id="learning-header-container"
+        class="relative flex items-center justify-between px-4 py-3 {{ theme_gradient }} text-white shadow-sm transition-colors duration-500">
+        {# Left Button (Back / Toggle) #}
         <button
             class="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center hover:bg-white/30 transition-colors backdrop-blur-sm z-10 relative"
-            onclick="history.back()">
-            <i class="fa-solid fa-chevron-left text-sm"></i>
+            onclick="{{ left_btn_func }}">
+            <i id="header-toggle-icon" class="{{ left_btn_icon }} text-sm transition-all duration-300"></i>
         </button>
 
-        {# Title & Badge (Centered Absolutely) #}
-        <div
-            class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center justify-center w-full max-w-[60%] pointer-events-none">
-            <div class="flex items-center gap-1.5 opacity-90 mb-0.5 pointer-events-auto">
-                <i class="{{ badge_icon }} text-[10px] {{ badge_icon_color }}"></i>
-                <span class="text-[10px] font-bold uppercase tracking-widest {{ badge_text_color }} cursor-pointer">{{
-                    badge_text }}</span>
+        {# Center Content (Title vs Stats) #}
+        <div id="header-center-container"
+            class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-[60%] h-full flex items-center justify-center pointer-events-none transition-all duration-300">
+            {# View 1: Title (Default) #}
+            <div id="header-title-view"
+                class="flex flex-col items-center justify-center w-full transition-all duration-300 opacity-100 scale-100">
+                <div class="flex items-center gap-1.5 opacity-90 mb-0.5 pointer-events-auto">
+                    <i class="{{ badge_icon }} text-[10px] {{ badge_icon_color }}"></i>
+                    <span
+                        class="text-[10px] font-bold uppercase tracking-widest {{ badge_text_color }} cursor-pointer">{{
+                        badge_text }}</span>
+                </div>
+                <span
+                    class="text-sm font-bold text-white truncate w-full text-center {{ title_selector }} leading-tight pointer-events-auto">...</span>
             </div>
-            <span
-                class="text-sm font-bold text-white truncate w-full text-center {{ title_selector }} leading-tight pointer-events-auto">...</span>
+
+            {# View 2: Stats (Hidden) #}
+            {% if stats_content %}
+            <div id="header-stats-view"
+                class="hidden flex items-center justify-center gap-3 w-full transition-all duration-300 opacity-0 scale-95 pointer-events-auto">
+                {{ stats_content|safe }}
+            </div>
+            {% endif %}
         </div>
 
         {# Right Actions #}
-        <div class="flex items-center gap-2">
+        <div id="header-right-actions" class="flex items-center gap-2 z-10 relative transition-all duration-300">
             {# Score Display #}
             {% if show_score %}
             <div
@@ -53,11 +67,13 @@ badge_icon_color='text-yellow-300', exit_func=None, show_score=False, score_sele
     </div>
 
     {# --- Row 2: Stats & Tools (White) --- #}
+    {% if not hide_second_row %}
     <div class="bg-white border-b border-slate-200 shadow-sm relative z-10">
         <div class="flex items-center justify-between px-4 py-2.5">
             {{ caller() }}
         </div>
     </div>
+    {% endif %}
 
     {# Progress Line Slot (Optional) #}
     {% if kwargs.get('show_progress_line') %}
