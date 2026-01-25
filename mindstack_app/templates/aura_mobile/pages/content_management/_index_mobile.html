@@ -1,5 +1,5 @@
 {# File: mindstack_app/templates/aura_mobile/pages/content_management/_index_mobile.html #}
-{% from _v ~ '/includes/components/_mobile_components.html' import mobile_header, mobile_footer %}
+{% from _v ~ '/includes/components/dashboard_header.html' import render_dashboard_header, mobile_footer %}
 
 <div class="flex flex-col h-screen w-full mobile-dashboard bg-slate-50"
     style="font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
@@ -7,11 +7,12 @@
     {# === CLEAN BACKGROUND === #}
     <div class="fixed inset-0 bg-gradient-to-b from-slate-50 to-slate-100 -z-10"></div>
 
-    {# === FIXED TOP HEADER === #}
-    {% call mobile_header(
+    {# === FIXED TOP HEADER #}
+    {% call render_dashboard_header(
     title='Quản lý nội dung',
-    subtitle='CONTENT <span class="text-slate-300 mx-1">›</span> <span id="current-mode-label">VOCABULARY</span>'|safe,
-    back_url=url_for('dashboard.dashboard')
+    subtitle='Nội dung của tôi',
+    back_url=url_for('dashboard.dashboard'),
+    show_home=True
     ) %}
     <div class="flex items-center gap-2">
         {# === SEARCH TOGGLE BUTTON === #}

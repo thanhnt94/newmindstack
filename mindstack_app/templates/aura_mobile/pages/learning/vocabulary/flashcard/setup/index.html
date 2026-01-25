@@ -2,6 +2,7 @@
 {% set _v = template_version %}
 {% extends _v ~ '/base.html' %}
 {% block title %}Học Flashcard - {{ container_title }}{% endblock %}
+{% from _v ~ '/includes/components/dashboard_header.html' import render_dashboard_header %}
 {% block head %}
 {{ super() }}
 <style>
@@ -127,8 +128,8 @@
     /* Steps Content */
     .wizard-content {
         flex: 1;
-        padding: 70px 1.5rem 100px 1.5rem;
-        /* Space for fixed header and footer */
+        padding: 10px 1.5rem 100px 1.5rem;
+        /* Space for fixed header/footer handled by macro spacer */
         display: flex;
         flex-direction: column;
         overflow-y: auto;
@@ -360,21 +361,8 @@
 {% block content %}
 <div class="wizard-container">
 
-    <!-- Top Header -->
-    <div class="wizard-header">
-        <a id="header-back-btn" href="#" class="nav-btn">
-            <i class="fas fa-chevron-left"></i>
-        </a>
-
-        <div class="header-info">
-            <span class="mode-badge"><i class="fas fa-clone"></i> Flashcard</span>
-            <h1 class="set-title">{{ container_title }}</h1>
-        </div>
-
-        <a href="/dashboard" class="nav-btn" title="Về trang chủ">
-            <i class="fas fa-home"></i>
-        </a>
-    </div>
+    {% call render_dashboard_header(title=container_title, subtitle='FLASHCARD') %}
+    {% endcall %}
 
     <div class="wizard-content">
 

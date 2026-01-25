@@ -1,7 +1,7 @@
 {# Quiz Setup Template - Wizard Style #}
 {% set _v = template_version or 'aura_mobile' %}
 {% extends _v ~ '/base.html' %}
-{% from _v ~ '/includes/components/_mobile_components.html' import mobile_header, mobile_footer %}
+{% from _v ~ '/includes/components/dashboard_header.html' import render_dashboard_header, mobile_footer %}
 {% block title %}Kiểm tra - {{ container.title }}{% endblock %}
 {% block head %}
 {{ super() }}
@@ -308,7 +308,7 @@
 
 {% block content %}
 <div class="wizard-container">
-    {% call mobile_header(title=container.title, subtitle='KIỂM TRA',
+    {% call render_dashboard_header(title=container.title, subtitle='CẤU HÌNH',
     back_url=url_for('learning.quiz_learning.dashboard')) %}
     {% endcall %}
 

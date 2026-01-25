@@ -1,7 +1,7 @@
 {# Modes Selection Template - Wizard Style #}
 {% set _v = template_version %}
 {% extends _v ~ '/base.html' %}
-{% from _v ~ '/includes/components/_mobile_components.html' import mobile_header, mobile_footer %}
+{% from _v ~ '/includes/components/dashboard_header.html' import render_dashboard_header, mobile_footer %}
 {% block title %}Chọn chế độ học - {{ container.title }}{% endblock %}
 {% block head %}
 {{ super() }}
@@ -287,8 +287,7 @@
 
 {% block content %}
 <div class="wizard-container">
-    {% call mobile_header(title=container.title, subtitle='CHẾ ĐỘ HỌC',
-    back_url=url_for('learning.vocabulary.set_detail_page', set_id=container.container_id)) %}
+    {% call render_dashboard_header(title='Chọn cách học', subtitle='CHẾ ĐỘ') %}
     {% endcall %}
 
     <div class="modes-content">

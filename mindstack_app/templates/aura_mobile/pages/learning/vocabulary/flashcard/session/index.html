@@ -49,7 +49,11 @@ using the .flashcard-session-active class on the body #}
         badge_icon_color='text-emerald-200',
         show_progress_line=True,
         progress_selector='js-fc-progress-fill',
-        progress_color='bg-emerald-500'
+        progress_color='bg-emerald-500',
+        exit_func='showExitModal()',
+        show_score=True,
+        score_selector='js-fc-score',
+        score_value="{:,}".format(current_user.total_score if current_user.total_score is not none else 0)
         ) %}
         {# Left: Score & Stats #}
         <div id="fc-mobile-stats-pills"
@@ -131,12 +135,7 @@ using the .flashcard-session-active class on the body #}
                 </div>
             </div>
 
-            {# Exit Button #}
-            <button onclick="showExitModal()"
-                class="w-8 h-8 rounded-full bg-rose-50 text-rose-500 flex items-center justify-center hover:bg-rose-100 transition-colors"
-                id="mobile-exit-btn">
-                <i class="fa-solid fa-right-from-bracket text-[10px]"></i>
-            </button>
+
         </div>
         {% endcall %}
 
@@ -202,6 +201,31 @@ using the .flashcard-session-active class on the body #}
                 </div>
             </div>
 
+        </div>
+    </div>
+
+    <!-- Exit Confirmation Modal (Added for Header Exit Button) -->
+    <div id="exit-confirm-modal"
+        class="fixed inset-0 bg-slate-900/40 z-[100] hidden items-center justify-center p-4 backdrop-blur-sm opacity-0 transition-opacity duration-300"
+        style="display: none;">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6 transform scale-95 transition-transform duration-300"
+            id="exit-modal-panel">
+            <div class="text-center">
+                <div
+                    class="w-16 h-16 bg-rose-50 text-rose-500 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl ring-4 ring-rose-50">
+                    <i class="fa-solid fa-right-from-bracket"></i>
+                </div>
+                <h3 class="text-xl font-bold text-slate-800 mb-2">Kết thúc phiên học?</h3>
+                <p class="text-slate-500 text-sm mb-6 leading-relaxed">Kết quả hiện tại sẽ được lưu vào lịch sử.</p>
+                <div class="flex gap-3">
+                    <button onclick="closeExitModal()"
+                        class="flex-1 py-2.5 rounded-xl font-bold text-slate-600 bg-slate-50 hover:bg-slate-100 border border-slate-200 transition-colors">Ở
+                        lại</button>
+                    <button onclick="confirmExit()"
+                        class="flex-1 py-2.5 rounded-xl font-bold text-white bg-rose-500 hover:bg-rose-600 shadow-lg shadow-rose-500/30 transition-all">Kết
+                        thúc</button>
+                </div>
+            </div>
         </div>
     </div>
 

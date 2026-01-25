@@ -1,32 +1,55 @@
 {% macro render_learning_header(title_selector, badge_text, badge_icon, theme_gradient, badge_text_color='text-white',
-badge_icon_color='text-yellow-300') %}
+badge_icon_color='text-yellow-300', exit_func=None, show_score=False, score_selector='js-header-score', score_value='0')
+%}
 <div class="fc-header flex-col items-stretch !p-0 shadow-md z-50 relative">
 
     {# --- Row 1: Navigation & Title (Themed) --- #}
-    <div class="flex items-center justify-between px-4 py-3 {{ theme_gradient }} text-white shadow-sm">
+    <div class="relative flex items-center justify-between px-4 py-3 {{ theme_gradient }} text-white shadow-sm">
         {# Back Button #}
         <button
-            class="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center hover:bg-white/30 transition-colors backdrop-blur-sm"
+            class="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center hover:bg-white/30 transition-colors backdrop-blur-sm z-10 relative"
             onclick="history.back()">
             <i class="fa-solid fa-chevron-left text-sm"></i>
         </button>
 
-        {# Title & Badge #}
-        <div class="flex flex-col items-center mx-2 overflow-hidden flex-1">
-            <div class="flex items-center gap-1.5 opacity-90 mb-0.5">
+        {# Title & Badge (Centered Absolutely) #}
+        <div
+            class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center justify-center w-full max-w-[60%] pointer-events-none">
+            <div class="flex items-center gap-1.5 opacity-90 mb-0.5 pointer-events-auto">
                 <i class="{{ badge_icon }} text-[10px] {{ badge_icon_color }}"></i>
                 <span class="text-[10px] font-bold uppercase tracking-widest {{ badge_text_color }} cursor-pointer">{{
                     badge_text }}</span>
             </div>
             <span
-                class="text-sm font-bold text-white truncate w-full text-center {{ title_selector }} leading-tight">...</span>
+                class="text-sm font-bold text-white truncate w-full text-center {{ title_selector }} leading-tight pointer-events-auto">...</span>
         </div>
 
-        {# Home Button #}
-        <a href="/"
-            class="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center hover:bg-white/30 transition-colors backdrop-blur-sm">
-            <i class="fa-solid fa-house text-sm"></i>
-        </a>
+        {# Right Actions #}
+        <div class="flex items-center gap-2">
+            {# Score Display #}
+            {% if show_score %}
+            <div
+                class="px-2.5 py-1 rounded-full bg-white/20 backdrop-blur-sm border border-white/10 flex items-center gap-1.5 animate-fadeIn">
+                <i class="fas fa-star text-[10px] text-yellow-300"></i>
+                <span class="{{ score_selector }} text-xs font-extrabold text-white">{{ score_value }}</span>
+            </div>
+            {% endif %}
+
+            {# Exit Button #}
+            {% if exit_func %}
+            <button onclick="{{ exit_func }}"
+                class="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center hover:bg-white/30 transition-colors backdrop-blur-sm text-red-100 hover:text-red-50"
+                title="Thoát">
+                <i class="fa-solid fa-right-from-bracket text-sm"></i>
+            </button>
+            {% endif %}
+
+            {# Home Button #}
+            <a href="/"
+                class="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center hover:bg-white/30 transition-colors backdrop-blur-sm">
+                <i class="fa-solid fa-house text-sm"></i>
+            </a>
+        </div>
     </div>
 
     {# --- Row 2: Stats & Tools (White) --- #}

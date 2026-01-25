@@ -2,7 +2,7 @@
 {% set _v = template_version or 'aura_mobile' %}
 {% extends _v ~ '/base.html' %}
 
-{% from _v ~ '/includes/components/_mobile_components.html' import mobile_header, mobile_footer %}
+{% from _v ~ '/includes/components/dashboard_header.html' import render_dashboard_header, mobile_footer %}
 
 {% block title %}Hoc Quiz - MindStack{% endblock %}
 
@@ -537,7 +537,7 @@
 {% block content %}
 {# ========== STEP 1: SETS BROWSER ========== #}
 <div id="step-sets" class="quiz-step active">
-    {% call mobile_header(title='Học Quiz', back_url=url_for('stats.dashboard')) %}
+    {% call render_dashboard_header(title='Học Quiz', back_url=url_for('stats.dashboard')) %}
     {% endcall %}
 
     <!-- Search -->
@@ -584,7 +584,7 @@
 
 {# ========== STEP 2: SET DETAIL ========== #}
 <div id="step-detail" class="quiz-step">
-    {% call mobile_header(title='...', subtitle='BỘ CÂU HỎI', back_func="showStep('sets')") %}
+    {% call render_dashboard_header(title='...', subtitle='BỘ CÂU HỎI', back_func="showStep('sets')") %}
     <button
         class="w-9 h-9 flex items-center justify-center rounded-xl bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-slate-800 transition-colors cursor-pointer border-none shadow-none js-open-edit-modal ml-2"
         title="Sửa bộ quiz">
@@ -662,7 +662,7 @@
 
 {# ========== STEP 3: MODES SELECTION ========== #}
 <div id="step-modes" class="quiz-step">
-    {% call mobile_header(title='Chế độ học', subtitle='KIỂM TRA', back_func="showStep('detail')") %}
+    {% call render_dashboard_header(title='Chế độ học', subtitle='KIỂM TRA', back_func="showStep('detail')") %}
     {% endcall %}
 
     <div class="quiz-scroll" style="padding: 1rem;">
@@ -750,7 +750,8 @@
         const api = {
             sets: "{{ url_for('learning.quiz_learning.api_get_quiz_sets') }}",
             detail: "{{ url_for('learning.quiz_learning.api_get_quiz_set_detail', set_id=0) }}",
-            start: "{{ url_for('learning.quiz_learning.start_quiz_session_by_id', set_id=0, mode='MODE') }}"
+            start: "{{ url_for('learning.quiz_learning.start_quiz_session_by_id', set_id=0, mode='MODE') }}",
+            edit: "{{ url_for('content_management.content_management_quizzes.edit_quiz_set', set_id=0) }}"
         };
 
         const state = {
@@ -813,7 +814,8 @@
             // Fetch content
             els.modalContent.innerHTML = '<div class="flex justify-center py-8"><i class="fas fa-spinner fa-spin text-3xl text-blue-500"></i></div>';
 
-            fetch(`/content-management/quizzes/edit/${state.currentSetId}?is_modal=true`)
+            const url = api.edit.replace('0', state.currentSetId) + '?is_modal=true';
+            fetch(url)
                 .then(r => r.text())
                 .then(html => {
                     els.modalContent.innerHTML = html;

@@ -3,7 +3,7 @@
 {% set _v = template_version or 'aura_mobile' %}
 {% extends _v ~ '/base.html' %}
 
-{% from _v ~ '/includes/components/_mobile_components.html' import mobile_header, mobile_footer %}
+{% from _v ~ '/includes/components/dashboard_header.html' import render_dashboard_header, mobile_footer %}
 
 {% block title %}Học từ vựng - MindStack{% endblock %}
 
@@ -2504,7 +2504,7 @@
     {# Mobile View - Step Browser only - Hidden on lg+ #}
     <div id="step-browser" class="vocab-step active">
 
-        {% call mobile_header(title='Học từ vựng', back_url=url_for('dashboard.dashboard')) %}
+        {% call render_dashboard_header(title='Học từ vựng', back_url=url_for('dashboard.dashboard')) %}
         {% endcall %}
 
         <div class="vocab-search-wrap">
@@ -2574,7 +2574,7 @@
 
     <div id="step-detail" class="vocab-step">
 
-        {% call mobile_header(title='Tên bộ thẻ', subtitle='...', back_url='/learn/vocabulary/') %}
+        {% call render_dashboard_header(title='Tên bộ thẻ', subtitle='...', back_url='/learn/vocabulary/') %}
         <a href="#"
             class="w-9 h-9 flex items-center justify-center rounded-xl bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-slate-800 transition-colors cursor-pointer border-none shadow-none js-edit-set-btn"
             title="Sửa bộ thẻ" style="display: none;">
@@ -2675,8 +2675,9 @@
 
         {# Header - 2 Rows Like MCQ #}
 
-        {% call mobile_header(title='Chọn chế độ học', subtitle='TỪ VỰNG > BƯỚC 1', back_func="showStep('detail');
-        history.pushState({step: 'detail', setId: selectedSetId}, '', '/learn/vocabulary/set/' + selectedSetId);") %}
+        {% call render_dashboard_header(title='Chọn chế độ học', subtitle='TỪ VỰNG > BƯỚC 1',
+        back_func="showStep('detail'); history.pushState({step: 'detail', setId: selectedSetId}, '',
+        '/learn/vocabulary/set/' + selectedSetId);") %}
         {% endcall %}
 
 
@@ -2850,7 +2851,7 @@
 
     <div id="step-flashcard-options" class="vocab-step">
 
-        {% call mobile_header(title='Chọn chế độ Flashcard', subtitle='TỪ VỰNG > FLASHCARD',
+        {% call render_dashboard_header(title='Chọn chế độ Flashcard', subtitle='TỪ VỰNG > FLASHCARD',
         back_func="showStep('modes'); history.pushState({step: 'modes', setId: selectedSetId}, '',
         '/learn/vocabulary/set/' + selectedSetId + '/modes');") %}
         {% endcall %}
