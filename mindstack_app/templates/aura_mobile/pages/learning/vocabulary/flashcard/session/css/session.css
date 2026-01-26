@@ -215,8 +215,8 @@
   .face {
       position: absolute;
       inset: 0;
-      /* Padding-top reduced to 60px, Padding-bottom increased to 3rem for better balance */
-      padding: 60px 1.25rem 3rem 1.25rem;
+      /* Padding-top reduced to 48px to move content closer to the stats bar/toolbar */
+      padding: 0px 1.25rem 3rem 1.25rem;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
@@ -448,7 +448,7 @@
       min-height: 0;
       width: 100%;
       overflow-y: auto;
-      padding: 1rem 0;
+      padding: 0.5rem 0;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -1181,7 +1181,7 @@
       height: 100%;
       display: flex;
       flex-direction: column;
-      padding: 80px 1.25rem 1.25rem 1.25rem !important;
+      padding: 50px 1.25rem 1.25rem 1.3rem !important;
   }
 
   /* Card Toolbar - HIDDEN on mobile, moved to header */
@@ -1231,7 +1231,7 @@
   /* Card Content - Small equal padding on all sides */
   .flashcard-mobile-view ._card-container {
       flex: 1;
-      padding: 0.5rem;
+      padding: 0 0.5rem 0.5rem 0.5rem;
       display: flex;
       flex-direction: column;
       align-items: center;
