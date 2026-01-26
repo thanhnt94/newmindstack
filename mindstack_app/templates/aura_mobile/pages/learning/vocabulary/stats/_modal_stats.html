@@ -134,7 +134,8 @@
     .vocab-edit-overlay {
         position: fixed;
         inset: 0;
-        z-index: 10001;
+        z-index: 100001;
+        /* Higher than forced stats modal z-index */
         display: none;
         align-items: center;
         justify-content: center;
@@ -583,7 +584,7 @@
                 console.log('Setting modal display to flex [FORCE V2]');
 
                 // Force wrapper visibility
-                statsModal.style.cssText = 'display: flex !important; position: fixed !important; inset: 0 !important; z-index: 99999 !important; align-items: center !important; justify-content: center !important; opacity: 1 !important; visibility: visible !important; background-color: rgba(0,0,0,0.5) !important;';
+                statsModal.style.cssText = 'display: flex !important; position: fixed !important; inset: 0 !important; z-index: 100000 !important; align-items: center !important; justify-content: center !important; opacity: 1 !important; visibility: visible !important; background-color: rgba(0,0,0,0.5) !important;';
 
                 // Force content visibility
                 const content = statsModal.querySelector('.vocab-modal-content');
