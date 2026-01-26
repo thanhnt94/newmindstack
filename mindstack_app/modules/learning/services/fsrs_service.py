@@ -322,7 +322,9 @@ class FsrsService:
             is_correct=is_correct,
             is_first_time=is_first_time,
             correct_streak=new_correct_streak,
-            response_time_seconds=response_time_seconds
+            response_time_seconds=response_time_seconds,
+            stability=card.stability,
+            difficulty=card.difficulty
         )
         
         # 5. Calculate retrievability (resets to ~1.0 after correct answer)

@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections.abc import Iterable, Mapping, MutableMapping
 from typing import Any, Dict, Optional
 
+from datetime import datetime, timezone
 from sqlalchemy.sql import func
 from sqlalchemy.types import JSON
 
@@ -26,8 +27,8 @@ class LearningContainer(db.Model):
     cover_image = db.Column(db.String(512), nullable=True)
     tags = db.Column(db.String(255))
     is_public = db.Column(db.Boolean, default=False, nullable=False)
-    created_at = db.Column(db.DateTime(timezone=True), server_default=func.now())
-    updated_at = db.Column(db.DateTime(timezone=True), onupdate=func.now())
+    created_at = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+    updated_at = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
     # Structured configuration columns replacing the legacy ai_settings blob
     ai_prompt = db.Column(db.Text, nullable=True)

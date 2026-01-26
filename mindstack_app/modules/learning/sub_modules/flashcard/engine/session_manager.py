@@ -433,41 +433,17 @@ class FlashcardSessionManager:
             
             # Build CardState from progress
             if progress:
-                # === USE NATIVE FSRS COLUMNS (must match fsrs_service.py logic!) ===
-                if progress.fsrs_stability is not None and progress.fsrs_stability > 0:
-                    # Native FSRS data available
-                    fsrs_stability = progress.fsrs_stability
-                    fsrs_difficulty = progress.fsrs_difficulty or 5.0
-                    
-                    # Map state int to string
-                    # from mindstack_app.models.learning_progress import LearningProgress # REMOVED shadowing import
-                    state_map = {
-                        LearningProgress.FSRS_STATE_NEW: 'new',
-                        LearningProgress.FSRS_STATE_LEARNING: 'learning',
-                        LearningProgress.FSRS_STATE_REVIEW: 'review',
-                        LearningProgress.FSRS_STATE_RELEARNING: 're-learning',
-                    }
-                    custom_state = state_map.get(progress.fsrs_state, 'new')
-                    last_reviewed = progress.fsrs_last_review or progress.last_reviewed
-                else:
-                    # Fallback: Check mode_data for legacy FSRS data
-                    mode_data = progress.mode_data or {}
-                    if 'fsrs_stability' in mode_data:
-                        fsrs_stability = mode_data.get('fsrs_stability', 0.0)
-                        fsrs_difficulty = mode_data.get('fsrs_difficulty', 5.0)
-                        custom_state = mode_data.get('custom_state', 'new')
-                    else:
-                        # New card - fresh start
-                        fsrs_stability = 0.0
-                        fsrs_difficulty = 5.0
-                        custom_state = 'new'
-                    last_reviewed = progress.last_reviewed
+                # === USE NATIVE FSRS COLUMNS ===
+                fsrs_stability = float(progress.fsrs_stability or 0.0)
+                fsrs_difficulty = float(progress.fsrs_difficulty or 5.0)
+                last_reviewed = progress.fsrs_last_review or progress.last_reviewed
                 
                 card_state = CardState(
                     stability=fsrs_stability,
                     difficulty=fsrs_difficulty,
                     reps=progress.repetitions or 0,
-                    state=custom_state if custom_state in ('new', 'learning', 'review', 're-learning') else 'new',
+                    lapses=progress.lapses or 0,
+                    state=int(progress.fsrs_state) if progress.fsrs_state is not None else 0,
                     last_review=last_reviewed
                 )
             else:
@@ -489,32 +465,30 @@ class FlashcardSessionManager:
                 interval_days = sim_state.get('interval', 0.0)
                 interval_minutes = int(interval_days * 1440)  # Convert to minutes
                 
-                # Calculate points preview (include first-time bonus if applicable)
-                if rating >= Rating.Good:
-                    is_correct = True
-                    points = ScoringEngine.calculate_answer_points(
-                        mode='flashcard', quality=rating, is_correct=True,
-                        is_first_time=is_first_time_card, correct_streak=0
-                    ).total_points
-                else:
-                    is_correct = False
-                    points = ScoringEngine.calculate_answer_points(
-                        mode='flashcard', quality=rating, is_correct=False,
-                        is_first_time=is_first_time_card, correct_streak=0
-                    ).total_points
+                # Calculate points preview (include first-time bonus and scaling)
+                points = ScoringEngine.calculate_answer_points(
+                    mode='flashcard', 
+                    quality=int(rating), 
+                    is_correct=(rating >= Rating.Good),
+                    is_first_time=is_first_time_card, 
+                    correct_streak=(progress.correct_streak or 0) if progress else 0,
+                    stability=card_state.stability,
+                    difficulty=card_state.difficulty
+                ).total_points
                 
                 # FSRS metrics for frontend
+                is_correct = (rating >= Rating.Good)
                 new_stability = sim_state.get('stability', 0.0)
                 new_difficulty = sim_state.get('difficulty', 5.0)
-                new_retrievability = 100.0 if is_correct else 90.0  # % right after answer
+                current_retrievability = engine.get_realtime_retention(card_state, now_utc) * 100.0
                 
                 preview_data[str(rating)] = {
                     'interval': interval_minutes,
-                    'stability': round(new_stability, 2),  # Days
-                    'difficulty': round(new_difficulty, 2),  # [NEW] FSRS D
-                    'retrievability': round(new_retrievability, 1),  # %
+                    'stability': round(float(new_stability), 2),  # Days
+                    'difficulty': round(float(new_difficulty), 2),  # [NEW] FSRS D
+                    'retrievability': round(current_retrievability, 1),  # %
                     'points': points,
-                    'status': 'review' if rating >= Rating.Good else 'learning'
+                    'status': 'review' if is_correct else 'learning'
                 }
         except Exception as e:
             current_app.logger.warning(f"Preview simulation failed for item {next_item.item_id}: {e}")

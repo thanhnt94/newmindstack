@@ -334,7 +334,9 @@ def award_learning_points(
         is_correct=is_correct,
         is_first_time=kwargs.get('is_first_time', False),
         correct_streak=kwargs.get('correct_streak', 0),
-        response_time_seconds=kwargs.get('response_time_seconds')
+        response_time_seconds=kwargs.get('response_time_seconds'),
+        stability=kwargs.get('stability', 0.0),
+        difficulty=kwargs.get('difficulty', 5.0)
     )
     
     if score_result.total_points == 0:

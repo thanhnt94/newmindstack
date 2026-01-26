@@ -657,49 +657,30 @@
                 }
             }
 
-            // [UX-UPDATE] Long Press to show Tooltip instead of Hover
-            // Also hide tooltip on click
-            let pressTimer = null;
-            const longPressDuration = 500; // ms
-
-            const startPress = (e) => {
-                // Avoid capturing if disabled or currently processing
-                if (btn.classList.contains('is-disabled')) return;
-
-                pressTimer = setTimeout(() => {
-                    const displayInfo = info || {
-                        interval: '?', points: 0, stability: 0, difficulty: 0, retrievability: 0
-                    };
-                    if (window.showPreviewTooltip) {
-                        window.showPreviewTooltip(btn, displayInfo);
-                    }
-                    // Haptic feedback
-                    if (window.navigator.vibrate) window.navigator.vibrate(40);
-                    pressTimer = null;
-                }, longPressDuration);
+            // [UX-UPDATE] Hover to show Tooltip
+            const handleShowTooltip = () => {
+                const displayInfo = info || {
+                    interval: '?', points: 0, stability: 0, difficulty: 0, retrievability: 0
+                };
+                if (window.showPreviewTooltip) {
+                    window.showPreviewTooltip(btn, displayInfo);
+                }
             };
 
-            const cancelPress = () => {
-                if (pressTimer) {
-                    clearTimeout(pressTimer);
-                    pressTimer = null;
-                }
-                // Hide tooltip when release/leave
+            const handleHideTooltip = () => {
                 if (window.hidePreviewTooltip) window.hidePreviewTooltip();
             };
 
-            // Remove old hover listeners
-            btn.onmouseenter = null;
-            btn.onmouseleave = null;
+            // Remove old hover/press listeners (if any were manually set)
+            btn.onmouseenter = handleShowTooltip;
+            btn.onmouseleave = handleHideTooltip;
 
-            // Attach new long press events
-            btn.addEventListener('touchstart', startPress, { passive: true });
-            btn.addEventListener('touchend', cancelPress);
-            btn.addEventListener('touchmove', cancelPress);
-
-            btn.addEventListener('mousedown', startPress);
-            btn.addEventListener('mouseup', cancelPress);
-            btn.addEventListener('mouseleave', cancelPress);
+            // Touch support: show on touchstart, hide on end/move
+            btn.addEventListener('touchstart', (e) => {
+                handleShowTooltip();
+            }, { passive: true });
+            btn.addEventListener('touchend', handleHideTooltip);
+            btn.addEventListener('touchmove', handleHideTooltip);
         });
     };
 

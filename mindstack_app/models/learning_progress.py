@@ -7,6 +7,7 @@ the native FSRS-5 algorithm.
 
 from __future__ import annotations
 
+from datetime import datetime, timezone
 from sqlalchemy.sql import func
 from sqlalchemy.types import JSON
 
@@ -45,9 +46,9 @@ class LearningProgress(db.Model):
     fsrs_last_review = db.Column(db.DateTime(timezone=True))  # Last review timestamp (UTC)
     
     # === Lifecycle & Auditing ===
-    first_seen = db.Column(db.DateTime(timezone=True), default=func.now())
-    created_at = db.Column(db.DateTime(timezone=True), server_default=func.now())
-    updated_at = db.Column(db.DateTime(timezone=True), onupdate=func.now())
+    first_seen = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+    created_at = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+    updated_at = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
     
     # === User History & Statistics (No Prefix) ===
     # Generic stats independent of algorithm

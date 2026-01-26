@@ -30,8 +30,8 @@ class LearningSession(db.Model):
     processed_item_ids = db.Column(JSON, default=list)
     
     # Timestamps
-    start_time = db.Column(db.DateTime(timezone=True), server_default=func.now(), index=True)
-    last_activity = db.Column(db.DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+    start_time = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), index=True)
+    last_activity = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
     end_time = db.Column(db.DateTime(timezone=True))
 
     # Relationships

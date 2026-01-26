@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import datetime, timezone
 from flask import url_for
 from flask_login import UserMixin
 from sqlalchemy.sql import func
@@ -120,7 +121,7 @@ class UserContainerState(db.Model):
     is_archived = db.Column(db.Boolean, default=False, nullable=False)
     is_favorite = db.Column(db.Boolean, default=False, nullable=False)
     last_accessed = db.Column(
-        db.DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+        db.DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc)
     )
 
     container = db.relationship(
@@ -164,7 +165,7 @@ class UserSession(db.Model):
     current_quiz_batch_size = db.Column(db.Integer, default=10)
     flashcard_button_count = db.Column(db.Integer, default=3)
     
-    last_updated = db.Column(db.DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+    last_updated = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
 
 
@@ -220,8 +221,8 @@ class LearningGoal(db.Model):
     due_date = db.Column(db.Date, nullable=True)
     notes = db.Column(db.Text)
     is_active = db.Column(db.Boolean, nullable=False, default=True)
-    created_at = db.Column(db.DateTime(timezone=True), server_default=func.now())
-    updated_at = db.Column(db.DateTime(timezone=True), onupdate=func.now())
+    created_at = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+    updated_at = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
     user = db.relationship(
         'User',
@@ -247,7 +248,7 @@ class GoalDailyHistory(db.Model):
     target_value = db.Column(db.Integer, default=0)  # Snapshot of target
     is_met = db.Column(db.Boolean, default=False)
     
-    updated_at = db.Column(db.DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+    updated_at = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
     goal = db.relationship(
         'LearningGoal',
@@ -303,7 +304,7 @@ class ContainerContributor(db.Model):
     )
     user_id = db.Column(db.Integer, db.ForeignKey('users.user_id'), nullable=False)
     permission_level = db.Column(db.String(50), nullable=False)
-    granted_at = db.Column(db.DateTime(timezone=True), server_default=func.now())
+    granted_at = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
 
     __table_args__ = (db.UniqueConstraint('container_id', 'user_id', name='_container_user_uc'),)
 
@@ -319,7 +320,7 @@ class ReviewLog(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('users.user_id'), nullable=False)
     item_id = db.Column(db.Integer, db.ForeignKey('learning_items.item_id'), nullable=False)
     
-    timestamp = db.Column(db.DateTime(timezone=True), server_default=func.now())
+    timestamp = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
     rating = db.Column(db.Integer, nullable=False)  # 1-4 for FSRS, 0/1 for Quiz
     
     # === FSRS Optimizer Data ===
