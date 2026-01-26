@@ -91,8 +91,7 @@ THAY ĐỔI:
     {% set modal_suffix = '?is_modal=true' if is_modal_view else '' %}
 
     <!-- HEADER (Fixed) -->
-    <div
-        class="flex-none bg-white border-b border-slate-100 flex items-center justify-between px-4 py-2.5 z-20 shadow-sm">
+    <div class="flex-none bg-white border-b border-slate-100 flex items-center justify-between px-4 py-2 z-20">
         <!-- Left: Close & Title -->
         <div class="flex items-center gap-3">
             <button type="button"
@@ -586,7 +585,7 @@ THAY ĐỔI:
             // Close Button
             document.querySelectorAll('[data-role="close-editor"]').forEach(btn => {
                 btn.addEventListener('click', () => {
-                    if (window.parent && window.parent.closeModal) window.parent.closeModal();
+                    if (window.parent && window.parent.closeVocabEditOverlay) window.parent.closeVocabEditOverlay();
                     else window.history.back();
                 });
             });

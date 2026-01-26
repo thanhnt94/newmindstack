@@ -165,7 +165,8 @@ class VocabularyItemStats:
         if can_edit:
             edit_url = url_for('content_management.content_management_flashcards.edit_flashcard_item', 
                                set_id=item.container_id, 
-                               item_id=item_id)
+                               item_id=item_id,
+                               is_modal='true')
 
         # [NEW] Get User Item Markers
         from mindstack_app.models.user import UserItemMarker
