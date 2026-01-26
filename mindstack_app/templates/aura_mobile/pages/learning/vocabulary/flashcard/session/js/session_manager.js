@@ -121,6 +121,7 @@ window.updateStateBadge = function (customState) {
 // --- Batch Management ---
 
 async function getNextFlashcardBatch() {
+    window.isSubmitLock = false; // [UNLOCK] Allow tooltips again
     window.stopAllFlashcardAudio();
     window.setFlashcardContent(`<div class="flex flex-col items-center justify-center h-full text-blue-500 min-h-[300px]"><i class="fas fa-spinner fa-spin text-4xl mb-3"></i><p>Đang tải thẻ...</p></div>`);
 
@@ -314,8 +315,11 @@ async function getNextFlashcardBatch() {
 // Finding render rendering point is key. It's window.renderCard(currentCardData) at line 152.
 
 async function submitFlashcardAnswer(itemId, answer) {
+    if (window.hidePreviewTooltip) window.hidePreviewTooltip(true); // Force immediate hide
     if (isSubmitting) return; // Prevent double clicks
+
     isSubmitting = true;
+    window.isSubmitLock = true; // [LOCK] Prevent tooltips from showing during transition
 
     // [SMART TRANSITION] 1. Immediate Action
     if (window.hideRatingButtons) window.hideRatingButtons();
@@ -466,6 +470,7 @@ async function submitFlashcardAnswer(itemId, answer) {
         if (window.showRatingButtons) window.showRatingButtons();
 
     } catch (e) {
+        window.isSubmitLock = false; // [UNLOCK] on error
         console.error('Lỗi khi gửi đáp án:', e);
         if (window.showCustomAlert) window.showCustomAlert('Có lỗi khi gửi đáp án. Vui lòng thử lại.');
 

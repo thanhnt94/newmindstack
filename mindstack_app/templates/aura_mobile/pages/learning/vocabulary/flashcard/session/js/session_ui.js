@@ -5,6 +5,7 @@
 
     // 1. Define global handler for inline onclick
     window.onMobileRatingClick = function (ratingValue) {
+        if (window.hidePreviewTooltip) window.hidePreviewTooltip();
         console.log('[FSRS Mobile] Button clicked via inline handler:', ratingValue);
 
         // Map rating to answer strings
@@ -659,6 +660,8 @@
 
             // [UX-UPDATE] Hover to show Tooltip
             const handleShowTooltip = () => {
+                if (window.isSubmitLock) return; // [LOCK] Don't show tooltip during card transition
+
                 const displayInfo = info || {
                     interval: '?', points: 0, stability: 0, difficulty: 0, retrievability: 0
                 };
@@ -677,10 +680,14 @@
 
             // Touch support: show on touchstart, hide on end/move
             btn.addEventListener('touchstart', (e) => {
+                if (window.isSubmitLock) return;
+                // Immediate hide any other tooltip
+                if (window.hidePreviewTooltip) window.hidePreviewTooltip(true);
                 handleShowTooltip();
             }, { passive: true });
-            btn.addEventListener('touchend', handleHideTooltip);
-            btn.addEventListener('touchmove', handleHideTooltip);
+            btn.addEventListener('touchend', () => { if (window.hidePreviewTooltip) window.hidePreviewTooltip(); });
+            btn.addEventListener('touchmove', () => { if (window.hidePreviewTooltip) window.hidePreviewTooltip(true); });
+            btn.addEventListener('touchcancel', () => { if (window.hidePreviewTooltip) window.hidePreviewTooltip(true); });
         });
     };
 

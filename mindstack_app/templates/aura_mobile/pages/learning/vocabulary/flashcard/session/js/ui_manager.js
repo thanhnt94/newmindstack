@@ -104,7 +104,169 @@ function initUiSettings() {
     if (window.updateAudioAutoplayToggleButtons) {
         window.updateAudioAutoplayToggleButtons();
     }
+
+    // --- Init Gesture Handling ---
+    if (window.initCardGestures) window.initCardGestures();
 }
+
+// --- Flip Transformations ---
+
+window.flipToBack = function () {
+    const card = document.querySelector('.js-flashcard-card');
+    if (!card || card.classList.contains('flipped')) return;
+
+    window.stopAllFlashcardAudio ? window.stopAllFlashcardAudio() : null;
+    card.classList.add('flipped');
+
+    const actions = document.querySelector('.js-internal-actions') || card.querySelector('.actions');
+    actions?.classList.add('visible');
+
+    // Hide all flip buttons
+    const flipBtns = document.querySelectorAll('.js-flip-card-btn, .fc-flip-btn, .js-fc-flip-btn');
+    flipBtns.forEach(btn => btn.style.display = 'none');
+
+    // Mobile Support: Show footer rating buttons
+    const mobileRatingBtns = document.querySelector('.js-fc-rating-btns');
+    if (mobileRatingBtns) mobileRatingBtns.classList.add('show');
+
+    // Mobile Support: Show stats button when flipped to back
+    const mobileStatsBtn = document.querySelector('.js-fc-card-details-btn');
+    if (mobileStatsBtn) mobileStatsBtn.classList.remove('hidden');
+
+    // Update overlay audio button for back side
+    const currentCard = window.currentFlashcardBatch && window.currentFlashcardBatch[window.currentFlashcardIndex];
+    const hasBackAudio = currentCard && (currentCard.content.back_audio_url || currentCard.content.back_audio_content);
+
+    const overlayAudioBtn = document.querySelector('.js-fc-audio-btn-overlay');
+    const overlayAudioIcon = document.querySelector('.js-fc-audio-icon-overlay');
+    if (overlayAudioBtn && overlayAudioIcon) {
+        if (hasBackAudio) {
+            overlayAudioBtn.classList.remove('opacity-50', 'cursor-not-allowed', 'bg-slate-500/90');
+            overlayAudioBtn.classList.add('bg-blue-500/90', 'hover:bg-blue-600');
+            overlayAudioIcon.className = 'fa-solid fa-volume-high text-sm js-fc-audio-icon-overlay';
+            overlayAudioBtn.dataset.hasAudio = 'true';
+        } else {
+            overlayAudioBtn.classList.add('opacity-50', 'cursor-not-allowed', 'bg-slate-500/90');
+            overlayAudioBtn.classList.remove('bg-blue-500/90', 'hover:bg-blue-600');
+            overlayAudioIcon.className = 'fa-solid fa-volume-xmark text-sm js-fc-audio-icon-overlay';
+            overlayAudioBtn.dataset.hasAudio = 'false';
+        }
+    }
+
+    setTimeout(() => { if (window.adjustCardLayout) window.adjustCardLayout(); }, 0);
+
+    const isAutoplaySession = window.FlashcardConfig && window.FlashcardConfig.isAutoplaySession;
+    if (!isAutoplaySession && window.autoPlayBackSide) {
+        window.autoPlayBackSide();
+    }
+};
+
+window.flipToFront = function () {
+    const card = document.querySelector('.js-flashcard-card');
+    if (!card || !card.classList.contains('flipped')) return;
+
+    window.stopAllFlashcardAudio ? window.stopAllFlashcardAudio() : null;
+    card.classList.remove('flipped');
+
+    const actions = document.querySelector('.js-internal-actions') || card.querySelector('.actions');
+    actions?.classList.remove('visible');
+
+    // Show all flip buttons
+    const flipBtns = document.querySelectorAll('.js-flip-card-btn, .fc-flip-btn, .js-fc-flip-btn');
+    flipBtns.forEach(btn => btn.style.display = '');
+
+    // Mobile Support: Hide footer rating buttons
+    const mobileRatingBtns = document.querySelector('.js-fc-rating-btns');
+    if (mobileRatingBtns) mobileRatingBtns.classList.remove('show');
+
+    // Mobile Support: Hide stats button when on front
+    const mobileStatsBtn = document.querySelector('.js-fc-card-details-btn');
+    if (mobileStatsBtn) mobileStatsBtn.classList.add('hidden');
+
+    // Update overlay audio - front side
+    const currentCard = window.currentFlashcardBatch && window.currentFlashcardBatch[window.currentFlashcardIndex];
+    const hasFrontAudio = currentCard && (currentCard.content.front_audio_url || currentCard.content.front_audio_content);
+
+    const overlayAudioBtn = document.querySelector('.js-fc-audio-btn-overlay');
+    const overlayAudioIcon = document.querySelector('.js-fc-audio-icon-overlay');
+    if (overlayAudioBtn && overlayAudioIcon) {
+        if (hasFrontAudio) {
+            overlayAudioBtn.classList.remove('opacity-50', 'cursor-not-allowed', 'bg-slate-500/90');
+            overlayAudioBtn.classList.add('bg-blue-500/90', 'hover:bg-blue-600');
+            overlayAudioIcon.className = 'fa-solid fa-volume-high text-sm js-fc-audio-icon-overlay';
+            overlayAudioBtn.dataset.hasAudio = 'true';
+        } else {
+            overlayAudioBtn.classList.add('opacity-50', 'cursor-not-allowed', 'bg-slate-500/90');
+            overlayAudioBtn.classList.remove('bg-blue-500/90', 'hover:bg-blue-600');
+            overlayAudioIcon.className = 'fa-solid fa-volume-xmark text-sm js-fc-audio-icon-overlay';
+            overlayAudioBtn.dataset.hasAudio = 'false';
+        }
+    }
+
+    setTimeout(() => { if (window.adjustCardLayout) window.adjustCardLayout(); }, 0);
+};
+
+window.flipCard = function () {
+    const card = document.querySelector('.js-flashcard-card');
+    if (!card) return;
+    if (card.classList.contains('flipped')) {
+        window.flipToFront();
+    } else {
+        window.flipToBack();
+    }
+};
+
+// --- Gesture Handling ---
+
+let gestureX = 0;
+let gestureY = 0;
+let gestureTime = 0;
+
+window.initCardGestures = function () {
+    const container = document.querySelector('.flashcard-mobile-view') || document.body;
+
+    const onStart = (e) => {
+        // Skip if interacting with controls
+        if (e.target.closest('button, .icon-btn, a, input, select, textarea')) return;
+
+        gestureX = e.type.startsWith('touch') ? e.touches[0].clientX : e.clientX;
+        gestureY = e.type.startsWith('touch') ? e.touches[0].clientY : e.clientY;
+        gestureTime = Date.now();
+    };
+
+    const onEnd = (e) => {
+        if (!gestureTime) return;
+
+        const endX = e.type.startsWith('touch') ? e.changedTouches[0].clientX : e.clientX;
+        const endY = e.type.startsWith('touch') ? e.changedTouches[0].clientY : e.clientY;
+        const duration = Date.now() - gestureTime;
+        gestureTime = 0;
+
+        const dx = endX - gestureX;
+        const dy = endY - gestureY;
+        const absX = Math.abs(dx);
+        const absY = Math.abs(dy);
+
+        // Constants
+        const THRESHOLD = 50; // Increased slightly for horizontal intent
+        const TIME_LIMIT = 500;
+
+        if (duration > TIME_LIMIT) return;
+
+        // [FIX] ONLY horizontal swipes (absX > absY) to preserve vertical scrolling
+        if (absX > THRESHOLD && absX > absY) {
+            if (window.hidePreviewTooltip) window.hidePreviewTooltip(); // Added for gesture submit
+            // Trigger flip
+            if (window.flipCard) window.flipCard();
+        }
+    };
+
+    container.addEventListener('touchstart', onStart, { passive: true });
+    container.addEventListener('touchend', onEnd, { passive: true });
+
+    container.addEventListener('mousedown', onStart);
+    container.addEventListener('mouseup', onEnd);
+};
 
 // --- Viewport & Layout ---
 
@@ -456,80 +618,20 @@ function renderCard(data) {
         window.setupAudioErrorHandler(itemId, c.front_audio_content || '', c.back_audio_content || '');
     }
 
-    // --- Flip Interactions ---
-    const flipToBack = () => {
-        if (!card) {
-            console.error('Flashcard element (.js-flashcard-card) not found!');
-            return;
-        }
-        window.stopAllFlashcardAudio ? window.stopAllFlashcardAudio() : null;
-        card.classList.add('flipped');
-        actions?.classList.add('visible');
-        // Hide all flip buttons
-        flipBtns.forEach(btn => btn.style.display = 'none');
-
-        // Mobile Support: Show footer rating buttons
-        const mobileRatingBtns = document.querySelector('.js-fc-rating-btns');
-        if (mobileRatingBtns) mobileRatingBtns.classList.add('show');
-
-        // [NEW] Mobile Support: Show stats button when flipped to back
-        const mobileStatsBtn = document.querySelector('.js-fc-card-details-btn');
-        if (mobileStatsBtn) mobileStatsBtn.classList.remove('hidden');
-
-        // [NEW] Update overlay audio button for back side
-        const overlayAudioBtn = document.querySelector('.js-fc-audio-btn-overlay');
-        const overlayAudioIcon = document.querySelector('.js-fc-audio-icon-overlay');
-        if (overlayAudioBtn && overlayAudioIcon) {
-            if (hasBackAudio) {
-                overlayAudioBtn.classList.remove('opacity-50', 'cursor-not-allowed', 'bg-slate-500/90');
-                overlayAudioBtn.classList.add('bg-blue-500/90', 'hover:bg-blue-600');
-                overlayAudioIcon.className = 'fa-solid fa-volume-high text-sm js-fc-audio-icon-overlay';
-                overlayAudioBtn.dataset.hasAudio = 'true';
-            } else {
-                overlayAudioBtn.classList.add('opacity-50', 'cursor-not-allowed', 'bg-slate-500/90');
-                overlayAudioBtn.classList.remove('bg-blue-500/90', 'hover:bg-blue-600');
-                overlayAudioIcon.className = 'fa-solid fa-volume-xmark text-sm js-fc-audio-icon-overlay';
-                overlayAudioBtn.dataset.hasAudio = 'false';
-            }
-        }
-
-        setTimeout(adjustCardLayout, 0);
-        if (!isAutoplaySession && window.autoPlayBackSide) {
-            window.autoPlayBackSide();
-        }
-    };
-
-    const flipToFront = () => {
-        window.stopAllFlashcardAudio ? window.stopAllFlashcardAudio() : null;
-        card.classList.remove('flipped');
-        actions?.classList.remove('visible');
-        // Show all flip buttons
-        flipBtns.forEach(btn => btn.style.display = '');
-
-        // Mobile Support: Hide footer rating buttons
-        const mobileRatingBtns = document.querySelector('.js-fc-rating-btns');
-        if (mobileRatingBtns) mobileRatingBtns.classList.remove('show');
-
-        // [NEW] Mobile Support: Hide stats button when on front
-        const mobileStatsBtn = document.querySelector('.js-fc-card-details-btn');
-        if (mobileStatsBtn) mobileStatsBtn.classList.add('hidden');
-
-        setTimeout(adjustCardLayout, 0);
-    };
-
+    // Use global flip methods
     flipBtns.forEach(btn => {
         // Use onclick to prevent listener accumulation
         btn.onclick = (ev) => {
             ev.stopPropagation();
-            flipToBack();
+            window.flipToBack();
         };
     });
 
     const frontLabel = card?.querySelector('.front .card-toolbar .label');
     const backLabel = card?.querySelector('.back .card-toolbar .label');
 
-    if (frontLabel) frontLabel.addEventListener('click', (ev) => { ev.stopPropagation(); flipToBack(); });
-    if (backLabel) backLabel.addEventListener('click', (ev) => { ev.stopPropagation(); flipToFront(); });
+    if (frontLabel) frontLabel.addEventListener('click', (ev) => { ev.stopPropagation(); window.flipToBack(); });
+    if (backLabel) backLabel.addEventListener('click', (ev) => { ev.stopPropagation(); window.flipToFront(); });
 
     document.querySelectorAll('.card-toolbar .icon-btn').forEach(btn => {
         btn.addEventListener('click', ev => {
@@ -771,9 +873,16 @@ function showPreviewTooltip(targetBtn, data) {
     });
 }
 
-function hidePreviewTooltip() {
+function hidePreviewTooltip(immediate = false) {
     const tooltip = document.getElementById('rating-preview-tooltip');
     if (!tooltip) return;
+
+    if (immediate) {
+        tooltip.style.display = 'none';
+        tooltip.style.opacity = '0';
+        tooltip.style.transform = 'translateY(10px)';
+        return;
+    }
 
     tooltip.style.opacity = '0';
     tooltip.style.transform = 'translateY(10px)';
