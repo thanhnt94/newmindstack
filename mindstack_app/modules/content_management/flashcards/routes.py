@@ -1154,6 +1154,13 @@ def edit_flashcard_set(set_id):
             abort(403)
         if current_user.user_role != User.ROLE_ADMIN and not _has_editor_access(set_id):
             abort(403)  # Không có quyền
+            
+    from ..forms import ContributorForm
+    from ....models import ContainerContributor
+    contributor_form = ContributorForm()
+    contributors = db.session.query(ContainerContributor, User).join(
+        User, ContainerContributor.user_id == User.user_id
+    ).filter(ContainerContributor.container_id == set_id).all()
     
     form = FlashcardSetForm(obj=flashcard_set)
     _apply_is_public_restrictions(form)
@@ -1310,6 +1317,8 @@ def edit_flashcard_set(set_id):
         previous_set_id=previous_set_id,
         next_set_id=next_set_id,
         flashcard_config=FlashcardConfigService.get_all(),
+        contributors=contributors,
+        contributor_form=contributor_form,
     )
 
 

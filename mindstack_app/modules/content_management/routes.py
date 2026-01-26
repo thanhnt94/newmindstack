@@ -193,6 +193,58 @@ def manage_contributors(container_id):
                            form=form,
                            username_suggestions=username_suggestions)
 
+@content_management_bp.route('/api/contributors/<int:container_id>/add', methods=['POST'])
+@login_required
+def add_contributor_api(container_id):
+    container = LearningContainer.query.get_or_404(container_id)
+    if current_user.user_role != 'admin' and container.creator_user_id != current_user.user_id:
+        return {'success': False, 'message': 'Permission denied'}, 403
+
+    data = request.get_json() or {}
+    username = (data.get('username') or "").strip()
+    permission_level = data.get('permission_level', 'editor')
+
+    if not username:
+        return {'success': False, 'message': 'Vui lòng nhập tên người dùng'}, 400
+
+    user_to_add = User.query.filter(func.lower(User.username) == username.lower()).first()
+
+    if not user_to_add:
+        return {'success': False, 'message': f'Không tìm thấy người dùng: {username}'}, 404
+    if user_to_add.user_id == container.creator_user_id:
+        return {'success': False, 'message': 'Không thể thêm người tạo'}, 400
+    if user_to_add.user_role in {User.ROLE_FREE, User.ROLE_ANONYMOUS}:
+        return {'success': False, 'message': 'Chỉ dành cho tài khoản trả phí'}, 400
+
+    existing = ContainerContributor.query.filter_by(container_id=container_id, user_id=user_to_add.user_id).first()
+    if existing:
+        existing.permission_level = permission_level
+        msg = f"Đã cập nhật quyền cho {user_to_add.username}"
+    else:
+        new_c = ContainerContributor(container_id=container_id, user_id=user_to_add.user_id, permission_level=permission_level)
+        db.session.add(new_c)
+        msg = f"Đã thêm {user_to_add.username}"
+    
+    db.session.commit()
+    return {'success': True, 'message': msg, 'username': user_to_add.username, 'email': user_to_add.email, 'user_id': user_to_add.user_id}
+
+@content_management_bp.route('/api/contributors/<int:container_id>/remove', methods=['POST'])
+@login_required
+def remove_contributor_api(container_id):
+    container = LearningContainer.query.get_or_404(container_id)
+    if current_user.user_role != 'admin' and container.creator_user_id != current_user.user_id:
+        return {'success': False, 'message': 'Permission denied'}, 403
+
+    data = request.get_json() or {}
+    user_id = data.get('user_id')
+    contributor = ContainerContributor.query.filter_by(container_id=container_id, user_id=user_id).first()
+    if not contributor:
+         return {'success': False, 'message': 'Không tìm thấy người đóng góp'}, 404
+
+    db.session.delete(contributor)
+    db.session.commit()
+    return {'success': True, 'message': 'Đã xóa quyền'}
+
 ALLOWED_RICH_TEXT_EXTENSIONS = {
     '.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg', '.bmp',
     '.mp3', '.wav', '.ogg', '.m4a', '.aac', '.flac',
