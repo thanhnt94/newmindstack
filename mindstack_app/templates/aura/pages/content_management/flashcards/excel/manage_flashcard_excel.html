@@ -138,7 +138,8 @@
                                 <td class="px-4 py-3 font-medium text-gray-800">front_img / back_img</td>
                                 <td class="px-4 py-3 text-gray-600">Đường dẫn hoặc URL hình ảnh minh họa.</td>
                                 <td class="px-4 py-3 text-gray-500">Hỗ trợ URL tuyệt đối hoặc dạng
-                                    <code>uploads/...</code>.</td>
+                                    <code>uploads/...</code>.
+                                </td>
                             </tr>
                             <tr>
                                 <td class="px-4 py-3 font-medium text-gray-800">front_audio_url / back_audio_url</td>
@@ -183,7 +184,8 @@
                                     media).</td>
                                 <td class="px-4 py-3 text-gray-500 space-y-1">
                                     <div>Media tương đối được chuẩn hoá về thư mục gốc (ví dụ:
-                                        <code>uploads/&lt;thư_mục&gt;/...</code>).</div>
+                                        <code>uploads/&lt;thư_mục&gt;/...</code>).
+                                    </div>
                                     <div>Đường dẫn tuyệt đối sẽ được sao chép vào gói ZIP và Excel chỉ còn lại tên file.
                                     </div>
                                 </td>
@@ -206,12 +208,15 @@
                     <li>Sử dụng file mẫu hoặc file Excel mới xuất để đảm bảo đúng cấu trúc.</li>
                     <li>Cột <strong>action</strong> hỗ trợ các giá trị <code>update</code>,
                         <code>keep</code>/<code>skip</code>, <code>create</code> và <code>delete</code> để thao tác
-                        nhanh.</li>
+                        nhanh.
+                    </li>
                     <li>Các đường dẫn media nội bộ có thể sử dụng dạng <code>uploads/images/...</code> hoặc
-                        <code>uploads/audio/...</code>.</li>
+                        <code>uploads/audio/...</code>.
+                    </li>
                     <li>Giữ nguyên cột <strong>item_id</strong> để cập nhật thẻ hiện có, bỏ trống để tạo thẻ mới.</li>
                     <li>Các trường <code>image_base_folder</code> và <code>audio_base_folder</code> trong sheet
-                        <code>Info</code> sẽ được áp dụng tự động cho lần nhập.</li>
+                        <code>Info</code> sẽ được áp dụng tự động cho lần nhập.
+                    </li>
                     <li>Sau khi nhập thành công hệ thống sẽ tự động sắp xếp lại thứ tự thẻ.</li>
                 </ul>
             </div>
@@ -248,6 +253,7 @@
         </a>
     </div>
 </div>
+{% endblock %}
 
 {% block scripts %}
 {{ super() }}

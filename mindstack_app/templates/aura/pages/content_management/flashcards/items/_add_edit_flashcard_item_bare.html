@@ -586,8 +586,13 @@ THAY ĐỔI:
             // Close Button
             document.querySelectorAll('[data-role="close-editor"]').forEach(btn => {
                 btn.addEventListener('click', () => {
-                    if (window.parent && window.parent.closeVocabEditOverlay) window.parent.closeVocabEditOverlay();
-                    else window.history.back();
+                    if (window.parent && typeof window.parent.closeModal === 'function') {
+                        window.parent.closeModal();
+                    } else if (window.parent && typeof window.parent.closeVocabEditOverlay === 'function') {
+                        window.parent.closeVocabEditOverlay();
+                    } else {
+                        window.history.back();
+                    }
                 });
             });
 

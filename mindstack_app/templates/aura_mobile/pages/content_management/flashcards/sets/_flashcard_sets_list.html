@@ -28,8 +28,8 @@
         <div class="p-4 flex-1 flex flex-col">
             <h3
                 class="font-bold text-slate-800 text-base line-clamp-2 mb-1 group-hover:text-indigo-600 transition-colors">
-                <a href="javascript:void(0)" class="open-modal-btn"
-                    data-modal-url="{{ url_for('content_management.content_management_flashcards.edit_flashcard_set', set_id=set.container_id) }}">
+                <a
+                    href="{{ url_for('content_management.content_management_flashcards.list_flashcard_items', set_id=set.container_id) }}">
                     {{ set.title }}
                 </a>
             </h3>
@@ -46,6 +46,16 @@
                 </div>
 
                 <div class="flex gap-2">
+                    <a href="{{ url_for('content_management.content_management_flashcards.export_flashcard_set_excel', set_id=set.container_id) }}"
+                        class="w-8 h-8 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center hover:bg-emerald-100 transition-colors"
+                        title="Tải Excel (Data only)">
+                        <i class="fa-solid fa-file-excel text-xs"></i>
+                    </a>
+                    <a href="{{ url_for('content_management.content_management_flashcards.export_flashcard_set', set_id=set.container_id) }}"
+                        class="w-8 h-8 rounded-full bg-amber-50 text-amber-600 flex items-center justify-center hover:bg-amber-100 transition-colors"
+                        title="Tải gói ZIP (Excel + Media)">
+                        <i class="fa-solid fa-file-zipper text-xs"></i>
+                    </a>
                     <a href="{{ url_for('content_management.content_management_flashcards.list_flashcard_items', set_id=set.container_id) }}"
                         class="w-8 h-8 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center hover:bg-indigo-100 transition-colors"
                         title="Quản lý thẻ">
@@ -54,7 +64,7 @@
                     <a href="javascript:void(0)"
                         class="open-modal-btn w-8 h-8 rounded-full bg-slate-50 text-slate-600 flex items-center justify-center hover:bg-slate-100 transition-colors"
                         data-modal-url="{{ url_for('content_management.content_management_flashcards.edit_flashcard_set', set_id=set.container_id) }}"
-                        title="Chỉnh sửa">
+                        title="Chỉnh sửa bộ thẻ">
                         <i class="fa-solid fa-pen text-xs"></i>
                     </a>
                 </div>

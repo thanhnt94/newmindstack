@@ -15,9 +15,14 @@
         <article class="cm-collection-card">
             <div class="flex items-start justify-between gap-4">
                 <div class="min-w-0 space-y-2">
-                    <h3 class="truncate text-lg font-semibold text-slate-900">{{ set.title }}</h3>
-                    <p class="line-clamp-2 text-sm text-slate-500">{{ set.description if set.description else 'Chưa có
-                        mô tả cho bộ từ vựng này.' }}</p>
+                    <h3 class="truncate text-lg font-semibold text-slate-900 leading-tight">
+                        <a href="{{ url_for('content_management.content_management_flashcards.list_flashcard_items', set_id=set.container_id) }}"
+                            class="hover:text-indigo-600 transition-colors">
+                            {{ set.title }}
+                        </a>
+                    </h3>
+                    <p class="line-clamp-2 text-sm text-slate-500 leading-relaxed">{{ set.description if set.description
+                        else 'Chưa có mô tả cho bộ thẻ này.' }}</p>
                 </div>
                 <span class="cm-icon-button" aria-hidden="true">
                     <i class="fa-solid fa-clone"></i>
@@ -60,23 +65,23 @@
                     (set.contributors and current_user.user_id in set.contributors|map(attribute='user_id')|list and
                     'editor' in set.contributors|selectattr('user_id', 'equalto',
                     current_user.user_id)|map(attribute='permission_level')|list) %}
+                    <a href="{{ url_for('content_management.content_management_flashcards.export_flashcard_set_excel', set_id=set.container_id) }}"
+                        class="cm-icon-button bg-emerald-50 text-emerald-600 hover:bg-emerald-100"
+                        title="Tải Excel (Data only)">
+                        <i class="fa-solid fa-file-excel"></i>
+                    </a>
                     <a href="{{ url_for('content_management.content_management_flashcards.export_flashcard_set', set_id=set.container_id) }}"
-                        class="cm-icon-button" title="Xuất gói ZIP">
-                        <i class="fas fa-file-export"></i>
+                        class="cm-icon-button bg-amber-50 text-amber-600 hover:bg-amber-100"
+                        title="Tải gói ZIP (Excel + Media)">
+                        <i class="fa-solid fa-file-zipper"></i>
                     </a>
                     <button type="button"
                         data-modal-url="{{ url_for('content_management.content_management_flashcards.edit_flashcard_set', set_id=set.container_id) }}"
-                        class="open-modal-btn cm-icon-button" title="Chỉnh sửa">
+                        class="open-modal-btn cm-icon-button" title="Chỉnh sửa bộ thẻ">
                         <i class="fas fa-pen"></i>
                     </button>
                     {% endif %}
 
-                    {% if current_user.user_role != 'free' and (current_user.user_role == 'admin' or set.creator_user_id
-                    == current_user.user_id) %}
-                    <a href="{{ url_for('content_management.manage_contributors', container_id=set.container_id) }}"
-                        class="cm-icon-button" title="Quản lý quyền">
-                        <i class="fas fa-users"></i>
-                    </a>
                     {% endif %}
 
                     {% if current_user.user_role == 'admin' or set.creator_user_id == current_user.user_id %}

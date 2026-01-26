@@ -892,7 +892,7 @@ def export_flashcard_set_excel(set_id):
     image_folder = media_folders.get('image')
     audio_folder = media_folders.get('audio')
 
-    info_rows, data_rows = _build_flashcard_export_payload(
+    info_rows, data_rows, final_columns = _build_flashcard_export_payload(
         flashcard_set,
         items,
         export_mode='excel',
@@ -902,7 +902,7 @@ def export_flashcard_set_excel(set_id):
         audio_folder=audio_folder,
     )
 
-    excel_buffer = _create_flashcard_excel(info_rows, data_rows)
+    excel_buffer = _create_flashcard_excel(info_rows, data_rows, columns=final_columns)
     download_name = f"{_slugify_filename(flashcard_set.title)}.xlsx"
     return send_file(
         excel_buffer,
@@ -1011,17 +1011,23 @@ def manage_flashcard_excel(set_id):
 
         return redirect(url_for('content_management.content_management_flashcards.manage_flashcard_excel', set_id=set_id))
 
-    export_excel_url = url_for('content_management.content_management_flashcards.export_flashcard_set_excel', set_id=set_id)
-    export_zip_url = url_for('content_management.content_management_flashcards.export_flashcard_set', set_id=set_id)
-    template_url = url_for('content_management.content_management_flashcards.download_flashcard_excel_template')
+    export_excel_url = url_for('.export_flashcard_set_excel', set_id=set_id)
+    export_zip_url = url_for('.export_flashcard_set', set_id=set_id)
+    template_url = url_for('.download_flashcard_excel_template')
     item_count = LearningItem.query.filter_by(container_id=set_id, item_type='FLASHCARD').count()
-    return render_dynamic_template('pages/content_management/flashcards/excel/manage_flashcard_excel.html',
-        flashcard_set=flashcard_set,
-        export_excel_url=export_excel_url,
-        export_zip_url=export_zip_url,
-        template_url=template_url,
-        item_count=item_count,
-    )
+    
+    try:
+        return render_dynamic_template('pages/content_management/flashcards/excel/manage_flashcard_excel.html',
+            flashcard_set=flashcard_set,
+            export_excel_url=export_excel_url,
+            export_zip_url=export_zip_url,
+            template_url=template_url,
+            item_count=item_count,
+        )
+    except Exception as e:
+        current_app.logger.error(f"Error rendering manage_flashcard_excel: {e}", exc_info=True)
+        flash(f"Lỗi hiển thị trang: {str(e)}", "danger")
+        return redirect(url_for('content_management.content_dashboard', tab='flashcards'))
 
 
 @flashcards_bp.route('/flashcards/add', methods=['GET', 'POST'])
