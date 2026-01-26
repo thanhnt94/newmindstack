@@ -92,26 +92,46 @@ function playAudioAfterLoad(audioPlayer, { restart = true, awaitCompletion = fal
             return;
         }
 
-        const cleanup = () => {
-            audioPlayer.removeEventListener('canplay', onCanPlay);
-            if (awaitCompletion) {
-                audioPlayer.removeEventListener('ended', onEnded);
-                audioPlayer.removeEventListener('error', onError);
+        const updateOverlayIcon = (isPlaying) => {
+            const icon = document.querySelector('.js-fc-audio-icon-overlay');
+            if (icon) {
+                if (isPlaying) {
+                    icon.classList.remove('fa-volume-high', 'fa-volume-low', 'fa-volume-up', 'fa-volume-xmark');
+                    icon.classList.add('fa-pause', 'animate-pulse');
+                } else {
+                    icon.classList.remove('fa-pause', 'animate-pulse');
+                    // Reset based on state
+                    const btn = document.querySelector('.js-fc-audio-btn-overlay');
+                    const hasAudio = btn && btn.dataset.hasAudio === 'true';
+                    icon.classList.add(hasAudio ? 'fa-volume-high' : 'fa-volume-xmark');
+                }
             }
         };
 
-        const onEnded = () => {
-            cleanup();
-            resolve();
+        const onPlaying = () => updateOverlayIcon(true);
+        const onPause = () => updateOverlayIcon(false);
+
+        const cleanup = () => {
+            audioPlayer.removeEventListener('canplay', onCanPlay);
+            audioPlayer.removeEventListener('playing', onPlaying);
+            audioPlayer.removeEventListener('pause', onPause);
+            audioPlayer.removeEventListener('ended', handleFinish);
+            audioPlayer.removeEventListener('error', handleFinish);
         };
 
-        const onError = () => {
+        const handleFinish = () => {
+            updateOverlayIcon(false);
             cleanup();
             resolve();
         };
 
         const onCanPlay = () => {
             audioPlayer.removeEventListener('canplay', onCanPlay);
+            audioPlayer.addEventListener('playing', onPlaying);
+            audioPlayer.addEventListener('pause', onPause);
+            audioPlayer.addEventListener('ended', handleFinish, { once: true });
+            audioPlayer.addEventListener('error', handleFinish, { once: true });
+
             if (restart) {
                 try {
                     audioPlayer.pause();
@@ -122,7 +142,9 @@ function playAudioAfterLoad(audioPlayer, { restart = true, awaitCompletion = fal
             }
             const playPromise = audioPlayer.play();
             if (!awaitCompletion) {
-                cleanup();
+                // We don't cleanup() here anymore because we need 
+                // onPlaying/onPause/handleFinish to update the overlay icon.
+                // They will call cleanup() when the audio actually stops.
                 if (playPromise && typeof playPromise.catch === 'function') {
                     playPromise.catch(() => { });
                 }
@@ -135,10 +157,9 @@ function playAudioAfterLoad(audioPlayer, { restart = true, awaitCompletion = fal
             }
         };
 
-        if (awaitCompletion) {
-            audioPlayer.addEventListener('ended', onEnded, { once: true });
-            audioPlayer.addEventListener('error', onError, { once: true });
-        }
+        // Always listen for end/error to cleanup and reset icon, even if !awaitCompletion
+        audioPlayer.addEventListener('ended', handleFinish, { once: true });
+        audioPlayer.addEventListener('error', handleFinish, { once: true });
 
         if (audioPlayer.readyState >= 2) {
             onCanPlay();
