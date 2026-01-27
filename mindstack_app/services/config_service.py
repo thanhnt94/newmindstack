@@ -248,6 +248,13 @@ def init_config_service(app, ttl_seconds: int = 30) -> ConfigService:
                 "category": "audio",
                 "description": "Giọng đọc mặc định cho Google TTS.",
             },
+            {
+                "key": "AUDIO_VOICE_MAPPING_GLOBAL",
+                "value": DEFAULT_APP_CONFIGS.get("AUDIO_VOICE_MAPPING_GLOBAL"),
+                "data_type": "json",
+                "category": "audio",
+                "description": "Bản đồ giọng đọc global (e.g. {'vi-m': 'edge:...'}).",
+            },
         ]
 
     @app.before_request

@@ -19,33 +19,63 @@ class AudioService:
     }
     
     @classmethod
-    async def get_audio(cls, text: str, engine: str = 'edge', voice: str = None, target_dir: str = None, custom_filename: str = None) -> dict:
+    async def get_audio(cls, text: str, engine: str = 'edge', voice: str = None, target_dir: str = None, custom_filename: str = None, is_manual: bool = False, auto_voice_parsing: bool = False) -> dict:
         """
         Get audio for the given text. Returns existing file or generates new one.
         
         Args:
             text: Text to speak.
             engine: 'edge' or 'gtts'.
-            voice: Specific voice ID.
-            target_dir: Relative path to store audio (default: static/audio/cache).
-            custom_filename: Specific filename (default: auto-hashed).
+            voice: Specific voice ID. (Ignored if auto_voice_parsing is True and tags are present)
+            target_dir: Relative path to store audio.
+            custom_filename: Specific filename.
+            is_manual: If True, bypass hashing for custom filename (handled by logic layer usually, but passed here).
+            auto_voice_parsing: If True, parse 'en(m): ...' tags.
             
         Returns:
             dict: { 'physical_path': str, 'url': str, 'status': 'exists'|'generated'|'error' }
         """
         
-        # 1. Determine Filename
+        # --- Pre-processing: Voice Parsing ---
+        final_text = text
+        if auto_voice_parsing:
+            from ..logics.voice_parser import VoiceParser
+            
+            if engine == 'edge':
+                # Convert to SSML using mappings
+                mapping = current_app.config.get('AUDIO_VOICE_MAPPING_EDGE', {})
+                # Use provided voice as default fallback, or config default
+                default_voice = voice or current_app.config.get('AUDIO_DEFAULT_VOICE_EDGE', 'en-US-AriaNeural')
+                
+                ssml = VoiceParser.generate_ssml(text, mapping, default_voice)
+                if ssml:
+                    final_text = ssml
+                    # For SSML, filename hash should depend on the SSML content to ensure uniqueness of structure
+            else:
+                # Strip tags for unsupported engines (gTTS)
+                final_text = VoiceParser.strip_prompts(text)
+
+    @classmethod
+    async def get_audio(cls, text: str, engine: str = 'edge', voice: str = None, target_dir: str = None, custom_filename: str = None, is_manual: bool = False, auto_voice_parsing: bool = False) -> dict:
+        """
+        Get audio for the given text. Returns existing file or generates new one.
+        """
+        
+        # --- Pre-processing: Voice Parsing and Config ---
+        final_text = text
+        is_concatenation_needed = False
+        
+        # 1. Determine Filename (Logic differs if hashing text vs custom)
         if custom_filename:
             filename = custom_filename
-            # Ensure extension
             if not filename.endswith('.mp3'):
                 filename += '.mp3'
         else:
-            # Apply Defaults if not provided (for hashing and generation)
+            # Apply Defaults
             if not engine:
                 engine = current_app.config.get('AUDIO_DEFAULT_ENGINE', 'edge')
             
-            if not voice:
+            if not voice and not auto_voice_parsing:
                 if engine == 'edge':
                     voice = current_app.config.get('AUDIO_DEFAULT_VOICE_EDGE', 'vi-VN-HoaiMyNeural')
                 elif engine == 'gtts':
@@ -53,7 +83,9 @@ class AudioService:
                 else:
                     voice = 'default'
 
-            filename = generate_hash_name(text, engine, voice)
+            # Hash generation
+            # If auto-parsing, we hash the RAW text because the logic handles the same input consistently
+            filename = generate_hash_name(text, engine, voice if voice else 'auto')
             
         # 2. Determine Target Directory
         if not target_dir:
@@ -65,35 +97,160 @@ class AudioService:
         url = paths['url']
         
         # 4. Check Existence (Cache Hit)
-        if os.path.exists(physical_path):
-            return {
-                'physical_path': physical_path,
-                'url': url,
-                'status': 'exists'
-            }
+        if os.path.exists(physical_path) and not is_manual:
+             return {'physical_path': physical_path, 'url': url, 'status': 'exists'}
             
-        # 5. Generate Audio (Cache Miss)
-        # Instantiate Engine
-        engine_cls = cls._ENGINES.get(engine)
-        if not engine_cls:
-            current_app.logger.error(f"[AudioService] Unknown engine: {engine}")
-            return {'error': f'Unknown engine: {engine}', 'status': 'error'}
-            
-        generator = engine_cls()
-        
+        # 5. Generate Audio
         try:
-            success = await generator.generate(text, voice, physical_path)
+            success = False
+            
+            if auto_voice_parsing and engine == 'edge':
+                # --- Concatenation Strategy (User Requested) ---
+                 success = await cls._generate_concatenated_audio(text, physical_path)
+            else:
+                # --- Standard Single Generation ---
+                # Strip tags if not using concatenation but auto_voice_parsing was requested (e.g. gTTS)
+                if auto_voice_parsing:
+                     from ..logics.voice_parser import VoiceParser
+                     final_text = VoiceParser.strip_prompts(text)
+
+                engine_cls = cls._ENGINES.get(engine)
+                if not engine_cls:
+                    return {'error': f'Unknown engine: {engine}', 'status': 'error'}
+                
+                generator = engine_cls()
+                success = await generator.generate(final_text, voice, physical_path)
+
             if success:
-                return {
-                    'physical_path': physical_path,
-                    'url': url,
-                    'status': 'generated'
-                }
+                return {'physical_path': physical_path, 'url': url, 'status': 'generated'}
             else:
                  return {'error': 'Generation failed', 'status': 'error'}
+                 
         except Exception as e:
             current_app.logger.error(f"[AudioService] Exception: {e}")
             return {'error': str(e), 'status': 'error'}
+
+    @classmethod
+    async def _generate_concatenated_audio(cls, text: str, output_path: str) -> bool:
+        """
+        Parses text, generates segments using Edge TTS, and concatenates them.
+        """
+        import os
+        import tempfile
+        import asyncio
+        from ..logics.voice_parser import VoiceParser
+        from mindstack_app.logics.voice_engine import VoiceEngine # Reuse for pydub logic
+        
+        segments = VoiceParser.parse_segments(text)
+        if not segments:
+            return False
+            
+        temp_files = []
+        mapping = current_app.config.get('AUDIO_VOICE_MAPPING_GLOBAL', {})
+        default_voice_edge = current_app.config.get('AUDIO_DEFAULT_VOICE_EDGE', 'en-US-AriaNeural')
+        
+        try:
+            # 1. Generate Parts
+            
+            for i, seg in enumerate(segments):
+                seg_text = seg['text']
+                if not seg_text.strip():
+                    continue
+                    
+                lang = seg['lang']
+                gender = seg['gender']
+                
+                # Resolve Identity (Engine + Voice)
+                # Default identity
+                resolved_engine = 'edge'
+                resolved_voice = default_voice_edge
+                
+                if lang:
+                    key_gender = f"{lang}-{gender}" if gender else lang
+                    key_generic = lang
+                    
+                    found_val = None
+                    if key_gender in mapping:
+                        found_val = mapping[key_gender]
+                    elif key_generic in mapping:
+                        found_val = mapping[key_generic]
+                    
+                    if found_val:
+                        # Format is 'engine:voice' (e.g. 'edge:vi-VN-Na', 'gtts:vi')
+                        if ':' in found_val:
+                            resolved_engine, resolved_voice = found_val.split(':', 1)
+                        else:
+                            # Legacy or edge-only format
+                            resolved_voice = found_val
+                            
+                current_app.logger.info(f"[AudioConcatenation] Segment '{seg_text[:10]}...': Key={lang}-{gender} -> {resolved_engine}:{resolved_voice}")
+
+                # Instantiate Engine for this segment
+                engine_cls = cls._ENGINES.get(resolved_engine)
+                if not engine_cls:
+                     # Fallback to Edge if unknown
+                     engine_cls = cls._ENGINES['edge']
+                
+                gen_instance = engine_cls()
+                
+                # Create Temp File
+                fd, temp_path = tempfile.mkstemp(suffix=f"_{i}.mp3")
+                os.close(fd)
+                
+                # Generate Sync (Using the instance method, awaiting if it's async compatible wrapper, 
+                # but our .generate is async def)
+                success = await gen_instance.generate(seg_text, resolved_voice, temp_path)
+                
+                if success:
+                    temp_files.append(temp_path)
+                else:
+                    raise Exception(f"Failed to generate segment: {seg_text} with {resolved_engine}")
+            
+            if not temp_files:
+                return False
+                
+            # 2. Concatenate
+            # Use VoiceEngine's logic which uses Pydub
+            # It's synchronous, so run in executor to avoid blocking async loop
+            loop = asyncio.get_running_loop()
+            
+            # VoiceEngine.concatenate_audio_files(file_paths, output_format, pause_ms)
+            # We need to construct it or make the method static. It's an instance method currently.
+            ve = VoiceEngine()
+            
+            # We only want to save to 'output_path', but 'concatenate_audio_files' generates its own temp path.
+            # We can use it and then move/copy, or use pydub directly here. 
+            # Reusing is cleaner code-wise but slightly inefficient (double write).
+            # Let's use pydub directly here for full control over destination 'output_path'.
+            
+            def concat_task():
+                from pydub import AudioSegment
+                combined = AudioSegment.empty()
+                pause = AudioSegment.silent(duration=300) # 300ms pause between segments
+                
+                first = True
+                for tf in temp_files:
+                    if not first:
+                        combined += pause
+                    combined += AudioSegment.from_file(tf)
+                    first = False
+                    
+                combined.export(output_path, format="mp3")
+                
+            await loop.run_in_executor(None, concat_task)
+            return True
+            
+        except Exception as e:
+            current_app.logger.error(f"[ConcactGen] Error: {e}")
+            return False
+        finally:
+            # Cleanup
+            for tf in temp_files:
+                if os.path.exists(tf):
+                    try:
+                        os.remove(tf)
+                    except:
+                        pass
 
     @classmethod
     async def prepare_card_audio(cls, text: str, set_id: int, side: str = 'front', engine: str = 'edge', voice: str = None) -> dict:

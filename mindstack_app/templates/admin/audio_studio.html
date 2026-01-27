@@ -136,7 +136,23 @@
                                 <select class="form-select w-full" id="voiceId">
                                     <!-- Populated by JS -->
                                 </select>
-                                <div class="text-xs text-slate-500 mt-1">Select engine to see available voices.</div>
+                                <div class="text-xs text-slate-500 mt-1" id="voiceHelp">Select engine to see available
+                                    voices.</div>
+                            </div>
+                        </div>
+
+                        <!-- Advanced Options -->
+                        <div class="mb-4">
+                            <div class="form-check flex items-center gap-2">
+                                <input class="form-check-input" type="checkbox" id="autoVoiceTags">
+                                <label class="form-check-label select-none text-sm text-slate-700 font-medium"
+                                    for="autoVoiceTags">
+                                    Advanced: Parse Voice Tags (e.g. <code>en(m): Hello</code>)
+                                </label>
+                            </div>
+                            <div class="text-xs text-slate-500 ml-6 mt-1 hidden" id="tagsHelp">
+                                When enabled, voice selection above is ignored. Use format
+                                <code>lang(gender): Text</code> in content.
                             </div>
                         </div>
 
@@ -232,6 +248,35 @@
                             </div>
                         </div>
 
+                        <!-- Voice Mappings Section -->
+                        <div class="mt-6 pt-4 border-t border-gray-100">
+                            <h5 class="text-sm font-bold text-gray-700 mb-3">Custom Voice Mappings (Edge TTS)</h5>
+                            <div class="text-xs text-gray-500 mb-3">
+                                Define which voice to use for specific codes in your text (e.g. <code>vi(m): ...</code>
+                                uses <code>vi-m</code>).
+                            </div>
+
+                            <div class="overflow-x-auto">
+                                <table class="table w-full text-sm" id="mappingTable">
+                                    <thead>
+                                        <tr class="text-left bg-gray-50 text-gray-600">
+                                            <th class="p-2 rounded-l-lg">Code Key</th>
+                                            <th class="p-2">Voice</th>
+                                            <th class="p-2 rounded-r-lg w-10"></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="mappingBody">
+                                        <!-- Rows injected by JS -->
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <button type="button" class="btn btn-sm btn-outline-secondary mt-2" id="addMappingBtn">
+                                <i class="fas fa-plus me-1"></i> Add Mapping
+                            </button>
+                        </div>
+
+
                         <div class="mt-6 border-t border-gray-100 pt-4 text-right">
                             <button type="submit" class="btn btn-success flex items-center gap-2 ml-auto"
                                 id="saveSettingsBtn">
@@ -254,10 +299,12 @@
     const SERVER_CONFIG = {
         defaultEngine: "{{ default_engine }}",
         defaultEdgeVoice: "{{ default_voice_edge }}",
-        defaultGttsVoice: "{{ default_voice_gtts }}"
+        defaultGttsVoice: "{{ default_voice_gtts }}",
+        voiceMapping: {{ voice_mapping | tojson | safe }}
     };
 
     document.addEventListener('DOMContentLoaded', function () {
+
         // --- Tab Switching Logic ---
         const tabBtns = document.querySelectorAll('.tab-btn');
         const tabPanes = document.querySelectorAll('.tab-pane');
@@ -372,9 +419,108 @@
         populateSelect(defaultEdgeSelect, VOICE_OPTIONS['edge'], SERVER_CONFIG.defaultEdgeVoice);
         populateSelect(defaultGttsSelect, VOICE_OPTIONS['gtts'], SERVER_CONFIG.defaultGttsVoice);
 
+        // --- 2b. Voice Mapping Table Logic ---
+        const mappingBody = document.getElementById('mappingBody');
+        const addMappingBtn = document.getElementById('addMappingBtn');
+
+        function createVoiceSelect(selectedValue) {
+            const sel = document.createElement('select');
+            sel.className = 'form-select w-full text-xs py-1';
+
+            // Group: Edge TTS
+            const grpEdge = document.createElement('optgroup');
+            grpEdge.label = 'Edge TTS';
+            VOICE_OPTIONS['edge'].forEach(v => {
+                const opt = document.createElement('option');
+                opt.value = `edge:${v.code}`;
+                opt.textContent = v.label;
+                if (`edge:${v.code}` === selectedValue) opt.selected = true;
+                grpEdge.appendChild(opt);
+            });
+            sel.appendChild(grpEdge);
+
+            // Group: Google TTS
+            const grpGtts = document.createElement('optgroup');
+            grpGtts.label = 'Google TTS';
+            VOICE_OPTIONS['gtts'].forEach(v => {
+                const opt = document.createElement('option');
+                opt.value = `gtts:${v.code}`;
+                opt.textContent = v.label;
+                if (`gtts:${v.code}` === selectedValue) opt.selected = true;
+                grpGtts.appendChild(opt);
+            });
+            sel.appendChild(grpGtts);
+
+            return sel;
+        }
+
+        function addMappingRow(key = '', voice = '') {
+            const tr = document.createElement('tr');
+            tr.className = 'border-b border-gray-100 hover:bg-gray-50';
+
+            // Key Input
+            const tdKey = document.createElement('td');
+            tdKey.className = 'p-2';
+            const inputKey = document.createElement('input');
+            inputKey.type = 'text';
+            inputKey.className = 'form-control text-xs py-1 w-full font-mono mapping-key';
+            inputKey.placeholder = 'e.g. vi-m';
+            inputKey.value = key;
+            tdKey.appendChild(inputKey);
+
+            // Voice Select
+            const tdVoice = document.createElement('td');
+            tdVoice.className = 'p-2';
+            // Default to first Edge voice if new
+            const defaultVal = voice || `edge:${SERVER_CONFIG.defaultEdgeVoice}`;
+            const selectVoice = createVoiceSelect(defaultVal);
+            selectVoice.className += ' mapping-voice';
+            tdVoice.appendChild(selectVoice);
+
+            // Action
+            const tdAction = document.createElement('td');
+            tdAction.className = 'p-2 text-center';
+            const delBtn = document.createElement('button');
+            delBtn.type = 'button';
+            delBtn.className = 'text-red-500 hover:text-red-700 focus:outline-none';
+            delBtn.innerHTML = '<i class="fas fa-trash-alt"></i>';
+            delBtn.onclick = function () { tr.remove(); };
+            tdAction.appendChild(delBtn);
+
+            tr.appendChild(tdKey);
+            tr.appendChild(tdVoice);
+            tr.appendChild(tdAction);
+            mappingBody.appendChild(tr);
+        }
+
+        // Init Table
+        const mappingData = SERVER_CONFIG.voiceMapping || {};
+        Object.entries(mappingData).forEach(([key, voice]) => {
+            addMappingRow(key, voice);
+        });
+
+        addMappingBtn.addEventListener('click', () => {
+            addMappingRow();
+        });
+
         // --- 3. Toggle Manual Mode ---
         switchBtn.addEventListener('change', function () {
             manualConfig.style.display = this.checked ? 'block' : 'none';
+        });
+
+        const autoTagsCheckbox = document.getElementById('autoVoiceTags');
+        const tagsHelp = document.getElementById('tagsHelp');
+
+        autoTagsCheckbox.addEventListener('change', function () {
+            if (this.checked) {
+                voiceSelect.disabled = true;
+                voiceSelect.classList.add('bg-gray-100', 'text-gray-400');
+                tagsHelp.classList.remove('hidden');
+            } else {
+                voiceSelect.disabled = false;
+                voiceSelect.classList.remove('bg-gray-100', 'text-gray-400');
+                tagsHelp.classList.add('hidden');
+            }
         });
 
         // --- 4. Handle Save Settings ---
@@ -385,10 +531,22 @@
             btn.disabled = true;
             btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
 
+            // Collect Mappings
+            const mappingRows = document.querySelectorAll('#mappingBody tr');
+            const newMapping = {};
+            mappingRows.forEach(tr => {
+                const key = tr.querySelector('.mapping-key').value.trim();
+                const voice = tr.querySelector('.mapping-voice').value;
+                if (key) {
+                    newMapping[key] = voice;
+                }
+            });
+
             const payload = {
                 default_engine: document.getElementById('defaultEngine').value,
                 default_voice_edge: document.getElementById('defaultEdgeVoice').value,
-                default_voice_gtts: document.getElementById('defaultGttsVoice').value
+                default_voice_gtts: document.getElementById('defaultGttsVoice').value,
+                voice_mapping_edge: newMapping,
             };
 
             const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
@@ -436,7 +594,8 @@
                 voice: document.getElementById('voiceId').value,
                 is_manual: switchBtn.checked,
                 target_dir: switchBtn.checked ? document.getElementById('targetDir').value : null,
-                custom_filename: switchBtn.checked ? document.getElementById('filename').value : null
+                custom_filename: switchBtn.checked ? document.getElementById('filename').value : null,
+                auto_voice_parsing: autoTagsCheckbox.checked
             };
 
             const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');

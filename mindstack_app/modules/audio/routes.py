@@ -23,7 +23,8 @@ def admin_audio_studio():
     return render_template('admin/audio_studio.html', 
                            default_engine=current_app.config.get('AUDIO_DEFAULT_ENGINE', 'edge'),
                            default_voice_edge=current_app.config.get('AUDIO_DEFAULT_VOICE_EDGE', 'en-US-AriaNeural'),
-                           default_voice_gtts=current_app.config.get('AUDIO_DEFAULT_VOICE_GTTS', 'en')
+                           default_voice_gtts=current_app.config.get('AUDIO_DEFAULT_VOICE_GTTS', 'en'),
+                           voice_mapping=current_app.config.get('AUDIO_VOICE_MAPPING_GLOBAL', {})
                            )
 
 @audio_bp.route('/admin/audio/settings', methods=['POST'])
@@ -34,10 +35,13 @@ def update_audio_settings():
         from mindstack_app.models import AppSettings, db
         data = request.get_json()
         
+        import json
+        
         updates = {
             'AUDIO_DEFAULT_ENGINE': data.get('default_engine'),
             'AUDIO_DEFAULT_VOICE_EDGE': data.get('default_voice_edge'),
-            'AUDIO_DEFAULT_VOICE_GTTS': data.get('default_voice_gtts')
+            'AUDIO_DEFAULT_VOICE_GTTS': data.get('default_voice_gtts'),
+            'AUDIO_VOICE_MAPPING_GLOBAL': json.dumps(data.get('voice_mapping')) if data.get('voice_mapping') else None
         }
         
         for key, value in updates.items():
@@ -111,6 +115,9 @@ async def process_audio():
     target_dir = data.get('target_dir') if is_manual else None
     custom_filename = data.get('custom_filename') if is_manual else None
     
+    # Advanced: Auto Parse Voice Tags
+    auto_voice_parsing = data.get('auto_voice_parsing', False)
+    
     if not text:
         return jsonify({'error': 'Text is required'}), 400
         
@@ -120,7 +127,9 @@ async def process_audio():
         engine=engine,
         voice=voice,
         target_dir=target_dir,
-        custom_filename=custom_filename
+        custom_filename=custom_filename,
+        is_manual=is_manual,
+        auto_voice_parsing=auto_voice_parsing
     )
     
     if result.get('status') == 'error':

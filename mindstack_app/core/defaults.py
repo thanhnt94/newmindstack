@@ -54,4 +54,20 @@ DEFAULT_APP_CONFIGS = {
     'AUDIO_DEFAULT_ENGINE': 'edge',
     'AUDIO_DEFAULT_VOICE_EDGE': 'vi-VN-HoaiMyNeural', # Default favorable for native users
     'AUDIO_DEFAULT_VOICE_GTTS': 'vi',
+    
+    # --- Advanced Audio: Global Voice Mappings (Format: 'key': 'engine:voice_id') ---
+    'AUDIO_VOICE_MAPPING_GLOBAL': {
+        # Preferred Defaults
+        'vi': 'edge:vi-VN-HoaiMyNeural',
+        'en': 'gtts:en',
+        'ja': 'edge:ja-JP-NanamiNeural',
+        
+        # Gender Specifics (Edge)
+        'vi-f': 'edge:vi-VN-HoaiMyNeural',
+        'vi-m': 'edge:vi-VN-NamMinhNeural',
+        'en-f': 'edge:en-US-AriaNeural',
+        'en-m': 'edge:en-US-ChristopherNeural',
+        'ja-f': 'edge:ja-JP-NanamiNeural',
+        'ja-m': 'edge:ja-JP-KeitaNeural',
+    }
 }

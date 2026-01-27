@@ -20,7 +20,17 @@ class EdgeEngine(AudioEngine):
             # Default voice if None
             selected_voice = voice if voice else "en-US-ChristopherNeural"
 
-            communicate = edge_tts.Communicate(text, selected_voice)
+            print(f"[EdgeEngine] Generating... Text Start: {text[:100]!r}")
+            # Check for SSML
+            if text.strip().startswith("<speak"):
+                # Use communicate with SSML - edge_tts detects SSML if text starts with <speak>
+                # But we still need to pass a voice, though SSML <voice> tags take precedence.
+                # However, edge-tts might require a 'voice' argument even for SSML.
+                # Usually, we just pass the text.
+                communicate = edge_tts.Communicate(text, selected_voice) 
+            else:
+                communicate = edge_tts.Communicate(text, selected_voice)
+
             await communicate.save(full_path)
             
             return True
