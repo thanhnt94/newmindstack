@@ -261,4 +261,11 @@ def initialize_database(app: Flask) -> None:
         if not BackgroundTask.query.filter_by(task_name=task_name).first():
             task = BackgroundTask(task_name=task_name, message="Sẵn sàng", is_enabled=True)
             db.session.add(task)
+    
+    # Khởi tạo huy hiệu Gamification
+    from .gamification_seeds import seed_badges
+    badges_added = seed_badges()
+    if badges_added > 0:
+        app.logger.info(f"Đã khởi tạo thành công {badges_added} huy hiệu mới.")
+
     db.session.commit()
