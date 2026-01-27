@@ -539,156 +539,101 @@
         renderSessionHistoryList();
     });
 
-    // Update rating buttons with FSRS intervals
+    // [REFACTOR] Update rating buttons with FSRS intervals via Backend API
     window.updateRatingButtonEstimates = function (cardData) {
-        console.log('[FSRS Mobile] updateRatingButtonEstimates called', cardData);
+        // console.log('[FSRS Mobile] updateRatingButtonEstimates called', cardData);
         if (!cardData) return;
 
-        // Ensure buttons are generated (if this is first load or if emptied)
+        const itemId = cardData.item_id;
+        if (!itemId) return;
+
+        // Ensure buttons are generated
         const btnContainer = document.getElementById('mobile-rating-btns');
         if (btnContainer && btnContainer.children.length === 0) {
             generateMobileRatingButtons();
         }
 
-        // Expanded Search Strategy for Schedule Data
-        let schedule = cardData.scheduling_info;
-        if (!schedule && cardData.initial_stats && cardData.initial_stats.scheduling_info) {
-            schedule = cardData.initial_stats.scheduling_info;
-        }
-        if (!schedule && cardData.f_scheduling_info) { // Some backends use this
-            schedule = cardData.f_scheduling_info;
-        }
-        if (!schedule && cardData.preview) { // [FIX] Backend uses 'preview' key
-            schedule = cardData.preview;
-        }
-        if (!schedule && cardData.initial_stats) {
-            // Check if initial_stats IS the schedule (sometimes flattened)
-            if (cardData.initial_stats['3'] || cardData.initial_stats['good']) {
-                schedule = cardData.initial_stats;
-            }
-        }
-
-        console.log('[FSRS Mobile] Resolved Schedule:', schedule);
         const buttons = document.querySelectorAll('.js-rating-btn');
 
-        // Robust Key Mapping
-        const keyMap = {
-            '1': ['1', 'again', 'result_1', 'fail'],
-            '2': ['2', 'hard', 'result_2', 'very_hard'],
-            '3': ['3', 'good', 'result_3', 'medium'],
-            '4': ['4', 'easy', 'result_4', 'good', 'easy'],
-            '5': ['5', 'very_easy'],
-            '6': ['6']
-        };
-
+        // Clear previous badges/tooltips first
         buttons.forEach(btn => {
-            const rating = btn.dataset.rating;
-            let info = null;
-
-            if (schedule) {
-                // 1. Try exact match
-                if (schedule[rating]) {
-                    info = schedule[rating];
-                } else {
-                    // 2. Try aliases
-                    const aliases = keyMap[rating] || [];
-                    for (const alias of aliases) {
-                        if (schedule[alias]) {
-                            info = schedule[alias];
-                            break;
-                        }
-                        // 3. Try case insensitive keys
-                        const lower = alias.toLowerCase();
-                        const foundKey = Object.keys(schedule).find(k => k.toLowerCase() === lower);
-                        if (foundKey) {
-                            info = schedule[foundKey];
-                            break;
-                        }
-                    }
-
-                    // 4. Try integer keys
-                    if (!info && !isNaN(parseInt(rating))) {
-                        const intKey = parseInt(rating);
-                        if (schedule[intKey]) info = schedule[intKey];
-                    }
-
-                    // 5. Try numeric string keys
-                    if (!info) {
-                        const numStr = String(rating);
-                        if (schedule[numStr]) info = schedule[numStr];
-                    }
-                }
-            }
-
-            // Remove existing time badge if any
             const existingBadge = btn.querySelector('.fc-time-badge');
             if (existingBadge) existingBadge.remove();
 
-            if (info) {
-                // info can be { interval: 10, unit: 'm' } or similar
-                let timeText = '';
-                // Prefer interval_minutes -> formatMinutesAsDuration
-                if (window.formatMinutesAsDuration && info.interval_minutes) {
-                    const m = Math.round(info.interval_minutes);
-                    if (m < 60) timeText = m + 'm';
-                    else if (m < 1440) timeText = Math.round(m / 60) + 'h';
-                    else timeText = Math.round(m / 1440) + 'd';
-                } else if (info.interval_display) {
-                    timeText = info.interval_display;
-                } else if (info.interval !== undefined && info.unit) {
-                    timeText = info.interval + info.unit;
-                } else if (info.interval_seconds) {
-                    const m = Math.round(info.interval_seconds / 60);
-                    timeText = m < 1 ? '<1m' : m + 'm';
-                }
-
-                if (timeText) {
-                    // Update the Title Span directly
-                    // const titleSpan = btn.querySelector('.rating-btn__title'); // Already defined above
-                    if (titleSpan) {
-                        // Check if we already appended (to avoid duplicates if called multiple times)
-                        // Reset first to be safe
-                        const baseLabel = btn.getAttribute('data-base-label') || titleSpan.textContent;
-                        if (!btn.getAttribute('data-base-label')) {
-                            btn.setAttribute('data-base-label', baseLabel);
-                        }
-                        titleSpan.textContent = `${baseLabel} (${timeText})`;
-                        titleSpan.style.whiteSpace = 'nowrap'; // Ensure it stays on one line if possible, or wrap nicely
+            // Clean up title (remove old interval text like "(3d)")
+            const titleSpan = btn.querySelector('span');
+            if (titleSpan) {
+                const baseLabel = btn.getAttribute('data-base-label');
+                if (baseLabel) {
+                    titleSpan.textContent = baseLabel;
+                } else {
+                    // Start fresh if no base label saved yet
+                    const text = titleSpan.textContent;
+                    if (text.includes('(')) {
+                        const clean = text.split('(')[0].trim();
+                        btn.setAttribute('data-base-label', clean);
+                        titleSpan.textContent = clean;
+                    } else {
+                        btn.setAttribute('data-base-label', text);
                     }
                 }
             }
 
-            // [UX-UPDATE] Hover to show Tooltip
-            const handleShowTooltip = () => {
-                if (window.isSubmitLock) return; // [LOCK] Don't show tooltip during card transition
-
-                const displayInfo = info || {
-                    interval: '?', points: 0, stability: 0, difficulty: 0, retrievability: 0
-                };
-                if (window.showPreviewTooltip) {
-                    window.showPreviewTooltip(btn, displayInfo);
-                }
-            };
-
-            const handleHideTooltip = () => {
-                if (window.hidePreviewTooltip) window.hidePreviewTooltip();
-            };
-
-            // Remove old hover/press listeners (if any were manually set)
-            btn.onmouseenter = handleShowTooltip;
-            btn.onmouseleave = handleHideTooltip;
-
-            // Touch support: show on touchstart, hide on end/move
-            btn.addEventListener('touchstart', (e) => {
-                if (window.isSubmitLock) return;
-                // Immediate hide any other tooltip
-                if (window.hidePreviewTooltip) window.hidePreviewTooltip(true);
-                handleShowTooltip();
-            }, { passive: true });
-            btn.addEventListener('touchend', () => { if (window.hidePreviewTooltip) window.hidePreviewTooltip(); });
-            btn.addEventListener('touchmove', () => { if (window.hidePreviewTooltip) window.hidePreviewTooltip(true); });
-            btn.addEventListener('touchcancel', () => { if (window.hidePreviewTooltip) window.hidePreviewTooltip(true); });
+            // Reset tooltip logic
+            btn.onmouseenter = null;
+            btn.onmouseleave = null;
         });
+
+        // Function to update UI with data
+        const applyPreviewData = (previews) => {
+            buttons.forEach(btn => {
+                const rating = btn.dataset.rating; // "1", "2", "3", "4"
+                const info = previews[rating];
+
+                if (info) {
+                    // Update Time Badge/Text
+                    const timeText = info.interval;
+                    const titleSpan = btn.querySelector('span');
+                    if (titleSpan && timeText) {
+                        const baseLabel = btn.getAttribute('data-base-label');
+                        titleSpan.textContent = `${baseLabel} (${timeText})`;
+                        titleSpan.style.whiteSpace = 'nowrap';
+                    }
+
+                    // Setup Tooltip with actual data
+
+                    // [REMOVED] Tooltip disabled by user request (Step 184)
+                    // const handleShowTooltip = () => { ... };
+                    // btn.onmouseenter = handleShowTooltip;
+                    // ...
+
+                    // Clear any existing listeners if needed, but for now just don't add them.
+                    btn.onmouseenter = null;
+                    btn.onmouseleave = null;
+                }
+            });
+        };
+
+        // Check Cache first?
+        // Actually, let's just fetch. It's fast.
+
+        // Call Backend API
+        fetch('/learn/flashcard/api/preview_fsrs', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                ...(window.FlashcardConfig && window.FlashcardConfig.csrfHeaders ? window.FlashcardConfig.csrfHeaders : {})
+            },
+            body: JSON.stringify({ item_id: itemId })
+        })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success && data.previews) {
+                    applyPreviewData(data.previews);
+                }
+            })
+            .catch(err => console.error("Error fetching FSRS preview:", err));
+
     };
 
     // Update stats from custom event dispatched by main script

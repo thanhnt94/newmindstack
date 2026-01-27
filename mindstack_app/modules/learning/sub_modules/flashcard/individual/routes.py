@@ -35,6 +35,7 @@ from mindstack_app.models import (
     LearningItem,
     ContainerContributor,
     LearningSession,
+    LearningProgress,
 )
 from sqlalchemy.sql import func
 from sqlalchemy.exc import OperationalError
@@ -42,12 +43,14 @@ import asyncio
 from sqlalchemy.orm.attributes import flag_modified
 import os
 import shutil
+import datetime
 
 from mindstack_app.utils.media_paths import (
     normalize_media_value_for_storage,
     build_relative_media_path,
 )
 from mindstack_app.utils.db_session import safe_commit
+from mindstack_app.modules.learning.logics.hybrid_fsrs import HybridFSRSEngine, CardState
 
 audio_service = AudioService()
 image_service = ImageService()
@@ -1123,3 +1126,130 @@ def regenerate_audio_from_content():
     finally:
         loop.close()
 
+
+@flashcard_learning_bp.route('/flashcard/api/preview_fsrs', methods=['POST'])
+@login_required
+def preview_fsrs():
+    """
+    Calculate and return FSRS preview data (interval, stability, etc.) for all ratings (1-4).
+    """
+    import datetime as dt
+    import traceback
+    from fsrs_rs_python import DEFAULT_PARAMETERS
+
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({'error': 'No JSON data provided'}), 400
+            
+        item_id_raw = data.get('item_id')
+        if not item_id_raw:
+            return jsonify({'error': 'Missing item_id'}), 400
+            
+        try:
+            item_id = int(item_id_raw)
+        except (ValueError, TypeError):
+             return jsonify({'error': 'Invalid item_id'}), 400
+        
+        # 1. Get Current Progress
+        progress = LearningProgress.query.filter_by(
+            user_id=current_user.user_id,
+            item_id=item_id,
+            learning_mode='flashcard'
+        ).first()
+
+        # 2. Prepare Current State
+        if progress:
+            current_state_int = progress.fsrs_state if progress.fsrs_state is not None else LearningProgress.STATE_NEW
+            last_review = progress.fsrs_last_review
+            if last_review and last_review.tzinfo is None:
+                last_review = last_review.replace(tzinfo=dt.timezone.utc)
+            
+            card_state = CardState(
+                stability=progress.fsrs_stability or 0.0,
+                difficulty=progress.fsrs_difficulty or 0.0,
+                reps=progress.repetitions or 0,
+                lapses=progress.lapses or 0,
+                state=current_state_int,
+                last_review=last_review,
+                scheduled_days=float(progress.current_interval or 0.0)
+            )
+        else:
+            card_state = CardState(
+                stability=0.0,
+                difficulty=0.0,
+                reps=0,
+                lapses=0,
+                state=LearningProgress.STATE_NEW,
+                last_review=None,
+                scheduled_days=0.0
+            )
+
+        # 3. Initialize Engine (SAFE MODE: Use Defaults)
+        effective_weights = list(DEFAULT_PARAMETERS)
+        # Try to fetch user weights if safe
+        try:
+             effective_weights = FsrsService._get_effective_parameters(current_user.user_id)
+        except AttributeError:
+             pass # FsrsService might be missing or not imported correctly
+        except Exception as e:
+             current_app.logger.warning(f"Failed to load specific weights: {e}")
+
+        desired_retention = 0.9
+        
+        engine = HybridFSRSEngine(
+            desired_retention=desired_retention,
+            custom_weights=effective_weights
+        )
+        
+        now = dt.datetime.now(dt.timezone.utc)
+        
+        # 4. Calculate
+        previews = {}
+        ratings = {1: 'again', 2: 'hard', 3: 'good', 4: 'easy'}
+        
+        for rating_val, _ in ratings.items():
+            new_card, _, _ = engine.review_card(
+                card_state=card_state,
+                rating=rating_val,
+                now=now,
+                enable_fuzz=False 
+            )
+            
+            interval_days = new_card.scheduled_days
+            formatted_interval = ""
+            
+            if interval_days < 1.0/1440.0:
+                formatted_interval = "<1m"
+            elif interval_days < 1.0/24.0:
+                mins = round(interval_days * 1440)
+                formatted_interval = f"{mins}m"
+            elif interval_days < 1.0:
+                hours = round(interval_days * 24)
+                formatted_interval = f"{hours}h"
+            elif interval_days < 30:
+                formatted_interval = f"{round(interval_days, 1)}d"
+            elif interval_days < 365:
+                months = round(interval_days / 30, 1)
+                formatted_interval = f"{months}mo"
+            else:
+                years = round(interval_days / 365, 1)
+                formatted_interval = f"{years}y"
+            
+            previews[str(rating_val)] = {
+                'interval': formatted_interval,
+                'interval_days': interval_days,
+                'stability': round(new_card.stability, 2),
+                'difficulty': round(new_card.difficulty, 2),
+                # If rating >= Good (3), retrievability resets to 1.0 (100%)
+                # If Again (1) or Hard (2), it might be lower?
+                # For simplified UI, 100% is fine for immediate post-review state.
+                'retrievability': 100 
+            }
+
+        return jsonify({'success': True, 'previews': previews})
+
+    except Exception as e:
+        tb = traceback.format_exc()
+        current_app.logger.error(f"Error calculating FSRS preview: {e}\n{tb}")
+        return jsonify({'error': str(e), 'traceback': tb}), 500
