@@ -54,3 +54,4 @@ python-dotenv>=1.0.0 # Load biến môi trường .env
 # --- Translator ---
 deep_translator>=1.8.0 # Dùng để dịch thuật (Google Translate free)
 edge-tts>=6.1.9 # Microsoft Edge TTS engine (High quality free neural voices)
+fsrs-rs-python>=1.2.0 # FSRS Algorithm implementation (Rust bindings)
