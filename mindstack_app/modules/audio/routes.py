@@ -45,22 +45,90 @@ def update_audio_settings():
         }
         
         for key, value in updates.items():
-            if value:
-                setting = AppSettings.query.filter_by(key=key).first()
-                if setting:
-                    setting.value = value
+            # Check if exists
+            setting = AppSettings.query.filter_by(key=key).first()
+            if setting:
+                setting.value = value
+                if key == 'AUDIO_VOICE_MAPPING_GLOBAL':
+                    setting.data_type = 'json'
                 else:
-                    # Should be created by defaults, but just in case
-                    setting = AppSettings(key=key, value=value, category='audio', data_type='string')
-                    db.session.add(setting)
-                    
+                    setting.data_type = 'string'
+                db.session.add(setting)
+            else:
+                 # Create new if missing
+                 data_type = 'json' if key == 'AUDIO_VOICE_MAPPING_GLOBAL' else 'string'
+                 setting = AppSettings(key=key, value=value, category='audio', data_type=data_type)
+                 db.session.add(setting)
+                 
         db.session.commit()
         
-        # Reload config immediately
-        if 'config_service' in current_app.extensions:
-            current_app.extensions['config_service'].load_settings(force=True)
+        # Refresh runtime config
+        # IMPOTANT: We must parse JSON values back to objects before setting current_app.config
+        for key, value in updates.items():
+            if key == 'AUDIO_VOICE_MAPPING_GLOBAL' and isinstance(value, str):
+                try:
+                    current_app.config[key] = json.loads(value)
+                except:
+                    current_app.config[key] = {}
+            else:
+                 current_app.config[key] = value
             
-        return jsonify({'success': True, 'message': 'Cấu hình đã được lưu.'})
+        return jsonify({'status': 'success'})
+            
+        return jsonify({'status': 'success'})
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)})
+
+@audio_bp.route('/admin/audio/tasks/start', methods=['POST'])
+@login_required
+def start_audio_task():
+    """Trigger background audio maintenance tasks."""
+    try:
+        data = request.get_json()
+        task_name = data.get('task_name')
+        
+        # Import relevant task services (Local import to avoid circular dependency)
+        from mindstack_app.models import BackgroundTask, db
+        from mindstack_app.modules.learning.sub_modules.flashcard.services import AudioService as FlashcardAudioService
+        from mindstack_app.modules.learning.sub_modules.quiz.individual.services.audio_service import QuizAudioService
+        
+        task = BackgroundTask.query.filter_by(task_name=task_name).first()
+        if not task:
+            task = BackgroundTask(task_name=task_name, status='idle')
+            db.session.add(task)
+            db.session.commit()
+            
+        if task.status == 'running':
+            return jsonify({'success': False, 'message': 'Task is already running.'})
+            
+        task.status = 'running'
+        task.message = 'Starting...'
+        db.session.commit()
+        
+        # Dispatch
+        try:
+            if task_name == 'generate_audio_cache':
+                # Use Flashcard service to generate cache
+                svc = FlashcardAudioService()
+                svc.generate_cache_for_all_cards(task) # This is synchronous in current impl
+            elif task_name == 'clean_audio_cache':
+                svc = FlashcardAudioService()
+                svc.clean_orphan_audio_cache(task)
+            elif task_name == 'transcribe_quiz_audio':
+                svc = QuizAudioService()
+                svc.transcribe_quiz_audio(task)
+            else:
+                 return jsonify({'success': False, 'message': 'Unknown task name.'})
+                 
+            return jsonify({'success': True, 'message': 'Task completed.'})
+        except Exception as e:
+            task.status = 'error'
+            task.message = str(e)
+            db.session.commit()
+            raise e
+
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)})
         
     except Exception as e:
         tb = traceback.format_exc()

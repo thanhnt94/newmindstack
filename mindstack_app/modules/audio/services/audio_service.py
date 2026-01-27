@@ -147,6 +147,12 @@ class AudioService:
             
         temp_files = []
         mapping = current_app.config.get('AUDIO_VOICE_MAPPING_GLOBAL', {})
+        if isinstance(mapping, str):
+            import json
+            try:
+                mapping = json.loads(mapping)
+            except:
+                mapping = {}
         default_voice_edge = current_app.config.get('AUDIO_DEFAULT_VOICE_EDGE', 'en-US-AriaNeural')
         
         try:

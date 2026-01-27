@@ -18,7 +18,7 @@ class VoiceParser:
     # Regex for bracket syntax: [lang:text] e.g. [vi: Xin chào]
     # Group 1: lang code (e.g. vi-VN or vi)
     # Group 2: text content
-    BRACKET_REGEX = re.compile(r'\[([a-z]{2,3}(?:-[a-z]{2,4})?)\s*:\s*([^\]]+)\]', re.IGNORECASE)
+    BRACKET_REGEX = re.compile(r'\[([a-z]{2,3}(?:-[a-z0-9]+)?)\s*:\s*([^\]]+)\]', re.IGNORECASE)
 
     @staticmethod
     def parse_segments(text: str):

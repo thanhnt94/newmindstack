@@ -1156,42 +1156,7 @@ def delete_media_item():
     return redirect(url_for('admin.media_library', folder=parent_folder or None))
 
 
-@admin_bp.route('/voice-service')
-@login_required
-def voice_service_panel():
-    """
-    Mô tả: Hiển thị trang quản lý Voice Service: tạo audio cho flashcard, dọn dẹp cache.
-    """
-    # Lấy các tác vụ liên quan đến audio
-    voice_task_names = ['generate_audio_cache', 'clean_audio_cache', 'transcribe_quiz_audio']
-    
-    # Ensure tasks exist
-    for t_name in voice_task_names:
-        if not BackgroundTask.query.filter_by(task_name=t_name).first():
-            new_task = BackgroundTask(task_name=t_name, status='idle')
-            db.session.add(new_task)
-    db.session.commit()
 
-    tasks = BackgroundTask.query.filter(BackgroundTask.task_name.in_(voice_task_names)).all()
-    
-    flashcard_containers = (
-        LearningContainer.query.filter_by(container_type='FLASHCARD_SET')
-        .order_by(LearningContainer.title.asc())
-        .all()
-    )
-
-    quiz_containers = (
-        LearningContainer.query.filter_by(container_type='QUIZ_SET')
-        .order_by(LearningContainer.title.asc())
-        .all()
-    )
-    
-    return render_template(
-        'admin/voice_service_panel.html',
-        tasks=tasks,
-        flashcard_containers=flashcard_containers,
-        quiz_containers=quiz_containers
-    )
 
 @admin_bp.route('/tasks')
 def manage_background_tasks():

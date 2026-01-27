@@ -105,6 +105,11 @@
                         data-target="settings" id="tab-settings">
                         <i class="fas fa-cog me-2"></i>Settings
                     </button>
+                    <button type="button"
+                        class="tab-btn whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 focus:outline-none"
+                        data-target="maintenance" id="tab-maintenance">
+                        <i class="fas fa-tools me-2"></i>Maintenance
+                    </button>
                 </nav>
             </div>
 
@@ -285,6 +290,58 @@
                             </button>
                         </div>
                     </form>
+                </div>
+                <!-- Tab 4: Maintenance (Migrated from Legacy Voice Panel) -->
+                <div class="tab-pane hidden" id="pane-maintenance">
+                    <h3 class="text-lg font-bold text-gray-800 mb-2">Audio Maintenance Tasks</h3>
+                    <p class="text-sm text-gray-500 mb-4">Run background jobs to manage audio files.</p>
+
+                    <div class="space-y-4">
+                        <!-- Task: Generate Cache -->
+                        <div class="bg-white p-4 rounded shadow-sm flex items-center justify-between">
+                            <div>
+                                <h4 class="font-medium text-gray-800">Generate Audio Cache</h4>
+                                <p class="text-xs text-gray-500">Scan all flashcards and pre-generate missing audio
+                                    files.</p>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <span class="badge badge-outline text-xs" id="status-generate_audio_cache">Idle</span>
+                                <button class="btn btn-sm btn-primary" onclick="startTask('generate_audio_cache')">
+                                    <i class="fas fa-play"></i> Start
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Task: Clean Orphan Audio -->
+                        <div class="bg-white p-4 rounded shadow-sm flex items-center justify-between">
+                            <div>
+                                <h4 class="font-medium text-gray-800">Clean Orphan Audio</h4>
+                                <p class="text-xs text-gray-500">Remove audio files that are no longer linked to any
+                                    flashcard.</p>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <span class="badge badge-outline text-xs" id="status-clean_audio_cache">Idle</span>
+                                <button class="btn btn-sm btn-warning" onclick="startTask('clean_audio_cache')">
+                                    <i class="fas fa-broom"></i> Start
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Task: Transcribe Quiz -->
+                        <div class="bg-white p-4 rounded shadow-sm flex items-center justify-between">
+                            <div>
+                                <h4 class="font-medium text-gray-800">Transcribe Quiz Audio (STT)</h4>
+                                <p class="text-xs text-gray-500">Auto-generate text transcripts for quiz questions with
+                                    audio.</p>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <span class="badge badge-outline text-xs" id="status-transcribe_quiz_audio">Idle</span>
+                                <button class="btn btn-sm btn-secondary" onclick="startTask('transcribe_quiz_audio')">
+                                    <i class="fas fa-microphone-alt"></i> Start
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -494,9 +551,29 @@
         }
 
         // Init Table
-        const mappingData = SERVER_CONFIG.voiceMapping || {};
+        let mappingData = SERVER_CONFIG.voiceMapping || {};
+        // Safeguard: If mappingData is a string (double-encoded JSON due to bug), parse it.
+        if (typeof mappingData === 'string') {
+            try {
+                mappingData = JSON.parse(mappingData);
+            } catch (e) {
+                console.error("Failed to parse voiceMapping string:", e);
+                mappingData = {};
+            }
+        }
+
         Object.entries(mappingData).forEach(([key, voice]) => {
-            addMappingRow(key, voice);
+            if (key && isNaN(parseInt(key))) { // Additional check to avoid numeric keys if any slipped in
+                addMappingRow(key, voice);
+            } else if (key && !isNaN(parseInt(key)) && typeof voice === 'string') {
+                // If numeric key but valid voice string, maybe legitimate? 
+                // But in our case, numeric keys were bug artifacts.
+                // Let's Skip high numeric keys (likely indices) if value matches default
+                // or just render them so user can delete.
+                // Better: render them but user likely wants to clear.
+                // For now, render standard way.
+                addMappingRow(key, voice);
+            }
         });
 
         addMappingBtn.addEventListener('click', () => {
@@ -546,7 +623,7 @@
                 default_engine: document.getElementById('defaultEngine').value,
                 default_voice_edge: document.getElementById('defaultEdgeVoice').value,
                 default_voice_gtts: document.getElementById('defaultGttsVoice').value,
-                voice_mapping_edge: newMapping,
+                voice_mapping: newMapping, // Correct key
             };
 
             const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
@@ -565,6 +642,7 @@
                     SERVER_CONFIG.defaultEngine = payload.default_engine;
                     SERVER_CONFIG.defaultEdgeVoice = payload.default_voice_edge;
                     SERVER_CONFIG.defaultGttsVoice = payload.default_voice_gtts;
+                    SERVER_CONFIG.voiceMapping = payload.voice_mapping; // Update local mapping
                 } else {
                     if (window.showFlashMessage) window.showFlashMessage('Error: ' + data.error, 'danger');
                 }
