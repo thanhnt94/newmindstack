@@ -253,26 +253,12 @@ class AudioService:
                         pass
 
     @classmethod
-    async def prepare_card_audio(cls, text: str, set_id: int, side: str = 'front', engine: str = 'edge', voice: str = None) -> dict:
+    def speech_to_text(cls, audio_source, lang: str = "vi-VN") -> str:
         """
-        Auto-organize audio for a specific flashcard set.
-        Target: static/media/sets/{set_id}/audio/
-        Filename: {side}_{hash}.mp3 (to allow duplicates of same word on different sides or generally unique)
-        Actually, simpler to hash content. But user might want side prefix?
-        Let's use just hash, but store in set folder.
+        Transcribes speech to text.
+        Delegate to VoiceEngine logic (which handles Google Speech Recognition).
         """
-        target_dir = f"static/media/sets/{set_id}/audio"
-        
-        # Optional: Prefix filename with side for easier debugging?
-        # But content-based hash is better for deduplication.
-        # Let's Stick to standard hash but putting it in the set folder.
-        
-        # If user wants specific file naming convention?
-        # User prompt: "prepare_card_audio(word, set_id, ...) để tự động định hướng lưu vào thư mục của bộ thẻ"
-        
-        return await cls.get_audio(
-            text=text,
-            engine=engine,
-            voice=voice,
-            target_dir=target_dir
-        )
+        from ..logics.voice_engine import VoiceEngine
+        engine = VoiceEngine()
+        return engine.speech_to_text(audio_source, lang)
+

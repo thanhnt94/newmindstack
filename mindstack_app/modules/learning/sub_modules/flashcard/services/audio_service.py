@@ -54,183 +54,57 @@ class AudioService:
                 import time
                 time.sleep(delay)
 
-    def _generate_tts_sync(self, text, lang='en'):
-        """
-        Mô tả: Tạo file audio Text-to-Speech (TTS) sử dụng VoiceEngine.
-        """
-        log_prefix = "[GENERATE_TTS_SYNC]"
-        try:
-            temp_path = self.voice_service.text_to_speech(text, lang)
-            return temp_path, True, "Tạo TTS thành công."
-        except Exception as e:
-            logger.error(f"{log_prefix} Lỗi tạo TTS: {e}")
-            return None, False, str(e)
-
     async def _generate_concatenated_audio(self, audio_content_string, output_format="mp3", pause_ms=400):
         """
-        Mô tả: Ghép nhiều đoạn audio TTS thành một file duy nhất.
-               Hỗ trợ định dạng 'lang: text' cho từng dòng hoặc inline.
-        Args:
-            audio_content_string (str): Chuỗi chứa nội dung audio.
-            output_format (str): Định dạng đầu ra của file audio (mặc định là 'mp3').
-            pause_ms (int): Thời gian tạm dừng giữa các đoạn audio khi ghép (miligiây).
-        Returns:
-            tuple: (đường dẫn file tạm thời cuối cùng, thành công (bool), thông báo lỗi/thành công).
-                   Trả về (None, False, message) nếu có lỗi.
+        [DEPRECATED INTERNAL LOGIC]
+        Delegates to the Central AudioService to generate the file.
+        Returns: (physical_path, success, message)
         """
-        log_prefix = "[GEN_CONCAT_AUDIO]"
-        if not audio_content_string or not audio_content_string.strip():
-            logger.warning(f"{log_prefix} Chuỗi nội dung audio rỗng. Không cần ghép.")
-            return None, True, "Nội dung audio rỗng, không cần ghép."
-
-        import re
+        from mindstack_app.modules.audio.services.audio_service import AudioService as CentralAudioService
         
-        # [FIX] Normalize content: replace full-width colon, remove BOM, and normalize newlines
-        normalized_content = audio_content_string.replace('\ufeff', '').replace('：', ':').strip()
-        normalized_content = normalized_content.replace('\r\n', '\n').replace('\r', '\n')
+        # We use a temp filename, CentralService will return the path
+        # But CentralService.get_audio handles caching internally if we don't provide custom path,
+        # OR writes to custom path if provided.
+        # Here we want a temp file behavior or direct return?
+        # The caller of this method (get_cached_or_generate_audio) expects a temp path to then move.
+        # Actually, get_cached_or_generate_audio calls this.
         
-        # [NEW] Language code normalization map
-        lang_map = {
-            'vn': 'vi',
-            'jp': 'ja',
-            'kr': 'ko',
-            'cn': 'zh-cn',
-            'tw': 'zh-tw'
-        }
-
-        segments = []
-
-        # --- PHASE 1: BRACKET FORMAT [lang:text] ---
-        # Matches patterns like [ja: content] [vi: content]
-        # We handle optional spaces around colon and ignore nested brackets
-        bracket_pattern = re.compile(r'\[([a-z]{2,3}(?:-[a-z]{2,4})?)\s*:\s*([^\]]+)\]', re.IGNORECASE)
-        bracket_matches = list(bracket_pattern.finditer(normalized_content))
+        # Let's simplify: We can refactor get_cached_or_generate_audio to call Central directly
+        # and skip this intermediate temp file generation if possible.
+        # But to keep signature compatibility for now, let's implement this wrapper.
         
-        if bracket_matches:
-            logger.debug(f"{log_prefix} Found {len(bracket_matches)} bracketed segments. Using Priority Parsing.")
-            for m in bracket_matches:
-                raw_lang = m.group(1).lower()
-                lang_code = lang_map.get(raw_lang, raw_lang)
-                text = m.group(2).strip()
-                if text:
-                    segments.append((lang_code, text))
-        else:
-            # --- PHASE 2: FALLBACK TO MARKER FORMAT lang: text ---
-            # [FIX] Robust regex to find language markers. 
-            # Using negative lookbehind to ensure we don't match markers inside another ASCII word/id.
-            lang_pattern = re.compile(r'(?<![a-z0-9])([a-z]{2,3}(?:-[a-z]{2,4})?)\s*:', re.IGNORECASE)
-            
-            # Find all language markers
-            matches = list(lang_pattern.finditer(normalized_content))
-            
-            logger.debug(f"{log_prefix} No brackets found. Fallback to MARKER logic (Found {len(matches)}).")
-
-            if not matches:
-                # Case: No language markers found at all. Treat whole text as default 'en'
-                segments.append(('en', normalized_content))
-            else:
-                # Check if there is text BEFORE the first marker
-                if matches[0].start() > 0:
-                    pre_text = normalized_content[0:matches[0].start()].strip()
-                    # If there's a delimiter at the start, remove it
-                    pre_text = re.sub(r'^[|\s]+', '', pre_text).strip()
-                    if pre_text:
-                        segments.append(('en', pre_text)) 
-
-                for i, match in enumerate(matches):
-                    raw_lang = match.group(1).lower()
-                    # Normalize language code
-                    lang_code = lang_map.get(raw_lang, raw_lang)
-                    
-                    start_text_pos = match.end()
-                    
-                    # End of this segment is start of next match or end of string
-                    end_text_pos = matches[i+1].start() if (i + 1 < len(matches)) else len(normalized_content)
-                    
-                    text_content = normalized_content[start_text_pos:end_text_pos].strip()
-                    
-                    # [FIX] Aggressive cleanup to remove leaked markers:
-                    # 1. Remove trailing delimiters
-                    text_content = re.sub(r'[|\s]+$', '', text_content).strip()
-                    
-                    # 2. [FIX] Remove any 2-3 letter combo that looks like a marker at the end
-                    # but ONLY if it follows a non-ASCII character or a boundary.
-                    text_content = re.sub(r'(?<![a-z])[a-z]{2,3}\s*:?$', '', text_content, flags=re.IGNORECASE).strip()
-
-                    if text_content:
-                        segments.append((lang_code, text_content))
-                        logger.debug(f"{log_prefix} Segment {i+1}: [{lang_code}] (was {raw_lang}) -> '{text_content}'")
-        
-        if not segments:
-            logger.warning(f"{log_prefix} Không tìm thấy segments hợp lệ nào sau khi parse.")
-            return None, True, "Không có nội dung hợp lệ để tạo TTS."
-
-        temp_files = []
-        final_temp_path = None
-        loop = asyncio.get_running_loop()
-        overall_success = True
-        overall_message = "Ghép audio thành công."
-
         try:
-            tasks = []
-            for lang_code, text_to_read in segments:
-                try:
-                    # Sanity check on lang_code if needed, but gTTS handles validation
-                    # Add random jitter to emulate human-like request spacing?
-                    delay = random.uniform(0.1, 0.5) 
-                    tasks.append(loop.run_in_executor(None, self._generate_tts_sync, text_to_read, lang_code))
-                except Exception as e_prep:
-                    logger.error(f"{log_prefix} Lỗi chuẩn bị TTS cho segment '{text_to_read[:20]}...': {e_prep}", exc_info=True)
-                    overall_success = False
-                    overall_message = f"Lỗi chuẩn bị audio cho một phần: {e_prep}"
-
-            if not tasks:
-                return None, False, "Không có tác vụ TTS nào được tạo."
-
-            logger.info(f"{log_prefix} Đang đợi {len(tasks)} tác vụ TTS.")
-            # Execute sequentially or parallel? Parallel is faster but might hit rate limits faster.
-            # VoiceEngine uses gTTS which calls Google API. 
-            # We should probably run them.
-            generated_files_results = await asyncio.gather(*tasks)
+            # We want a temp file
+            import tempfile
+            fd, temp_path = tempfile.mkstemp(suffix=f".{output_format}")
+            os.close(fd)
+            # We don't want to keep it if generation fails, ensuring cleanup is important
             
-            for path, success, msg in generated_files_results:
-                if not success:
-                    overall_success = False
-                    overall_message = msg
-                if path:
-                    temp_files.append(path)
-
-            if not overall_success:
-                logger.error(f"{log_prefix} {overall_message}")
-                return None, False, overall_message
+            # Call Central Service with auto_voice_parsing=True (enables the new logic)
+            # We pass custom_filename (absolute path) as the target so it writes there directly?
+            # CentralService.get_audio -> if custom_filename provided -> treats as filename in target_dir?
+            # Let's look at CentralService logic:
+            # if custom_filename: filename = custom_filename...
+            # paths = get_storage_path(target_dir, filename) -> joins target_dir + filename
             
-            if len(temp_files) == 0:
-                 return None, False, "Không có file audio nào được tạo."
-            elif len(temp_files) == 1:
-                final_temp_path = temp_files[0]
-                return final_temp_path, True, "Tạo audio thành công."
+            # So if we want to write to a specific TEMP path, it's tricky with CentralService's path resolution.
+            # CentralService expects to manage the directory structure generally.
             
-            def concatenate_sync_internal():
-                try:
-                    return self.voice_service.concatenate_audio_files(temp_files, output_format, pause_ms), True, "Ghép audio thành công."
-                except Exception as e_concat:
-                    logger.error(f"{log_prefix} Lỗi khi ghép đồng bộ: {e_concat}", exc_info=True)
-                    return None, False, f"Lỗi khi ghép các đoạn audio: {e_concat}"
-
-            final_temp_path, success, msg = await loop.run_in_executor(None, concatenate_sync_internal)
-            return final_temp_path, success, msg
+            # ALTERNATIVE: Use the internal helper _generate_concatenated_audio from CentralService?
+            # Yes, that is exposed as a classmethod.
+            
+            success = await CentralAudioService._generate_concatenated_audio(audio_content_string, temp_path)
+            if success:
+                 return temp_path, True, "Generation success via Central Service"
+            else:
+                 return None, False, "Generation failed via Central Service"
+                 
         except Exception as e:
-            logger.critical(f"{log_prefix} Lỗi nghiêm trọng: {e}", exc_info=True)
-            return None, False, f"Lỗi nghiêm trọng: {e}"
-        finally:
-            if temp_files:
-                logger.debug(f"{log_prefix} Dọn dẹp {len(temp_files)} file TTS tạm...")
-                for f in temp_files:
-                    if f and os.path.exists(f) and f != final_temp_path:
-                        try:
-                            os.remove(f)
-                        except Exception as e_remove:
-                            logger.error(f"{log_prefix} Lỗi xóa file tạm {f}: {e_remove}")
+            return None, False, str(e)
+
+    def _generate_tts_sync(self, text, lang='en'):
+         # Deprecated, kept just in case of weird legacy calls, but shouldn't be used if we route via above.
+         pass
 
     async def get_cached_or_generate_audio(self, audio_content_string, output_format="mp3", force_refresh=False):
         """

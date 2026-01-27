@@ -14,28 +14,63 @@ class VoiceParser:
     # Group 2: gender (optional, e.g. m)
     # Group 3: text content
     PROMPT_REGEX = re.compile(r'^\s*([a-z]{2})(?:\(([mf])\))?:\s*(.+)$', re.MULTILINE)
+    
+    # Regex for bracket syntax: [lang:text] e.g. [vi: Xin chào]
+    # Group 1: lang code (e.g. vi-VN or vi)
+    # Group 2: text content
+    BRACKET_REGEX = re.compile(r'\[([a-z]{2,3}(?:-[a-z]{2,4})?)\s*:\s*([^\]]+)\]', re.IGNORECASE)
 
     @staticmethod
     def parse_segments(text: str):
         """
-        Parses multi-line text into a list of segments.
-        Each segment is a dict: {'text': str, 'lang': str|None, 'gender': str|None}
-        If a line doesn't match the pattern, it inherits the previous setting or uses None (default).
+        Parses text into segments.
+        Priority 1: Bracket syntax [lang: text] (supports multiple per line)
+        Priority 2: Line-based syntax lang(m): text
         """
-        lines = text.split('\n')
+        if not text:
+            return []
+            
         segments = []
+        
+        # Phase 1: Check for Bracket Format [lang: text]
+        bracket_matches = list(VoiceParser.BRACKET_REGEX.finditer(text))
+        if bracket_matches:
+            for m in bracket_matches:
+                raw_lang = m.group(1).lower()
+                content = m.group(2).strip()
+                
+                # Check for gender in lang code (e.g. vi-f -> lang=vi, gender=f)
+                lang = raw_lang
+                gender = None
+                
+                if '-' in raw_lang:
+                    parts = raw_lang.split('-')
+                    if parts[-1] in ['m', 'f']:
+                        gender = parts[-1]
+                        lang = "-".join(parts[:-1])
+                
+                if content:
+                    segments.append({
+                        'text': content,
+                        'lang': lang,
+                        'gender': gender
+                    })
+            return segments
+
+        # Phase 2: Line-based parsing
+        lines = text.split('\n')
         
         current_lang = None
         current_gender = None
         
         for line in lines:
             if not line.strip():
-                continue # Skip empty lines (or handle newlines if strictly needed)
+                continue 
                 
             match = VoiceParser.PROMPT_REGEX.match(line)
             if match:
                 lang = match.group(1)
-                gender = match.group(2) # Can be None
+                gender = match.group(2)
                 content = match.group(3)
                 
                 current_lang = lang
@@ -47,10 +82,9 @@ class VoiceParser:
                     'gender': gender
                 })
             else:
-                # No prompt found, use current context or treat as generic text
                 segments.append({
                     'text': line,
-                    'lang': current_lang, # potentially continue previous voice
+                    'lang': current_lang,
                     'gender': current_gender
                 })
                 

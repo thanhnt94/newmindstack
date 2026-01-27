@@ -3,7 +3,7 @@ import logging
 import os
 from mindstack_app.db_instance import db
 from mindstack_app.models import LearningContainer, LearningItem, BackgroundTask
-from mindstack_app.logics.voice_engine import VoiceEngine
+from mindstack_app.modules.audio.services.audio_service import AudioService
 
 logger = logging.getLogger(__name__)
 
@@ -12,7 +12,8 @@ class QuizAudioService:
     Manages audio operations for Quiz items: specifically Speech-to-Text (STT) transcription.
     """
     def __init__(self):
-        self.voice_engine = VoiceEngine()
+        # We use static methods from AudioService now
+        pass
 
     def transcribe_quiz_audio(self, task, container_ids=None):
         """
@@ -106,7 +107,7 @@ class QuizAudioService:
                     task.message = f"Transcribing item {item.item_id} ({task.progress + 1}/{task.total})..."
                     db.session.commit()
                     
-                    transcript = self.voice_engine.speech_to_text(full_path, lang='vi-VN') # Defaulting to VN
+                    transcript = AudioService.speech_to_text(full_path, lang='vi-VN') # Defaulting to VN
                     
                     if transcript:
                         # Update Item Content
