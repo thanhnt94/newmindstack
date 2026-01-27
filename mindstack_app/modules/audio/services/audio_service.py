@@ -45,7 +45,7 @@ class AudioService:
             
         # 2. Determine Target Directory
         if not target_dir:
-            target_dir = 'static/audio/cache'
+            target_dir = 'uploads/audio/cache'
             
         # 3. Resolve Paths
         paths = get_storage_path(target_dir, filename)

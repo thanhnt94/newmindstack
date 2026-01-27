@@ -1,0 +1,307 @@
+{% extends 'admin/admin_layout.html' %}
+
+{% block title %}Audio Studio | Mindstack Admin{% endblock %}
+
+{% block page_title %}Audio Studio{% endblock %}
+{% block page_subtitle %}Trung tâm điều khiển và tạo giọng nói Text-to-Speech{% endblock %}
+{% set active_page = 'audio_studio' %}
+
+{% block extra_head %}
+<!-- Font Awesome is likely included in admin_layout.html, but keeping it here for safety if not -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
+<style>
+    .studio-card {
+        background: #ffffff;
+        border-radius: 12px;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        border: none;
+        overflow: hidden;
+    }
+
+    /* The original .studio-header styling is removed as the page_title/subtitle are handled by the layout */
+
+    .form-label {
+        font-weight: 500;
+        color: #374151;
+        margin-bottom: 0.5rem;
+    }
+
+    .form-control,
+    .form-select {
+        border-radius: 8px;
+        padding: 0.75rem 1rem;
+        border-color: #d1d5db;
+    }
+
+    .form-control:focus,
+    .form-select:focus {
+        border-color: #6366f1;
+        box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
+    }
+
+    .btn-primary {
+        background-color: #4f46e5;
+        border-color: #4f46e5;
+        padding: 0.75rem 1.5rem;
+        font-weight: 600;
+        border-radius: 8px;
+        transition: all 0.2s;
+    }
+
+    .btn-primary:hover {
+        background-color: #4338ca;
+        border-color: #4338ca;
+        transform: translateY(-1px);
+    }
+
+    .audio-player-wrapper {
+        background: #f3f4f6;
+        padding: 1rem;
+        border-radius: 8px;
+        margin-top: 1.5rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    audio {
+        width: 100%;
+        outline: none;
+    }
+
+    #manualConfig {
+        display: none;
+        margin-top: 1rem;
+        padding: 1rem;
+        background: #f9fafb;
+        border-radius: 8px;
+        border: 1px dashed #d1d5db;
+    }
+
+    /* Spinner styling is now handled by Font Awesome classes and hidden/shown with 'hidden' class */
+    #loadingSpinner {
+        width: 1rem;
+        height: 1rem;
+        margin-right: 0.5rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8 mx-auto">
+        <div class="studio-card p-6">
+            <form id="audioForm">
+                <!-- Input Text -->
+                <div class="mb-4">
+                    <label for="textInput" class="form-label">Nội dung (Text)</label>
+                    <textarea class="form-control w-full" id="textInput" rows="4"
+                        placeholder="Nhập nội dung cần chuyển đổi thành giọng nói..." required></textarea>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <!-- Engine Selection -->
+                    <div>
+                        <label for="engineSelect" class="form-label">TTS Engine</label>
+                        <select class="form-select w-full" id="engineSelect">
+                            <option value="edge">Edge TTS (Microsoft)</option>
+                            <option value="gtts">Google TTS (gTTS)</option>
+                        </select>
+                    </div>
+
+                    <!-- Voice Config -->
+                    <div>
+                        <label for="voiceId" class="form-label">Voice / Language</label>
+                        <select class="form-select w-full" id="voiceId">
+                            <!-- Populated by JS -->
+                        </select>
+                        <div class="text-xs text-slate-500 mt-1">Select engine to see available voices.</div>
+                    </div>
+                </div>
+
+                <!-- Manual Mode Toggle -->
+                <div class="mt-6">
+                    <div class="form-check form-switch flex items-center gap-2">
+                        <input class="form-check-input" type="checkbox" id="manualModeSwitch">
+                        <label class="form-check-label select-none" for="manualModeSwitch">
+                            Chế độ thủ công (Manual Save)
+                        </label>
+                    </div>
+
+                    <!-- Manual Config Section -->
+                    <div id="manualConfig">
+                        <div class="mb-3">
+                            <label for="targetDir" class="form-label">Target Directory (Relative)</label>
+                            <input type="text" class="form-control w-full" id="targetDir"
+                                placeholder="e.g. static/media/sets/101/audio">
+                        </div>
+                        <div class="mb-3">
+                            <label for="filename" class="form-label">Custom Filename</label>
+                            <input type="text" class="form-control w-full" id="filename"
+                                placeholder="e.g. hello_world.mp3">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="mt-6 flex items-center">
+                    <button type="submit" class="btn btn-primary flex items-center gap-2" id="generateBtn">
+                        <i class="fas fa-spinner fa-spin hidden" id="loadingSpinner"></i>
+                        <span id="btnText">Generate & Preview</span>
+                    </button>
+                    <div class="ml-auto text-sm text-muted">
+                        <span id="statusBadge"></span>
+                    </div>
+                </div>
+
+                <!-- Audio Player -->
+                <div class="audio-player-wrapper opacity-50 transition-opacity duration-300" id="playerContainer">
+                    <audio id="audioPlayer" controls>
+                        Your browser does not support the audio element.
+                    </audio>
+                </div>
+
+                <!-- File Info -->
+                <div id="fileInfo" class="mt-4 p-3 bg-slate-50 rounded text-sm text-slate-600 hidden">
+                    <div class="flex flex-col gap-1">
+                        <div><strong>Path:</strong> <span id="physicalPath" class="font-mono text-xs select-all"></span>
+                        </div>
+                        <div><strong>URL:</strong> <a href="#" id="urlLink" target="_blank"
+                                class="text-indigo-600 hover:underline break-all">...</a></div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const switchBtn = document.getElementById('manualModeSwitch');
+        const manualConfig = document.getElementById('manualConfig');
+        const form = document.getElementById('audioForm');
+        const generateBtn = document.getElementById('generateBtn');
+        const spinner = document.getElementById('loadingSpinner');
+        const btnText = document.getElementById('btnText');
+        const audioPlayer = document.getElementById('audioPlayer');
+        const playerContainer = document.getElementById('playerContainer');
+        const fileInfo = document.getElementById('fileInfo');
+        const engineSelect = document.getElementById('engineSelect');
+        const voiceSelect = document.getElementById('voiceId');
+
+        // Voice Data
+        const VOICE_OPTIONS = {
+            'edge': [
+                { code: 'vi-VN-HoaiMyNeural', label: 'Vietnamese - Hoai My (Female)' },
+                { code: 'vi-VN-NamMinhNeural', label: 'Vietnamese - Nam Minh (Male)' },
+                { code: 'en-US-AriaNeural', label: 'English US - Aria (Female)' },
+                { code: 'en-US-ChristopherNeural', label: 'English US - Christopher (Male)' },
+                { code: 'en-US-GuyNeural', label: 'English US - Guy (Male)' },
+                { code: 'en-US-JennyNeural', label: 'English US - Jenny (Female)' },
+                { code: 'ja-JP-NanamiNeural', label: 'Japanese - Nanami (Female)' },
+                { code: 'ja-JP-KeitaNeural', label: 'Japanese - Keita (Male)' }
+            ],
+            'gtts': [
+                { code: 'vi', label: 'Vietnamese (Google)' },
+                { code: 'en', label: 'English (Google)' },
+                { code: 'ja', label: 'Japanese (Google)' }
+            ]
+        };
+
+        // Populate Voices
+        function updateVoices() {
+            const engine = engineSelect.value;
+            const voices = VOICE_OPTIONS[engine] || [];
+
+            voiceSelect.innerHTML = '';
+            voices.forEach(v => {
+                const opt = document.createElement('option');
+                opt.value = v.code;
+                opt.textContent = v.label;
+                voiceSelect.appendChild(opt);
+            });
+        }
+
+        // Init & Listen
+        updateVoices();
+        engineSelect.addEventListener('change', updateVoices);
+
+        // Toggle Manual Mode
+        switchBtn.addEventListener('change', function () {
+            manualConfig.style.display = this.checked ? 'block' : 'none';
+        });
+
+        // Handle Generate
+        form.addEventListener('submit', async function (e) {
+            e.preventDefault();
+
+            // UI Loading State
+            generateBtn.disabled = true;
+            spinner.classList.remove('hidden');
+            btnText.textContent = 'Processing...';
+            playerContainer.classList.add('opacity-50');
+            fileInfo.classList.add('hidden');
+
+            // Collect Data
+            const payload = {
+                text: document.getElementById('textInput').value,
+                engine: document.getElementById('engineSelect').value,
+                voice: document.getElementById('voiceId').value,
+                is_manual: switchBtn.checked,
+                target_dir: switchBtn.checked ? document.getElementById('targetDir').value : null,
+                custom_filename: switchBtn.checked ? document.getElementById('filename').value : null
+            };
+
+            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+
+            try {
+                const response = await fetch('/admin/audio/process', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    // Success
+                    const audioUrl = data.data.url;
+
+                    // Update Player
+                    audioPlayer.src = audioUrl;
+                    playerContainer.classList.remove('opacity-50');
+
+                    // Auto Play
+                    audioPlayer.play().catch(e => console.log("Auto-play blocked:", e));
+
+                    // Show Info
+                    fileInfo.classList.remove('hidden');
+                    document.getElementById('physicalPath').textContent = data.data.physical_path;
+                    document.getElementById('urlLink').textContent = audioUrl;
+                    document.getElementById('urlLink').href = audioUrl;
+
+                    if (window.showFlashMessage) window.showFlashMessage('Audio generated successfully!', 'success');
+                } else {
+                    // API Error
+                    if (window.showFlashMessage) window.showFlashMessage('Error: ' + (data.error || 'Unknown error'), 'danger');
+                }
+
+            } catch (err) {
+                console.error(err);
+                if (window.showFlashMessage) window.showFlashMessage('Network error or server crash.', 'danger');
+            } finally {
+                // Reset UI
+                generateBtn.disabled = false;
+                spinner.classList.add('hidden');
+                btnText.textContent = 'Generate & Preview';
+            }
+        });
+    });
+</script>
+{% endblock %}

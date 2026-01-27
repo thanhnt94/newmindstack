@@ -35,8 +35,21 @@ def get_storage_path(target_dir: str, filename: str) -> dict:
     # Handle both forward and backslashes by using Path
     rel_dir = Path(target_dir) 
     
-    # Physical Path
-    physical_dir = app_root / rel_dir
+    # Physical Path Resolution
+    # Check if we are targeting the uploads directory
+    parts = rel_dir.parts
+    if parts and parts[0] == 'uploads':
+        # Route to UPLOAD_FOLDER configured in app
+        # Remove 'uploads' from the start to get relative path inside UPLOAD_FOLDER
+        upload_root = Path(current_app.config['UPLOAD_FOLDER'])
+        if len(parts) > 1:
+            physical_dir = upload_root / Path(*parts[1:])
+        else:
+            physical_dir = upload_root
+    else:
+        # Default behavior: relative to mindstack_app package
+        physical_dir = app_root / rel_dir
+        
     physical_path = physical_dir / filename
     
     # URL Calculation
