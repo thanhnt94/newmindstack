@@ -41,6 +41,18 @@ class AudioService:
             if not filename.endswith('.mp3'):
                 filename += '.mp3'
         else:
+            # Apply Defaults if not provided (for hashing and generation)
+            if not engine:
+                engine = current_app.config.get('AUDIO_DEFAULT_ENGINE', 'edge')
+            
+            if not voice:
+                if engine == 'edge':
+                    voice = current_app.config.get('AUDIO_DEFAULT_VOICE_EDGE', 'vi-VN-HoaiMyNeural')
+                elif engine == 'gtts':
+                    voice = current_app.config.get('AUDIO_DEFAULT_VOICE_GTTS', 'vi')
+                else:
+                    voice = 'default'
+
             filename = generate_hash_name(text, engine, voice)
             
         # 2. Determine Target Directory

@@ -49,4 +49,9 @@ DEFAULT_APP_CONFIGS = {
     'FSRS_MAX_INTERVAL': 365,
     'FSRS_ENABLE_FUZZ': False,
     'FSRS_GLOBAL_WEIGHTS': [0.40255, 1.18385, 3.173, 15.691, 7.1509, 0.5477, 1.4633, 0.0035, 1.5457, 0.1192, 1.0192, 1.9395, 0.11, 0.296, 2.2698, 0.2315, 2.9898, 0.51655, 0.6621],
+    
+    # --- Audio Service Defaults ---
+    'AUDIO_DEFAULT_ENGINE': 'edge',
+    'AUDIO_DEFAULT_VOICE_EDGE': 'vi-VN-HoaiMyNeural', # Default favorable for native users
+    'AUDIO_DEFAULT_VOICE_GTTS': 'vi',
 }

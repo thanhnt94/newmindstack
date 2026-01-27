@@ -226,6 +226,28 @@ def init_config_service(app, ttl_seconds: int = 30) -> ConfigService:
                 "data_type": "string",
                 "description": "Thời điểm kết thúc bảo trì (ISO 8601, ví dụ: 2026-12-31T23:59:59).",
             },
+            # --- Audio Defaults ---
+            {
+                "key": "AUDIO_DEFAULT_ENGINE",
+                "value": DEFAULT_APP_CONFIGS.get("AUDIO_DEFAULT_ENGINE"),
+                "data_type": "string",
+                "category": "audio",
+                "description": "Engine Text-to-Speech mặc định (edge hoặc gtts).",
+            },
+            {
+                "key": "AUDIO_DEFAULT_VOICE_EDGE",
+                "value": DEFAULT_APP_CONFIGS.get("AUDIO_DEFAULT_VOICE_EDGE"),
+                "data_type": "string",
+                "category": "audio",
+                "description": "Giọng đọc mặc định cho Edge TTS.",
+            },
+            {
+                "key": "AUDIO_DEFAULT_VOICE_GTTS",
+                "value": DEFAULT_APP_CONFIGS.get("AUDIO_DEFAULT_VOICE_GTTS"),
+                "data_type": "string",
+                "category": "audio",
+                "description": "Giọng đọc mặc định cho Google TTS.",
+            },
         ]
 
     @app.before_request

@@ -20,7 +20,48 @@ def admin_audio_studio():
     # Ideally check for admin role
     # if current_user.role != 'admin': ...
     
-    return render_template('admin/audio_studio.html')
+    return render_template('admin/audio_studio.html', 
+                           default_engine=current_app.config.get('AUDIO_DEFAULT_ENGINE', 'edge'),
+                           default_voice_edge=current_app.config.get('AUDIO_DEFAULT_VOICE_EDGE', 'en-US-AriaNeural'),
+                           default_voice_gtts=current_app.config.get('AUDIO_DEFAULT_VOICE_GTTS', 'en')
+                           )
+
+@audio_bp.route('/admin/audio/settings', methods=['POST'])
+@login_required
+def update_audio_settings():
+    """Update default audio settings."""
+    try:
+        from mindstack_app.models import AppSettings, db
+        data = request.get_json()
+        
+        updates = {
+            'AUDIO_DEFAULT_ENGINE': data.get('default_engine'),
+            'AUDIO_DEFAULT_VOICE_EDGE': data.get('default_voice_edge'),
+            'AUDIO_DEFAULT_VOICE_GTTS': data.get('default_voice_gtts')
+        }
+        
+        for key, value in updates.items():
+            if value:
+                setting = AppSettings.query.filter_by(key=key).first()
+                if setting:
+                    setting.value = value
+                else:
+                    # Should be created by defaults, but just in case
+                    setting = AppSettings(key=key, value=value, category='audio', data_type='string')
+                    db.session.add(setting)
+                    
+        db.session.commit()
+        
+        # Reload config immediately
+        if 'config_service' in current_app.extensions:
+            current_app.extensions['config_service'].load_settings(force=True)
+            
+        return jsonify({'success': True, 'message': 'Cấu hình đã được lưu.'})
+        
+    except Exception as e:
+        tb = traceback.format_exc()
+        current_app.logger.error(f"Settings Update Error: {tb}")
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 @audio_bp.errorhandler(Exception)
 def handle_exception(e):
