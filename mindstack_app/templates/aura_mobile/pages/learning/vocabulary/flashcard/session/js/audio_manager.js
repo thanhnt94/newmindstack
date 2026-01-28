@@ -340,8 +340,8 @@ function setupAudioErrorHandler(itemId, frontContent, backContent) {
 
 // --- Autoplay Logic ---
 
-function autoPlaySide(side) {
-    console.log('[Audio] autoPlaySide requested for:', side, 'Enabled:', isAudioAutoplayEnabled);
+function autoPlaySide(side, retryCount = 0) {
+    console.log('[Audio] autoPlaySide requested for:', side, 'Enabled:', isAudioAutoplayEnabled, 'Retry:', retryCount);
     if (!isAudioAutoplayEnabled) return;
 
     // Tìm button trong container hiển thị (desktop hoặc mobile)
@@ -352,7 +352,12 @@ function autoPlaySide(side) {
         : document.querySelector(`.play-audio-btn[data-side="${side}"]`);
 
     if (!button) {
-        console.warn('[Audio] AutoPlay button not found for side:', side, 'in container:', visibleContainer);
+        if (retryCount < 10) {
+            console.log(`[Audio] Button not found for ${side}, retrying (${retryCount + 1})...`);
+            setTimeout(() => autoPlaySide(side, retryCount + 1), 50);
+            return;
+        }
+        console.warn('[Audio] AutoPlay button not found for side:', side, 'in container:', visibleContainer, 'after retries');
         return;
     }
     console.log('[Audio] AutoPlay triggering for button:', button);
@@ -396,11 +401,27 @@ async function playAutoplayAudioForSide(side, token) {
 
     // Tìm button trong container hiển thị (desktop hoặc mobile)
     const visibleContainer = window.getVisibleFlashcardContentDiv ? window.getVisibleFlashcardContentDiv() : document;
-    const button = visibleContainer.querySelector
-        ? visibleContainer.querySelector(`.play-audio-btn[data-side="${side}"]`)
-        : document.querySelector(`.play-audio-btn[data-side="${side}"]`);
 
-    if (!button) return;
+    let button = null;
+    let retries = 0;
+
+    while (!button && retries < 10) {
+        if (token !== currentAutoplayToken) return;
+
+        button = visibleContainer.querySelector
+            ? visibleContainer.querySelector(`.play-audio-btn[data-side="${side}"]`)
+            : document.querySelector(`.play-audio-btn[data-side="${side}"]`);
+
+        if (!button) {
+            retries++;
+            await new Promise(r => setTimeout(r, 50));
+        }
+    }
+
+    if (!button) {
+        console.warn('Không tìm thấy nút audio tự động cho side:', side);
+        return;
+    }
     try {
         await playAudioForButton(button, { await: true, suppressLoadingUi: true });
     } catch (err) {
