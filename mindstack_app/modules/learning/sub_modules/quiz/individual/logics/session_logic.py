@@ -151,7 +151,7 @@ class QuizSessionManager:
         mode_config = next((m for m in QuizLearningConfig.QUIZ_MODES if m['id'] == mode), None)
         if not mode_config:
             current_app.logger.error(f"SessionManager: Chế độ học không hợp lệ hoặc không được định nghĩa: {mode}")
-            return False
+            return False, 'Chế độ học không hợp lệ.', None
         
         algorithm_func = None
         if mode == 'new_only':
@@ -177,7 +177,7 @@ class QuizSessionManager:
         
         if not algorithm_func:
             current_app.logger.error(f"SessionManager: Không tìm thấy hàm thuật toán cho chế độ: {mode}")
-            return False
+            return False, 'Lỗi hệ thống: Không tìm thấy thuật toán.', None
         
         accessible_ids = set(get_accessible_quiz_set_ids(user_id))
         normalized_set_id = set_id
@@ -187,7 +187,7 @@ class QuizSessionManager:
                 current_app.logger.info(
                     "QuizSessionManager: Người dùng không có bộ quiz nào khả dụng cho chế độ 'all'."
                 )
-                return False
+                return False, 'Không có bộ quiz nào khả dụng.', None
         elif isinstance(set_id, list):
             filtered_ids = []
             for set_value in set_id:
@@ -202,7 +202,7 @@ class QuizSessionManager:
                 current_app.logger.info(
                     "QuizSessionManager: Không có bộ quiz nào khả dụng sau khi lọc chế độ multi-selection."
                 )
-                return False
+                return False, 'Không có bộ quiz nào khả dụng.', None
 
             normalized_set_id = filtered_ids
         else:
@@ -212,13 +212,13 @@ class QuizSessionManager:
                 current_app.logger.warning(
                     "QuizSessionManager: ID bộ quiz không hợp lệ khi khởi tạo phiên học."
                 )
-                return False
+                return False, 'ID bộ quiz không hợp lệ.', None
 
             if set_id_int not in accessible_ids:
                 current_app.logger.info(
                     "QuizSessionManager: Người dùng không có quyền truy cập bộ quiz đã chọn."
                 )
-                return False
+                return False, 'Bạn không có quyền truy cập bộ quiz này.', None
 
             normalized_set_id = set_id_int
 
@@ -241,7 +241,7 @@ class QuizSessionManager:
         if total_items_in_session == 0:
             cls.end_quiz_session()
             current_app.logger.warning("SessionManager: Không có câu hỏi nào được tìm thấy cho phiên học mới.")
-            return False
+            return False, 'Không có câu hỏi nào cho chế độ này.', None
 
         sample_size = min(total_items_in_session, 50)
         
@@ -291,7 +291,7 @@ class QuizSessionManager:
         session.modified = True
 
         current_app.logger.debug(f"SessionManager: Phiên học mới đã được khởi tạo với {total_items_in_session} câu hỏi. Batch size: {batch_size}")
-        return True
+        return True, 'Khởi tạo thành công.', new_session_manager.db_session_id
 
     def _get_media_absolute_url(self, file_path, media_type: Optional[str] = None, *, container: Optional[LearningContainer] = None):
         """

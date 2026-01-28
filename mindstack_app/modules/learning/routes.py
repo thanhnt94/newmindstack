@@ -60,7 +60,7 @@ def api_get_active_sessions():
 
             # Determine Resume URL
             if s.learning_mode == 'quiz':
-                resume_url = url_for('learning.quiz_learning.quiz_session')
+                resume_url = url_for('learning.quiz_learning.quiz_session', session_id=s.session_id)
             elif s.learning_mode == 'typing':
                 resume_url = url_for('learning.vocabulary.typing.session_page')
             elif s.learning_mode == 'listening':
