@@ -313,7 +313,7 @@
     {% include _v ~ '/includes/navbar/_bottom_nav.html' %}
 
     {# === ANALYTICS MODAL === #}
-    <div x-show="showAnalytics" class="fixed inset-0 z-[200] flex items-end lg:flex" style="display: none;">
+    <div x-show="showAnalytics" class="fixed inset-0 z-[200] flex items-end" style="display: none;">
 
         <div class="fixed inset-0 bg-black/60 backdrop-blur-[2px] transition-opacity" @click="showAnalytics = false"
             x-transition.opacity></div>
@@ -444,7 +444,7 @@
 </div>
 
 {# === ADD GOAL MODAL (WIZARD) === #}
-<div id="addGoalModal" class="hidden fixed inset-0 z-[200] flex items-end lg:flex" x-data="goalWizardMobileData()">
+<div id="addGoalModal" class="hidden fixed inset-0 z-[200] flex items-end" x-data="goalWizardMobileData()">
     <div class="fixed inset-0 bg-black/50 backdrop-blur-sm"
         onclick="document.getElementById('addGoalModal').classList.add('hidden')"></div>
 
