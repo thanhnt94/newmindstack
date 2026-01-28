@@ -360,7 +360,7 @@ async function submitFlashcardAnswer(itemId, answer) {
         // Checking previous code: notificationStart added class 'notification-active' which might hide content.
         // User said: "Giữ nguyên thẻ hiện tại trên màn hình." implied visible?
         // Let's Comment out the hiding dispatch if it hides content.
-        // document.dispatchEvent(new CustomEvent('notificationStart')); 
+        document.dispatchEvent(new CustomEvent('notificationStart'));
 
         if (data.score_change > 0 && window.showScoreToast) {
             // We await this!

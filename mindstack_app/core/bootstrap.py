@@ -164,6 +164,27 @@ def register_context_processors(app: Flask) -> None:
     def inject_user() -> dict[str, object]:
         return {"current_user": current_user}
 
+    @app.template_filter('media_url')
+    def media_url_filter(path):
+        """Converts a stored media path to a valid public URL."""
+        if not path:
+            return ''
+        
+        p = str(path).strip().replace('\\', '/')
+        
+        if p.startswith(('http://', 'https://', '/')):
+            return p
+            
+        # Remove static/ prefix if present to normalize
+        if p.startswith('static/'):
+            p = p[7:]
+            
+        # Remove uploads/ prefix if present (since /static/ serves from uploads)
+        if p.startswith('uploads/'):
+            p = p[8:]
+            
+        return f"/static/{p}"
+
     @app.template_filter('user_timezone')
     def user_timezone_filter(dt, fmt='%Y-%m-%d %H:%M:%S'):
         """Converts a UTC datetime to the user's timezone."""

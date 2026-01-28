@@ -385,25 +385,20 @@
 
 
     .vocab-set-cover {
-
         height: 110px;
-
         background: linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%);
-
         display: flex;
-
         align-items: center;
-
         justify-content: center;
-
-        background-size: cover;
-
-        background-position: center;
-
         position: relative;
-
         overflow: hidden;
+    }
 
+    .vocab-set-cover-img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
     }
 
 
@@ -565,27 +560,20 @@
     /* Detail View - Modern Hero */
 
     .vocab-detail-hero {
-
         height: 240px;
-
         background: linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%);
-
         display: flex;
-
         align-items: center;
-
         justify-content: center;
-
-        background-size: 200% 200%;
-
-        background-position: center;
-
         position: relative;
-
         overflow: hidden;
+    }
 
-        animation: gradientShift 8s ease infinite;
-
+    .vocab-detail-hero-img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
     }
 
 
@@ -3813,14 +3801,8 @@
                     }
                 }
 
-                // [FIX] Style Logic - Force contain
-                var coverStyle = '';
-                var hasImageClass = '';
-
-                if (coverPath) {
-                    coverStyle = 'background-image: url(' + coverPath + '); background-size: contain !important; background-repeat: no-repeat !important; background-position: center !important; background-color: #f1f5f9 !important; animation: none !important;';
-                    hasImageClass = 'has-image';
-                }
+                // [FIX] Style Logic - Use img tag for edge-to-edge
+                var hasImageClass = coverPath ? 'has-image' : '';
 
                 var authorInitial = (s.creator_name || 'U').charAt(0).toUpperCase();
 
@@ -3828,9 +3810,13 @@
 
                 html += '<div class="vocab-set-card" data-set-id="' + s.id + '">';
 
-                html += '<div class="vocab-set-cover ' + hasImageClass + '" style="' + coverStyle + '">';
+                html += '<div class="vocab-set-cover ' + hasImageClass + '">';
 
-                if (!coverPath) html += '<i class="fas fa-book-open"></i>';
+                if (coverPath) {
+                    html += '<img src="' + coverPath + '" class="vocab-set-cover-img" alt="">';
+                } else {
+                    html += '<i class="fas fa-book-open"></i>';
+                }
 
                 html += '</div>';
 
@@ -4143,28 +4129,12 @@
                             coverPath = '/static/' + coverPath;
                         }
 
-                        coverEl.style.backgroundImage = 'url(' + coverPath + ')';
-                        // [FIX] Inline styles for contain
-                        coverEl.style.backgroundSize = 'contain';
-                        coverEl.style.backgroundRepeat = 'no-repeat';
-                        coverEl.style.backgroundPosition = 'center';
-                        coverEl.style.backgroundColor = '#f1f5f9';
-                        coverEl.style.animation = 'none';
-
-                        coverEl.innerHTML = '';
+                        coverEl.innerHTML = '<img src="' + coverPath + '" class="vocab-detail-hero-img" alt="">';
+                        coverEl.classList.add('has-image');
 
                     } else {
-
-                        coverEl.style.backgroundImage = '';
-                        // Reset styles
-                        coverEl.style.backgroundSize = '';
-                        coverEl.style.backgroundRepeat = '';
-                        coverEl.style.backgroundPosition = '';
-                        coverEl.style.backgroundColor = '';
-                        coverEl.style.animation = '';
-
+                        coverEl.classList.remove('has-image');
                         coverEl.innerHTML = '<i class="fas fa-book-open"></i>';
-
                     }
 
                 }

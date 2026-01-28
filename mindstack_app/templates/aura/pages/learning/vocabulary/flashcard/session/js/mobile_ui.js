@@ -160,19 +160,6 @@
     // Prevent body scroll when modal is open?
     // Mobile only implementation.
 
-    // Play audio from toolbar
-    document.addEventListener('click', function (e) {
-        const playBtn = e.target.closest('.play-audio-btn');
-        if (playBtn) {
-            const targetSelector = playBtn.dataset.audioTarget;
-            const audioEl = document.querySelector(targetSelector);
-            if (audioEl && audioEl.src) {
-                audioEl.currentTime = 0;
-                audioEl.play().catch(err => console.error("Audio play error", err));
-            }
-        }
-    });
-
     // Note button in header - open note panel for current card
     const noteBtn = document.querySelector('.js-fc-note-btn');
     if (noteBtn) {

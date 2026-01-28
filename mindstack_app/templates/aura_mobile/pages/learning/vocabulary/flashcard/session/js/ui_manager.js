@@ -477,6 +477,11 @@ function renderCard(data) {
     const isAutoplaySession = window.FlashcardConfig.isAutoplaySession;
     const userButtonCount = window.FlashcardConfig.userButtonCount;
 
+    // Reset any pending autoplay deferral from previous notifications
+    if (typeof window.pendingAudioAutoplay !== 'undefined') {
+        window.pendingAudioAutoplay = false;
+    }
+
     if (isAutoplaySession) {
         if (window.cancelAutoplaySequence) window.cancelAutoplaySequence();
     }
@@ -706,12 +711,18 @@ function renderCard(data) {
     // When notification is active, the notificationComplete handler will trigger audio
     // Use safe check: if pendingAudioAutoplay is undefined or false, allow audio to play
     const shouldDeferAudio = (typeof window.pendingAudioAutoplay !== 'undefined') && window.pendingAudioAutoplay === true;
+    console.log('[UI] renderCard complete. AutoplaySession:', isAutoplaySession, 'pendingAudioAutoplay:', window.pendingAudioAutoplay, 'shouldDefer:', shouldDeferAudio);
+
     if (!shouldDeferAudio) {
         if (isAutoplaySession) {
+            console.log('[UI] Triggering startAutoplaySequence');
             if (window.startAutoplaySequence) window.startAutoplaySequence();
         } else {
+            console.log('[UI] Triggering autoPlayFrontSide');
             if (window.autoPlayFrontSide) window.autoPlayFrontSide();
         }
+    } else {
+        console.log('[UI] Autoplay deferred due to pending notification');
     }
 
     // [NEW] Update FSRS estimates on rating buttons

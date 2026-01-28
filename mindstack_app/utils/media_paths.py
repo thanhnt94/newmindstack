@@ -78,9 +78,13 @@ def normalize_media_value_for_storage(value, media_folder: Optional[str]) -> Opt
     while normalized.startswith(uploads_prefix):
         normalized = normalized[len(uploads_prefix):]
 
-    # [CHANGE] We no longer strip the media_folder prefix.
-    # We want to store the full relative path (e.g. 'folder/img.jpg')
-    # so that we can support valid paths outside the default folder.
+    # [CHANGE] If the value has no slashes, it's likely a legacy filename
+    # or a shortcut (user just typed 'cover.jpg').
+    # Prepend the media_folder to make it a full relative path.
+    if "/" not in normalized:
+        folder_normalized = normalize_media_folder(media_folder)
+        if folder_normalized:
+            normalized = f"{folder_normalized}/{normalized}"
     
     return normalized
 

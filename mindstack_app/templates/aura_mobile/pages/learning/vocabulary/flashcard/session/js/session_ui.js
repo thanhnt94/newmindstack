@@ -174,19 +174,6 @@
     window.addEventListener('resize', setAppHeight);
     setAppHeight();
 
-    // Play audio from toolbar
-    document.addEventListener('click', function (e) {
-        const playBtn = e.target.closest('.play-audio-btn');
-        if (playBtn) {
-            const targetSelector = playBtn.dataset.audioTarget;
-            const audioEl = document.querySelector(targetSelector);
-            if (audioEl && audioEl.src) {
-                audioEl.currentTime = 0;
-                audioEl.play().catch(err => console.error("Audio play error", err));
-            }
-        }
-    });
-
     // Note button in header - open note panel for current card
     const noteBtn = document.querySelector('.js-fc-note-btn');
     if (noteBtn) {
@@ -221,25 +208,6 @@
             e.stopPropagation();
         });
     }
-
-    // Audio button in card overlay - sync with header audio button
-    document.addEventListener('click', function (e) {
-        const overlayAudioBtn = e.target.closest('.js-fc-audio-btn-overlay');
-        if (overlayAudioBtn) {
-            // Find the corresponding audio button in the visible container
-            const headerAudioBtn = document.querySelector('.js-fc-audio-btn');
-            if (headerAudioBtn) {
-                headerAudioBtn.click();
-            } else {
-                // Fallback: try to play audio directly
-                const visibleContainer = window.getVisibleFlashcardContentDiv ? window.getVisibleFlashcardContentDiv() : document;
-                const audioButton = visibleContainer.querySelector('.play-audio-btn');
-                if (audioButton && window.playAudioForButton) {
-                    window.playAudioForButton(audioButton, { suppressLoadingUi: false });
-                }
-            }
-        }
-    });
 
     // Image toggle with dynamic text/icon
     const imageToggleBtn = document.querySelector('.js-fc-image-toggle');
@@ -776,6 +744,7 @@
 
                 // Resolve after animation matches CSS duration (300ms)
                 setTimeout(() => {
+                    document.dispatchEvent(new CustomEvent('notificationComplete'));
                     resolve();
                 }, 300);
             }, duration);

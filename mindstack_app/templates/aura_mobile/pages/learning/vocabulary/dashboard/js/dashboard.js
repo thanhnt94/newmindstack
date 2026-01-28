@@ -588,13 +588,7 @@ document.addEventListener('DOMContentLoaded', function () {
                         }
                     }
 
-                    // Style Logic
-                    // Force contain to fix "zoomed" issue
-                    var coverStyle = '';
-                    var hasImageClass = '';
-
                     if (coverPath) {
-                        coverStyle = 'background-image: url(' + coverPath + '); background-size: contain !important; background-repeat: no-repeat !important; background-position: center !important; background-color: #f1f5f9 !important; animation: none !important;';
                         hasImageClass = 'has-image';
                     }
 
@@ -602,9 +596,11 @@ document.addEventListener('DOMContentLoaded', function () {
                     var authorName = s.creator_name || 'Unknown';
 
                     html += '<div class="vocab-set-card" data-set-id="' + s.id + '">';
-                    html += '<div class="vocab-set-cover ' + hasImageClass + '" style="' + coverStyle + '">';
+                    html += '<div class="vocab-set-cover ' + hasImageClass + '">';
 
-                    if (!coverPath) {
+                    if (coverPath) {
+                        html += '<img src="' + coverPath + '" class="vocab-set-cover-img" alt="">';
+                    } else {
                         html += '<i class="fas fa-book-open"></i>';
                     }
 
@@ -899,9 +895,8 @@ document.addEventListener('DOMContentLoaded', function () {
                                 coverPath = '/static/' + coverPath;
                             }
 
-                            coverEl.style.backgroundImage = 'url(' + coverPath + ')';
+                            coverEl.innerHTML = '<img src="' + coverPath + '" class="vocab-detail-hero-img" alt="">';
                             coverEl.classList.add('has-image');
-                            coverEl.innerHTML = '';
                         } else {
                             coverEl.style.backgroundImage = '';
                             coverEl.classList.remove('has-image');

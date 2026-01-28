@@ -7,6 +7,7 @@ let isAudioAutoplayEnabled = true;
 let currentAutoplayToken = 0;
 let currentAutoplayTimeouts = [];
 let autoplayDelaySeconds = 2;
+let currentAudioStopVersion = 0;
 
 // Load autoplay settings from localStorage or config
 function initAudioSettings() {
@@ -37,6 +38,7 @@ function initAudioSettings() {
         console.warn('Không thể đọc cấu hình AutoPlay:', err);
     }
     window.isAudioAutoplayEnabled = isAudioAutoplayEnabled;
+    console.log('[Audio] Settings initialized. Autoplay enabled:', isAudioAutoplayEnabled);
 }
 
 function persistAudioAutoplayPreference(enabled) {
@@ -92,6 +94,8 @@ function playAudioAfterLoad(audioPlayer, { restart = true, awaitCompletion = fal
             return;
         }
 
+        const startedAtVersion = currentAudioStopVersion;
+
         const updateOverlayIcon = (isPlaying) => {
             const icon = document.querySelector('.js-fc-audio-icon-overlay');
             if (icon) {
@@ -127,6 +131,13 @@ function playAudioAfterLoad(audioPlayer, { restart = true, awaitCompletion = fal
 
         const onCanPlay = () => {
             audioPlayer.removeEventListener('canplay', onCanPlay);
+
+            if (startedAtVersion !== currentAudioStopVersion) {
+                cleanup();
+                resolve();
+                return;
+            }
+
             audioPlayer.addEventListener('playing', onPlaying);
             audioPlayer.addEventListener('pause', onPause);
             audioPlayer.addEventListener('ended', handleFinish, { once: true });
@@ -176,7 +187,8 @@ function playAudioAfterLoad(audioPlayer, { restart = true, awaitCompletion = fal
 }
 
 function stopAllFlashcardAudio(exceptAudio = null) {
-    const audioElements = document.querySelectorAll('audio.hidden');
+    currentAudioStopVersion++;
+    const audioElements = document.querySelectorAll('audio'); // Target ALL audio elements, even if not marked hidden
     // console.log(`[Audio] Stopping all audio (count: ${audioElements.length}), except:`, exceptAudio ? exceptAudio.id : 'none');
     audioElements.forEach(audioEl => {
         if (exceptAudio && audioEl === exceptAudio) {
@@ -329,20 +341,21 @@ function setupAudioErrorHandler(itemId, frontContent, backContent) {
 // --- Autoplay Logic ---
 
 function autoPlaySide(side) {
+    console.log('[Audio] autoPlaySide requested for:', side, 'Enabled:', isAudioAutoplayEnabled);
     if (!isAudioAutoplayEnabled) return;
 
     // Tìm button trong container hiển thị (desktop hoặc mobile)
     const visibleContainer = window.getVisibleFlashcardContentDiv ? window.getVisibleFlashcardContentDiv() : document;
-    // console.log('[Audio] AutoPlay side:', side);
 
     const button = visibleContainer.querySelector
         ? visibleContainer.querySelector(`.play-audio-btn[data-side="${side}"]`)
         : document.querySelector(`.play-audio-btn[data-side="${side}"]`);
 
     if (!button) {
-        console.warn('[Audio] AutoPlay button not found for side:', side);
+        console.warn('[Audio] AutoPlay button not found for side:', side, 'in container:', visibleContainer);
         return;
     }
+    console.log('[Audio] AutoPlay triggering for button:', button);
     playAudioForButton(button, { suppressLoadingUi: true }).catch(err => console.error('[Audio] AutoPlay error:', err));
 }
 
@@ -427,7 +440,6 @@ async function startAutoplaySequence() {
 
 
 // Export to global
-window.isAudioAutoplayEnabled = isAudioAutoplayEnabled; // Getter might be needed, or property access
 window.initAudioSettings = initAudioSettings;
 window.setAudioAutoplayEnabled = setAudioAutoplayEnabled;
 window.stopAllFlashcardAudio = stopAllFlashcardAudio;
@@ -441,11 +453,12 @@ window.cancelAutoplaySequence = cancelAutoplaySequence;
 window.autoplayDelaySeconds = autoplayDelaySeconds;
 window.currentAutoplayToken = currentAutoplayToken; // used by revealBackSide dependencies
 
-// Add simple getters mainly for external checks if needed
-/*
+// Robust sync between local variable and window property
 Object.defineProperty(window, 'isAudioAutoplayEnabled', {
     get: () => isAudioAutoplayEnabled,
-    set: (val) => { isAudioAutoplayEnabled = val; }, // Allow setter
+    set: (val) => {
+        console.log('[Audio] window.isAudioAutoplayEnabled setter called with:', val);
+        isAudioAutoplayEnabled = val;
+    },
     configurable: true
 });
-*/

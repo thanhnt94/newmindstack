@@ -7,6 +7,7 @@ let isAudioAutoplayEnabled = true;
 let currentAutoplayToken = 0;
 let currentAutoplayTimeouts = [];
 let autoplayDelaySeconds = 2;
+let currentAudioStopVersion = 0;
 
 // Load autoplay settings from localStorage or config
 function initAudioSettings() {
@@ -77,6 +78,8 @@ function playAudioAfterLoad(audioPlayer, { restart = true, awaitCompletion = fal
             return;
         }
 
+        const startedAtVersion = currentAudioStopVersion;
+
         const cleanup = () => {
             audioPlayer.removeEventListener('canplay', onCanPlay);
             if (awaitCompletion) {
@@ -97,6 +100,13 @@ function playAudioAfterLoad(audioPlayer, { restart = true, awaitCompletion = fal
 
         const onCanPlay = () => {
             audioPlayer.removeEventListener('canplay', onCanPlay);
+
+            if (startedAtVersion !== currentAudioStopVersion) {
+                cleanup();
+                resolve();
+                return;
+            }
+
             if (restart) {
                 try {
                     audioPlayer.pause();
@@ -140,7 +150,8 @@ function playAudioAfterLoad(audioPlayer, { restart = true, awaitCompletion = fal
 }
 
 function stopAllFlashcardAudio(exceptAudio = null) {
-    const audioElements = document.querySelectorAll('audio.hidden');
+    currentAudioStopVersion++;
+    const audioElements = document.querySelectorAll('audio'); // Target ALL audio elements
     // console.log(`[Audio] Stopping all audio (count: ${audioElements.length}), except:`, exceptAudio ? exceptAudio.id : 'none');
     audioElements.forEach(audioEl => {
         if (exceptAudio && audioEl === exceptAudio) {
