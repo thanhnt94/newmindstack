@@ -2,15 +2,15 @@
 # Phiên bản: 1.1
 # Mục đích: Chứa các route và logic cho việc quản lý API keys.
 
-from flask import abort, render_template, redirect, url_for, flash, request
+from flask import abort, render_template, redirect, url_for, flash, request, current_app, jsonify
 from flask_login import login_required, current_user
 from sqlalchemy import desc, func
 from datetime import datetime, timedelta
 from . import api_key_management_bp
 from .forms import ApiKeyForm
-from ....models import db, ApiKey, BackgroundTask, AppSettings
-from ....models.system import AILog
-from ....core.error_handlers import error_response, success_response
+from mindstack_app.models import db, ApiKey, BackgroundTask, AppSettings
+from mindstack_app.models.system import AILog
+from mindstack_app.core.error_handlers import error_response, success_response
 
 @api_key_management_bp.before_request
 def admin_required():
@@ -335,7 +335,7 @@ def get_autogen_logs():
     # Get logs for this task
     # We use the relationship if available, or query directly
     # Importing BackgroundTaskLog needed
-    from ....models import BackgroundTaskLog
+    from mindstack_app.models import BackgroundTaskLog
     
     logs = BackgroundTaskLog.query.filter_by(task_id=task.task_id).order_by(BackgroundTaskLog.created_at.asc()).all()
     
@@ -360,7 +360,7 @@ def redirect_to_item_context(item_id):
     """
     Helper route to find the parent container of an item and redirect to its edit page.
     """
-    from ....models.learning import LearningItem
+    from mindstack_app.models.learning import LearningItem
     
     item = LearningItem.query.get_or_404(item_id)
     
@@ -374,3 +374,55 @@ def redirect_to_item_context(item_id):
     
     flash(f"Unknown item type: {item.item_type}", "warning")
     return redirect(url_for('.list_api_keys'))
+
+@api_key_management_bp.route('/test_chat', methods=['POST'])
+def test_hop_chat():
+    """
+    Mô tả: Route test nội bộ để thử nghiệm prompt với các model khác nhau.
+    """
+    try:
+        data = request.get_json()
+        provider = data.get('provider', 'gemini')
+        model = data.get('model', '')
+        prompt = data.get('prompt', '')
+
+        if not prompt:
+            return jsonify({'success': False, 'message': 'Prompt không được để trống.'}), 400
+
+        from mindstack_app.modules.AI.services.ai_manager import AIServiceManager
+        from mindstack_app.modules.AI.logics.engines.gemini_client import GeminiClient
+        from mindstack_app.modules.AI.logics.engines.huggingface_client import HuggingFaceClient
+        
+        start_time = datetime.now()
+        response_text = ""
+        
+        # Helper to format and send
+        if provider == 'gemini':
+            client = GeminiClient(current_app.app_context(), model_name=model or 'gemini-2.0-flash-lite-001')
+            response_text = client.generate_content(prompt)
+        elif provider == 'huggingface':
+            client = HuggingFaceClient(current_app.app_context(), model_name=model or 'google/gemma-7b-it')
+            response_text = client.generate_content(prompt)
+        else: # Hybrid/Default
+            from mindstack_app.modules.AI.services.ai_manager import get_ai_service
+            service = get_ai_service()
+            response_text = service.generate_content(prompt)
+
+        end_time = datetime.now()
+        duration = int((end_time - start_time).total_seconds() * 1000)
+
+        return jsonify({
+            'success': True,
+            'response': response_text,
+            'provider': provider,
+            'model': model or 'default',
+            'duration_ms': duration
+        })
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            'success': False,
+            'message': str(e)
+        }), 500

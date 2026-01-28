@@ -146,8 +146,8 @@
                 console.warn('Mindstack AI: CSRF Token not found in meta tag');
             }
 
-            // SỬA LỖI: Đổi 'get_ai_support' thành 'get_ai_response' cho đúng với tên route
-            const response = await fetch("{{ url_for('ai_services.get_ai_response') }}", {
+            // SỬA LỖI: Đổi 'ai_services.get_ai_response' thành 'AI.get_ai_response' cho đúng với tên blueprint mới
+            const response = await fetch("{{ url_for('AI.get_ai_response') }}", {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

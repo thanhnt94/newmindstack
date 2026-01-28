@@ -8,9 +8,9 @@ from flask_login import login_required, current_user
 # Import Blueprint từ __init__.py của module con này
 from . import user_management_bp 
 
-from ....models import User # Import model User từ cấp trên (đi lên 3 cấp)
-from ....db_instance import db
-from ....modules.auth.forms import UserForm 
+from mindstack_app.models import User # Import model User từ cấp trên (đi lên 3 cấp)
+from mindstack_app.db_instance import db
+from mindstack_app.modules.auth.forms import UserForm 
 
 # Middleware để kiểm tra quyền admin cho toàn bộ Blueprint user_management
 @user_management_bp.before_request 

@@ -3,8 +3,7 @@
 
 {% block title %}AI Coach Console{% endblock %}
 {% block page_title %}AI Coach Console{% endblock %}
-{% block page_subtitle %}Trung tâm điều khiển trí tuệ nhân tạo: Quản lý Model, API Keys và Giám sát
-hoạt động.{%
+{% block page_subtitle %}Trung tâm điều khiển trí tuệ nhân tạo: Quản lý Model, API Keys và Giám sát hoạt động.{%
 endblock %}
 
 {% block content %}
@@ -23,6 +22,10 @@ endblock %}
         <button onclick="switchTab('autogen')" id="tab-autogen"
             class="tab-btn border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">
             <i class="fas fa-wand-magic-sparkles mr-2"></i> Auto-Generate
+        </button>
+        <button onclick="switchTab('test')" id="tab-test"
+            class="tab-btn border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">
+            <i class="fas fa-vial mr-2"></i> Test Chat
         </button>
     </nav>
 </div>
@@ -442,6 +445,64 @@ endblock %}
     </div>
 </div>
 
+<div id="view-test" class="hidden space-y-6">
+    <div class="data-card bg-white p-6">
+        <h3 class="text-lg font-semibold text-slate-800 mb-6 flex items-center">
+            <i class="fas fa-vial mr-2 text-rose-600"></i>
+            Thử nghiệm Prompt AI
+        </h3>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+            <div class="md:col-span-1">
+                <label class="block text-sm font-medium text-slate-700 mb-2">Nhà cung cấp (Provider)</label>
+                <select id="test_provider" onchange="updateTestModels()"
+                    class="w-full rounded-md border-slate-300 shadow-sm focus:border-rose-500 focus:ring-rose-500">
+                    <option value="gemini">Google Gemini</option>
+                    <option value="huggingface">Hugging Face</option>
+                    <option value="hybrid">Hybrid (System Default)</option>
+                </select>
+
+                <div id="test_model_container" class="mt-4">
+                    <label class="block text-sm font-medium text-slate-700 mb-2">Chọn mô hình (Model)</label>
+                    <select id="test_model_id"
+                        class="w-full rounded-md border-slate-300 shadow-sm focus:border-rose-500 focus:ring-rose-500 text-sm">
+                        <option value="">-- Mặc định hệ thống --</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="md:col-span-2">
+                <label class="block text-sm font-medium text-slate-700 mb-2">Prompt nội dung</label>
+                <textarea id="test_prompt" rows="8"
+                    class="w-full rounded-md border-slate-300 shadow-sm focus:border-rose-500 focus:ring-rose-500 text-sm"
+                    placeholder="Nhập prompt test ở đây..."></textarea>
+
+                <div class="mt-4 flex justify-end gap-3">
+                    <button id="btn-send-test" onclick="sendTestPrompt()"
+                        class="bg-rose-600 text-white px-6 py-2 rounded-md hover:bg-rose-500 transition shadow-md flex items-center gap-2">
+                        <i class="fas fa-paper-plane"></i> Gửi Prompt
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Result Area -->
+        <div id="test_result_area" class="hidden mt-8 border-t border-slate-100 pt-6">
+            <div class="flex items-center justify-between mb-3">
+                <h4 class="text-sm font-bold text-slate-700 uppercase tracking-tight">Kết quả phản hồi</h4>
+                <div class="flex gap-4 text-xs font-medium">
+                    <span class="text-slate-500">Model: <span id="test_used_model" class="text-rose-600"></span></span>
+                    <span class="text-slate-500">Thời gian: <span id="test_time" class="text-rose-600">0</span>ms</span>
+                </div>
+            </div>
+            <div class="bg-slate-900 rounded-lg p-5 overflow-x-auto shadow-inner">
+                <pre id="test_response_content"
+                    class="text-slate-200 text-sm font-mono whitespace-pre-wrap leading-relaxed"></pre>
+            </div>
+        </div>
+    </div>
+</div>
+
 {% endblock %}
 
 {% block extra_scripts %}
@@ -454,22 +515,24 @@ endblock %}
     document.addEventListener('DOMContentLoaded', function () {
         chartDataGlobal = {{ chart_data | tojson | safe }};
 
-    if (chartDataGlobal) {
-        updateChartMetric();
-    }
+        if (chartDataGlobal) {
+            updateChartMetric();
+        }
 
-    if (window.location.hash === '#view-logs') {
-        switchTab('logs');
-    } else if (window.location.hash === '#view-autogen') {
-        switchTab('autogen');
-    }
+        if (window.location.hash === '#view-logs') {
+            switchTab('logs');
+        } else if (window.location.hash === '#view-autogen') {
+            switchTab('autogen');
+        } else if (window.location.hash === '#view-test') {
+            switchTab('test');
+        }
 
-    const geminiHidden = document.getElementById('gemini_model_value');
-    if (geminiHidden && geminiHidden.value) {
-        updateGeminiBadges(geminiHidden.value.split(',').map(s => s.trim()).filter(s => s));
-    }
+        const geminiHidden = document.getElementById('gemini_model_value');
+        if (geminiHidden && geminiHidden.value) {
+            updateGeminiBadges(geminiHidden.value.split(',').map(s => s.trim()).filter(s => s));
+        }
 
-    toggleProviderSettings();
+        toggleProviderSettings();
     });
 
     const colors = ['#3b82f6', '#10b981', '#f59e0b', '#6366f1', '#ec4899', '#8b5cf6', '#14b8a6', '#f43f5e'];
@@ -526,7 +589,7 @@ endblock %}
     }
 
     function switchTab(tabName) {
-        const tabs = ['config', 'autogen', 'logs'];
+        const tabs = ['config', 'autogen', 'logs', 'test'];
         tabs.forEach(t => {
             const view = document.getElementById('view-' + t);
             const tab = document.getElementById('tab-' + t);
@@ -703,6 +766,100 @@ endblock %}
             btn.disabled = false;
         }
     }
+    async function sendTestPrompt() {
+        const provider = document.getElementById('test_provider').value;
+        const model = document.getElementById('test_model_id').value;
+        const prompt = document.getElementById('test_prompt').value;
+        const btn = document.getElementById('btn-send-test');
+        const resultArea = document.getElementById('test_result_area');
+        const responsePre = document.getElementById('test_response_content');
+
+        if (!prompt.trim()) {
+            alert('Vui lòng nhập prompt.');
+            return;
+        }
+
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang xử lý...';
+        resultArea.classList.add('hidden');
+
+        try {
+            const response = await fetch("{{ url_for('api_key_management.test_hop_chat') }}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': "{{ csrf_token() }}"
+                },
+                body: JSON.stringify({ provider, model, prompt })
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                responsePre.textContent = data.response;
+                document.getElementById('test_time').textContent = data.duration_ms;
+                document.getElementById('test_used_model').textContent = data.model;
+                resultArea.classList.remove('hidden');
+            } else {
+                alert('Lỗi: ' + data.message);
+            }
+        } catch (e) {
+            alert('Lỗi kết nối: ' + e);
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-paper-plane"></i> Gửi Prompt';
+        }
+    }
+
+    async function updateTestModels() {
+        const provider = document.getElementById('test_provider').value;
+        const modelSelect = document.getElementById('test_model_id');
+
+        // Reset options
+        modelSelect.innerHTML = '<option value="">-- Mặc định hệ thống --</option>';
+
+        if (provider === 'gemini') {
+            try {
+                const response = await fetch("{{ url_for('admin.fetch_gemini_models_api') }}");
+                const data = await response.json();
+                if (data.success) {
+                    data.models.forEach(m => {
+                        const opt = document.createElement('option');
+                        opt.value = m.id;
+                        opt.textContent = m.display_name + ' (' + m.id + ')';
+                        modelSelect.appendChild(opt);
+                    });
+                }
+            } catch (e) {
+                console.error('Error fetching Gemini models:', e);
+            }
+        } else if (provider === 'huggingface') {
+            const hfModels = [
+                { id: 'google/gemma-7b-it', name: 'Gemma 7B IT' },
+                { id: 'meta-llama/Llama-2-7b-chat-hf', name: 'Llama 2 7B' },
+                { id: 'mistralai/Mistral-7B-Instruct-v0.2', name: 'Mistral 7B' },
+                { id: 'HuggingFaceH4/zephyr-7b-beta', name: 'Zephyr 7B Beta' }
+            ];
+            hfModels.forEach(m => {
+                const opt = document.createElement('option');
+                opt.value = m.id;
+                opt.textContent = m.name + ' (' + m.id + ')';
+                modelSelect.appendChild(opt);
+            });
+        }
+    }
+
+    // Initial load for the test tab
+    document.addEventListener('DOMContentLoaded', () => {
+        const testTabBtn = document.getElementById('tab-test');
+        if (testTabBtn) {
+            testTabBtn.addEventListener('click', () => {
+                if (document.getElementById('test_model_id').options.length <= 1) {
+                    updateTestModels();
+                }
+            });
+        }
+    });
 </script>
 
 <!-- Auto-Generate JavaScript -->

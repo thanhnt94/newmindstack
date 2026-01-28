@@ -76,14 +76,14 @@ from datetime import date, time
 
 from ...config import Config
 # Refactored imports: services now in learning/flashcard/individual/ and learning/quiz/individual/services/
-from ..learning.sub_modules.flashcard.services import AudioService, ImageService
-from ..learning.sub_modules.quiz.individual.services.audio_service import QuizAudioService
-from ..ai_services.ai_explanation_task_service import (
+from mindstack_app.modules.flashcard.services import AudioService, ImageService
+from mindstack_app.modules.quiz.individual.services.audio_service import QuizAudioService
+from mindstack_app.modules.AI.services.explanation_service import (
     DEFAULT_REQUEST_INTERVAL_SECONDS,
     generate_ai_explanations,
 )
-from ..ai_services.gemini_client import GeminiClient
-from ..ai_services.huggingface_client import HuggingFaceClient
+from mindstack_app.modules.AI.logics.engines.gemini_client import GeminiClient
+from mindstack_app.modules.AI.logics.engines.huggingface_client import HuggingFaceClient
 from ...services.config_service import SENSITIVE_SETTING_KEYS, get_runtime_config
 
 audio_service = AudioService()

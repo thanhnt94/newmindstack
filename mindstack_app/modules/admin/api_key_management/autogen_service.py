@@ -2,10 +2,10 @@
 # Purpose: Auto-generate AI content for quiz and flashcard sets
 
 from flask import current_app
-from ....models import db, BackgroundTask
-from ....models.learning import LearningContainer, LearningItem
-from ...ai_services.service_manager import get_ai_service
-from ...ai_services.prompts import get_formatted_prompt
+from mindstack_app.models import db, BackgroundTask
+from mindstack_app.models.learning import LearningContainer, LearningItem
+from mindstack_app.modules.AI.services.ai_manager import get_ai_service
+from mindstack_app.modules.AI.logics.prompts import get_formatted_prompt
 import time
 import threading
 
