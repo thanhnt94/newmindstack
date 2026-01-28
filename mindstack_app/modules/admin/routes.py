@@ -76,8 +76,9 @@ from datetime import date, time
 
 from ...config import Config
 # Refactored imports: services now in learning/flashcard/individual/ and learning/quiz/individual/services/
-from mindstack_app.modules.flashcard.services import AudioService, ImageService
-from mindstack_app.modules.quiz.individual.services.audio_service import QuizAudioService
+from mindstack_app.modules.learning.sub_modules.flashcard.services.audio_service import AudioService
+from mindstack_app.modules.learning.sub_modules.flashcard.services.image_service import ImageService
+from mindstack_app.modules.learning.sub_modules.quiz.individual.services.audio_service import QuizAudioService
 from mindstack_app.modules.AI.services.explanation_service import (
     DEFAULT_REQUEST_INTERVAL_SECONDS,
     generate_ai_explanations,

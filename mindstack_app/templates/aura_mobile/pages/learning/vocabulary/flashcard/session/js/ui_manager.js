@@ -93,9 +93,10 @@ function initUiSettings() {
             const card = document.querySelector('.js-flashcard-card');
             const isFlipped = card && card.classList.contains('flipped');
             const side = isFlipped ? 'back' : 'front';
+            console.log(`[Audio] Manual overlay click trigger for side: ${side}`);
 
             if (window.autoPlaySide) {
-                window.autoPlaySide(side);
+                window.autoPlaySide(side, 0, true); // force=true
             }
         });
     }

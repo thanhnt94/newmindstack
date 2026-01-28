@@ -191,6 +191,11 @@ function stopAllFlashcardAudio(exceptAudio = null) {
     const audioElements = document.querySelectorAll('audio'); // Target ALL audio elements, even if not marked hidden
     // console.log(`[Audio] Stopping all audio (count: ${audioElements.length}), except:`, exceptAudio ? exceptAudio.id : 'none');
     audioElements.forEach(audioEl => {
+        // Clear manual retrigger flag on EVERY stop/reset
+        if (audioEl.dataset) {
+            audioEl.dataset.manualRetrigger = 'false';
+        }
+
         if (exceptAudio && audioEl === exceptAudio) {
             return;
         }
@@ -272,6 +277,9 @@ function playAudioForButton(button, options = {}) {
     const suppressLoadingUi = options.suppressLoadingUi === true;
     const hasAudioSource = audioPlayer.src && audioPlayer.src !== window.location.href;
 
+    // ⭐ Mark as manual retrigger to ensure it plays after regeneration even if autoplay is OFF
+    audioPlayer.dataset.manualRetrigger = 'true';
+
     if (hasAudioSource) {
         stopAllFlashcardAudio(audioPlayer);
         return playAudioAfterLoad(audioPlayer, { restart, awaitCompletion });
@@ -304,15 +312,149 @@ async function handleAudioError(audioEl, itemId, side, contentToRead) {
         if (result.success && result.audio_url) {
             console.log(`[AudioRecovery] ${sideLabel} - ✅ Tái tạo thành công!`);
 
+            // Check if this was a manual request OR autoplay is enabled
+            const isManualRetrigger = audioEl.dataset.manualRetrigger === 'true';
+            // Important: Clear the flag immediately so it doesn't affect subsequent cards
+            audioEl.dataset.manualRetrigger = 'false';
+
             // CRITICAL: Set new src AND reload the audio element
             audioEl.src = `${result.audio_url}?t=${new Date().getTime()}`;
             audioEl.load(); // ⭐ Force browser to reload the audio source
+
+            // ⭐ Auto-play if autoplay is enabled OR it was a manual request
+            if (isAudioAutoplayEnabled || isManualRetrigger) {
+                // Check if current visible side matches this audio's side
+                const isBackSideShowing = document.querySelector('.flashcard-inner.is-flipped') !== null
+                    || document.querySelector('.fc-card.is-flipped') !== null
+                    || document.querySelector('[data-side-showing="back"]') !== null;
+                const currentVisibleSide = isBackSideShowing ? 'back' : 'front';
+
+                if (side === currentVisibleSide) {
+                    console.log(`[AudioRecovery] ${sideLabel} - 🔊 Phát audio sau tái tạo (Autoplay: ${isAudioAutoplayEnabled}, Manual: ${isManualRetrigger})`);
+                    audioEl.addEventListener('canplay', function onCanPlay() {
+                        audioEl.removeEventListener('canplay', onCanPlay);
+                        audioEl.play().catch(err => {
+                            if (err.name === 'NotAllowedError') {
+                                console.warn('[AudioRecovery] Autoplay blocked, waiting for interaction...');
+                                // Add one-time listener to document to resume audio on interaction
+                                const resumeAudio = () => {
+                                    audioEl.play().catch(e => console.error('[AudioRecovery] Interaction play failed:', e));
+                                    document.removeEventListener('click', resumeAudio);
+                                    document.removeEventListener('touchstart', resumeAudio);
+                                };
+                                document.addEventListener('click', resumeAudio);
+                                document.addEventListener('touchstart', resumeAudio);
+                            } else {
+                                console.warn('[AudioRecovery] Autoplay failed:', err);
+                            }
+                        });
+                    }, { once: true });
+                } else {
+                    console.log(`[AudioRecovery] ${sideLabel} - ⏸️ Không phát (đang ở mặt ${currentVisibleSide})`);
+                }
+            }
         } else {
             console.warn(`[AudioRecovery] ${sideLabel} - ❌ Tái tạo thất bại: ${result.message}`);
         }
     } catch (err) {
         console.error(`[AudioRecovery] ${sideLabel} - ❌ Lỗi kết nối API:`, err);
     }
+}
+
+// ⭐ NEW: Prefetch audio for upcoming cards in the queue
+async function prefetchAudioForUpcomingCards(count = 3) {
+    const queue = window.currentFlashcardBatch;
+    const currentIndex = window.currentFlashcardIndex ?? 0;
+
+    if (!queue || !Array.isArray(queue) || queue.length === 0) {
+        // Retry slightly later if batch hasn't loaded yet
+        if (!window._prefetchRetryCount || window._prefetchRetryCount < 3) {
+            window._prefetchRetryCount = (window._prefetchRetryCount || 0) + 1;
+            setTimeout(() => prefetchAudioForUpcomingCards(count), 1000);
+        }
+        return;
+    }
+    window._prefetchRetryCount = 0;
+
+    const regenerateAudioUrl = window.FlashcardConfig?.regenerateAudioUrl;
+    const csrfHeaders = window.FlashcardConfig?.csrfHeaders ?? {};
+
+    if (!regenerateAudioUrl) {
+        console.log('[AudioPrefetch] No regenerate URL configured');
+        return;
+    }
+
+    console.log(`[AudioPrefetch] Starting prefetch for next ${count} cards from index ${currentIndex}`);
+
+    // Get upcoming items (skip current)
+    const upcomingItems = queue.slice(currentIndex + 1, currentIndex + 1 + count);
+
+    for (const item of upcomingItems) {
+        if (!item || !item.item_id) continue;
+
+        const frontContent = item.front_display || item.kanji || item.term || '';
+        const backContent = item.back_display || item.reading || item.definition || '';
+        const frontAudioUrl = item.audio_url || item.front_audio_url;
+        const backAudioUrl = item.back_audio_url;
+
+        // Check front audio
+        if (frontContent && frontAudioUrl) {
+            try {
+                const checkResponse = await fetch(frontAudioUrl, { method: 'HEAD' });
+                if (!checkResponse.ok) {
+                    console.log(`[AudioPrefetch] Item ${item.item_id} front audio missing, regenerating...`);
+                    await fetch(regenerateAudioUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', ...csrfHeaders },
+                        body: JSON.stringify({ item_id: item.item_id, side: 'front', content_to_read: frontContent })
+                    });
+                    console.log(`[AudioPrefetch] Item ${item.item_id} front audio regenerated ✅`);
+                }
+            } catch (err) {
+                console.log(`[AudioPrefetch] Item ${item.item_id} front audio check failed, regenerating...`);
+                try {
+                    await fetch(regenerateAudioUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', ...csrfHeaders },
+                        body: JSON.stringify({ item_id: item.item_id, side: 'front', content_to_read: frontContent })
+                    });
+                    console.log(`[AudioPrefetch] Item ${item.item_id} front audio regenerated ✅`);
+                } catch (e) {
+                    console.warn(`[AudioPrefetch] Failed to regenerate front audio for item ${item.item_id}:`, e);
+                }
+            }
+        }
+
+        // Check back audio
+        if (backContent && backAudioUrl) {
+            try {
+                const checkResponse = await fetch(backAudioUrl, { method: 'HEAD' });
+                if (!checkResponse.ok) {
+                    console.log(`[AudioPrefetch] Item ${item.item_id} back audio missing, regenerating...`);
+                    await fetch(regenerateAudioUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', ...csrfHeaders },
+                        body: JSON.stringify({ item_id: item.item_id, side: 'back', content_to_read: backContent })
+                    });
+                    console.log(`[AudioPrefetch] Item ${item.item_id} back audio regenerated ✅`);
+                }
+            } catch (err) {
+                console.log(`[AudioPrefetch] Item ${item.item_id} back audio check failed, regenerating...`);
+                try {
+                    await fetch(regenerateAudioUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', ...csrfHeaders },
+                        body: JSON.stringify({ item_id: item.item_id, side: 'back', content_to_read: backContent })
+                    });
+                    console.log(`[AudioPrefetch] Item ${item.item_id} back audio regenerated ✅`);
+                } catch (e) {
+                    console.warn(`[AudioPrefetch] Failed to regenerate back audio for item ${item.item_id}:`, e);
+                }
+            }
+        }
+    }
+
+    console.log(`[AudioPrefetch] Prefetch complete for ${upcomingItems.length} items`);
 }
 
 function setupAudioErrorHandler(itemId, frontContent, backContent) {
@@ -336,13 +478,16 @@ function setupAudioErrorHandler(itemId, frontContent, backContent) {
             audioEl.onerror = () => handleAudioError(audioEl, itemId, side, content);
         }
     });
+
+    // ⭐ NEW: Trigger prefetch for upcoming cards (non-blocking)
+    setTimeout(() => prefetchAudioForUpcomingCards(3), 100);
 }
 
 // --- Autoplay Logic ---
 
-function autoPlaySide(side, retryCount = 0) {
-    console.log('[Audio] autoPlaySide requested for:', side, 'Enabled:', isAudioAutoplayEnabled, 'Retry:', retryCount);
-    if (!isAudioAutoplayEnabled) return;
+function autoPlaySide(side, retryCount = 0, force = false) {
+    console.log('[Audio] autoPlaySide requested for:', side, 'Enabled:', isAudioAutoplayEnabled, 'Force:', force, 'Retry:', retryCount);
+    if (!isAudioAutoplayEnabled && !force) return;
 
     // Tìm button trong container hiển thị (desktop hoặc mobile)
     const visibleContainer = window.getVisibleFlashcardContentDiv ? window.getVisibleFlashcardContentDiv() : document;
@@ -354,7 +499,7 @@ function autoPlaySide(side, retryCount = 0) {
     if (!button) {
         if (retryCount < 10) {
             console.log(`[Audio] Button not found for ${side}, retrying (${retryCount + 1})...`);
-            setTimeout(() => autoPlaySide(side, retryCount + 1), 50);
+            setTimeout(() => autoPlaySide(side, retryCount + 1, force), 50);
             return;
         }
         console.warn('[Audio] AutoPlay button not found for side:', side, 'in container:', visibleContainer, 'after retries');
@@ -473,6 +618,7 @@ window.startAutoplaySequence = startAutoplaySequence;
 window.cancelAutoplaySequence = cancelAutoplaySequence;
 window.autoplayDelaySeconds = autoplayDelaySeconds;
 window.currentAutoplayToken = currentAutoplayToken; // used by revealBackSide dependencies
+window.prefetchAudioForUpcomingCards = prefetchAudioForUpcomingCards;
 
 // Robust sync between local variable and window property
 Object.defineProperty(window, 'isAudioAutoplayEnabled', {
