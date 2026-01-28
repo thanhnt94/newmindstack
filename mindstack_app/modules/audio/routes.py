@@ -89,8 +89,8 @@ def start_audio_task():
         
         # Import relevant task services (Local import to avoid circular dependency)
         from mindstack_app.models import BackgroundTask, db
-        from mindstack_app.modules.learning.sub_modules.flashcard.services import AudioService as FlashcardAudioService
-        from mindstack_app.modules.learning.sub_modules.quiz.individual.services.audio_service import QuizAudioService
+        from mindstack_app.modules.flashcard.services import AudioService as FlashcardAudioService
+        from mindstack_app.modules.quiz.individual.services.audio_service import QuizAudioService
         
         task = BackgroundTask.query.filter_by(task_name=task_name).first()
         if not task:

@@ -90,7 +90,7 @@ DEFAULT_MODULES: Iterable[ModuleDefinition] = (
 
     
     ModuleDefinition("mindstack_app.modules.goals.routes", "goals_bp", url_prefix="/goals", version="1.0"),
-    ModuleDefinition("mindstack_app.modules.ai_services.routes", "ai_services_bp", version="1.0"),
+    ModuleDefinition("mindstack_app.modules.AI.routes", "ai_bp", version="1.0"),
     ModuleDefinition("mindstack_app.modules.notes.routes", "notes_bp", version="1.0"),
     ModuleDefinition("mindstack_app.modules.chat", "chat_bp", url_prefix="/chat", version="1.0"),
     ModuleDefinition("mindstack_app.modules.feedback", "feedback_bp", url_prefix="/feedback", version="1.0"),

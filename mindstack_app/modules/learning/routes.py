@@ -7,17 +7,17 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash,
 from mindstack_app.utils.template_helpers import render_dynamic_template
 from flask_login import login_required, current_user
 from mindstack_app.models import LearningContainer
-from .sub_modules.flashcard.services.session_service import LearningSessionService
+from mindstack_app.modules.flashcard.services.session_service import LearningSessionService
 
 # Import các blueprint con
-from .sub_modules.quiz import quiz_battle_bp, quiz_learning_bp
-from .sub_modules.flashcard import flashcard_bp
-from .sub_modules.flashcard.individual.routes import flashcard_learning_bp
-from .sub_modules.course.routes import course_bp
-from .sub_modules.flashcard.collab.routes import flashcard_collab_bp
-from .sub_modules.vocabulary import vocabulary_bp
-from .sub_modules.practice import practice_bp
-from .sub_modules.collab import collab_bp
+from mindstack_app.modules.quiz import quiz_battle_bp, quiz_learning_bp
+from mindstack_app.modules.flashcard import flashcard_bp
+from mindstack_app.modules.flashcard.individual.routes import flashcard_learning_bp
+from mindstack_app.modules.course.routes import course_bp
+from mindstack_app.modules.flashcard.collab.routes import flashcard_collab_bp
+from mindstack_app.modules.vocabulary import vocabulary_bp
+from mindstack_app.modules.practice import practice_bp
+from mindstack_app.modules.collab import collab_bp
 from .api.markers import markers_bp  # NEW: Markers API
 # from .sub_modules.stats import stats_bp
 # Note: stats_api_bp is registered globally in module_registry.py

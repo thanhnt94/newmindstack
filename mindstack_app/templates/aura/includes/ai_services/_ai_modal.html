@@ -147,7 +147,7 @@
             }
 
             // SỬA LỖI: Đổi 'get_ai_support' thành 'get_ai_response' cho đúng với tên route
-            const response = await fetch("{{ url_for('ai_services.get_ai_response') }}", {
+            const response = await fetch("{{ url_for('AI.get_ai_response') }}", {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

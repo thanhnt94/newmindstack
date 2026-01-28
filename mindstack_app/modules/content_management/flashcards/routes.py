@@ -24,7 +24,7 @@ from flask_login import login_required, current_user
 from sqlalchemy import or_, func
 from sqlalchemy.orm.attributes import flag_modified
 from ..forms import FlashcardSetForm, FlashcardItemForm
-from ....models import db, LearningContainer, LearningItem, ContainerContributor, User
+from mindstack_app.models import db, LearningContainer, LearningItem, ContainerContributor, User
 from mindstack_app.utils.media_paths import (
     normalize_media_folder,
     normalize_media_value_for_storage,
@@ -32,8 +32,8 @@ from mindstack_app.utils.media_paths import (
 )
 from mindstack_app.utils.db_session import safe_commit
 from mindstack_app.utils.excel import extract_info_sheet_mapping, format_info_warnings
-from ....config import Config
-from ....services.config_service import get_runtime_config
+from mindstack_app.config import Config
+from mindstack_app.services.config_service import get_runtime_config
 import pandas as pd
 import tempfile
 import os
@@ -48,10 +48,10 @@ from mindstack_app.utils.search import apply_search_filter
 from openpyxl.utils import get_column_letter
 from openpyxl.worksheet.datavalidation import DataValidation
 # THÊM MỚI: Import AudioService
-from ...learning.sub_modules.flashcard.services import AudioService, ImageService
+from mindstack_app.modules.flashcard.services import AudioService, ImageService
 from .services import FlashcardExcelService
-from ....services.flashcard_config_service import FlashcardConfigService
-from ....core.error_handlers import error_response, success_response
+from mindstack_app.services.flashcard_config_service import FlashcardConfigService
+from mindstack_app.core.error_handlers import error_response, success_response
 
 
 flashcards_bp = Blueprint('content_management_flashcards', __name__,
@@ -1156,7 +1156,7 @@ def edit_flashcard_set(set_id):
             abort(403)  # Không có quyền
             
     from ..forms import ContributorForm
-    from ....models import ContainerContributor
+    from mindstack_app.models import ContainerContributor
     contributor_form = ContributorForm()
     contributors = db.session.query(ContainerContributor, User).join(
         User, ContainerContributor.user_id == User.user_id

@@ -11,8 +11,8 @@ from flask_login import login_required, current_user
 from sqlalchemy import or_, func
 from sqlalchemy.orm.attributes import flag_modified
 from ..forms import CourseForm, LessonForm # Đã sửa từ CourseSetForm
-from ....models import db, LearningContainer, LearningItem, ContainerContributor, User
-from ....core.error_handlers import error_response, success_response
+from mindstack_app.models import db, LearningContainer, LearningItem, ContainerContributor, User
+from mindstack_app.core.error_handlers import error_response, success_response
 import pandas as pd
 import tempfile
 import os
