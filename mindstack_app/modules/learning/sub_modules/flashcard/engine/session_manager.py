@@ -154,7 +154,7 @@ class FlashcardSessionManager:
         if not mode_config and mode in ('autoplay_all', 'autoplay_learned'):
             mode_config = {'id': mode}
         if not mode_config:
-            return False, "Chế độ học không hợp lệ."
+            return False, "Chế độ học không hợp lệ.", None
 
         algorithm_func = {
             'new_only': get_new_only_items,
@@ -173,14 +173,14 @@ class FlashcardSessionManager:
             'autoplay_all': get_all_items_for_autoplay,
             'autoplay_learned': get_all_review_items,
         }.get(mode)
-        if not algorithm_func: return False, "Không tìm thấy thuật toán cho chế độ này."
+        if not algorithm_func: return False, "Không tìm thấy thuật toán cho chế độ này.", None
 
         accessible_ids = set(get_accessible_flashcard_set_ids(user_id))
         normalized_set_id = set_id
 
         if set_id == 'all':
             if not accessible_ids:
-                return False, "Bạn chưa có bộ thẻ nào khả dụng."
+                return False, "Bạn chưa có bộ thẻ nào khả dụng.", None
         elif isinstance(set_id, list):
             filtered_ids = []
             for set_value in set_id:
@@ -192,30 +192,56 @@ class FlashcardSessionManager:
                     filtered_ids.append(set_int)
 
             if not filtered_ids:
-                return False, "Không có bộ thẻ nào khả dụng trong danh sách đã chọn."
+                return False, "Không có bộ thẻ nào khả dụng trong danh sách đã chọn.", None
 
             normalized_set_id = filtered_ids
         else:
             try:
                 set_id_int = int(set_id)
             except (TypeError, ValueError):
-                return False, "ID bộ thẻ không hợp lệ."
+                return False, "ID bộ thẻ không hợp lệ.", None
 
             if set_id_int not in accessible_ids:
-                return False, "Bạn không có quyền truy cập bộ thẻ này."
+                return False, "Bạn không có quyền truy cập bộ thẻ này.", None
 
             normalized_set_id = set_id_int
 
         total_items_in_session = algorithm_func(user_id, normalized_set_id, None).count()
         if total_items_in_session == 0:
             if mode == 'due_only':
-                return False, "Không có thẻ nào đến hạn ôn tập."
+                return False, "Không có thẻ nào đến hạn ôn tập.", None
             elif mode == 'hard_only':
-                return False, "Không có thẻ nào được đánh dấu là khó."
+                return False, "Không có thẻ nào được đánh dấu là khó.", None
             elif mode == 'new_only':
-                return False, "Không còn thẻ mới nào để học."
+                return False, "Không còn thẻ mới nào để học.", None
             else:
-                return False, "Không tìm thấy thẻ nào phù hợp cho chế độ này."
+                return False, "Không tìm thấy thẻ nào phù hợp cho chế độ này.", None
+
+        # [NEW] Check for existing active session to RESUME
+        # This prevents duplicate sessions/wiping progress when user re-enters
+        existing_session = LearningSessionService.get_active_session(user_id, learning_mode='flashcard', set_id_data=normalized_set_id)
+        if existing_session and existing_session.mode_config_id == mode:
+            # Resume existing session
+            current_app.logger.info(f"Resuming existing session {existing_session.session_id} for user {user_id}")
+            
+            # Reconstruct manager
+            resumed_manager = cls(
+                user_id=existing_session.user_id,
+                set_id=existing_session.set_id_data,
+                mode=existing_session.mode_config_id,
+                total_items_in_session=existing_session.total_items,
+                processed_item_ids=existing_session.processed_item_ids or [],
+                correct_answers=existing_session.correct_count,
+                incorrect_answers=existing_session.incorrect_count,
+                vague_answers=existing_session.vague_count,
+                start_time=existing_session.start_time.isoformat() if existing_session.start_time else None,
+                session_points=existing_session.points_earned,
+                db_session_id=existing_session.session_id
+            )
+            
+            session[cls.SESSION_KEY] = resumed_manager.to_dict()
+            session.modified = True
+            return True, "Tiếp tục phiên học hiện tại.", existing_session.session_id
 
         new_session_manager = cls(
             user_id=user_id, set_id=normalized_set_id, mode=mode,
@@ -238,7 +264,7 @@ class FlashcardSessionManager:
 
         session[cls.SESSION_KEY] = new_session_manager.to_dict()
         session.modified = True
-        return True, "Bắt đầu phiên học thành công."
+        return True, "Bắt đầu phiên học thành công.", new_session_manager.db_session_id
 
     def _get_media_folders(self):
         if self._media_folders_cache is None:
@@ -393,9 +419,11 @@ class FlashcardSessionManager:
         initial_stats = FlashcardEngine.get_item_statistics(self.user_id, next_item.item_id)
 
         container_capabilities = set()
+        container_title = ""
         try:
             container = LearningContainer.query.get(next_item.container_id)
             if container:
+                container_title = container.title or ""
                 if hasattr(container, 'capability_flags'):
                     container_capabilities = container.capability_flags()
                 else:
@@ -406,6 +434,7 @@ class FlashcardSessionManager:
                         )
         except Exception:
             container_capabilities = set()
+            container_title = ""
 
         try:
             markers = db.session.query(UserItemMarker.marker_type).filter_by(
@@ -530,6 +559,7 @@ class FlashcardSessionManager:
             'ai_explanation': render_text_field(next_item.ai_explanation),
             'initial_stats': initial_stats,  # Gửi kèm thống kê
             'can_edit': self._can_edit_container(next_item.container_id),
+            'container_title': container_title, # [NEW] Correct set name for this card
             'markers': marker_list, # [NEW] List of markers e.g. ['difficult', 'favorite']
             'preview': preview_data # [NEW] Simulation data
         }

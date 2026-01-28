@@ -118,7 +118,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
         loadSets();
         loadDashboardStats();
-        loadActiveSessions();
 
 
 
@@ -464,36 +463,36 @@ document.addEventListener('DOMContentLoaded', function () {
 
                 });
 
+        }
 
+        function loadActiveSessions() {
+            const container = document.getElementById('active-sessions-container');
+            const list = document.getElementById('active-sessions-list');
+            if (!container || !list) return;
 
-            function loadActiveSessions() {
-                const container = document.getElementById('active-sessions-container');
-                const list = document.getElementById('active-sessions-list');
-                if (!container || !list) return;
+            fetch('/learn/api/learning/sessions/active?mode=flashcard')
+                .then(r => r.json())
+                .then(data => {
+                    if (data.has_active) {
+                        container.style.display = 'block';
+                        renderActiveSession(data.session, list);
+                    } else {
+                        container.style.display = 'none';
+                    }
+                })
+                .catch(err => console.warn('Active session check failed:', err));
+        }
 
-                fetch('/learn/api/learning/sessions/active?mode=flashcard')
-                    .then(r => r.json())
-                    .then(data => {
-                        if (data.has_active) {
-                            container.style.display = 'block';
-                            renderActiveSession(data.session, list);
-                        } else {
-                            container.style.display = 'none';
-                        }
-                    })
-                    .catch(err => console.warn('Active session check failed:', err));
-            }
+        function renderActiveSession(session, targetList) {
+            const typeLabel = session.learning_mode === 'flashcard' ? 'Flashcard' : 'Học tập';
+            const progress = session.total_items > 0
+                ? Math.round((session.processed_item_ids.length / session.total_items) * 100)
+                : 0;
 
-            function renderActiveSession(session, targetList) {
-                const typeLabel = session.learning_mode === 'flashcard' ? 'Flashcard' : 'Học tập';
-                const progress = session.total_items > 0
-                    ? Math.round((session.processed_item_ids.length / session.total_items) * 100)
-                    : 0;
+            // Try to get title from session data if we can
+            const title = session.set_title || ('Bộ thẻ #' + session.set_id_data);
 
-                // Try to get title from session data if we can
-                const title = session.set_title || ('Bộ thẻ #' + session.set_id_data);
-
-                targetList.innerHTML = `
+            targetList.innerHTML = `
             <div class="active-session-card animate-fadeIn">
                 <div class="active-session-icon">
                     <i class="fas fa-play"></i>
@@ -510,611 +509,611 @@ document.addEventListener('DOMContentLoaded', function () {
                 </a>
             </div>
         `;
-            }
+        }
 
 
 
-            // [NEW] Check active session within Set Detail
-            function checkSetActiveSession(setId) {
-                const banner = document.getElementById('active-session-banner-detail');
-                if (!banner) return;
+        // [NEW] Check active session within Set Detail
+        function checkSetActiveSession(setId) {
+            const banner = document.getElementById('active-session-banner-detail');
+            if (!banner) return;
 
-                fetch('/learn/api/check_active_vocab_session/' + setId)
-                    .then(r => r.json())
-                    .then(data => {
-                        if (data.has_active) {
-                            banner.style.display = 'block';
-                            const nameEl = banner.querySelector('.js-active-mode-name');
-                            if (nameEl) nameEl.textContent = data.active_mode_display || data.active_mode;
+            fetch('/learn/api/check_active_vocab_session/' + setId)
+                .then(r => r.json())
+                .then(data => {
+                    if (data.has_active) {
+                        banner.style.display = 'block';
+                        const nameEl = banner.querySelector('.js-active-mode-name');
+                        if (nameEl) nameEl.textContent = data.active_mode_display || data.active_mode;
 
-                            const btn = banner.querySelector('.js-resume-session');
-                            if (btn) {
-                                const newBtn = btn.cloneNode(true);
-                                btn.parentNode.replaceChild(newBtn, btn);
+                        const btn = banner.querySelector('.js-resume-session');
+                        if (btn) {
+                            const newBtn = btn.cloneNode(true);
+                            btn.parentNode.replaceChild(newBtn, btn);
 
-                                newBtn.onclick = function (e) {
-                                    e.preventDefault();
-                                    e.stopPropagation();
-                                    window.location.href = data.resume_url;
-                                };
-                            }
-                        } else {
-                            banner.style.display = 'none';
-                        }
-                    })
-                    .catch(e => console.warn("Check Set Session Failed:", e));
-            }
-
-            function loadDashboardStats() {
-                fetch('/learn/vocabulary/api/dashboard-global-stats')
-                    .then(r => r.json())
-                    .then(data => {
-                        if (data.success) {
-                            const stats = data.stats;
-                            const mappings = {
-                                'total-sets': stats.total_sets,
-                                'total-cards': stats.total_cards,
-                                'mastered-count': stats.mastered,
-                                'due-count': stats.due
+                            newBtn.onclick = function (e) {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                window.location.href = data.resume_url;
                             };
-
-                            for (const [id, value] of Object.entries(mappings)) {
-                                const el = document.getElementById(id);
-                                if (el) el.textContent = value;
-                            }
                         }
-                    })
-                    .catch(err => console.error('Failed to load dashboard stats:', err));
-            }
+                    } else {
+                        banner.style.display = 'none';
+                    }
+                })
+                .catch(e => console.warn("Check Set Session Failed:", e));
+        }
 
-            function renderSets(sets) {
-                if (setsGrids.length === 0) return;
+        function loadDashboardStats() {
+            fetch('/learn/vocabulary/api/dashboard-global-stats')
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success) {
+                        const stats = data.stats;
+                        const mappings = {
+                            'total-sets': stats.total_sets,
+                            'total-cards': stats.total_cards,
+                            'mastered-count': stats.mastered,
+                            'due-count': stats.due
+                        };
+
+                        for (const [id, value] of Object.entries(mappings)) {
+                            const el = document.getElementById(id);
+                            if (el) el.textContent = value;
+                        }
+                    }
+                })
+                .catch(err => console.error('Failed to load dashboard stats:', err));
+        }
+
+        function renderSets(sets) {
+            if (setsGrids.length === 0) return;
+
+            var html = '';
+
+            sets.forEach(function (s) {
+                // Path Logic
+                var coverPath = s.cover_image ? s.cover_image.trim() : '';
+                if (coverPath) {
+                    coverPath = coverPath.replace(/\\/g, '/'); // Normalize windows paths
+
+                    if (coverPath.startsWith('http') || coverPath.startsWith('/')) {
+                        // Absolute path or root-relative path (http... or /static...) -> Valid as is
+                    } else if (coverPath.startsWith('uploads/')) {
+                        coverPath = '/' + coverPath;
+                    } else {
+                        // Assume relative -> prepend static
+                        coverPath = '/static/' + coverPath;
+                    }
+                }
+
+                if (coverPath) {
+                    hasImageClass = 'has-image';
+                }
+
+                var authorInitial = (s.creator_name || 'U').charAt(0).toUpperCase();
+                var authorName = s.creator_name || 'Unknown';
+
+                html += '<div class="vocab-set-card" data-set-id="' + s.id + '">';
+                html += '<div class="vocab-set-cover ' + hasImageClass + '">';
+
+                if (coverPath) {
+                    html += '<img src="' + coverPath + '" class="vocab-set-cover-img" alt="">';
+                } else {
+                    html += '<i class="fas fa-book-open"></i>';
+                }
+
+                html += '</div>';
+                html += '<div class="vocab-set-info">';
+                html += '<div class="vocab-set-title">' + s.title + '</div>';
+                html += '<div class="vocab-set-meta">';
+                html += '<div class="vocab-set-author">';
+                html += '<span class="vocab-set-avatar">' + authorInitial + '</span>';
+                html += '<span>' + authorName + '</span>';
+                html += '</div>';
+                html += '<div class="vocab-set-count"><i class="fas fa-clone"></i>' + s.card_count + '</div>';
+                html += '</div>';
+                html += '</div></div>';
+            });
+
+            setsGrids.forEach(function (grid) {
+                grid.innerHTML = html;
+            });
+
+            // Bind click
+            document.querySelectorAll('.vocab-set-card').forEach(function (card) {
+                card.addEventListener('click', function () {
+                    selectedSetId = card.dataset.setId;
+                    loadSetDetail(selectedSetId, true); // true = push state
+                });
+            });
+        }
+
+
+
+        function updatePagination(page, hasPrev, hasNext, total) {
+
+            if (paginationBars.length === 0) return;
+
+
+
+            var totalPages = Math.max(1, Math.ceil(total / 10)); // 10 per page, at least 1
+
+
+
+            paginationBars.forEach(bar => bar.classList.add('visible'));
+
+            prevPageBtns.forEach(btn => btn.disabled = !hasPrev);
+
+            nextPageBtns.forEach(btn => btn.disabled = !hasNext);
+
+
+
+            // Render page numbers
+
+            var pageContainer = document.querySelector('.js-vocab-page-numbers');
+
+            if (pageContainer) {
 
                 var html = '';
 
-                sets.forEach(function (s) {
-                    // Path Logic
-                    var coverPath = s.cover_image ? s.cover_image.trim() : '';
+
+
+                for (var i = 1; i <= totalPages; i++) {
+
+                    if (i === 1 || i === totalPages ||
+
+                        (i >= page - 1 && i <= page + 1)) {
+
+                        html += '<span class="page-num' + (i === page ? ' active' : '') + '" data-page="' + i + '">' + i + '</span>';
+
+                    } else if (i === 2 && page > 3) {
+
+                        html += '<span class="page-num dots">...</span>';
+
+                    } else if (i === totalPages - 1 && page < totalPages - 2) {
+
+                        html += '<span class="page-num dots">...</span>';
+
+                    }
+
+                }
+
+
+
+                pageContainer.innerHTML = html;
+
+
+
+                pageContainer.querySelectorAll('.page-num:not(.dots)').forEach(function (el) {
+
+                    el.addEventListener('click', function () {
+
+                        var p = parseInt(el.dataset.page);
+
+                        if (p !== currentPage) loadSets(p);
+
+                    });
+
+                });
+
+            }
+
+        }
+
+
+
+        function hidePagination() {
+
+            paginationBars.forEach(bar => bar.classList.remove('visible'));
+
+        }
+
+
+
+        // Pagination button events
+
+        prevPageBtns.forEach(btn => {
+            btn.addEventListener('click', function () {
+                if (currentPage > 1) loadSets(currentPage - 1);
+            });
+        });
+
+        nextPageBtns.forEach(btn => {
+            btn.addEventListener('click', function () {
+                loadSets(currentPage + 1);
+            });
+        });
+
+
+
+        function loadSetDetail(setId, pushState = true) {
+            console.log("loadSetDetail called for id:", setId);
+            showStep('detail');
+
+            selectedSetId = setId;
+
+            currentStatsPage = 1;
+
+
+
+            if (pushState) {
+
+                history.pushState({ setId: setId }, '', '/learn/vocabulary/set/' + setId);
+
+            }
+
+
+
+            console.log("Fetching set detail:", setId);
+
+
+
+            return fetch('/learn/vocabulary/api/set/' + setId + '?page=1')
+
+                .then(function (r) { return r.json(); })
+
+                .then(function (data) {
+
+                    if (data.success) {
+
+                        selectedSetData = data.set;
+
+                        renderSetDetail(data.set, data.course_stats, false, data.pagination_html);
+
+                        // [NEW] Check for active session in this set
+                        checkSetActiveSession(setId);
+
+                        // [NEW] Init settings modal for this set immediately
+                        fetch('/learn/vocabulary/api/flashcard-modes/' + setId)
+                            .then(r => r.json())
+                            .then(modeData => {
+                                if (modeData.success) {
+                                    setupSettingsModal(setId, modeData);
+                                }
+                            })
+                            .catch(e => console.warn("Failed to load settings:", e));
+
+                        return data.set;
+
+                    } else {
+
+                        console.error('Failed to load set data:', data.message);
+
+                        alert('Không thể tải thông tin bộ thẻ: ' + (data.message || 'Lỗi không xác định'));
+
+                        throw new Error(data.message);
+
+                    }
+
+                })
+
+                .catch(function (err) {
+
+                    console.error('Error loading set detail:', err);
+
+                    alert('Có lỗi xảy ra khi tải dữ liệu.');
+
+                    throw err;
+
+                });
+
+        }
+
+
+
+        // Load More Button - replaced by pagination
+
+        const loadMoreBtn = document.querySelector('.js-load-more-words');
+
+        if (loadMoreBtn) loadMoreBtn.style.display = 'none';
+
+
+
+        function fetchCourseStatsPage(page) {
+
+            if (!selectedSetId) return;
+
+
+
+            // Find list container to show loading state
+
+            const listContainer = document.querySelector('.js-word-list');
+
+            if (listContainer) {
+
+                listContainer.innerHTML = '<div class="py-12 flex justify-center"><i class="fas fa-spinner fa-spin text-2xl text-slate-300"></i></div>';
+
+            }
+
+
+
+            fetch('/learn/vocabulary/api/set/' + selectedSetId + '?page=' + page)
+
+                .then(r => r.json())
+
+                .then(data => {
+
+                    if (data.success && data.course_stats) {
+
+                        // Pass pagination_html if available
+
+                        renderSetDetail(selectedSetData, data.course_stats, false, data.pagination_html);
+
+                        // Scroll to top of list
+
+                        const overview = document.getElementById('course-overview-container');
+
+                        if (overview) overview.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+                    } else {
+
+                        console.error("API Error:", data.message);
+
+                        alert("Lỗi server: " + (data.message || "Không thể tải dữ liệu."));
+
+                        // Restore/Clear spinner
+
+                        const listContainer = document.querySelector('.js-word-list');
+
+                        if (listContainer) listContainer.innerHTML = '<div class="text-center text-red-500 py-4">Thử lại sau.</div>';
+
+                    }
+
+                })
+
+                .catch(err => {
+
+                    console.error("Pagination error:", err);
+
+                    alert('Lỗi kết nối.');
+
+                });
+
+        }
+
+
+
+        function renderSetDetail(s, stats, append = false, paginationHtml = '') {
+
+            // Cover & Info only update on fresh load
+
+            if (!append) {
+
+                var coverEl = document.querySelector('.js-detail-cover');
+
+                if (coverEl) {
+                    var coverPath = s.cover_image || '';
                     if (coverPath) {
                         coverPath = coverPath.replace(/\\/g, '/'); // Normalize windows paths
-
                         if (coverPath.startsWith('http') || coverPath.startsWith('/')) {
-                            // Absolute path or root-relative path (http... or /static...) -> Valid as is
+                            // Absolute paths valid as is
                         } else if (coverPath.startsWith('uploads/')) {
                             coverPath = '/' + coverPath;
                         } else {
-                            // Assume relative -> prepend static
                             coverPath = '/static/' + coverPath;
                         }
-                    }
 
-                    if (coverPath) {
-                        hasImageClass = 'has-image';
-                    }
-
-                    var authorInitial = (s.creator_name || 'U').charAt(0).toUpperCase();
-                    var authorName = s.creator_name || 'Unknown';
-
-                    html += '<div class="vocab-set-card" data-set-id="' + s.id + '">';
-                    html += '<div class="vocab-set-cover ' + hasImageClass + '">';
-
-                    if (coverPath) {
-                        html += '<img src="' + coverPath + '" class="vocab-set-cover-img" alt="">';
+                        coverEl.innerHTML = '<img src="' + coverPath + '" class="vocab-detail-hero-img" alt="">';
+                        coverEl.classList.add('has-image');
                     } else {
-                        html += '<i class="fas fa-book-open"></i>';
+                        coverEl.style.backgroundImage = '';
+                        coverEl.classList.remove('has-image');
+                        coverEl.innerHTML = '<i class="fas fa-book-open"></i>';
                     }
-
-                    html += '</div>';
-                    html += '<div class="vocab-set-info">';
-                    html += '<div class="vocab-set-title">' + s.title + '</div>';
-                    html += '<div class="vocab-set-meta">';
-                    html += '<div class="vocab-set-author">';
-                    html += '<span class="vocab-set-avatar">' + authorInitial + '</span>';
-                    html += '<span>' + authorName + '</span>';
-                    html += '</div>';
-                    html += '<div class="vocab-set-count"><i class="fas fa-clone"></i>' + s.card_count + '</div>';
-                    html += '</div>';
-                    html += '</div></div>';
-                });
-
-                setsGrids.forEach(function (grid) {
-                    grid.innerHTML = html;
-                });
-
-                // Bind click
-                document.querySelectorAll('.vocab-set-card').forEach(function (card) {
-                    card.addEventListener('click', function () {
-                        selectedSetId = card.dataset.setId;
-                        loadSetDetail(selectedSetId, true); // true = push state
-                    });
-                });
-            }
-
-
-
-            function updatePagination(page, hasPrev, hasNext, total) {
-
-                if (paginationBars.length === 0) return;
-
-
-
-                var totalPages = Math.max(1, Math.ceil(total / 10)); // 10 per page, at least 1
-
-
-
-                paginationBars.forEach(bar => bar.classList.add('visible'));
-
-                prevPageBtns.forEach(btn => btn.disabled = !hasPrev);
-
-                nextPageBtns.forEach(btn => btn.disabled = !hasNext);
-
-
-
-                // Render page numbers
-
-                var pageContainer = document.querySelector('.js-vocab-page-numbers');
-
-                if (pageContainer) {
-
-                    var html = '';
-
-
-
-                    for (var i = 1; i <= totalPages; i++) {
-
-                        if (i === 1 || i === totalPages ||
-
-                            (i >= page - 1 && i <= page + 1)) {
-
-                            html += '<span class="page-num' + (i === page ? ' active' : '') + '" data-page="' + i + '">' + i + '</span>';
-
-                        } else if (i === 2 && page > 3) {
-
-                            html += '<span class="page-num dots">...</span>';
-
-                        } else if (i === totalPages - 1 && page < totalPages - 2) {
-
-                            html += '<span class="page-num dots">...</span>';
-
-                        }
-
-                    }
-
-
-
-                    pageContainer.innerHTML = html;
-
-
-
-                    pageContainer.querySelectorAll('.page-num:not(.dots)').forEach(function (el) {
-
-                        el.addEventListener('click', function () {
-
-                            var p = parseInt(el.dataset.page);
-
-                            if (p !== currentPage) loadSets(p);
-
-                        });
-
-                    });
-
-                }
-
-            }
-
-
-
-            function hidePagination() {
-
-                paginationBars.forEach(bar => bar.classList.remove('visible'));
-
-            }
-
-
-
-            // Pagination button events
-
-            prevPageBtns.forEach(btn => {
-                btn.addEventListener('click', function () {
-                    if (currentPage > 1) loadSets(currentPage - 1);
-                });
-            });
-
-            nextPageBtns.forEach(btn => {
-                btn.addEventListener('click', function () {
-                    loadSets(currentPage + 1);
-                });
-            });
-
-
-
-            function loadSetDetail(setId, pushState = true) {
-                console.log("loadSetDetail called for id:", setId);
-                showStep('detail');
-
-                selectedSetId = setId;
-
-                currentStatsPage = 1;
-
-
-
-                if (pushState) {
-
-                    history.pushState({ setId: setId }, '', '/learn/vocabulary/set/' + setId);
 
                 }
 
 
 
-                console.log("Fetching set detail:", setId);
+                // Info
+
+                const els = {
+
+                    title: document.querySelector('.js-detail-title'),
+
+                    titleFull: document.querySelector('.js-detail-title-full'),
+
+                    desc: document.querySelector('.js-detail-desc'),
+
+                    creator: document.querySelector('.js-creator-name'),
+
+                    avatar: document.querySelector('.js-creator-avatar'),
+
+                    cardCount: document.querySelector('.js-card-count'),
+
+                    progressCount: document.querySelector('.js-progress-count')
+
+                };
+
+                if (els.title) els.title.textContent = s.title;
+
+                if (els.titleFull) els.titleFull.textContent = s.title;
+
+                if (els.desc) els.desc.textContent = s.description || 'Không có mô tả';
+
+                if (els.creator) els.creator.textContent = s.creator_name;
+
+                if (els.avatar) els.avatar.textContent = s.creator_name.charAt(0).toUpperCase();
+
+                if (els.cardCount) els.cardCount.textContent = s.card_count;
 
 
 
-                return fetch('/learn/vocabulary/api/set/' + setId + '?page=1')
+                // Update progress stat as count
 
-                    .then(function (r) { return r.json(); })
+                const learnedCount = stats && stats.learned_count !== undefined ? stats.learned_count : 0;
 
-                    .then(function (data) {
+                const totalCount = stats && stats.total_count !== undefined ? stats.total_count : s.card_count;
 
-                        if (data.success) {
+                if (els.progressCount) els.progressCount.textContent = learnedCount + '/' + totalCount;
 
-                            selectedSetData = data.set;
 
-                            renderSetDetail(data.set, data.course_stats, false, data.pagination_html);
 
-                            // [NEW] Check for active session in this set
-                            checkSetActiveSession(setId);
+                // Update header info (for sticky header)
 
-                            // [NEW] Init settings modal for this set immediately
-                            fetch('/learn/vocabulary/api/flashcard-modes/' + setId)
-                                .then(r => r.json())
-                                .then(modeData => {
-                                    if (modeData.success) {
-                                        setupSettingsModal(setId, modeData);
-                                    }
-                                })
-                                .catch(e => console.warn("Failed to load settings:", e));
+                const headerTitle = document.querySelector('.js-header-title');
 
-                            return data.set;
+                const headerCardCount = document.querySelector('.js-header-card-count');
 
-                        } else {
+                const headerProgressPercent = document.querySelector('.js-header-progress-percent');
 
-                            console.error('Failed to load set data:', data.message);
+                if (headerTitle) headerTitle.textContent = s.title;
 
-                            alert('Không thể tải thông tin bộ thẻ: ' + (data.message || 'Lỗi không xác định'));
+                if (headerCardCount) headerCardCount.textContent = s.card_count;
 
-                            throw new Error(data.message);
+                const progressPercent = totalCount > 0 ? Math.round((learnedCount / totalCount) * 100) : 0;
 
-                        }
+                if (headerProgressPercent) headerProgressPercent.textContent = progressPercent + '%';
 
-                    })
 
-                    .catch(function (err) {
 
-                        console.error('Error loading set detail:', err);
+                // Show content after data is loaded
 
-                        alert('Có lỗi xảy ra khi tải dữ liệu.');
+                const detailContent = document.querySelector('.vocab-detail-content');
 
-                        throw err;
+                if (detailContent) {
 
-                    });
+                    detailContent.style.opacity = '1';
+                }
+
+                // Update Edit Button
+                const editBtn = document.querySelector('.js-edit-set-btn');
+                if (editBtn) {
+                    if (s.can_edit) {
+                        editBtn.style.display = 'flex';
+                        editBtn.href = '/content/flashcards/edit/' + s.id;
+                    } else {
+                        editBtn.style.display = 'none';
+                    }
+                }
+            }
+
+
+
+            // Hide Course Overview Stats section completely
+
+            const overviewContainer = document.getElementById('course-overview-container');
+
+            if (overviewContainer) {
+
+                overviewContainer.style.display = 'none';
 
             }
 
 
 
-            // Load More Button - replaced by pagination
+            // Scroll handler for sticky header info
 
-            const loadMoreBtn = document.querySelector('.js-load-more-words');
+            const vocabScroll = document.querySelector('#step-detail .vocab-scroll');
 
-            if (loadMoreBtn) loadMoreBtn.style.display = 'none';
+            const headerInfo = document.querySelector('.step-header-info');
+
+            const detailTitle = document.querySelector('.vocab-detail-title');
+
+            if (vocabScroll && headerInfo && detailTitle) {
+
+                vocabScroll.addEventListener('scroll', function () {
+
+                    // Show header when title is scrolled out of view
+
+                    const titleRect = detailTitle.getBoundingClientRect();
+
+                    const headerHeight = document.querySelector('.step-header-left')?.offsetHeight || 60;
 
 
 
-            function fetchCourseStatsPage(page) {
+                    if (titleRect.bottom < headerHeight) {
 
-                if (!selectedSetId) return;
+                        headerInfo.style.opacity = '1';
+
+                    } else {
+
+                        headerInfo.style.opacity = '0';
+
+                    }
+
+                });
+
+            }
 
 
 
-                // Find list container to show loading state
+            // Word List - sort and render if stats available
+
+            if (stats && stats.items) {
 
                 const listContainer = document.querySelector('.js-word-list');
 
                 if (listContainer) {
 
-                    listContainer.innerHTML = '<div class="py-12 flex justify-center"><i class="fas fa-spinner fa-spin text-2xl text-slate-300"></i></div>';
-
-                }
+                    let listHtml = '';
 
 
 
-                fetch('/learn/vocabulary/api/set/' + selectedSetId + '?page=' + page)
+                    if (stats.items && stats.items.length > 0) {
 
-                    .then(r => r.json())
+                        // Sort: Words needing review (low %) first, new words last
 
-                    .then(data => {
+                        const sortedItems = [...stats.items].sort((a, b) => {
 
-                        if (data.success && data.course_stats) {
+                            // New items go to end
 
-                            // Pass pagination_html if available
+                            if (a.status === 'new' && b.status !== 'new') return 1;
 
-                            renderSetDetail(selectedSetData, data.course_stats, false, data.pagination_html);
+                            if (b.status === 'new' && a.status !== 'new') return -1;
 
-                            // Scroll to top of list
+                            // Both new or both not new: sort by mastery (ascending - low % first)
 
-                            const overview = document.getElementById('course-overview-container');
+                            return a.mastery - b.mastery;
 
-                            if (overview) overview.scrollIntoView({ behavior: 'smooth', block: 'start' });
-
-                        } else {
-
-                            console.error("API Error:", data.message);
-
-                            alert("Lỗi server: " + (data.message || "Không thể tải dữ liệu."));
-
-                            // Restore/Clear spinner
-
-                            const listContainer = document.querySelector('.js-word-list');
-
-                            if (listContainer) listContainer.innerHTML = '<div class="text-center text-red-500 py-4">Thử lại sau.</div>';
-
-                        }
-
-                    })
-
-                    .catch(err => {
-
-                        console.error("Pagination error:", err);
-
-                        alert('Lỗi kết nối.');
-
-                    });
-
-            }
+                        });
 
 
 
-            function renderSetDetail(s, stats, append = false, paginationHtml = '') {
+                        sortedItems.forEach(item => {
 
-                // Cover & Info only update on fresh load
+                            let barColor = 'bg-red-500';
 
-                if (!append) {
+                            let progressGradient = 'linear-gradient(135deg, #ef4444, #dc2626)';
 
-                    var coverEl = document.querySelector('.js-detail-cover');
+                            if (item.mastery >= 80) {
 
-                    if (coverEl) {
-                        var coverPath = s.cover_image || '';
-                        if (coverPath) {
-                            coverPath = coverPath.replace(/\\/g, '/'); // Normalize windows paths
-                            if (coverPath.startsWith('http') || coverPath.startsWith('/')) {
-                                // Absolute paths valid as is
-                            } else if (coverPath.startsWith('uploads/')) {
-                                coverPath = '/' + coverPath;
-                            } else {
-                                coverPath = '/static/' + coverPath;
+                                barColor = 'bg-green-500';
+
+                                progressGradient = 'linear-gradient(135deg, #10b981, #059669)';
+
+                            } else if (item.mastery >= 50) {
+
+                                barColor = 'bg-yellow-500';
+
+                                progressGradient = 'linear-gradient(135deg, #f59e0b, #d97706)';
+
                             }
 
-                            coverEl.innerHTML = '<img src="' + coverPath + '" class="vocab-detail-hero-img" alt="">';
-                            coverEl.classList.add('has-image');
-                        } else {
-                            coverEl.style.backgroundImage = '';
-                            coverEl.classList.remove('has-image');
-                            coverEl.innerHTML = '<i class="fas fa-book-open"></i>';
-                        }
 
-                    }
 
+                            let statusBadge = '';
 
+                            if (item.status === 'new') {
 
-                    // Info
+                                statusBadge = '<span class="px-2 py-1 bg-gradient-to-r from-blue-500 to-blue-600 text-white text-[10px] font-bold uppercase rounded-full tracking-wider shadow-sm">Mới</span>';
 
-                    const els = {
+                            }
 
-                        title: document.querySelector('.js-detail-title'),
 
-                        titleFull: document.querySelector('.js-detail-title-full'),
 
-                        desc: document.querySelector('.js-detail-desc'),
+                            let dueBadge = '';
 
-                        creator: document.querySelector('.js-creator-name'),
+                            if (item.is_due) {
 
-                        avatar: document.querySelector('.js-creator-avatar'),
+                                dueBadge = '<span class="px-2 py-1 bg-gradient-to-r from-red-500 to-red-600 text-white text-[10px] font-bold uppercase rounded-full tracking-wider shadow-sm animate-pulse">Ôn tập</span>';
 
-                        cardCount: document.querySelector('.js-card-count'),
+                            }
 
-                        progressCount: document.querySelector('.js-progress-count')
 
-                    };
 
-                    if (els.title) els.title.textContent = s.title;
-
-                    if (els.titleFull) els.titleFull.textContent = s.title;
-
-                    if (els.desc) els.desc.textContent = s.description || 'Không có mô tả';
-
-                    if (els.creator) els.creator.textContent = s.creator_name;
-
-                    if (els.avatar) els.avatar.textContent = s.creator_name.charAt(0).toUpperCase();
-
-                    if (els.cardCount) els.cardCount.textContent = s.card_count;
-
-
-
-                    // Update progress stat as count
-
-                    const learnedCount = stats && stats.learned_count !== undefined ? stats.learned_count : 0;
-
-                    const totalCount = stats && stats.total_count !== undefined ? stats.total_count : s.card_count;
-
-                    if (els.progressCount) els.progressCount.textContent = learnedCount + '/' + totalCount;
-
-
-
-                    // Update header info (for sticky header)
-
-                    const headerTitle = document.querySelector('.js-header-title');
-
-                    const headerCardCount = document.querySelector('.js-header-card-count');
-
-                    const headerProgressPercent = document.querySelector('.js-header-progress-percent');
-
-                    if (headerTitle) headerTitle.textContent = s.title;
-
-                    if (headerCardCount) headerCardCount.textContent = s.card_count;
-
-                    const progressPercent = totalCount > 0 ? Math.round((learnedCount / totalCount) * 100) : 0;
-
-                    if (headerProgressPercent) headerProgressPercent.textContent = progressPercent + '%';
-
-
-
-                    // Show content after data is loaded
-
-                    const detailContent = document.querySelector('.vocab-detail-content');
-
-                    if (detailContent) {
-
-                        detailContent.style.opacity = '1';
-                    }
-
-                    // Update Edit Button
-                    const editBtn = document.querySelector('.js-edit-set-btn');
-                    if (editBtn) {
-                        if (s.can_edit) {
-                            editBtn.style.display = 'flex';
-                            editBtn.href = '/content/flashcards/edit/' + s.id;
-                        } else {
-                            editBtn.style.display = 'none';
-                        }
-                    }
-                }
-
-
-
-                // Hide Course Overview Stats section completely
-
-                const overviewContainer = document.getElementById('course-overview-container');
-
-                if (overviewContainer) {
-
-                    overviewContainer.style.display = 'none';
-
-                }
-
-
-
-                // Scroll handler for sticky header info
-
-                const vocabScroll = document.querySelector('#step-detail .vocab-scroll');
-
-                const headerInfo = document.querySelector('.step-header-info');
-
-                const detailTitle = document.querySelector('.vocab-detail-title');
-
-                if (vocabScroll && headerInfo && detailTitle) {
-
-                    vocabScroll.addEventListener('scroll', function () {
-
-                        // Show header when title is scrolled out of view
-
-                        const titleRect = detailTitle.getBoundingClientRect();
-
-                        const headerHeight = document.querySelector('.step-header-left')?.offsetHeight || 60;
-
-
-
-                        if (titleRect.bottom < headerHeight) {
-
-                            headerInfo.style.opacity = '1';
-
-                        } else {
-
-                            headerInfo.style.opacity = '0';
-
-                        }
-
-                    });
-
-                }
-
-
-
-                // Word List - sort and render if stats available
-
-                if (stats && stats.items) {
-
-                    const listContainer = document.querySelector('.js-word-list');
-
-                    if (listContainer) {
-
-                        let listHtml = '';
-
-
-
-                        if (stats.items && stats.items.length > 0) {
-
-                            // Sort: Words needing review (low %) first, new words last
-
-                            const sortedItems = [...stats.items].sort((a, b) => {
-
-                                // New items go to end
-
-                                if (a.status === 'new' && b.status !== 'new') return 1;
-
-                                if (b.status === 'new' && a.status !== 'new') return -1;
-
-                                // Both new or both not new: sort by mastery (ascending - low % first)
-
-                                return a.mastery - b.mastery;
-
-                            });
-
-
-
-                            sortedItems.forEach(item => {
-
-                                let barColor = 'bg-red-500';
-
-                                let progressGradient = 'linear-gradient(135deg, #ef4444, #dc2626)';
-
-                                if (item.mastery >= 80) {
-
-                                    barColor = 'bg-green-500';
-
-                                    progressGradient = 'linear-gradient(135deg, #10b981, #059669)';
-
-                                } else if (item.mastery >= 50) {
-
-                                    barColor = 'bg-yellow-500';
-
-                                    progressGradient = 'linear-gradient(135deg, #f59e0b, #d97706)';
-
-                                }
-
-
-
-                                let statusBadge = '';
-
-                                if (item.status === 'new') {
-
-                                    statusBadge = '<span class="px-2 py-1 bg-gradient-to-r from-blue-500 to-blue-600 text-white text-[10px] font-bold uppercase rounded-full tracking-wider shadow-sm">Mới</span>';
-
-                                }
-
-
-
-                                let dueBadge = '';
-
-                                if (item.is_due) {
-
-                                    dueBadge = '<span class="px-2 py-1 bg-gradient-to-r from-red-500 to-red-600 text-white text-[10px] font-bold uppercase rounded-full tracking-wider shadow-sm animate-pulse">Ôn tập</span>';
-
-                                }
-
-
-
-                                listHtml += `
+                            listHtml += `
 
                         <div class="group p-4 bg-white border border-slate-100 rounded-xl hover:border-indigo-200 hover:shadow-lg transition-all duration-300 mb-3 relative overflow-hidden js-item-stats-trigger cursor-pointer" data-item-id="${item.item_id || item.id}" style="animation: slideIn 0.3s ease-out;">
 
@@ -1162,9 +1161,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
                                                     ${item.mastery >= 80 ? '<stop offset="0%" style="stop-color:#10b981;stop-opacity:1" /><stop offset="100%" style="stop-color:#059669;stop-opacity:1" />' :
 
-                                        item.mastery >= 50 ? '<stop offset="0%" style="stop-color:#f59e0b;stop-opacity:1" /><stop offset="100%" style="stop-color:#d97706;stop-opacity:1" />' :
+                                    item.mastery >= 50 ? '<stop offset="0%" style="stop-color:#f59e0b;stop-opacity:1" /><stop offset="100%" style="stop-color:#d97706;stop-opacity:1" />' :
 
-                                            '<stop offset="0%" style="stop-color:#ef4444;stop-opacity:1" /><stop offset="100%" style="stop-color:#dc2626;stop-opacity:1" />'}
+                                        '<stop offset="0%" style="stop-color:#ef4444;stop-opacity:1" /><stop offset="100%" style="stop-color:#dc2626;stop-opacity:1" />'}
 
                                                 </linearGradient>
 
@@ -1186,984 +1185,1014 @@ document.addEventListener('DOMContentLoaded', function () {
 
                         </div>`;
 
-                            });
+                        });
 
-                        } else {
+                    } else {
 
-                            listHtml = '<div class="py-12 text-center flex flex-col items-center justify-center text-slate-400"><i class="fas fa-inbox text-4xl mb-3 text-slate-200"></i><span class="text-sm">Chưa có từ vựng nào.</span></div>';
-
-                        }
-
-
-
-                        listContainer.innerHTML = listHtml; // Always replace
-
-                        bindStatsModalEvents();
+                        listHtml = '<div class="py-12 text-center flex flex-col items-center justify-center text-slate-400"><i class="fas fa-inbox text-4xl mb-3 text-slate-200"></i><span class="text-sm">Chưa có từ vựng nào.</span></div>';
 
                     }
 
 
 
-                    // Pagination Controls - Target fixed pagination bar
+                    listContainer.innerHTML = listHtml; // Always replace
 
-                    const detailPaginationBar = document.querySelector('#detail-pagination-bar');
+                    bindStatsModalEvents();
 
-                    if (detailPaginationBar && paginationHtml) {
-
-                        // Inject pagination HTML into fixed bar
-
-                        detailPaginationBar.innerHTML = paginationHtml;
-
-                        detailPaginationBar.classList.add('visible');
+                }
 
 
 
-                        // Re-bind events for the new HTML links
+                // Pagination Controls - Target fixed pagination bar
 
-                        detailPaginationBar.querySelectorAll('a').forEach(link => {
+                const detailPaginationBar = document.querySelector('#detail-pagination-bar');
 
-                            link.addEventListener('click', function (e) {
+                if (detailPaginationBar && paginationHtml) {
 
-                                e.preventDefault();
+                    // Inject pagination HTML into fixed bar
 
-                                const url = new URL(this.href);
+                    detailPaginationBar.innerHTML = paginationHtml;
 
-                                const page = url.searchParams.get('page');
+                    detailPaginationBar.classList.add('visible');
 
-                                if (page) fetchCourseStatsPage(page);
 
-                            });
+
+                    // Re-bind events for the new HTML links
+
+                    detailPaginationBar.querySelectorAll('a').forEach(link => {
+
+                        link.addEventListener('click', function (e) {
+
+                            e.preventDefault();
+
+                            const url = new URL(this.href);
+
+                            const page = url.searchParams.get('page');
+
+                            if (page) fetchCourseStatsPage(page);
 
                         });
 
-                    } else if (detailPaginationBar && stats.pagination && stats.pagination.pages <= 1) {
+                    });
 
-                        // Hide if only 1 page
+                } else if (detailPaginationBar && stats.pagination && stats.pagination.pages <= 1) {
 
-                        detailPaginationBar.classList.remove('visible');
+                    // Hide if only 1 page
 
-                    }
+                    detailPaginationBar.classList.remove('visible');
 
-
-
-                } else {
-                    // Stats null or no items -> Show empty state / error
-                    const listContainer = document.querySelector('.js-word-list');
-                    if (listContainer) {
-                        listContainer.innerHTML = '<div class="py-12 text-center flex flex-col items-center justify-center text-slate-400"><i class="fas fa-search text-4xl mb-3 text-slate-200"></i><span class="text-sm">Không tìm thấy từ vựng nào.</span></div>';
-                    }
-
-                    if (overviewContainer) {
-                        overviewContainer.style.display = 'none';
-                    }
                 }
 
-            }
 
 
-
-            function fetchCourseStatsPage(page) {
-
-                if (!selectedSetId) return;
-
-
-
-                // Find list container to show loading state
-
+            } else {
+                // Stats null or no items -> Show empty state / error
                 const listContainer = document.querySelector('.js-word-list');
-
                 if (listContainer) {
-
-                    listContainer.innerHTML = '<div class="py-12 flex justify-center"><i class="fas fa-spinner fa-spin text-2xl text-slate-300"></i></div>';
-
+                    listContainer.innerHTML = '<div class="py-12 text-center flex flex-col items-center justify-center text-slate-400"><i class="fas fa-search text-4xl mb-3 text-slate-200"></i><span class="text-sm">Không tìm thấy từ vựng nào.</span></div>';
                 }
 
+                if (overviewContainer) {
+                    overviewContainer.style.display = 'none';
+                }
+            }
+
+        }
 
 
-                const url = '/learn/vocabulary/api/set/' + selectedSetId + '?page=' + page + '&_t=' + new Date().getTime();
+
+        function fetchCourseStatsPage(page) {
+
+            if (!selectedSetId) return;
 
 
 
-                fetch(url)
+            // Find list container to show loading state
 
-                    .then(r => r.json())
+            const listContainer = document.querySelector('.js-word-list');
 
-                    .then(data => {
+            if (listContainer) {
 
-                        if (data.success && data.course_stats) {
-
-                            renderSetDetail(selectedSetData, data.course_stats, false, data.pagination_html); // Pass pagination HTML
-
-                            // Scroll to top of list
-
-                            const overview = document.getElementById('course-overview-container');
-
-                            if (overview) overview.scrollIntoView({ behavior: 'smooth', block: 'start' });
-
-                        }
-
-                    })
-
-                    .catch(err => {
-
-                        console.error("Pagination error:", err);
-
-                        alert('Lỗi tải trang.');
-
-                    });
+                listContainer.innerHTML = '<div class="py-12 flex justify-center"><i class="fas fa-spinner fa-spin text-2xl text-slate-300"></i></div>';
 
             }
 
 
 
-            // Start learning button
+            const url = '/learn/vocabulary/api/set/' + selectedSetId + '?page=' + page + '&_t=' + new Date().getTime();
 
-            document.querySelectorAll('.js-start-learning').forEach(function (btn) {
 
-                btn.addEventListener('click', function () {
 
-                    if (selectedSetId) {
-                        window.location.href = '/learn/vocabulary/modes/' + selectedSetId;
-                        return;
+            fetch(url)
+
+                .then(r => r.json())
+
+                .then(data => {
+
+                    if (data.success && data.course_stats) {
+
+                        renderSetDetail(selectedSetData, data.course_stats, false, data.pagination_html); // Pass pagination HTML
+
+                        // Scroll to top of list
+
+                        const overview = document.getElementById('course-overview-container');
+
+                        if (overview) overview.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
                     }
+
+                })
+
+                .catch(err => {
+
+                    console.error("Pagination error:", err);
+
+                    alert('Lỗi tải trang.');
 
                 });
 
-            });
+        }
 
 
 
-            function updateModeVisibility() {
+        // Start learning button
 
-                if (!selectedSetData) return;
+        document.querySelectorAll('.js-start-learning').forEach(function (btn) {
 
+            btn.addEventListener('click', function () {
 
-
-                console.log("Updating visibility for set:", selectedSetData);
-
-
-
-                // If no capabilities defined or empty, show flashcard and mcq as default or show all?
-
-                // Let's safe default: SHOW ALL if no capabilities found to avoid "blank" screen
-
-                if (!selectedSetData.capabilities || selectedSetData.capabilities.length === 0) {
-
-                    document.querySelectorAll('.js-mode-select').forEach(el => el.style.display = 'flex');
-
+                if (selectedSetId) {
+                    window.location.href = '/learn/vocabulary/modes/' + selectedSetId;
                     return;
-
-                }
-
-
-
-                const caps = new Set(selectedSetData.capabilities);
-
-                const mapping = {
-
-                    'flashcard': 'supports_flashcard',
-
-                    'mcq': 'supports_quiz',
-
-                    'typing': 'supports_writing',
-
-                    'matching': 'supports_matching',
-
-                    'speed': 'supports_speed',
-
-                    'listening': 'supports_listening',
-
-                    'mixed': 'supports_srs'
-
-                };
-
-
-
-                let hasVisible = false;
-
-                document.querySelectorAll('.js-mode-select').forEach(card => {
-
-                    const mode = card.dataset.mode;
-
-                    const flag = mapping[mode];
-
-
-
-                    if (flag && caps.has(flag)) {
-
-                        card.style.display = 'flex';
-
-                        hasVisible = true;
-
-                    } else {
-
-                        card.style.display = 'none';
-
-                    }
-
-                });
-
-
-
-                if (!hasVisible) {
-
-                    // Fallback: if logic hides everything, show everything to be safe
-
-                    console.warn("All modes hidden by capabilities, forcing show.");
-
-                    document.querySelectorAll('.js-mode-select').forEach(el => el.style.display = 'flex');
-
-                }
-
-            }
-
-
-
-            // Continue button handler
-
-            if (continueBtn) {
-
-                continueBtn.addEventListener('click', function () {
-
-                    if (!selectedMode) return;
-
-                    startSession(selectedMode);
-
-                });
-
-            }
-
-
-
-            function startSession(mode) {
-
-                if (!selectedSetId) return;
-
-
-
-                if (mode === 'flashcard') {
-
-                    window.location.href = '/learn/vocabulary/flashcard/setup/' + selectedSetId;
-
-                } else if (mode === 'mcq') {
-
-                    // Redirect to MCQ setup page for options
-
-                    window.location.href = '/learn/vocabulary/mcq/setup/' + selectedSetId;
-
-                } else if (mode === 'typing') {
-
-                    window.location.href = '/learn/vocabulary/typing/setup/' + selectedSetId;
-
-                } else if (mode === 'mixed') {
-
-                    alert('Chế độ Học thông minh đang được phát triển');
-
-                } else if (mode === 'matching') {
-
-                    window.location.href = '/learn/vocabulary/matching/session/' + selectedSetId;
-
-                } else if (mode === 'speed') {
-
-                    window.location.href = '/learn/vocabulary/speed/setup/' + selectedSetId;
-
-                } else if (mode === 'listening') {
-
-                    window.location.href = '/learn/vocabulary/listening/setup/' + selectedSetId;
-
-                }
-
-            }
-
-
-
-            function loadFlashcardOptions(setId) {
-
-                showStep('flashcard-options');
-
-                history.pushState({ step: 'flashcard-options', setId: setId }, '', '/learn/vocabulary/set/' + setId + '/flashcard');
-
-
-
-                // Update set name display - fetch if not available
-
-                var setNameEl = document.querySelector('.js-selected-set-name-fc');
-
-                if (setNameEl) {
-
-                    if (selectedSetData && selectedSetData.title) {
-
-                        setNameEl.textContent = selectedSetData.title;
-
-                    } else {
-
-                        setNameEl.textContent = 'Đang tải...';
-
-                        // Fetch set info for display
-
-                        fetch('/learn/vocabulary/api/set/' + setId + '?page=1')
-
-                            .then(function (r) { return r.json(); })
-
-                            .then(function (data) {
-
-                                if (data.success && data.set) {
-
-                                    setNameEl.textContent = data.set.title;
-
-                                    selectedSetData = data.set;
-
-                                    selectedSetId = setId;
-
-                                }
-
-                            })
-
-                            .catch(function () { });
-
-                    }
-
-                }
-
-
-
-                var container = document.getElementById('flashcard-modes-container');
-
-                if (!container) return;
-
-
-
-                container.innerHTML = '<div class="vocab-loading"><i class="fas fa-spinner fa-spin"></i><p>Đang tải...</p></div>';
-
-
-
-                fetch('/learn/vocabulary/api/flashcard-modes/' + setId)
-                    .then(function (r) { return r.json(); })
-                    .then(function (data) {
-
-                        if (data.success && data.modes) {
-                            renderFlashcardModes(data.modes, setId, data.user_button_count);
-
-                            // [NEW] Settings Modal Logic
-                            setupSettingsModal(setId, data);
-
-                        } else {
-                            container.innerHTML = '<div class="vocab-empty"><i class="fas fa-exclamation-triangle"></i><p>Lỗi tải chế độ học</p></div>';
-                        }
-                    })
-                    .catch(function (err) {
-                        container.innerHTML = '<div class="vocab-empty"><i class="fas fa-exclamation-triangle"></i><p>Lỗi kết nối</p></div>';
-                    });
-            }
-
-            // [NEW] Settings Modal Functions
-            // [NEW] Settings Modal Functions (Redesigned)
-            // Global event delegation for opening settings
-            document.addEventListener('click', function (e) {
-                const btn = e.target.closest('.js-open-flashcard-settings');
-                if (btn) {
-                    e.preventDefault();
-                    if (!selectedSetId) {
-                        console.warn("No set selected");
-                        return;
-                    }
-
-                    const modal = document.getElementById('flashcard-settings-modal');
-                    if (modal) {
-                        modal.style.display = 'flex';
-                        // Fetch latest settings if needed, or rely on cached data
-                        // Ideally we refresh data here if possible
-                    }
-                }
-            });
-
-            function setupSettingsModal(setId, data) {
-                const modal = document.getElementById('flashcard-settings-modal');
-                const closeBtns = document.querySelectorAll('.js-close-settings-modal');
-                const overlay = document.querySelector('.vocab-modal-overlay.js-close-settings-modal');
-                const saveBtn = document.querySelector('.js-save-settings');
-
-                // Main Controls
-                const modeSelect = document.getElementById('setting-mode-select');
-                const autoSaveToggle = document.getElementById('setting-auto-save');
-
-                // Sections
-                const modeSections = document.querySelectorAll('.mode-section');
-                const viewStates = document.querySelectorAll('.js-state-view');
-                const editStates = document.querySelectorAll('.js-state-edit');
-
-                // Flashcard Elements
-                const fcFixedBtnButtons = document.querySelectorAll('.js-fixed-btn-count');
-                const fcFixedBtnInput = document.getElementById('setting-fc-button-count');
-                const fcAutoplayToggle = document.getElementById('setting-fc-autoplay');
-                const fcShowImageToggle = document.getElementById('setting-fc-show-image');
-                const fcShowStatsToggle = document.getElementById('setting-fc-show-stats');
-
-                // Flashcard Status Labels
-                const labelFcBtnCount = document.querySelector('.js-last-btn-count');
-                const labelFcAutoplay = document.querySelector('.js-last-autoplay');
-                const labelFcShowImage = document.querySelector('.js-last-show-image');
-                const labelFcShowStats = document.querySelector('.js-last-show-stats');
-
-                if (!modal) return;
-
-                // 1. Initial State Initialization
-                let settings = data.settings || {};
-                let isAuto = settings.auto_save !== false;
-                let lastMode = settings.last_mode || 'flashcard';
-                let fcSettings = settings.flashcard || {};
-
-                // [DEBUG] Log settings
-                console.log('[MODAL DEBUG] data.settings:', data.settings);
-                console.log('[MODAL DEBUG] fcSettings:', fcSettings);
-                console.log('[MODAL DEBUG] isAuto:', isAuto);
-
-                // 2. Set UI Initial State
-                if (modeSelect) modeSelect.value = lastMode;
-                if (autoSaveToggle) autoSaveToggle.checked = isAuto;
-
-                // Sync Sections
-                const syncUI = () => {
-                    // Show correct mode section
-                    modeSections.forEach(s => s.id === 'mode-settings-' + modeSelect.value ? s.classList.remove('hidden') : s.classList.add('hidden'));
-
-                    // Toggle between View (Auto) and Edit (Fixed)
-                    const currentIsAuto = autoSaveToggle.checked;
-                    viewStates.forEach(v => currentIsAuto ? v.classList.remove('hidden') : v.classList.add('hidden'));
-                    editStates.forEach(e => currentIsAuto ? e.classList.add('hidden') : e.classList.remove('hidden'));
-                };
-
-                // 3. Initialize Flashcard Data
-                const initFlashcardData = () => {
-                    // Labels (View State)
-                    if (labelFcBtnCount) labelFcBtnCount.textContent = (fcSettings.button_count || data.user_button_count || 4) + ' nút';
-                    if (labelFcAutoplay) labelFcAutoplay.textContent = (fcSettings.autoplay !== false ? 'BẬT' : 'TẮT');
-                    if (labelFcShowImage) labelFcShowImage.textContent = (fcSettings.show_image !== false ? 'HIỆN' : 'ẨN');
-                    if (labelFcShowStats) labelFcShowStats.textContent = (fcSettings.show_stats !== false ? 'HIỆN' : 'ẨN');
-
-                    // Inputs (Edit State)
-                    const btnCountToUse = fcSettings.button_count || data.user_button_count || 4;
-                    if (fcFixedBtnInput) fcFixedBtnInput.value = btnCountToUse;
-                    fcFixedBtnButtons.forEach(btn => {
-                        if (parseInt(btn.dataset.value) === btnCountToUse) {
-                            btn.classList.add('border-indigo-600', 'bg-indigo-50', 'text-indigo-600');
-                        } else {
-                            btn.classList.remove('border-indigo-600', 'bg-indigo-50', 'text-indigo-600');
-                        }
-                        btn.onclick = () => {
-                            fcFixedBtnButtons.forEach(b => b.classList.remove('border-indigo-600', 'bg-indigo-50', 'text-indigo-600'));
-                            btn.classList.add('border-indigo-600', 'bg-indigo-50', 'text-indigo-600');
-                            if (fcFixedBtnInput) fcFixedBtnInput.value = btn.dataset.value;
-                        };
-                    });
-
-                    if (fcAutoplayToggle) fcAutoplayToggle.checked = fcSettings.autoplay !== false;
-                    if (fcShowImageToggle) fcShowImageToggle.checked = fcSettings.show_image !== false;
-                    if (fcShowStatsToggle) fcShowStatsToggle.checked = fcSettings.show_stats !== false;
-                };
-
-                initFlashcardData();
-                syncUI();
-
-                // 4. Events
-                if (modeSelect) modeSelect.onchange = syncUI;
-                if (autoSaveToggle) autoSaveToggle.onchange = syncUI;
-
-                const closeModal = () => modal.style.display = 'none';
-                closeBtns.forEach(btn => btn.onclick = closeModal);
-                if (overlay) overlay.onclick = closeModal;
-
-                // 5. Save Logic
-                if (saveBtn) {
-                    saveBtn.onclick = function () {
-                        const currentAuto = autoSaveToggle.checked;
-                        const activeMode = modeSelect.value;
-
-                        // [DEBUG] Log toggle states before creating payload
-                        console.log('[SAVE DEBUG] fcAutoplayToggle element:', fcAutoplayToggle);
-                        console.log('[SAVE DEBUG] fcAutoplayToggle.checked:', fcAutoplayToggle ? fcAutoplayToggle.checked : 'N/A');
-                        console.log('[SAVE DEBUG] fcShowImageToggle.checked:', fcShowImageToggle ? fcShowImageToggle.checked : 'N/A');
-                        console.log('[SAVE DEBUG] fcShowStatsToggle.checked:', fcShowStatsToggle ? fcShowStatsToggle.checked : 'N/A');
-
-                        const payload = {
-                            ...settings,
-                            auto_save: currentAuto,
-                            last_mode: activeMode,
-                            flashcard: {
-                                // Always include all flashcard settings
-                                autoplay: fcAutoplayToggle ? fcAutoplayToggle.checked : true,
-                                show_image: fcShowImageToggle ? fcShowImageToggle.checked : true,
-                                show_stats: fcShowStatsToggle ? fcShowStatsToggle.checked : true,
-                                // Always include button_count - from input if Fixed mode, else preserve existing/default
-                                button_count: (!currentAuto && fcFixedBtnInput)
-                                    ? parseInt(fcFixedBtnInput.value)
-                                    : (fcSettings.button_count || data.user_button_count || 4)
-                            }
-                        };
-
-                        console.log('[SAVE DEBUG] Payload to send:', payload);
-
-                        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
-                        const headers = { 'Content-Type': 'application/json' };
-                        if (csrfToken) headers['X-CSRFToken'] = csrfToken;
-
-                        saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang lưu...';
-
-                        fetch('/learn/vocabulary/api/settings/container/' + setId, {
-                            method: 'POST',
-                            headers: headers,
-                            body: JSON.stringify(payload)
-                        }).then(async r => {
-                            if (!r.ok) {
-                                const text = await r.text();
-                                console.error('Server error:', text);
-                                throw new Error('Server returned ' + r.status);
-                            }
-                            return r.json();
-                        })
-                            .then(d => {
-                                if (d.success) {
-                                    closeModal();
-                                    if (typeof loadFlashcardOptions === 'function' && activeMode === 'flashcard') {
-                                        const step = document.getElementById('step-flashcard-options');
-                                        if (step && step.classList.contains('active')) loadFlashcardOptions(setId);
-                                    }
-                                    showToast('<i class="fas fa-check-circle text-emerald-400"></i> Cấu hình đã được lưu');
-                                }
-                            })
-                            .finally(() => saveBtn.textContent = 'Lưu cấu hình');
-                    };
-                }
-
-                function showToast(html) {
-                    const toast = document.createElement('div');
-                    toast.className = 'fixed bottom-4 right-4 bg-slate-800 text-white px-6 py-3 rounded-2xl shadow-2xl z-[9999] flex items-center gap-3 animate-slideInUp';
-                    toast.innerHTML = html;
-                    document.body.appendChild(toast);
-                    setTimeout(() => {
-                        toast.classList.replace('animate-slideInUp', 'animate-fadeOut');
-                        setTimeout(() => toast.remove(), 500);
-                    }, 3000);
-                }
-            }
-
-            function renderFlashcardModes(modes, setId, userButtonCount) {
-                var container = document.getElementById('flashcard-modes-container');
-                if (!container) return;
-
-                var modeIcons = {
-                    'new_only': { icon: 'fa-star', color: 'linear-gradient(135deg, #f59e0b, #fbbf24)' },
-                    'all_review': { icon: 'fa-redo', color: 'linear-gradient(135deg, #3b82f6, #60a5fa)' },
-                    'hard_only': { icon: 'fa-fire', color: 'linear-gradient(135deg, #ef4444, #f87171)' },
-                    'mixed_srs': { icon: 'fa-brain', color: 'linear-gradient(135deg, #8b5cf6, #a78bfa)' }
-                };
-
-                var modeNames = {
-                    'new_only': 'Chỉ làm mới',
-                    'all_review': 'Ôn tập đã làm',
-                    'hard_only': 'Ôn tập câu khó',
-                    'mixed_srs': 'Học thông minh (SRS)'
-                };
-
-                var html = '';
-                modes.forEach(function (mode) {
-                    var iconInfo = modeIcons[mode.id] || { icon: 'fa-book', color: 'linear-gradient(135deg, #64748b, #94a3b8)' };
-                    var displayName = modeNames[mode.id] || mode.name;
-                    var isDisabled = mode.count === 0;
-
-                    html += '<div class="mode-select-card js-flashcard-mode-select' + (isDisabled ? ' disabled' : '') + '" data-mode-id="' + mode.id + '"' + (isDisabled ? ' style="opacity: 0.5; filter: grayscale(100%); pointer-events: none; background: #f1f5f9;"' : '') + '>';
-                    html += '<div class="mode-select-icon" style="background: ' + iconInfo.color + ';"><i class="fas ' + iconInfo.icon + '"></i></div>';
-                    html += '<div class="mode-select-info">';
-                    html += '<div class="mode-select-name">' + displayName + '</div>';
-                    html += '<div class="mode-select-desc">' + mode.count + ' thẻ</div>';
-                    html += '</div>';
-                    html += '<span class="mode-select-check"><i class="fas fa-check"></i></span>';
-                    html += '</div>';
-                });
-
-                container.innerHTML = html;
-                bindFlashcardModeEvents(setId, userButtonCount);
-            }
-
-            var selectedFlashcardMode = null;
-
-            function bindFlashcardModeEvents(setId, userButtonCount) {
-                var container = document.getElementById('flashcard-modes-container');
-                if (!container) return;
-
-                var continueBtn = document.querySelector('.js-flashcard-mode-continue');
-
-                container.querySelectorAll('.js-flashcard-mode-select').forEach(function (card) {
-                    if (card.classList.contains('disabled')) return;
-
-                    card.addEventListener('click', function () {
-                        // Deselect all
-                        container.querySelectorAll('.js-flashcard-mode-select').forEach(function (c) {
-                            c.classList.remove('selected');
-                        });
-                        // Select this one
-                        card.classList.add('selected');
-                        selectedFlashcardMode = card.dataset.modeId;
-
-                        // Enable continue button
-                        if (continueBtn) continueBtn.disabled = false;
-                    });
-                });
-
-                // Rating button visual logic
-                // Rating inputs are now in the bottom bar, query from the whole step container
-                var stepContainer = document.getElementById('step-flashcard-options');
-                var ratingInputs = stepContainer ? stepContainer.querySelectorAll('input[name="rating_levels"]') : [];
-
-                // [NEW] Helper to visual update
-                function updateRatingVisuals() {
-                    ratingInputs.forEach(function (r) {
-                        var label = r.closest('label');
-                        if (r.checked) {
-                            label.classList.remove('border-slate-200', 'bg-white', 'text-slate-700');
-                            label.classList.add('border-indigo-500', 'bg-indigo-50', 'text-indigo-700');
-                        } else {
-                            label.classList.add('border-slate-200', 'bg-white', 'text-slate-700');
-                            label.classList.remove('border-indigo-500', 'bg-indigo-50', 'text-indigo-700');
-                        }
-                    });
-                }
-
-                // [DEBUG] Log the values for debugging
-                console.log('[SETTINGS DEBUG] userButtonCount from API:', userButtonCount);
-                console.log('[SETTINGS DEBUG] ratingInputs count:', ratingInputs.length);
-
-                // [FIX] Apply persisted setting or default to 4
-                var selectedButtonCount = userButtonCount || 4;
-                console.log('[SETTINGS DEBUG] selectedButtonCount to apply:', selectedButtonCount);
-
-                ratingInputs.forEach(function (r) {
-                    if (parseInt(r.value) === parseInt(selectedButtonCount)) {
-                        r.checked = true;
-                        console.log('[SETTINGS DEBUG] Setting checked for value:', r.value);
-                    } else {
-                        r.checked = false;
-                    }
-                });
-                updateRatingVisuals();
-
-                ratingInputs.forEach(function (radio) {
-                    radio.addEventListener('change', updateRatingVisuals);
-                });
-
-
-
-                if (continueBtn) {
-
-                    continueBtn.addEventListener('click', function () {
-
-                        if (!selectedFlashcardMode || !selectedSetId) return;
-
-                        var ratingLevel = document.querySelector('input[name="rating_levels"]:checked').value || 4;
-
-                        // Redirect to flashcard session with rating level
-
-                        window.location.href = '/learn/start_flashcard_session/' + selectedSetId + '/' + selectedFlashcardMode + '?rating_levels=' + ratingLevel;
-
-                    });
-
-                }
-
-            }
-
-
-
-            function loadMcqOptions(setId) {
-
-                showStep('mcq-options');
-
-                history.pushState({ step: 'mcq-options', setId: setId }, '', '/learn/vocabulary/set/' + setId + '/mcq');
-
-                mcqOptionsContainer.innerHTML = '<div class="flex justify-center py-8"><i class="fas fa-spinner fa-spin text-blue-500 text-3xl"></i></div>';
-
-
-
-                fetch('/learn/get_quiz_modes_partial/' + setId)
-
-                    .then(r => r.text())
-
-                    .then(html => {
-
-                        mcqOptionsContainer.innerHTML = html;
-
-                        // Execute scripts from injected HTML
-
-                        mcqOptionsContainer.querySelectorAll('script').forEach(function (oldScript) {
-
-                            var newScript = document.createElement('script');
-
-                            newScript.textContent = oldScript.textContent;
-
-                            document.body.appendChild(newScript);
-
-                        });
-
-                        mcqOptionsContainer.querySelectorAll('.js-back-to-modes').forEach(function (btn) {
-
-                            btn.addEventListener('click', function () { showStep('modes'); });
-
-                        });
-
-
-
-                        bindQuizModeEvents(setId);
-
-                    })
-
-                    .catch(err => {
-
-                        mcqOptionsContainer.innerHTML = '<div class="text-center text-red-500 py-4">Lỗi tải tùy chọn. Vui lòng thử lại.</div>';
-
-                    });
-
-            }
-
-
-
-            function bindQuizModeEvents(setId) {
-
-                if (!mcqOptionsContainer) return;
-
-                var selectedQuizMode = null;
-
-                var continueBtn = mcqOptionsContainer.querySelector('.js-quiz-continue');
-
-
-
-                mcqOptionsContainer.querySelectorAll('.quiz-mode-item').forEach(function (card) {
-
-                    if (card.classList.contains('opacity-50')) return; // Check if disabled
-
-
-
-                    card.addEventListener('click', function () {
-
-                        // Deselect all
-
-                        mcqOptionsContainer.querySelectorAll('.quiz-mode-item').forEach(function (c) {
-
-                            c.classList.remove('selected', 'border-indigo-500', 'bg-indigo-50');
-
-                            c.classList.add('border-gray-200', 'bg-white');
-
-                        });
-
-                        // Select this one
-
-                        card.classList.remove('border-gray-200', 'bg-white');
-
-                        card.classList.add('selected', 'border-indigo-500', 'bg-indigo-50');
-
-
-
-                        selectedQuizMode = card.dataset.modeId;
-
-                        // Enable continue button
-
-                        if (continueBtn) continueBtn.disabled = false;
-
-                    });
-
-                });
-
-
-
-                if (continueBtn) {
-
-                    continueBtn.addEventListener('click', function () {
-
-                        if (!selectedQuizMode) return;
-
-                        var batchSizeSelect = mcqOptionsContainer.querySelector('#session-size-select');
-
-                        var batchSize = batchSizeSelect ? parseInt(batchSizeSelect.value) : 10;
-
-                        window.location.href = '/learn/start_quiz_session/' + setId + '/' + selectedQuizMode + '?batch_size=' + (batchSize || 10);
-
-                    });
-
-                }
-
-            }
-
-
-
-            // --- Stats Modal Functions ---
-
-            function bindStatsModalEvents() {
-
-                const triggers = document.querySelectorAll('.js-item-stats-trigger');
-
-                triggers.forEach(trigger => {
-
-                    trigger.removeEventListener('click', handleStatsClick);
-
-                    trigger.addEventListener('click', handleStatsClick);
-
-                });
-
-            }
-
-
-
-            function handleStatsClick(e) {
-
-                if (e.target.closest('button') || e.target.closest('a')) return;
-
-                const itemId = this.dataset.itemId;
-
-                if (itemId) openStatsModal(itemId);
-
-            }
-
-
-
-            const statsModal = document.getElementById('item-stats-modal');
-
-            const statsContainer = document.getElementById('item-stats-container');
-
-            const closeStatsBtns = document.querySelectorAll('.js-close-stats-modal');
-
-
-
-            if (closeStatsBtns) {
-
-                closeStatsBtns.forEach(btn => {
-
-                    btn.addEventListener('click', function () {
-
-                        if (statsModal) statsModal.style.display = 'none';
-
-                    });
-
-                });
-
-            }
-
-
-
-            document.addEventListener('keydown', function (e) {
-
-                if (e.key === 'Escape' && statsModal && statsModal.style.display !== 'none') {
-
-                    statsModal.style.display = 'none';
-
                 }
 
             });
 
+        });
 
 
-            function openStatsModal(itemId) {
-                if (window.openVocabularyItemStats) {
-                    window.openVocabularyItemStats(itemId);
-                } else {
-                    console.error("openVocabularyItemStats not found");
-                }
+
+        function updateModeVisibility() {
+
+            if (!selectedSetData) return;
+
+
+
+            console.log("Updating visibility for set:", selectedSetData);
+
+
+
+            // If no capabilities defined or empty, show flashcard and mcq as default or show all?
+
+            // Let's safe default: SHOW ALL if no capabilities found to avoid "blank" screen
+
+            if (!selectedSetData.capabilities || selectedSetData.capabilities.length === 0) {
+
+                document.querySelectorAll('.js-mode-select').forEach(el => el.style.display = 'flex');
+
+                return;
+
             }
 
-            // Global Helper for Item Stats Modal (Ajax Content)
-
-            window.showLogDetails = function (btn, index) {
-
-                // Reset active state
-
-                const container = btn.closest('.history-scroll');
-
-                if (container) {
-
-                    container.querySelectorAll('.history-btn').forEach(b => {
-
-                        b.style.borderColor = 'transparent';
-
-                        b.style.transform = 'scale(1)';
-
-                        b.style.boxShadow = 'none';
-
-                    });
-
-                }
 
 
+            const caps = new Set(selectedSetData.capabilities);
 
-                // Set active
+            const mapping = {
 
-                btn.style.borderColor = '#6366f1';
+                'flashcard': 'supports_flashcard',
 
-                btn.style.transform = 'scale(1.1)';
+                'mcq': 'supports_quiz',
 
-                btn.style.boxShadow = '0 4px 6px -1px rgba(99, 102, 241, 0.3)';
+                'typing': 'supports_writing',
 
+                'matching': 'supports_matching',
 
+                'speed': 'supports_speed',
 
-                // Update Data using IDs from the partial
+                'listening': 'supports_listening',
 
-                const timestampEl = document.getElementById('detail-timestamp');
-
-                if (timestampEl) timestampEl.textContent = btn.dataset.timestamp;
-
-
-
-                const modeEl = document.getElementById('detail-mode');
-
-                if (modeEl) modeEl.textContent = btn.dataset.mode;
-
-
-
-                const res = btn.dataset.result;
-
-                const rEl = document.getElementById('detail-result');
-
-                if (rEl) {
-
-                    rEl.textContent = res;
-
-                    rEl.style.color = res === 'Correct' ? '#16a34a' : '#dc2626';
-
-                }
-
-
-
-                const answerEl = document.getElementById('detail-answer');
-
-                if (answerEl) answerEl.textContent = btn.dataset.answer;
-
-
-
-                // Duration not strictly shown but logic matches
-
-                const durEl = document.getElementById('detail-duration'); // If exists
-
-                if (durEl) durEl.textContent = btn.dataset.duration;
-
-
-
-                // Show panel
-
-                const panel = document.getElementById('log-detail-panel');
-
-                if (panel) {
-
-                    panel.style.display = 'block';
-
-                    panel.style.animation = 'none';
-
-                    panel.offsetHeight; /* trigger reflow */
-
-                    panel.style.animation = 'fadeIn 0.3s ease';
-
-                }
+                'mixed': 'supports_srs'
 
             };
 
 
 
-        })();
+            let hasVisible = false;
+
+            document.querySelectorAll('.js-mode-select').forEach(card => {
+
+                const mode = card.dataset.mode;
+
+                const flag = mapping[mode];
+
+
+
+                if (flag && caps.has(flag)) {
+
+                    card.style.display = 'flex';
+
+                    hasVisible = true;
+
+                } else {
+
+                    card.style.display = 'none';
+
+                }
+
+            });
+
+
+
+            if (!hasVisible) {
+
+                // Fallback: if logic hides everything, show everything to be safe
+
+                console.warn("All modes hidden by capabilities, forcing show.");
+
+                document.querySelectorAll('.js-mode-select').forEach(el => el.style.display = 'flex');
+
+            }
+
+        }
+
+
+
+        // Continue button handler
+
+        if (continueBtn) {
+
+            continueBtn.addEventListener('click', function () {
+
+                if (!selectedMode) return;
+
+                startSession(selectedMode);
+
+            });
+
+        }
+
+
+
+        function startSession(mode) {
+
+            if (!selectedSetId) return;
+
+
+
+            if (mode === 'flashcard') {
+
+                window.location.href = '/learn/vocabulary/flashcard/setup/' + selectedSetId;
+
+            } else if (mode === 'mcq') {
+
+                // Redirect to MCQ setup page for options
+
+                window.location.href = '/learn/vocabulary/mcq/setup/' + selectedSetId;
+
+            } else if (mode === 'typing') {
+
+                window.location.href = '/learn/vocabulary/typing/setup/' + selectedSetId;
+
+            } else if (mode === 'mixed') {
+
+                alert('Chế độ Học thông minh đang được phát triển');
+
+            } else if (mode === 'matching') {
+
+                window.location.href = '/learn/vocabulary/matching/session/' + selectedSetId;
+
+            } else if (mode === 'speed') {
+
+                window.location.href = '/learn/vocabulary/speed/setup/' + selectedSetId;
+
+            } else if (mode === 'listening') {
+
+                window.location.href = '/learn/vocabulary/listening/setup/' + selectedSetId;
+
+            }
+
+        }
+
+
+
+        function loadFlashcardOptions(setId) {
+
+            showStep('flashcard-options');
+
+            history.pushState({ step: 'flashcard-options', setId: setId }, '', '/learn/vocabulary/set/' + setId + '/flashcard');
+
+
+
+            // Update set name display - fetch if not available
+
+            var setNameEl = document.querySelector('.js-selected-set-name-fc');
+
+            if (setNameEl) {
+
+                if (selectedSetData && selectedSetData.title) {
+
+                    setNameEl.textContent = selectedSetData.title;
+
+                } else {
+
+                    setNameEl.textContent = 'Đang tải...';
+
+                    // Fetch set info for display
+
+                    fetch('/learn/vocabulary/api/set/' + setId + '?page=1')
+
+                        .then(function (r) { return r.json(); })
+
+                        .then(function (data) {
+
+                            if (data.success && data.set) {
+
+                                setNameEl.textContent = data.set.title;
+
+                                selectedSetData = data.set;
+
+                                selectedSetId = setId;
+
+                            }
+
+                        })
+
+                        .catch(function () { });
+
+                }
+
+            }
+
+
+
+            var container = document.getElementById('flashcard-modes-container');
+
+            if (!container) return;
+
+
+
+            container.innerHTML = '<div class="vocab-loading"><i class="fas fa-spinner fa-spin"></i><p>Đang tải...</p></div>';
+
+
+
+            fetch('/learn/vocabulary/api/flashcard-modes/' + setId)
+                .then(function (r) { return r.json(); })
+                .then(function (data) {
+
+                    if (data.success && data.modes) {
+                        renderFlashcardModes(data.modes, setId, data.user_button_count);
+
+                        // [NEW] Settings Modal Logic
+                        setupSettingsModal(setId, data);
+
+                    } else {
+                        container.innerHTML = '<div class="vocab-empty"><i class="fas fa-exclamation-triangle"></i><p>Lỗi tải chế độ học</p></div>';
+                    }
+                })
+                .catch(function (err) {
+                    container.innerHTML = '<div class="vocab-empty"><i class="fas fa-exclamation-triangle"></i><p>Lỗi kết nối</p></div>';
+                });
+        }
+
+        // [NEW] Settings Modal Functions
+        // [NEW] Settings Modal Functions (Redesigned)
+        // Global event delegation for opening settings
+        document.addEventListener('click', function (e) {
+            const btn = e.target.closest('.js-open-flashcard-settings');
+            if (btn) {
+                e.preventDefault();
+                if (!selectedSetId) {
+                    console.warn("No set selected");
+                    return;
+                }
+
+                const modal = document.getElementById('flashcard-settings-modal');
+                if (modal) {
+                    modal.style.display = 'flex';
+                    // Fetch latest settings if needed, or rely on cached data
+                    // Ideally we refresh data here if possible
+                }
+            }
+        });
+
+        function setupSettingsModal(setId, data) {
+            const modal = document.getElementById('flashcard-settings-modal');
+            const closeBtns = document.querySelectorAll('.js-close-settings-modal');
+            const overlay = document.querySelector('.vocab-modal-overlay.js-close-settings-modal');
+            const saveBtn = document.querySelector('.js-save-settings');
+
+            // Main Controls
+            const modeSelect = document.getElementById('setting-mode-select');
+            const autoSaveToggle = document.getElementById('setting-auto-save');
+
+            // Sections
+            const modeSections = document.querySelectorAll('.mode-section');
+            const viewStates = document.querySelectorAll('.js-state-view');
+            const editStates = document.querySelectorAll('.js-state-edit');
+
+            // Flashcard Elements
+            const fcFixedBtnButtons = document.querySelectorAll('.js-fixed-btn-count');
+            const fcFixedBtnInput = document.getElementById('setting-fc-button-count');
+            const fcAutoplayToggle = document.getElementById('setting-fc-autoplay');
+            const fcShowImageToggle = document.getElementById('setting-fc-show-image');
+            const fcShowStatsToggle = document.getElementById('setting-fc-show-stats');
+
+            // Flashcard Status Labels
+            const labelFcBtnCount = document.querySelector('.js-last-btn-count');
+            const labelFcAutoplay = document.querySelector('.js-last-autoplay');
+            const labelFcShowImage = document.querySelector('.js-last-show-image');
+            const labelFcShowStats = document.querySelector('.js-last-show-stats');
+
+            if (!modal) return;
+
+            // 1. Initial State Initialization
+            let settings = data.settings || {};
+            let isAuto = settings.auto_save !== false;
+            let lastMode = settings.last_mode || 'flashcard';
+            let fcSettings = settings.flashcard || {};
+
+            // [DEBUG] Log settings
+            console.log('[MODAL DEBUG] data.settings:', data.settings);
+            console.log('[MODAL DEBUG] fcSettings:', fcSettings);
+            console.log('[MODAL DEBUG] isAuto:', isAuto);
+
+            // 2. Set UI Initial State
+            if (modeSelect) modeSelect.value = lastMode;
+            if (autoSaveToggle) autoSaveToggle.checked = isAuto;
+
+            // Sync Sections
+            const syncUI = () => {
+                // Show correct mode section
+                modeSections.forEach(s => s.id === 'mode-settings-' + modeSelect.value ? s.classList.remove('hidden') : s.classList.add('hidden'));
+
+                // Toggle between View (Auto) and Edit (Fixed)
+                const currentIsAuto = autoSaveToggle.checked;
+                viewStates.forEach(v => currentIsAuto ? v.classList.remove('hidden') : v.classList.add('hidden'));
+                editStates.forEach(e => currentIsAuto ? e.classList.add('hidden') : e.classList.remove('hidden'));
+            };
+
+            // 3. Initialize Flashcard Data
+            const initFlashcardData = () => {
+                // Labels (View State)
+                if (labelFcBtnCount) labelFcBtnCount.textContent = (fcSettings.button_count || data.user_button_count || 4) + ' nút';
+                if (labelFcAutoplay) labelFcAutoplay.textContent = (fcSettings.autoplay !== false ? 'BẬT' : 'TẮT');
+                if (labelFcShowImage) labelFcShowImage.textContent = (fcSettings.show_image !== false ? 'HIỆN' : 'ẨN');
+                if (labelFcShowStats) labelFcShowStats.textContent = (fcSettings.show_stats !== false ? 'HIỆN' : 'ẨN');
+
+                // Inputs (Edit State)
+                const btnCountToUse = fcSettings.button_count || data.user_button_count || 4;
+                if (fcFixedBtnInput) fcFixedBtnInput.value = btnCountToUse;
+                fcFixedBtnButtons.forEach(btn => {
+                    if (parseInt(btn.dataset.value) === btnCountToUse) {
+                        btn.classList.add('border-indigo-600', 'bg-indigo-50', 'text-indigo-600');
+                    } else {
+                        btn.classList.remove('border-indigo-600', 'bg-indigo-50', 'text-indigo-600');
+                    }
+                    btn.onclick = () => {
+                        fcFixedBtnButtons.forEach(b => b.classList.remove('border-indigo-600', 'bg-indigo-50', 'text-indigo-600'));
+                        btn.classList.add('border-indigo-600', 'bg-indigo-50', 'text-indigo-600');
+                        if (fcFixedBtnInput) fcFixedBtnInput.value = btn.dataset.value;
+                    };
+                });
+
+                if (fcAutoplayToggle) fcAutoplayToggle.checked = fcSettings.autoplay !== false;
+                if (fcShowImageToggle) fcShowImageToggle.checked = fcSettings.show_image !== false;
+                if (fcShowStatsToggle) fcShowStatsToggle.checked = fcSettings.show_stats !== false;
+            };
+
+            initFlashcardData();
+            syncUI();
+
+            // 4. Events
+            if (modeSelect) modeSelect.onchange = syncUI;
+            if (autoSaveToggle) autoSaveToggle.onchange = syncUI;
+
+            const closeModal = () => modal.style.display = 'none';
+            closeBtns.forEach(btn => btn.onclick = closeModal);
+            if (overlay) overlay.onclick = closeModal;
+
+            // 5. Save Logic
+            if (saveBtn) {
+                saveBtn.onclick = function () {
+                    const currentAuto = autoSaveToggle.checked;
+                    const activeMode = modeSelect.value;
+
+                    // [DEBUG] Log toggle states before creating payload
+                    console.log('[SAVE DEBUG] fcAutoplayToggle element:', fcAutoplayToggle);
+                    console.log('[SAVE DEBUG] fcAutoplayToggle.checked:', fcAutoplayToggle ? fcAutoplayToggle.checked : 'N/A');
+                    console.log('[SAVE DEBUG] fcShowImageToggle.checked:', fcShowImageToggle ? fcShowImageToggle.checked : 'N/A');
+                    console.log('[SAVE DEBUG] fcShowStatsToggle.checked:', fcShowStatsToggle ? fcShowStatsToggle.checked : 'N/A');
+
+                    const payload = {
+                        ...settings,
+                        auto_save: currentAuto,
+                        last_mode: activeMode,
+                        flashcard: {
+                            // Always include all flashcard settings
+                            autoplay: fcAutoplayToggle ? fcAutoplayToggle.checked : true,
+                            show_image: fcShowImageToggle ? fcShowImageToggle.checked : true,
+                            show_stats: fcShowStatsToggle ? fcShowStatsToggle.checked : true,
+                            // Always include button_count - from input if Fixed mode, else preserve existing/default
+                            button_count: (!currentAuto && fcFixedBtnInput)
+                                ? parseInt(fcFixedBtnInput.value)
+                                : (fcSettings.button_count || data.user_button_count || 4)
+                        }
+                    };
+
+                    console.log('[SAVE DEBUG] Payload to send:', payload);
+
+                    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
+                    const headers = { 'Content-Type': 'application/json' };
+                    if (csrfToken) headers['X-CSRFToken'] = csrfToken;
+
+                    saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang lưu...';
+
+                    fetch('/learn/vocabulary/api/settings/container/' + setId, {
+                        method: 'POST',
+                        headers: headers,
+                        body: JSON.stringify(payload)
+                    }).then(async r => {
+                        if (!r.ok) {
+                            const text = await r.text();
+                            console.error('Server error:', text);
+                            throw new Error('Server returned ' + r.status);
+                        }
+                        return r.json();
+                    })
+                        .then(d => {
+                            if (d.success) {
+                                closeModal();
+                                if (typeof loadFlashcardOptions === 'function' && activeMode === 'flashcard') {
+                                    const step = document.getElementById('step-flashcard-options');
+                                    if (step && step.classList.contains('active')) loadFlashcardOptions(setId);
+                                }
+                                showToast('<i class="fas fa-check-circle text-emerald-400"></i> Cấu hình đã được lưu');
+                            }
+                        })
+                        .finally(() => saveBtn.textContent = 'Lưu cấu hình');
+                };
+            }
+
+            function showToast(html) {
+                const toast = document.createElement('div');
+                toast.className = 'fixed bottom-4 right-4 bg-slate-800 text-white px-6 py-3 rounded-2xl shadow-2xl z-[9999] flex items-center gap-3 animate-slideInUp';
+                toast.innerHTML = html;
+                document.body.appendChild(toast);
+                setTimeout(() => {
+                    toast.classList.replace('animate-slideInUp', 'animate-fadeOut');
+                    setTimeout(() => toast.remove(), 500);
+                }, 3000);
+            }
+        }
+
+        function renderFlashcardModes(modes, setId, userButtonCount) {
+            var container = document.getElementById('flashcard-modes-container');
+            if (!container) return;
+
+            var modeIcons = {
+                'new_only': { icon: 'fa-star', color: 'linear-gradient(135deg, #f59e0b, #fbbf24)' },
+                'all_review': { icon: 'fa-redo', color: 'linear-gradient(135deg, #3b82f6, #60a5fa)' },
+                'hard_only': { icon: 'fa-fire', color: 'linear-gradient(135deg, #ef4444, #f87171)' },
+                'mixed_srs': { icon: 'fa-brain', color: 'linear-gradient(135deg, #8b5cf6, #a78bfa)' }
+            };
+
+            var modeNames = {
+                'new_only': 'Chỉ làm mới',
+                'all_review': 'Ôn tập đã làm',
+                'hard_only': 'Ôn tập câu khó',
+                'mixed_srs': 'Học thông minh (SRS)'
+            };
+
+            var html = '';
+            modes.forEach(function (mode) {
+                var iconInfo = modeIcons[mode.id] || { icon: 'fa-book', color: 'linear-gradient(135deg, #64748b, #94a3b8)' };
+                var displayName = modeNames[mode.id] || mode.name;
+                var isDisabled = mode.count === 0;
+
+                html += '<div class="mode-select-card js-flashcard-mode-select' + (isDisabled ? ' disabled' : '') + '" data-mode-id="' + mode.id + '"' + (isDisabled ? ' style="opacity: 0.5; filter: grayscale(100%); pointer-events: none; background: #f1f5f9;"' : '') + '>';
+                html += '<div class="mode-select-icon" style="background: ' + iconInfo.color + ';"><i class="fas ' + iconInfo.icon + '"></i></div>';
+                html += '<div class="mode-select-info">';
+                html += '<div class="mode-select-name">' + displayName + '</div>';
+                html += '<div class="mode-select-desc">' + mode.count + ' thẻ</div>';
+                html += '</div>';
+                html += '<span class="mode-select-check"><i class="fas fa-check"></i></span>';
+                html += '</div>';
+            });
+
+            container.innerHTML = html;
+            bindFlashcardModeEvents(setId, userButtonCount);
+        }
+
+        var selectedFlashcardMode = null;
+
+        function bindFlashcardModeEvents(setId, userButtonCount) {
+            var container = document.getElementById('flashcard-modes-container');
+            if (!container) return;
+
+            var continueBtn = document.querySelector('.js-flashcard-mode-continue');
+
+            container.querySelectorAll('.js-flashcard-mode-select').forEach(function (card) {
+                if (card.classList.contains('disabled')) return;
+
+                card.addEventListener('click', function () {
+                    // Deselect all
+                    container.querySelectorAll('.js-flashcard-mode-select').forEach(function (c) {
+                        c.classList.remove('selected');
+                    });
+                    // Select this one
+                    card.classList.add('selected');
+                    selectedFlashcardMode = card.dataset.modeId;
+
+                    // Enable continue button
+                    if (continueBtn) continueBtn.disabled = false;
+                });
+            });
+
+            // Rating button visual logic
+            // Rating inputs are now in the bottom bar, query from the whole step container
+            var stepContainer = document.getElementById('step-flashcard-options');
+            var ratingInputs = stepContainer ? stepContainer.querySelectorAll('input[name="rating_levels"]') : [];
+
+            // [NEW] Helper to visual update
+            function updateRatingVisuals() {
+                ratingInputs.forEach(function (r) {
+                    var label = r.closest('label');
+                    if (r.checked) {
+                        label.classList.remove('border-slate-200', 'bg-white', 'text-slate-700');
+                        label.classList.add('border-indigo-500', 'bg-indigo-50', 'text-indigo-700');
+                    } else {
+                        label.classList.add('border-slate-200', 'bg-white', 'text-slate-700');
+                        label.classList.remove('border-indigo-500', 'bg-indigo-50', 'text-indigo-700');
+                    }
+                });
+            }
+
+            // [DEBUG] Log the values for debugging
+            console.log('[SETTINGS DEBUG] userButtonCount from API:', userButtonCount);
+            console.log('[SETTINGS DEBUG] ratingInputs count:', ratingInputs.length);
+
+            // [FIX] Apply persisted setting or default to 4
+            var selectedButtonCount = userButtonCount || 4;
+            console.log('[SETTINGS DEBUG] selectedButtonCount to apply:', selectedButtonCount);
+
+            ratingInputs.forEach(function (r) {
+                if (parseInt(r.value) === parseInt(selectedButtonCount)) {
+                    r.checked = true;
+                    console.log('[SETTINGS DEBUG] Setting checked for value:', r.value);
+                } else {
+                    r.checked = false;
+                }
+            });
+            updateRatingVisuals();
+
+            ratingInputs.forEach(function (radio) {
+                radio.addEventListener('change', updateRatingVisuals);
+            });
+
+
+
+            if (continueBtn) {
+
+                continueBtn.addEventListener('click', function () {
+
+                    if (!selectedFlashcardMode || !selectedSetId) return;
+
+                    var ratingLevel = document.querySelector('input[name="rating_levels"]:checked').value || 4;
+
+                    // [FIX] Check for active session before starting
+                    continueBtn.disabled = true;
+                    continueBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+
+                    fetch('/learn/api/check_active_vocab_session/' + selectedSetId)
+                        .then(r => r.json())
+                        .then(data => {
+                            continueBtn.disabled = false;
+                            continueBtn.textContent = 'Tiếp tục';
+
+                            if (data.has_active) {
+                                // Conflict detected
+                                var msg = "Bạn đang có một phiên học " + (data.active_mode_display || "đang diễn ra") +
+                                    ".\n\nNhấn OK để TIẾP TỤC phiên học cũ (Được khuyên dùng).\n" +
+                                    "Nhấn Cancel để TẠO MỚI (Dữ liệu phiên cũ sẽ bị hủy).";
+
+                                if (confirm(msg)) {
+                                    // Resume
+                                    window.location.href = data.resume_url;
+                                } else {
+                                    // Overwrite (Create New)
+                                    window.location.href = '/learn/start_flashcard_session/' + selectedSetId + '/' + selectedFlashcardMode + '?rating_levels=' + ratingLevel;
+                                }
+                            } else {
+                                // No conflict, just start
+                                window.location.href = '/learn/start_flashcard_session/' + selectedSetId + '/' + selectedFlashcardMode + '?rating_levels=' + ratingLevel;
+                            }
+                        })
+                        .catch(err => {
+                            console.error("Check failed", err);
+                            // Fallback to start
+                            window.location.href = '/learn/start_flashcard_session/' + selectedSetId + '/' + selectedFlashcardMode + '?rating_levels=' + ratingLevel;
+                        });
+
+                });
+
+            }
+
+        }
+
+
+
+        function loadMcqOptions(setId) {
+
+            showStep('mcq-options');
+
+            history.pushState({ step: 'mcq-options', setId: setId }, '', '/learn/vocabulary/set/' + setId + '/mcq');
+
+            mcqOptionsContainer.innerHTML = '<div class="flex justify-center py-8"><i class="fas fa-spinner fa-spin text-blue-500 text-3xl"></i></div>';
+
+
+
+            fetch('/learn/get_quiz_modes_partial/' + setId)
+
+                .then(r => r.text())
+
+                .then(html => {
+
+                    mcqOptionsContainer.innerHTML = html;
+
+                    // Execute scripts from injected HTML
+
+                    mcqOptionsContainer.querySelectorAll('script').forEach(function (oldScript) {
+
+                        var newScript = document.createElement('script');
+
+                        newScript.textContent = oldScript.textContent;
+
+                        document.body.appendChild(newScript);
+
+                    });
+
+                    mcqOptionsContainer.querySelectorAll('.js-back-to-modes').forEach(function (btn) {
+
+                        btn.addEventListener('click', function () { showStep('modes'); });
+
+                    });
+
+
+
+                    bindQuizModeEvents(setId);
+
+                })
+
+                .catch(err => {
+
+                    mcqOptionsContainer.innerHTML = '<div class="text-center text-red-500 py-4">Lỗi tải tùy chọn. Vui lòng thử lại.</div>';
+
+                });
+
+        }
+
+
+
+        function bindQuizModeEvents(setId) {
+
+            if (!mcqOptionsContainer) return;
+
+            var selectedQuizMode = null;
+
+            var continueBtn = mcqOptionsContainer.querySelector('.js-quiz-continue');
+
+
+
+            mcqOptionsContainer.querySelectorAll('.quiz-mode-item').forEach(function (card) {
+
+                if (card.classList.contains('opacity-50')) return; // Check if disabled
+
+
+
+                card.addEventListener('click', function () {
+
+                    // Deselect all
+
+                    mcqOptionsContainer.querySelectorAll('.quiz-mode-item').forEach(function (c) {
+
+                        c.classList.remove('selected', 'border-indigo-500', 'bg-indigo-50');
+
+                        c.classList.add('border-gray-200', 'bg-white');
+
+                    });
+
+                    // Select this one
+
+                    card.classList.remove('border-gray-200', 'bg-white');
+
+                    card.classList.add('selected', 'border-indigo-500', 'bg-indigo-50');
+
+
+
+                    selectedQuizMode = card.dataset.modeId;
+
+                    // Enable continue button
+
+                    if (continueBtn) continueBtn.disabled = false;
+
+                });
+
+            });
+
+
+
+            if (continueBtn) {
+
+                continueBtn.addEventListener('click', function () {
+
+                    if (!selectedQuizMode) return;
+
+                    var batchSizeSelect = mcqOptionsContainer.querySelector('#session-size-select');
+
+                    var batchSize = batchSizeSelect ? parseInt(batchSizeSelect.value) : 10;
+
+                    window.location.href = '/learn/start_quiz_session/' + setId + '/' + selectedQuizMode + '?batch_size=' + (batchSize || 10);
+
+                });
+
+            }
+
+        }
+
+
+
+        // --- Stats Modal Functions ---
+
+        function bindStatsModalEvents() {
+
+            const triggers = document.querySelectorAll('.js-item-stats-trigger');
+
+            triggers.forEach(trigger => {
+
+                trigger.removeEventListener('click', handleStatsClick);
+
+                trigger.addEventListener('click', handleStatsClick);
+
+            });
+
+        }
+
+
+
+        function handleStatsClick(e) {
+
+            if (e.target.closest('button') || e.target.closest('a')) return;
+
+            const itemId = this.dataset.itemId;
+
+            if (itemId) openStatsModal(itemId);
+
+        }
+
+
+
+        const statsModal = document.getElementById('item-stats-modal');
+
+        const statsContainer = document.getElementById('item-stats-container');
+
+        const closeStatsBtns = document.querySelectorAll('.js-close-stats-modal');
+
+
+
+        if (closeStatsBtns) {
+
+            closeStatsBtns.forEach(btn => {
+
+                btn.addEventListener('click', function () {
+
+                    if (statsModal) statsModal.style.display = 'none';
+
+                });
+
+            });
+
+        }
+
+
+
+        document.addEventListener('keydown', function (e) {
+
+            if (e.key === 'Escape' && statsModal && statsModal.style.display !== 'none') {
+
+                statsModal.style.display = 'none';
+
+            }
+
+        });
+
+
+
+        function openStatsModal(itemId) {
+            if (window.openVocabularyItemStats) {
+                window.openVocabularyItemStats(itemId);
+            } else {
+                console.error("openVocabularyItemStats not found");
+            }
+        }
+
+        // Global Helper for Item Stats Modal (Ajax Content)
+
+        window.showLogDetails = function (btn, index) {
+
+            // Reset active state
+
+            const container = btn.closest('.history-scroll');
+
+            if (container) {
+
+                container.querySelectorAll('.history-btn').forEach(b => {
+
+                    b.style.borderColor = 'transparent';
+
+                    b.style.transform = 'scale(1)';
+
+                    b.style.boxShadow = 'none';
+
+                });
+
+            }
+
+
+
+            // Set active
+
+            btn.style.borderColor = '#6366f1';
+
+            btn.style.transform = 'scale(1.1)';
+
+            btn.style.boxShadow = '0 4px 6px -1px rgba(99, 102, 241, 0.3)';
+
+
+
+            // Update Data using IDs from the partial
+
+            const timestampEl = document.getElementById('detail-timestamp');
+
+            if (timestampEl) timestampEl.textContent = btn.dataset.timestamp;
+
+
+
+            const modeEl = document.getElementById('detail-mode');
+
+            if (modeEl) modeEl.textContent = btn.dataset.mode;
+
+
+
+            const res = btn.dataset.result;
+
+            const rEl = document.getElementById('detail-result');
+
+            if (rEl) {
+
+                rEl.textContent = res;
+
+                rEl.style.color = res === 'Correct' ? '#16a34a' : '#dc2626';
+
+            }
+
+
+
+            const answerEl = document.getElementById('detail-answer');
+
+            if (answerEl) answerEl.textContent = btn.dataset.answer;
+
+
+
+            // Duration not strictly shown but logic matches
+
+            const durEl = document.getElementById('detail-duration'); // If exists
+
+            if (durEl) durEl.textContent = btn.dataset.duration;
+
+
+
+            // Show panel
+
+            const panel = document.getElementById('log-detail-panel');
+
+            if (panel) {
+
+                panel.style.display = 'block';
+
+                panel.style.animation = 'none';
+
+                panel.offsetHeight; /* trigger reflow */
+
+                panel.style.animation = 'fadeIn 0.3s ease';
+
+            }
+
+        };
+
+
+
+    })();
 
 });
 

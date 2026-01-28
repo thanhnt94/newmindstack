@@ -228,9 +228,9 @@ def start_flashcard_session_all(mode):
     if ui_pref:
         session['flashcard_ui_pref'] = ui_pref
 
-    success, message = FlashcardSessionManager.start_new_flashcard_session(set_ids, mode)
+    success, message, session_id = FlashcardSessionManager.start_new_flashcard_session(set_ids, mode)
     if success:
-        return redirect(url_for('learning.flashcard_learning.flashcard_session'))
+        return redirect(url_for('learning.flashcard_learning.flashcard_session', session_id=session_id))
     else:
         flash(message, 'warning')
         return redirect(url_for('learning.vocabulary.dashboard'))
@@ -254,9 +254,9 @@ def start_flashcard_session_multi(mode):
         flash('Lỗi: Định dạng ID bộ thẻ không hợp lệ.', 'danger')
         return redirect(url_for('learning.vocabulary.dashboard'))
 
-    success, message = FlashcardSessionManager.start_new_flashcard_session(set_ids, mode)
+    success, message, session_id = FlashcardSessionManager.start_new_flashcard_session(set_ids, mode)
     if success:
-        return redirect(url_for('learning.flashcard_learning.flashcard_session'))
+        return redirect(url_for('learning.flashcard_learning.flashcard_session', session_id=session_id))
     else:
         flash(message, 'warning')
         return redirect(url_for('learning.vocabulary.dashboard'))
@@ -277,9 +277,9 @@ def start_flashcard_session_by_id(set_id, mode):
     session['flashcard_visual_settings'] = config['visual_settings']
 
         
-    success, message = FlashcardSessionManager.start_new_flashcard_session(set_id, mode)
+    success, message, session_id = FlashcardSessionManager.start_new_flashcard_session(set_id, mode)
     if success:
-        return redirect(url_for('learning.flashcard_learning.flashcard_session'))
+        return redirect(url_for('learning.flashcard_learning.flashcard_session', session_id=session_id))
     else:
         flash(message, 'warning')
         return redirect(url_for('learning.vocabulary.dashboard'))
@@ -287,35 +287,61 @@ def start_flashcard_session_by_id(set_id, mode):
 
 @flashcard_learning_bp.route('/vocabulary/flashcard/session')
 @login_required
-def flashcard_session():
+def flashcard_session_legacy():
+    # Attempt to find active session and redirect
+    active_db_session = LearningSessionService.get_active_session(current_user.user_id, learning_mode='flashcard')
+    if active_db_session:
+        return redirect(url_for('learning.flashcard_learning.flashcard_session', session_id=active_db_session.session_id))
+        
+    flash('Không có phiên học Flashcard nào đang hoạt động. Vui lòng chọn bộ thẻ để bắt đầu.', 'info')
+    return redirect(url_for('learning.vocabulary.dashboard'))
+
+
+@flashcard_learning_bp.route('/vocabulary/flashcard/session/<int:session_id>')
+@login_required
+def flashcard_session(session_id):
     """
     Hiển thị giao diện học Flashcard.
     Sử dụng TemplateService để chọn template version từ admin settings.
     """
-    # [NEW] Attempt to resume session from database if Flask session is empty
+    
+    # [NEW] Check if session matches URL ID
+    should_reload = False
     if 'flashcard_session' not in session:
-        active_db_session = LearningSessionService.get_active_session(current_user.user_id, learning_mode='flashcard')
-        if active_db_session:
-            # Reconstruct session manager from DB data
-            session_manager = FlashcardSessionManager(
-                user_id=active_db_session.user_id,
-                set_id=active_db_session.set_id_data,
-                mode=active_db_session.mode_config_id,
-                total_items_in_session=active_db_session.total_items,
-                processed_item_ids=active_db_session.processed_item_ids or [],
-                correct_answers=active_db_session.correct_count,
-                incorrect_answers=active_db_session.incorrect_count,
-                vague_answers=active_db_session.vague_count,
-                start_time=active_db_session.start_time.isoformat() if active_db_session.start_time else None,
-                session_points=active_db_session.points_earned,
-                db_session_id=active_db_session.session_id
-            )
-            session['flashcard_session'] = session_manager.to_dict()
-            session.modified = True
-            flash('Đã khôi phục phiên học đang dở của bạn.', 'info')
-        else:
-            flash('Không có phiên học Flashcard nào đang hoạt động. Vui lòng chọn bộ thẻ để bắt đầu.', 'info')
-            return redirect(url_for('learning.vocabulary.dashboard'))
+        should_reload = True
+    else:
+        current_session_data = session['flashcard_session']
+        if current_session_data.get('db_session_id') != session_id:
+            should_reload = True
+            
+    if should_reload:
+        active_db_session = LearningSessionService.get_session_by_id(session_id)
+        
+        # Security check: User must own this session
+        if not active_db_session or active_db_session.user_id != current_user.user_id:
+             flash('Phiên học không tồn tại hoặc bạn không có quyền truy cập.', 'error')
+             return redirect(url_for('learning.vocabulary.dashboard'))
+             
+        # Reconstruct session manager from DB data
+        session_manager = FlashcardSessionManager(
+            user_id=active_db_session.user_id,
+            set_id=active_db_session.set_id_data,
+            mode=active_db_session.mode_config_id,
+            total_items_in_session=active_db_session.total_items,
+            processed_item_ids=active_db_session.processed_item_ids or [],
+            correct_answers=active_db_session.correct_count,
+            incorrect_answers=active_db_session.incorrect_count,
+            vague_answers=active_db_session.vague_count,
+            start_time=active_db_session.start_time.isoformat() if active_db_session.start_time else None,
+            session_points=active_db_session.points_earned,
+            db_session_id=active_db_session.session_id
+        )
+        session['flashcard_session'] = session_manager.to_dict()
+        session.modified = True
+        current_app.logger.info(f"Reloaded session {session_id} from DB into Flask session.")
+
+
+
 
     # [UPDATED v4] Priority: session override > User.last_preferences > session_state > default
     user_button_count = 4  # Default
@@ -709,7 +735,7 @@ def check_active_vocab_session(set_id):
         resume_url = '#'
         mode = active_session.learning_mode
         if mode == 'flashcard':
-            resume_url = url_for('learning.flashcard_learning.flashcard_session')
+            resume_url = url_for('learning.flashcard_learning.flashcard_session', session_id=active_session.session_id)
         elif mode == 'mcq':
              # MCQ Session requires set_id
              resume_url = url_for('learning.vocabulary.mcq.session', set_id=set_id)

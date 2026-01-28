@@ -477,6 +477,13 @@ function renderCard(data) {
     const isAutoplaySession = window.FlashcardConfig.isAutoplaySession;
     const userButtonCount = window.FlashcardConfig.userButtonCount;
 
+    // [NEW] Dynamic Title Update for Multi-Set Sessions
+    if (data.container_title) {
+        document.querySelectorAll('.js-fc-title').forEach(el => {
+            el.textContent = data.container_title;
+        });
+    }
+
     // Reset any pending autoplay deferral from previous notifications
     if (typeof window.pendingAudioAutoplay !== 'undefined') {
         window.pendingAudioAutoplay = false;

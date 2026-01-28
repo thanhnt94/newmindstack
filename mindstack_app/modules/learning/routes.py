@@ -37,8 +37,57 @@ learning_bp.register_blueprint(vocabulary_bp)
 learning_bp.register_blueprint(practice_bp)  # NEW: Practice module
 learning_bp.register_blueprint(collab_bp)  # NEW: Collab module
 # learning_bp.register_blueprint(markers_bp)  # MOVED: Registered globally in module_registry
-# learning_bp.register_blueprint(stats_bp)  # Stats dashboard (HTML only, API is global)
+@learning_bp.route('/api/active')
+@login_required
+def api_get_active_sessions():
+    """
+    API to get all active learning sessions for the dashboard.
+    Returns: List of active sessions with resume URLs.
+    """
+    try:
+        active_sessions = LearningSessionService.get_active_sessions(current_user.user_id)
+        
+        results = []
+        for s in active_sessions:
+            container_name = "Bộ học tập"
+            try:
+                if isinstance(s.set_id_data, int):
+                    container = LearningContainer.query.get(s.set_id_data)
+                    if container: container_name = container.title
+                elif isinstance(s.set_id_data, list):
+                    container_name = f"{len(s.set_id_data)} bộ học tập"
+            except: pass
 
+            # Determine Resume URL
+            if s.learning_mode == 'quiz':
+                resume_url = url_for('learning.quiz_learning.quiz_session')
+            elif s.learning_mode == 'typing':
+                resume_url = url_for('learning.vocabulary.typing.session_page')
+            elif s.learning_mode == 'listening':
+                resume_url = url_for('learning.vocabulary.listening.session_page')
+            elif s.learning_mode == 'matching':
+                resume_url = url_for('learning.vocabulary.matching.session_page', set_id=s.set_id_data)
+            elif s.learning_mode == 'mcq':
+                resume_url = url_for('learning.vocabulary.mcq.session', set_id=s.set_id_data)
+            else:
+                resume_url = url_for('learning.flashcard_learning.flashcard_session', session_id=s.session_id)
+
+            results.append({
+                'session_id': s.session_id,
+                'learning_mode': s.learning_mode,
+                'mode_name': get_mode_description(s),
+                'container_name': container_name,
+                'progress': {
+                    'done': len(s.processed_item_ids or []),
+                    'total': s.total_items
+                },
+                'resume_url': resume_url
+            })
+            
+        return jsonify(results)
+    except Exception as e:
+        current_app.logger.error(f"Error getting active sessions API: {e}")
+        return jsonify([]), 500
 
 
 @learning_bp.route('/')
@@ -165,7 +214,7 @@ def manage_sessions():
         elif s.learning_mode == 'mcq':
             resume_url = url_for('learning.vocabulary.mcq.session', set_id=s.set_id_data)
         else:
-            resume_url = url_for('learning.flashcard_learning.flashcard_session')
+            resume_url = url_for('learning.flashcard_learning.flashcard_session', session_id=s.session_id)
 
         session_list.append({
             'session_id': s.session_id,
