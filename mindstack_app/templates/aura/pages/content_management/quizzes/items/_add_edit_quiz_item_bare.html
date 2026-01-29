@@ -650,7 +650,7 @@ MỤC ĐÍCH: Refactor giao diện sửa câu hỏi Quiz sử dụng Tab (giốn
             // AI Logic
             const aiRegenerateBtn = document.getElementById('quiz-ai-regenerate-btn');
             const aiExplanationField = document.getElementById('ai_explanation');
-            const getAiResponseUrl = "{{ url_for('ai_services.get_ai_response') }}";
+            const getAiResponseUrl = "{{ url_for('AI.get_ai_response') }}";
             const itemId = {{ (quiz_item.item_id if quiz_item else None) | tojson }};
 
         if (aiRegenerateBtn && aiExplanationField && itemId) {
