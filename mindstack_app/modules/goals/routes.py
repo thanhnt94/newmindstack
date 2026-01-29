@@ -7,12 +7,13 @@ from mindstack_app.utils.template_helpers import render_dynamic_template
 from flask_login import current_user, login_required
 
 from ...db_instance import db
-from ...models import LearningGoal
+from ...models import UserGoal, Goal
 from mindstack_app.utils.pagination import get_pagination_data
+from mindstack_app.services.goal_kernel_service import GoalKernelService
 from . import goals_bp
 from .constants import GOAL_TYPE_CONFIG, PERIOD_LABELS
 from .forms import LearningGoalForm
-from .services import build_goal_progress
+from .view_helpers import build_goal_progress
 
 
 @goals_bp.route('/goals', methods=['GET', 'POST'])
@@ -22,45 +23,54 @@ def manage_goals():
     from ...models import LearningContainer
 
     form = LearningGoalForm()
-    # Legacy support removed from form but kept in model if needed. 
-    # Current form does not use goal_type select anymore, it uses domain/scope/metric.
     
     if form.validate_on_submit():
-        print(f"GOAL SUBMISSION: Data={form.data}")
-        print(f"GOAL SUBMISSION: Reference ID Type={type(form.reference_id.data)} Value='{form.reference_id.data}'")
+        # Create Goal Template (System Definition) dynamically if needed
+        # In a strict system, users pick from templates. Here we allow "custom" goals by ensuring a definition exists.
+        goal_code = f"{form.domain.data}_{form.metric.data}"
+        title_default = f"Mục tiêu {form.metric.data}"
         
-        # Determine goal_type from domain/metric for backward compatibility or internal logic
-        # For now, we can just set it to something descriptive like 'custom' or '{domain}_{metric}'
-        generated_type = f"{form.domain.data}_{form.metric.data}"
-        
-        goal = LearningGoal(
-            user_id=current_user.user_id,
-            goal_type=generated_type, # Legacy field, using composite key
-            domain=form.domain.data,
-            scope=form.scope.data,
-            reference_id=int(form.reference_id.data) if form.reference_id.data else None,
+        # Ensure 'Goal' definition exists
+        GoalKernelService.create_goal_definition(
+            code=goal_code,
+            title=title_default, # This title is for the TEMPLATE
             metric=form.metric.data,
-            period=form.period.data,
-            target_value=form.target_value.data,
-            title=form.title.data.strip() if form.title.data else f"Mục tiêu {form.metric.data}",
-            description=form.description.data,
-            start_date=form.start_date.data,
-            due_date=form.due_date.data,
-            notes=form.notes.data.strip() if form.notes.data else None,
+            domain=form.domain.data,
+            default_period=form.period.data,
+            default_target=form.target_value.data,
+            icon='star' # Default
         )
-        db.session.add(goal)
+        db.session.commit() # Commit definition first
+
+        # Create/Update UserGoal Instance
+        ref_id = int(form.reference_id.data) if form.reference_id.data else None
+        
+        user_goal = GoalKernelService.ensure_user_goal(
+            user_id=current_user.user_id,
+            goal_code=goal_code,
+            target_override=form.target_value.data,
+            scope=form.scope.data,
+            reference_id=ref_id
+        )
+        # Check if ensure returned an existing one, update it if customized
+        if user_goal:
+             user_goal.period = form.period.data
+             user_goal.target_value = form.target_value.data
+             user_goal.start_date = form.start_date.data
+             user_goal.end_date = form.due_date.data
+             user_goal.is_active = True
+             db.session.add(user_goal)
+             
         db.session.commit()
-        print(f"GOAL SAVED: ID={goal.goal_id} Title='{goal.title}'")
         flash('Đã lưu mục tiêu học tập mới!', 'success')
         return redirect(url_for('goals.manage_goals'))
 
     goals_query = (
-        LearningGoal.query.filter(
-            LearningGoal.user_id == current_user.user_id,
+        UserGoal.query.filter(
+            UserGoal.user_id == current_user.user_id,
         )
-        .order_by(LearningGoal.created_at.desc())
+        .order_by(UserGoal.created_at.desc())
     )
-    print(f"GOAL QUERY: User={current_user.user_id} Count={goals_query.count()}")
 
     pagination = get_pagination_data(
         goals_query,
@@ -68,31 +78,13 @@ def manage_goals():
         per_page=6,
     )
     
-    # [REFACTORED] Use LearningMetricsService
-    from mindstack_app.services.learning_metrics_service import LearningMetricsService
-    summary = LearningMetricsService.get_user_learning_summary(current_user.user_id)
-    activity_today = LearningMetricsService.get_todays_activity_counts(current_user.user_id)
-    activity_week = LearningMetricsService.get_week_activity_counts(current_user.user_id)
-    score_stats = LearningMetricsService.get_score_breakdown(current_user.user_id)
+    # [REFACTORED] Pass simplified metrics or none, since view_helpers now uses DB Progres
+    # However, existing summary metrics might be used for other UI parts?
+    # view_helpers implementation reads directly from DB, so 'metrics' arg is optional/unused now?
+    # Checking view_helpers: build_goal_progress(user_goals, metrics=None).
+    # It does NOT use metrics anymore.
     
-    # Construct metrics context for build_goal_progress
-    metrics = {
-        'flashcard_summary': summary['flashcard'],
-        'quiz_summary': summary['quiz'],
-        'course_summary': summary['course'],
-        'flashcard_reviews_today': activity_today['flashcard'],
-        'flashcard_reviews_week': activity_week['flashcard'],
-        'quiz_attempts_today': activity_today['quiz'],
-        'quiz_attempts_week': activity_week['quiz'],
-        'course_updates_today': activity_today['course'],
-        'course_updates_week': activity_week['course'],
-        'score_today': score_stats['today'],
-        'score_week': score_stats['week'],
-        'score_total': score_stats['total'],
-        'weekly_active_days': summary['active_days']
-    }
-    
-    goal_progress = build_goal_progress(pagination.items, metrics)
+    goal_progress = build_goal_progress(pagination.items)
     
     # Fetch containers for selector (Only those learned/accessed by user)
     from ...models import UserContainerState
@@ -126,31 +118,50 @@ def manage_goals():
 @goals_bp.route('/goals/<int:goal_id>/edit', methods=['GET', 'POST'])
 @login_required
 def edit_goal(goal_id: int):
-    goal = LearningGoal.query.filter_by(user_id=current_user.user_id, goal_id=goal_id).first_or_404()
+    # goal_id here is UserGoal ID
+    user_goal = UserGoal.query.filter_by(user_id=current_user.user_id, user_goal_id=goal_id).first_or_404()
 
-    form = LearningGoalForm(obj=goal)
-    form.goal_type.choices = [(key, config['label']) for key, config in GOAL_TYPE_CONFIG.items()]
+    # Need to map UserGoal back to form
+    # Form expects: goal_type, period, target_value...
+    # Mapping back is tricky if form relies on "Legacy" goal_type.
+    # We will just fill common fields.
+    
+    # Create object with attributes matching form
+    form_obj = type('obj', (object,), {
+        'goal_type': user_goal.goal_code, # Or definition.metric
+        'domain': user_goal.definition.domain,
+        'scope': user_goal.scope,
+        'metric': user_goal.definition.metric,
+        'period': user_goal.period,
+        'target_value': user_goal.target_value,
+        'title': user_goal.definition.title,
+        'description': user_goal.definition.description,
+        'start_date': user_goal.start_date,
+        'due_date': user_goal.end_date,
+        'notes': '', 
+        'reference_id': user_goal.reference_id
+    })
+
+    form = LearningGoalForm(obj=form_obj)
+    # form.goal_type.choices = ... (Legacy)
 
     if form.validate_on_submit():
-        config = GOAL_TYPE_CONFIG.get(form.goal_type.data)
-        if config is None:
-            flash('Loại mục tiêu không hợp lệ.', 'error')
-        else:
-            goal.goal_type = form.goal_type.data
-            goal.period = form.period.data
-            goal.target_value = form.target_value.data
-            goal.title = form.title.data.strip() if form.title.data else config['label']
-            goal.description = config['description']
-            goal.start_date = form.start_date.data
-            goal.due_date = form.due_date.data
-            goal.notes = form.notes.data.strip() if form.notes.data else None
-            db.session.commit()
-            flash('Đã cập nhật mục tiêu học tập.', 'success')
-            return redirect(url_for('goals.manage_goals'))
+        user_goal.period = form.period.data
+        user_goal.target_value = form.target_value.data
+        user_goal.start_date = form.start_date.data
+        user_goal.end_date = form.due_date.data
+        # Updating Definition Title? Probably not unique to user.
+        # If user changes title, it's problematic if titles are on Goal template.
+        # Ignoring title update for now or creating new template?
+        # UserGoal doesn't have title field.
+        
+        db.session.commit()
+        flash('Đã cập nhật mục tiêu học tập.', 'success')
+        return redirect(url_for('goals.manage_goals'))
 
     return render_dynamic_template('pages/goals/edit.html',
         form=form,
-        goal=goal,
+        goal=user_goal,
         period_labels=PERIOD_LABELS,
         config=GOAL_TYPE_CONFIG,
     )
@@ -159,8 +170,8 @@ def edit_goal(goal_id: int):
 @goals_bp.route('/goals/<int:goal_id>/toggle', methods=['POST'])
 @login_required
 def toggle_goal(goal_id: int):
-    goal = LearningGoal.query.filter_by(user_id=current_user.user_id, goal_id=goal_id).first_or_404()
-    goal.is_active = not goal.is_active
+    user_goal = UserGoal.query.filter_by(user_id=current_user.user_id, user_goal_id=goal_id).first_or_404()
+    user_goal.is_active = not user_goal.is_active
     db.session.commit()
     flash('Đã cập nhật trạng thái mục tiêu.', 'success')
     return redirect(request.referrer or url_for('goals.manage_goals'))
@@ -169,8 +180,8 @@ def toggle_goal(goal_id: int):
 @goals_bp.route('/goals/<int:goal_id>/delete', methods=['POST'])
 @login_required
 def delete_goal(goal_id: int):
-    goal = LearningGoal.query.filter_by(user_id=current_user.user_id, goal_id=goal_id).first_or_404()
-    db.session.delete(goal)
+    user_goal = UserGoal.query.filter_by(user_id=current_user.user_id, user_goal_id=goal_id).first_or_404()
+    db.session.delete(user_goal)
     db.session.commit()
     flash('Đã xóa mục tiêu học tập.', 'success')
     return redirect(request.referrer or url_for('goals.manage_goals'))

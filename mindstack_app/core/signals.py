@@ -80,7 +80,10 @@ user_registered = user_signals.signal('user_registered')
 # Payload: user (User object), changes (list of fields changed)
 profile_updated = user_signals.signal('profile_updated')
 
-# Future signals can be added here:
-# user_logged_in = user_signals.signal('user_logged_in') # Or modify existing logic
+# Signal: Fired when user logs in
+# Payload: user (User object)
+user_logged_in = user_signals.signal('user_logged_in')
 # badge_earned = learning_signals.signal('badge_earned')
-# daily_goal_reached = learning_signals.signal('daily_goal_reached')
+# goal_completed = learning_signals.signal('goal_completed')
+goal_completed = learning_signals.signal('goal_completed')
+

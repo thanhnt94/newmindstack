@@ -34,14 +34,15 @@ from ...models import (
     UserContainerState,
     LearningProgress, # MIGRATED: Unified progress model
     ScoreLog,
-    LearningGoal,
+    Goal, # NEW
+    UserGoal, # NEW
+    GoalProgress, # NEW
     UserNote,
     UserFeedback,
     # [NEW] Missing models for backup
     LearningSession,
     Badge,
     UserBadge,
-    GoalDailyHistory,
     ReviewLog,
     UserItemMarker,
     QuizBattleRoom,
@@ -121,14 +122,14 @@ DATASET_CATALOG: "OrderedDict[str, dict[str, object]]" = OrderedDict(
                 UserContainerState,
                 LearningProgress, # MIGRATED
                 ScoreLog,
-                LearningGoal,
+                UserGoal, # Renamed from LearningGoal
+                GoalProgress, # Renamed from GoalDailyHistory
                 UserNote,
                 UserFeedback,
                 # [NEW]
                 LearningSession,
                 ReviewLog,
                 UserItemMarker,
-                GoalDailyHistory,
                 UserBadge,
                 Badge,
             ],
@@ -136,7 +137,7 @@ DATASET_CATALOG: "OrderedDict[str, dict[str, object]]" = OrderedDict(
         'goals_notes': {
             'label': 'Mục tiêu & ghi chú học tập',
             'description': 'Chỉ bao gồm dữ liệu mục tiêu học tập và ghi chú cá nhân của người học.',
-            'models': [LearningGoal, UserNote],
+            'models': [Goal, UserGoal, UserNote], # Added Goal template model
         },
         'system_configs': {
             'label': 'Cấu hình hệ thống & API',

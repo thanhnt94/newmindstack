@@ -6,7 +6,7 @@ from typing import Dict, Any, List, Optional, Tuple
 
 from sqlalchemy import func, case, distinct, desc
 from mindstack_app.models import (
-    db, User, ScoreLog, LearningContainer, LearningItem, LearningGoal, GoalDailyHistory
+    db, User, ScoreLog, LearningContainer, LearningItem
 )
 from mindstack_app.models.learning_progress import LearningProgress
 

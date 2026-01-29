@@ -3,8 +3,8 @@ from flask_login import current_user, login_required
 from sqlalchemy import func
 
 from . import dashboard_bp
-from ..goals.services import build_goal_progress
-from ...models import db, LearningGoal, User
+from ..goals.view_helpers import build_goal_progress
+from ...models import db, UserGoal, User
 
 
 @dashboard_bp.route('/dashboard', methods=['GET', 'POST'])
@@ -114,12 +114,12 @@ def dashboard():
     }
 
     goals = (
-        db.session.query(LearningGoal)
+        db.session.query(UserGoal)
         .filter(
-            LearningGoal.user_id == user_id,
-            LearningGoal.is_active.is_(True),
+            UserGoal.user_id == user_id,
+            UserGoal.is_active.is_(True),
         )
-        .order_by(LearningGoal.created_at.desc())
+        .order_by(UserGoal.created_at.desc())
         .all()
     )
 

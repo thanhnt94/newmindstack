@@ -23,8 +23,7 @@ from .user import (
     UserContainerState,
     UserSession,
     ScoreLog,
-    LearningGoal,
-    GoalDailyHistory,
+
     UserNote,
     UserFeedback,
     ContainerContributor,
@@ -36,8 +35,10 @@ from .ai import ApiKey, AiTokenLog, AiCache
 from .app_settings import AppSettings  # unified settings (replaces SiteSettings + SystemSetting)
 from .learning_progress import LearningProgress  # NEW: Unified progress model
 from .learning_session import LearningSession  # NEW: Database-backed sessions
+from .goals import Goal, UserGoal, GoalProgress  # NEW: Centralized Goal System
 from .gamification import Badge, UserBadge
 from .translator import TranslationHistory
+from .stats import UserMetric, DailyStat, Achievement  # NEW: Stats Module Models
 
 __all__ = [
     'db',
@@ -61,8 +62,9 @@ __all__ = [
     'UserContainerState',
     'UserSession',
     'ScoreLog',
-    'LearningGoal',
-    'GoalDailyHistory',
+    'Goal',            # NEW
+    'UserGoal',        # NEW
+    'GoalProgress',    # NEW
     'UserNote',
     'UserFeedback',
     'ContainerContributor',
@@ -78,4 +80,7 @@ __all__ = [
     'UserBadge',
     'AppSettings',
     'TranslationHistory',
+    'UserMetric',
+    'DailyStat',
+    'Achievement',
 ]

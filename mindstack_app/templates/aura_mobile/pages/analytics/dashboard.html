@@ -165,7 +165,12 @@
                     <i class="fas fa-trophy text-yellow-500"></i>
                     <span>Bảng xếp hạng</span>
                 </h3>
-                <span class="text-xs bg-slate-100 text-slate-600 px-3 py-1 rounded-full font-bold">Tuần này</span>
+                <span class="text-xs bg-slate-100 text-slate-600 px-3 py-1 rounded-full font-bold">
+                    {% if current_timeframe == 'week' %}Tuần này
+                    {% elif current_timeframe == 'month' %}Tháng này
+                    {% elif current_timeframe == 'day' %}Hôm nay
+                    {% else %}Tất cả{% endif %}
+                </span>
             </div>
 
             <div class="bg-white border border-slate-200 rounded-3xl shadow-sm overflow-hidden">
@@ -182,7 +187,7 @@
                             <p class="text-base font-bold text-slate-900 truncate">{{ entry.username }}</p>
                         </div>
                         <span class="text-sm font-black text-indigo-600 ml-3">{{
-                            "{:,}".format(entry.current_period_score|default(0)) }}</span>
+                            "{:,}".format(entry.score|default(0)) }}</span>
                     </li>
                     {% else %}
                     <li class="p-6 text-center text-sm text-slate-400">Chưa có dữ liệu xếp hạng tuần này.</li>

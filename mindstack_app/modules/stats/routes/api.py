@@ -53,12 +53,42 @@ def get_heatmap_data_api():
     return jsonify(heatmap_data)
 
 
+from ..logics.chart_utils import prepare_chartjs_config, get_color_for_dataset
+
 @stats_bp.route('/api/score-trend')
 @login_required
 def get_score_trend_api():
     timeframe = request.args.get('timeframe', '30d')
     data = get_score_trend_series(current_user.user_id, timeframe=timeframe)
-    return jsonify({'success': True, 'data': data})
+    
+    # Transform to Chart.js Config
+    series = data.get('series', [])
+    labels = [datetime.fromisoformat(d['date']).strftime('%d/%m') for d in series]
+    values = [d['total_score'] for d in series]
+    
+    config = prepare_chartjs_config(
+        labels=labels,
+        datasets=[{
+            'label': 'Điểm số tích lũy',
+            'data': values,
+            'borderColor': get_color_for_dataset(0),
+            'backgroundColor': get_color_for_dataset(0, 0.1),
+            'fill': True,
+            'tension': 0.4
+        }],
+        chart_type='line',
+        options={
+            'plugins':{
+                'title': {'display': True, 'text': f'Xu hướng điểm số ({timeframe})'}
+            }
+        }
+    )
+    
+    return jsonify({
+        'success': True, 
+        'data': data,
+        'chart_config': config
+    })
 
 
 @stats_bp.route('/api/activity-breakdown')

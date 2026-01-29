@@ -12,4 +12,8 @@ stats_bp = Blueprint(
 )
 
 from .routes import *  # noqa: E402, F401
+from .services.analytics_listener import init_analytics_listener
+
+# Initialize listeners
+init_analytics_listener()
 

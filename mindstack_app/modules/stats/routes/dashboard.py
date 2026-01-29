@@ -20,7 +20,7 @@ def dashboard():
     from mindstack_app.services.learning_metrics_service import LearningMetricsService
 
     initial_sort_by = request.args.get('sort_by', 'total_score')
-    initial_timeframe = request.args.get('timeframe', 'all_time')
+    initial_timeframe = request.args.get('timeframe', 'week')
 
     # [REPLACE] Use service for leaderboard
     leaderboard_data = LearningMetricsService.get_leaderboard(

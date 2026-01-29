@@ -45,10 +45,10 @@ def login():
         login_user(user, remember=form.remember_me.data)
         
         try:
-            from ...modules.gamification.services.scoring_service import ScoreService
-            ScoreService.record_daily_login(user.user_id)
+            from mindstack_app.core.signals import user_logged_in
+            user_logged_in.send(current_user._get_current_object(), user=current_user)
         except Exception as e:
-            # Login should verify succeed even if gamification fails
+            # Login should verify succeed even if signal fails
             pass
 
         flash('Đăng nhập thành công!', 'success')

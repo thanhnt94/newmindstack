@@ -200,65 +200,7 @@ class ScoreLog(db.Model):
         }
 
 
-class LearningGoal(db.Model):
-    """Stores personalised learning goals for each user."""
 
-    __tablename__ = 'learning_goals'
-
-    goal_id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('users.user_id'), nullable=False)
-    goal_type = db.Column(db.String(50), nullable=False) # Legacy or specific identifier
-    domain = db.Column(db.String(50), default='general', nullable=False) # general, flashcard, quiz
-    scope = db.Column(db.String(50), default='global', nullable=False) # global, container
-    reference_id = db.Column(db.Integer, nullable=True) # container_id if scope=container
-    metric = db.Column(db.String(50), default='points', nullable=False) # points, reviewed, new, correct
-    
-    period = db.Column(db.String(20), nullable=False, default='daily')
-    target_value = db.Column(db.Integer, nullable=False)
-    title = db.Column(db.String(120), nullable=True)
-    description = db.Column(db.Text)
-    start_date = db.Column(db.Date, nullable=True)
-    due_date = db.Column(db.Date, nullable=True)
-    notes = db.Column(db.Text)
-    is_active = db.Column(db.Boolean, nullable=False, default=True)
-    created_at = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
-    updated_at = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
-
-    user = db.relationship(
-        'User',
-        backref=db.backref('learning_goals', lazy=True, cascade='all, delete-orphan'),
-        lazy=True,
-    )
-
-    __table_args__ = (
-        db.Index('ix_learning_goals_user_period', 'user_id', 'period'),
-    )
-
-
-class GoalDailyHistory(db.Model):
-    """Daily snapshot of goal progress for history tracking."""
-    
-    __tablename__ = 'goal_daily_history'
-
-    history_id = db.Column(db.Integer, primary_key=True)
-    goal_id = db.Column(db.Integer, db.ForeignKey('learning_goals.goal_id'), nullable=False)
-    date = db.Column(db.Date, nullable=False)  # The date this record represents
-    
-    current_value = db.Column(db.Integer, default=0) # Value achieved on this date (or cumulative, depending on logic)
-    target_value = db.Column(db.Integer, default=0)  # Snapshot of target
-    is_met = db.Column(db.Boolean, default=False)
-    
-    updated_at = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
-
-    goal = db.relationship(
-        'LearningGoal',
-        backref=db.backref('history_logs', lazy='dynamic', cascade='all, delete-orphan'),
-        lazy=True,
-    )
-
-    __table_args__ = (
-        db.UniqueConstraint('goal_id', 'date', name='_goal_daily_uc'),
-    )
 
 
 class UserNote(db.Model):

@@ -5,7 +5,7 @@ This module contains ONLY pure Python logic.
 NO database, NO Flask dependencies allowed.
 """
 from datetime import date, datetime, timedelta, timezone
-from typing import Tuple, Optional, Generator, Any
+from typing import Tuple, Optional, Generator, Any, List, Dict
 
 
 # Timeframe mapping (string to days)
@@ -18,23 +18,24 @@ TIMEFRAME_DAYS = {
     '365d': 365,
 }
 
+# Chart Color Palette (Standardized)
+CHART_COLORS = {
+    'primary': 'rgba(79, 70, 229, 1)',   # Indigo 600
+    'primary_bg': 'rgba(79, 70, 229, 0.1)',
+    'success': 'rgba(16, 185, 129, 1)',   # Emerald 500
+    'success_bg': 'rgba(16, 185, 129, 0.1)',
+    'warning': 'rgba(245, 158, 11, 1)',   # Amber 500
+    'warning_bg': 'rgba(245, 158, 11, 0.1)',
+    'danger': 'rgba(239, 68, 68, 1)',     # Red 500
+    'danger_bg': 'rgba(239, 68, 68, 0.1)',
+    'info': 'rgba(59, 130, 246, 1)',      # Blue 500
+    'info_bg': 'rgba(59, 130, 246, 0.1)',
+    'neutral': 'rgba(107, 114, 128, 1)',  # Gray 500
+}
 
 def resolve_timeframe_dates(timeframe: str) -> Tuple[Optional[date], date]:
     """
     Return (start_date, end_date) for the requested timeframe.
-    
-    Args:
-        timeframe: String like '7d', '30d', '90d', '365d', or 'all'.
-        
-    Returns:
-        Tuple of (start_date, end_date). start_date is None if timeframe='all'.
-        
-    Examples:
-        >>> resolve_timeframe_dates('7d')
-        (date(2024, 1, 17), date(2024, 1, 23))  # 7 days ago to today
-        
-        >>> resolve_timeframe_dates('all')
-        (None, date(2024, 1, 23))
     """
     end_date = date.today()
     timeframe = (timeframe or '').lower()
@@ -53,15 +54,6 @@ def normalize_datetime_range(
 ) -> Tuple[Optional[datetime], Optional[datetime]]:
     """
     Return aware datetime boundaries for filtering timestamps.
-    
-    Converts date objects to UTC-aware datetime at start/end of day.
-    
-    Args:
-        start_date: Start date (inclusive).
-        end_date: End date (inclusive, converted to next day 00:00 for < comparison).
-        
-    Returns:
-        Tuple of (start_dt, end_dt) as timezone-aware datetimes.
     """
     if start_date:
         start_dt = datetime.combine(start_date, datetime.min.time()).replace(tzinfo=timezone.utc)
@@ -83,17 +75,6 @@ def normalize_datetime_range(
 def date_range(start_date: date, end_date: date) -> Generator[date, None, None]:
     """
     Generate a sequence of dates from start to end (inclusive).
-    
-    Args:
-        start_date: First date in sequence.
-        end_date: Last date in sequence (inclusive).
-        
-    Yields:
-        Each date in the range.
-        
-    Examples:
-        >>> list(date_range(date(2024, 1, 1), date(2024, 1, 3)))
-        [date(2024, 1, 1), date(2024, 1, 2), date(2024, 1, 3)]
     """
     current = start_date
     while current <= end_date:
@@ -104,17 +85,6 @@ def date_range(start_date: date, end_date: date) -> Generator[date, None, None]:
 def parse_history_datetime(raw_value: Any) -> Optional[datetime]:
     """
     Safely parse ISO formatted timestamps stored in JSON histories.
-    
-    Handles various input types:
-    - datetime objects (returned as-is with UTC)
-    - ISO format strings (with or without timezone)
-    - None or invalid values (returns None)
-    
-    Args:
-        raw_value: Value to parse (str, datetime, or None).
-        
-    Returns:
-        UTC-aware datetime, or None if parsing fails.
     """
     if not raw_value:
         return None
@@ -148,22 +118,6 @@ def sanitize_pagination(
 ) -> Tuple[int, int]:
     """
     Normalize pagination parameters from query strings.
-    
-    Args:
-        page: Page number (may be string, int, or None).
-        per_page: Items per page (may be string, int, or None).
-        default_per_page: Default value for per_page.
-        max_per_page: Maximum allowed per_page value.
-        
-    Returns:
-        Tuple of (page, per_page) as validated integers.
-        
-    Examples:
-        >>> sanitize_pagination('2', '25')
-        (2, 25)
-        
-        >>> sanitize_pagination(None, '100', max_per_page=50)
-        (1, 50)
     """
     try:
         page = int(page)
@@ -193,23 +147,65 @@ def fill_series_gaps(
 ) -> list:
     """
     Fill gaps in a date series with default values.
-    
-    Useful for creating continuous chart data where some dates have no records.
-    
-    Args:
-        data_map: Dict mapping dates to values.
-        start_date: Start of date range.
-        end_date: End of date range.
-        default_value: Value to use for missing dates.
-        
-    Returns:
-        List of dicts with 'date' and 'value' keys for each day.
+    Returns list of dicts with 'date' and 'value' keys.
     """
     series = []
     for current_date in date_range(start_date, end_date):
         value = data_map.get(current_date, default_value)
         series.append({
             'date': current_date.isoformat(),
-            'value': value
+            'value': value,
+            'label': current_date.strftime('%d/%m')
         })
     return series
+
+def prepare_chartjs_config(
+        labels: List[str], 
+        datasets: List[Dict[str, Any]], 
+        chart_type: str = 'line',
+        options: Optional[Dict] = None
+    ) -> Dict[str, Any]:
+    """
+    Generate a ready-to-use Chart.js configuration dictionary.
+    """
+    base_config = {
+        'type': chart_type,
+        'data': {
+            'labels': labels,
+            'datasets': datasets
+        },
+        'options': {
+            'responsive': True,
+            'maintainAspectRatio': False,
+            'plugins': {
+                'legend': {
+                    'position': 'bottom'
+                }
+            },
+            'scales': {
+                'y': {
+                    'beginAtZero': True
+                }
+            }
+        }
+    }
+    
+    if options:
+        base_config['options'].update(options)
+        
+    return base_config
+
+def get_color_for_dataset(index: int, alpha: float = 1.0) -> str:
+    """Get a color from the predefined palette based on index."""
+    colors = [
+        CHART_COLORS['primary'],
+        CHART_COLORS['success'],
+        CHART_COLORS['warning'],
+        CHART_COLORS['danger'],
+        CHART_COLORS['info'],
+        CHART_COLORS['neutral']
+    ]
+    base = colors[index % len(colors)]
+    if alpha < 1.0:
+        return base.replace('1)', f'{alpha})')
+    return base
