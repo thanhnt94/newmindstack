@@ -290,7 +290,7 @@
         const saveNoteBtn = document.getElementById('save-note-btn');
         const currentLessonId = {{ lesson.item_id }
     };
-    const saveNoteUrl = "{{ url_for('notes.save_note', item_id=0) }}";
+    const saveNoteUrl = "{{ url_for('notes.save_note', reference_type='item', reference_id=0) }}";
 
     function toggleNoteView(isEditing) {
         if (isEditing) {
