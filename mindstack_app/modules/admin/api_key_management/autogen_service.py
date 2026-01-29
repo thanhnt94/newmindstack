@@ -69,7 +69,8 @@ def generate_quiz_explanation(item, ai_client):
 
         response = ai_client.generate_content(
             prompt=prompt,
-            item_info=f"Quiz Item #{item.item_id}"
+            feature='explanation',
+            context_ref=f"Quiz Item #{item.item_id}"
         )
         
         if isinstance(response, dict):
@@ -103,7 +104,8 @@ def generate_flashcard_hint(item, ai_client):
 
         response = ai_client.generate_content(
             prompt=prompt,
-            item_info=f"Flashcard Item #{item.item_id}"
+            feature='explanation',
+            context_ref=f"Flashcard Item #{item.item_id}"
         )
         
         if isinstance(response, dict):

@@ -1,11 +1,13 @@
-# File: mindstack_app/modules/AI/__init__.py
-# Phiên bản: 1.0
-# Mục đích: Định nghĩa Blueprint cho module dịch vụ AI.
-
+"""AI Module Entry Point."""
 from flask import Blueprint
 
-# Tạo đối tượng Blueprint cho module AI
+# Blueprint for the AI module features
 ai_bp = Blueprint('AI', __name__)
 
-# Import các routes để chúng được đăng ký với Blueprint
+def setup_module(app):
+    """Module-level infrastructure setup."""
+    from .services.ai_service import setup_ai_signals
+    setup_ai_signals(app)
+
+# Register routes
 from . import routes

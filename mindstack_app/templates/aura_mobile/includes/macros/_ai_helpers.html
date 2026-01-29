@@ -1,0 +1,16 @@
+{% macro ai_explanation_btn(item_id, class="") %}
+{% if is_module_active('AI') %}
+<button id="ai-explain-btn-{{ item_id }}" class="ai-btn {{ class }}"
+    onclick="triggerAIAction('explanation', {{ item_id }})">
+    <i class="fas fa-sparkles"></i> AI Coach
+</button>
+{% endif %}
+{% endmacro %}
+
+{% macro ai_content_placeholder(item_id) %}
+{% if is_module_active('AI') %}
+<div id="ai-content-{{ item_id }}" class="ai-content-area hidden">
+    <!-- AI Content will be loaded here -->
+</div>
+{% endif %}
+{% endmacro %}

@@ -46,19 +46,6 @@ class BackgroundTaskLog(db.Model):
     created_at = db.Column(db.DateTime(timezone=True), server_default=func.now())
 
 
-class ApiKey(db.Model):
-    """Persisted API keys."""
-
-    __tablename__ = 'api_keys'
-
-    key_id = db.Column(db.Integer, primary_key=True)
-    provider = db.Column(db.String(50), default='gemini', nullable=False)
-    key_value = db.Column(db.String(255), unique=True, nullable=False)
-    is_active = db.Column(db.Boolean, default=True)
-    is_exhausted = db.Column(db.Boolean, default=False)
-    last_used_timestamp = db.Column(db.DateTime(timezone=True))
-    notes = db.Column(db.Text)
-
 
 def _task_has_state_changes(target: BackgroundTask) -> bool:
     """Check whether tracked fields have changed to decide if a log should be created."""
@@ -96,33 +83,3 @@ def create_log_after_update(mapper, connection, target):  # pylint: disable=unus
     if not _task_has_state_changes(target):
         return
     _insert_task_log(connection, target)
-
-
-class AILog(db.Model):
-    """Log entry for AI generation requests (auditing and quotas)."""
-
-    __tablename__ = 'ai_logs'
-
-    log_id = db.Column(db.Integer, primary_key=True)
-    timestamp = db.Column(db.DateTime(timezone=True), server_default=func.now())
-    user_id = db.Column(db.Integer, nullable=True)  # Optional, if triggered by a user action
-    
-    provider = db.Column(db.String(50), nullable=False)   # 'gemini', 'huggingface', etc.
-    model_name = db.Column(db.String(100), nullable=False) # e.g. 'gemini-1.5-flash'
-    key_id = db.Column(db.Integer, db.ForeignKey('api_keys.key_id'), nullable=True)
-    
-    # Context
-    request_type = db.Column(db.String(50)) # e.g. 'explanation', 'translation', 'chat'
-    item_info = db.Column(db.String(255))   # Description of what was processed (e.g. "Card #123")
-    
-    # Metrics
-    prompt_chars = db.Column(db.Integer, default=0)
-    response_chars = db.Column(db.Integer, default=0)
-    processing_time_ms = db.Column(db.Integer, default=0)
-    
-    # Status
-    status = db.Column(db.String(20), default='success') # 'success', 'error'
-    error_message = db.Column(db.Text, nullable=True)
-
-    # Relationships
-    api_key = db.relationship('ApiKey', backref='logs')

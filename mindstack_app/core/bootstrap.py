@@ -139,8 +139,11 @@ def register_context_processors(app: Flask) -> None:
         return {"_v": version, "template_version": version}
 
     @app.context_processor
-    def inject_utility_functions() -> dict[str, Callable[..., str]]:
-        return {"bbcode_to_html": bbcode_to_html}
+    def inject_utility_functions() -> dict[str, Callable[..., Any]]:
+        return {
+            "bbcode_to_html": bbcode_to_html,
+            "is_module_active": lambda name: name in app.blueprints
+        }
 
     @login_manager.user_loader
     def load_user(user_id: str):

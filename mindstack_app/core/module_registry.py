@@ -40,8 +40,23 @@ def register_modules(app: Flask, modules: Sequence[ModuleDefinition]) -> None:
     """Register all modules in the provided iterable with the Flask app."""
 
     for module in modules:
+        # Load blueprint
         blueprint = module.load_blueprint()
         app.register_blueprint(blueprint, url_prefix=module.url_prefix)
+        
+        # Optional: Call setup_module(app) if it exists in the module's package
+        try:
+            # e.g., if import_path is 'mindstack_app.modules.AI.routes',
+            # look for 'mindstack_app.modules.AI.setup_module'
+            package_path = ".".join(module.import_path.split(".")[:-1])
+            pkg = import_string(package_path, silent=True)
+            setup_func = getattr(pkg, "setup_module", None)
+            if setup_func and callable(setup_func):
+                setup_func(app)
+                app.logger.debug("Called setup_module for %s", package_path)
+        except Exception as e:
+            app.logger.error("Error during setup_module for %s: %s", module.import_path, e)
+
         app.logger.debug(
             "Registered module %s (version %s) at prefix %s",
             module.import_path,

@@ -58,7 +58,11 @@ def get_ai_response():
     # 3. Gọi AI API để lấy phản hồi
     try:
         item_info = f"{item.item_type} ID {item.item_id}"
-        success, ai_response = ai_client.generate_content(final_prompt, item_info)
+        success, ai_response = ai_client.generate_content(
+            final_prompt, 
+            feature=prompt_type,
+            context_ref=item_info
+        )
 
         if not success:
             return jsonify({'success': False, 'message': ai_response}), 503

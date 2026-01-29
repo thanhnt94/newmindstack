@@ -140,7 +140,11 @@ def generate_ai_explanations(
             task.message = f"Đang tạo AI Explain cho {item_info} ({idx}/{task.total}) trong {scope_label}"
             db.session.commit()
 
-            success, ai_response = ai_client.generate_content(prompt, item_info)
+            success, ai_response = ai_client.generate_content(
+                prompt, 
+                feature='explanation', 
+                context_ref=item_info
+            )
             if not success:
                 task.status = "error"
                 task.message = f"Lỗi khi gọi AI cho {item_info}: {ai_response}"

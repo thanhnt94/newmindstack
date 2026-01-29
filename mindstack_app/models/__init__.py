@@ -31,7 +31,8 @@ from .user import (
     ReviewLog,
     UserItemMarker,
 )
-from .system import ApiKey, BackgroundTask, BackgroundTaskLog
+from .system import BackgroundTask, BackgroundTaskLog
+from .ai import ApiKey, AiTokenLog, AiCache
 from .app_settings import AppSettings  # unified settings (replaces SiteSettings + SystemSetting)
 from .learning_progress import LearningProgress  # NEW: Unified progress model
 from .learning_session import LearningSession  # NEW: Database-backed sessions
@@ -71,6 +72,8 @@ __all__ = [
     'BackgroundTask',
     'BackgroundTaskLog',
     'ApiKey',
+    'AiTokenLog',
+    'AiCache',
     'Badge',
     'UserBadge',
     'AppSettings',

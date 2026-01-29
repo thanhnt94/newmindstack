@@ -55,6 +55,18 @@ ai_signals = Namespace()
 #          input_tokens (int), output_tokens (int), cost_estimate (float)
 ai_token_used = ai_signals.signal('ai_token_used')
 
+# Signal: Fired when content (text/definition) changes, used to trigger background AI tasks
+# Payload: content_type ('item', 'set'), content_id, payload (dict with text data)
+content_changed = content_signals.signal('content_changed')
+
+# Signal: Fired for manual AI action requests
+# Payload: user_id, action_type ('explain', 'translate'), context_data (dict)
+ai_action_requested = ai_signals.signal('ai_action_requested')
+
+# Signal: Fired when AI response is ready
+# Payload: request_id, success (bool), result (str/dict), usage (dict)
+ai_response_ready = ai_signals.signal('ai_response_ready')
+
 # ============================================
 # User Lifecycle Signals
 # ============================================

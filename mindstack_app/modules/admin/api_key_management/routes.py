@@ -8,8 +8,7 @@ from sqlalchemy import desc, func
 from datetime import datetime, timedelta
 from . import api_key_management_bp
 from .forms import ApiKeyForm
-from mindstack_app.models import db, ApiKey, BackgroundTask, AppSettings
-from mindstack_app.models.system import AILog
+from mindstack_app.models import db, ApiKey, AiTokenLog, BackgroundTask, AppSettings
 from mindstack_app.core.error_handlers import error_response, success_response
 
 @api_key_management_bp.before_request
@@ -40,21 +39,21 @@ def list_api_keys():
     # 2. Fetch Usage Logs with Pagination
     page = request.args.get('page', 1, type=int)
     per_page = 50
-    pagination = AILog.query.order_by(desc(AILog.timestamp)).paginate(page=page, per_page=per_page, error_out=False)
+    pagination = AiTokenLog.query.order_by(desc(AiTokenLog.timestamp)).paginate(page=page, per_page=per_page, error_out=False)
     logs = pagination.items
     
     # 3. Fetch Chart Data (Last 7 Days) - Grouped by Model
     seven_days_ago = datetime.now() - timedelta(days=7)
     
-    # Query: Date, Model, Count, Sum(PromptChars), Sum(ResponseChars)
+    # Query: Date, Model, Count, Sum(InputTokens), Sum(OutputTokens)
     stats_query = db.session.query(
-        func.date(AILog.timestamp).label('date'),
-        AILog.model_name,
-        func.count(AILog.log_id),
-        func.sum(AILog.prompt_chars),
-        func.sum(AILog.response_chars)
-    ).filter(AILog.timestamp >= seven_days_ago)\
-     .group_by('date', AILog.model_name).all()
+        func.date(AiTokenLog.timestamp).label('date'),
+        AiTokenLog.model_name,
+        func.count(AiTokenLog.log_id),
+        func.sum(AiTokenLog.input_tokens),
+        func.sum(AiTokenLog.output_tokens)
+    ).filter(AiTokenLog.timestamp >= seven_days_ago)\
+     .group_by('date', AiTokenLog.model_name).all()
      
     # Transform data for Chart.js
     dates_set = set()
@@ -66,7 +65,7 @@ def list_api_keys():
     # 'YYYY-MM-DD'-> { 'model_a': 5000 }
     map_tokens = {}
 
-    for date_str, model_name, count, sum_prompt, sum_response in stats_query:
+    for date_str, model_name, count, sum_in, sum_out in stats_query:
         if not date_str or not model_name: continue
         dates_set.add(date_str)
         models_set.add(model_name)
@@ -75,9 +74,9 @@ def list_api_keys():
         if date_str not in map_tokens: map_tokens[date_str] = {}
         
         map_requests[date_str][model_name] = count
-        # Total chars ~ tokens (rough approx)
-        total_chars = (sum_prompt or 0) + (sum_response or 0)
-        map_tokens[date_str][model_name] = total_chars
+        # Total tokens
+        total_tokens = (sum_in or 0) + (sum_out or 0)
+        map_tokens[date_str][model_name] = total_tokens
     
     # Sort labels (Dates)
     sorted_dates = sorted(list(dates_set))
@@ -398,15 +397,15 @@ def test_hop_chat():
         
         # Helper to format and send
         if provider == 'gemini':
-            client = GeminiClient(current_app.app_context(), model_name=model or 'gemini-2.0-flash-lite-001')
-            response_text = client.generate_content(prompt)
+            client = GeminiClient(model_name=model or 'gemini-2.0-flash-lite-001')
+            _, response_text = client.generate_content(prompt, feature='test_chat', context_ref='admin_test')
         elif provider == 'huggingface':
-            client = HuggingFaceClient(current_app.app_context(), model_name=model or 'google/gemma-7b-it')
-            response_text = client.generate_content(prompt)
+            client = HuggingFaceClient(model_name=model or 'google/gemma-7b-it')
+            _, response_text = client.generate_content(prompt, feature='test_chat', context_ref='admin_test')
         else: # Hybrid/Default
             from mindstack_app.modules.AI.services.ai_manager import get_ai_service
             service = get_ai_service()
-            response_text = service.generate_content(prompt)
+            _, response_text = service.generate_content(prompt, feature='test_chat', context_ref='admin_test')
 
         end_time = datetime.now()
         duration = int((end_time - start_time).total_seconds() * 1000)

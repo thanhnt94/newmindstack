@@ -46,12 +46,16 @@ class AIGateway:
             return {'success': False, 'message': 'Could not build prompt (missing data).'}
             
         # 2. Call Client
-        client = AIServiceManager.get_service(current_app.app_context())
+        client = AIServiceManager.get_service()
         
-        # Get item info for logging (legacy)
+        # Get item info for logging
         item_info = f"{item_data.get('item_type')}:{item_data.get('item_id')}"
         
-        success, raw_result = client.generate_content(prompt, item_info=item_info)
+        success, raw_result = client.generate_content(
+            prompt, 
+            feature='explanation',
+            context_ref=item_info
+        )
         
         if not success:
             return {'success': False, 'message': raw_result}
@@ -96,8 +100,12 @@ class AIGateway:
         conversation = "\n".join([f"{m['role']}: {m['content']}" for m in messages])
         prompt = f"Previous conversation:\n{conversation}\n\nAssistant:"
         
-        client = AIServiceManager.get_service(current_app.app_context())
-        success, raw_result = client.generate_content(prompt, item_info="chat_session")
+        client = AIServiceManager.get_service()
+        success, raw_result = client.generate_content(
+            prompt, 
+            feature='chat',
+            context_ref='chat_session'
+        )
         
         if success:
             clean_text = ResponseParser.clean_markdown(raw_result)
