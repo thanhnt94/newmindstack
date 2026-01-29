@@ -25,7 +25,6 @@ from .user import (
 
 
     UserNote,
-    UserFeedback,
     ContainerContributor,
     ReviewLog,
     UserItemMarker,
@@ -40,6 +39,7 @@ from .gamification import Badge, UserBadge, ScoreLog, Streak
 from .translator import TranslationHistory
 from .stats import UserMetric, DailyStat, Achievement  # NEW: Stats Module Models
 from .notification import Notification, PushSubscription, NotificationPreference # NEW: Notification Models
+from .feedback import Feedback, FeedbackAttachment # NEW: Feedback Models
 
 __all__ = [
     'db',
@@ -67,7 +67,6 @@ __all__ = [
     'UserGoal',        # NEW
     'GoalProgress',    # NEW
     'UserNote',
-    'UserFeedback',
     'ContainerContributor',
     'ContainerContributor',
     'ReviewLog',
@@ -89,4 +88,6 @@ __all__ = [
     'Notification',
     'PushSubscription',
     'NotificationPreference',
+    'Feedback',
+    'FeedbackAttachment',
 ]

@@ -67,12 +67,7 @@ class User(UserMixin, db.Model):
 
 
 
-    feedbacks = db.relationship(
-        'UserFeedback', foreign_keys='UserFeedback.user_id', backref='reporter', lazy=True
-    )
-    resolved_feedbacks = db.relationship(
-        'UserFeedback', foreign_keys='UserFeedback.resolved_by_id', backref='resolver', lazy=True
-    )
+
     
     # Relationship to new ReviewLogs
     review_logs = db.relationship('ReviewLog', backref='user', lazy='dynamic')
@@ -191,22 +186,7 @@ class UserNote(db.Model):
     item = db.relationship('LearningItem', backref=db.backref('user_notes', cascade='all, delete-orphan'))
 
 
-class UserFeedback(db.Model):
-    """Feedback reports tied to specific learning items."""
 
-    __tablename__ = 'user_feedback'
-
-    feedback_id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('users.user_id'), nullable=False)
-    item_id = db.Column(db.Integer, db.ForeignKey('learning_items.item_id'), nullable=True)
-    recipient_id = db.Column(db.Integer, db.ForeignKey('users.user_id'), nullable=True)
-    content = db.Column(db.Text, nullable=False)
-    status = db.Column(db.String(50), default='new')
-    timestamp = db.Column(db.DateTime(timezone=True), server_default=func.now())
-    resolved_by_id = db.Column(db.Integer, db.ForeignKey('users.user_id'), nullable=True)
-
-    item = db.relationship('LearningItem', backref='feedbacks', lazy=True)
-    recipient = db.relationship('User', foreign_keys=[recipient_id], backref='received_feedbacks', lazy=True)
 
 
 class ContainerContributor(db.Model):

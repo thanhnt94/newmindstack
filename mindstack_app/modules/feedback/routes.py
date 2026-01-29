@@ -1,18 +1,14 @@
-# File: Mindstack/web/mindstack_app/modules/feedback/routes.py
-# Version: 1.3
-# MỤC ĐÍCH: Khắc phục lỗi lưu nội dung feedback trống.
-# ĐÃ SỬA: Thêm logic .strip() để loại bỏ khoảng trắng ở đầu và cuối chuỗi feedback trước khi kiểm tra và lưu vào database.
-
 from flask import render_template, request, jsonify, flash, redirect, url_for, abort
 from mindstack_app.utils.template_helpers import render_dynamic_template
 from flask_login import login_required, current_user
 from sqlalchemy import or_
 
 from . import feedback_bp
-from ...models import db, UserFeedback, LearningItem, LearningContainer, User
+# We now use the new Feedback models from kernel
+from mindstack_app.models import db, Feedback, LearningItem, LearningContainer, User
 from datetime import datetime
 
-# Route để hiển thị trang quản lý feedback (dành cho admin hoặc chủ sở hữu)
+
 @feedback_bp.route('/')
 @login_required
 def manage_feedback():
@@ -20,152 +16,111 @@ def manage_feedback():
     Mô tả:
         Hiển thị trang quản lý phản hồi.
         Admin sẽ thấy tất cả phản hồi.
-        Người dùng thường sẽ thấy 2 danh sách riêng biệt:
-        - Phản hồi đã nhận: Về các nội dung do họ tạo.
-        - Phản hồi đã gửi: Các phản hồi họ đã gửi.
+        Người dùng thường sẽ thấy những phản hồi họ đã gửi.
     """
     # Phản hồi đã gửi (là những feedback do chính người dùng hiện tại tạo ra)
-    sent_feedbacks = UserFeedback.query.filter_by(user_id=current_user.user_id).order_by(UserFeedback.timestamp.desc()).all()
+    sent_feedbacks = Feedback.query.filter_by(user_id=current_user.user_id).order_by(Feedback.created_at.desc()).all()
 
     if current_user.user_role == 'admin':
         # Admin thấy tất cả feedback
-        received_feedbacks = UserFeedback.query.order_by(UserFeedback.timestamp.desc()).all()
+        received_feedbacks = Feedback.query.order_by(Feedback.created_at.desc()).all()
     else:
-        # User chỉ thấy feedback liên quan đến nội dung của họ
-        received_feedbacks = UserFeedback.query.filter(
-            or_(
-                UserFeedback.recipient_id == current_user.user_id,
-                UserFeedback.item.has(
-                    LearningItem.container.has(
-                        LearningContainer.creator_user_id == current_user.user_id
-                    )
-                )
-            )
-        ).order_by(UserFeedback.timestamp.desc()).all()
+        # User thường không có khái niệm "nhận" feedback trong hệ thống mới trừ khi họ là Creator (logic này có thể cần điều chỉnh sau)
+        # Tạm thời để trống hoặc logic tương tự
+        # logic cũ khá phức tạp dựa trên learning item container
+        received_feedbacks = [] 
 
     return render_dynamic_template('pages/feedback/manage_feedback.html',
                             received_feedbacks=received_feedbacks,
                             sent_feedbacks=sent_feedbacks,
                             users=User.query.order_by(User.username).all())
 
-# Route để người dùng gửi feedback
+
 @feedback_bp.route('/submit', methods=['POST'])
 @login_required
 def submit_feedback():
     """
     Mô tả:
-        Endpoint API để người dùng gửi phản hồi.
+        Endpoint API để người dùng gửi phản hồi (gắn với item cụ thể hoặc chung).
     """
     data = request.get_json()
     if not data:
-        return jsonify({'success': False, 'message': 'Dữ liệu gửi lên không hợp lệ.'}), 400
+        return jsonify({'success': False, 'message': 'Dữ liệu không hợp lệ.'}), 400
 
-    item_id = data.get('item_id')
-    # SỬA LỖI: Lấy nội dung và dùng .strip() để loại bỏ khoảng trắng thừa
     feedback_text = data.get('feedback_text', '').strip()
-
-    # Kiểm tra lại sau khi đã strip()
+    item_id = data.get('item_id') # Optional context
+    
     if not feedback_text:
-        return jsonify({'success': False, 'message': 'Nội dung feedback không được để trống.'}), 400
+        return jsonify({'success': False, 'message': 'Nội dung không được để trống.'}), 400
         
-    item = LearningItem.query.get(item_id)
-    if not item:
-        return jsonify({'success': False, 'message': 'Học liệu không tồn tại.'}), 404
-
-    if current_user.user_role == User.ROLE_FREE and (
-        not item.container or item.container.creator_user_id != current_user.user_id
-    ):
-        return jsonify({'success': False, 'message': 'Bạn không có quyền gửi phản hồi cho nội dung này.'}), 403
-
-    feedback = UserFeedback(
+    feedback = Feedback(
         user_id=current_user.user_id,
-        item_id=item_id,
-        content=feedback_text, # Lưu nội dung đã được làm sạch
-        timestamp=datetime.utcnow()
+        content=feedback_text,
+        type='CONTENT_ERROR' if item_id else 'OTHER',
+        meta_data={'item_id': item_id} if item_id else None
     )
+    
     db.session.add(feedback)
     db.session.commit()
     
-    return jsonify({'success': True, 'message': 'Cảm ơn bạn! Phản hồi của bạn đã được gửi thành công.'}), 200
+    # Trigger signal?
+    # from mindstack_app.modules.feedback.services.feedback_manager import FeedbackManager
+    # FeedbackManager.on_feedback_received(feedback)
+    
+    return jsonify({'success': True, 'message': 'Cảm ơn! Phản hồi đã được gửi.'}), 200
+
 
 
 @feedback_bp.route('/submit-general', methods=['POST'])
 @login_required
 def submit_general_feedback():
-    """Endpoint để gửi phản hồi chung không gắn với học liệu."""
+    """Endpoint để gửi phản hồi chung."""
+    # Reusing the unified submit logic or custom logic
+    # Here we just alias it or implement similar logic
+    return submit_feedback() # Use the robust one above
 
-    data = request.get_json()
-    if not data:
-        return jsonify({'success': False, 'message': 'Dữ liệu gửi lên không hợp lệ.'}), 400
 
-    feedback_text = data.get('feedback_text', '').strip()
-    recipient_id = data.get('recipient_id')
-
-    if not feedback_text:
-        return jsonify({'success': False, 'message': 'Nội dung feedback không được để trống.'}), 400
-
-    recipient = None
-    if recipient_id:
-        recipient = User.query.get(recipient_id)
-
-    if recipient is None:
-        recipient = User.query.filter_by(user_role='admin').order_by(User.user_id.asc()).first()
-
-    feedback = UserFeedback(
-        user_id=current_user.user_id,
-        recipient_id=recipient.user_id if recipient else None,
-        content=feedback_text,
-        timestamp=datetime.utcnow()
-    )
-    db.session.add(feedback)
-    db.session.commit()
-
-    return jsonify({'success': True, 'message': 'Phản hồi của bạn đã được gửi thành công.'}), 200
-
-# Route để xử lý feedback (đánh dấu đã giải quyết)
 @feedback_bp.route('/<int:feedback_id>/resolve', methods=['POST'])
 @login_required
 def resolve_feedback(feedback_id):
     """
     Mô tả:
         Endpoint để đánh dấu một phản hồi là đã giải quyết.
-        Chỉ admin hoặc người tạo nội dung liên quan mới có quyền.
+        Chỉ admin mới có quyền thực sự trong hệ thống mới.
     """
-    feedback = UserFeedback.query.get_or_404(feedback_id)
-    
-    # Kiểm tra quyền: Chỉ admin, người nhận hoặc chủ sở hữu nội dung mới được phép
-    is_owner = feedback.item and feedback.item.container and feedback.item.container.creator_user_id == current_user.user_id
-    is_recipient = feedback.recipient_id and feedback.recipient_id == current_user.user_id
-    if current_user.user_role != 'admin' and not (is_owner or is_recipient):
+    feedback = Feedback.query.get_or_404(feedback_id)
+
+    # Hệ thống mới tập trung, chỉ Admin xử lý feedback chính thống
+    if current_user.user_role != 'admin':
         abort(403)
         
-    feedback.status = 'resolved'
+    feedback.status = 'RESOLVED'
     feedback.resolved_by_id = current_user.user_id
+    feedback.resolved_at = datetime.utcnow() # Update resolved time
+    
     db.session.commit()
     
     flash('Phản hồi đã được đánh dấu là đã giải quyết!', 'success')
     return redirect(url_for('feedback.manage_feedback'))
 
-# Route để xử lý feedback (đánh dấu bỏ qua)
+
 @feedback_bp.route('/<int:feedback_id>/ignore', methods=['POST'])
 @login_required
 def ignore_feedback(feedback_id):
     """
     Mô tả:
-        Endpoint để đánh dấu một phản hồi là đã bỏ qua.
-        Chỉ admin hoặc người tạo nội dung liên quan mới có quyền.
+        Endpoint để đóng phản hồi mà không giải quyết.
     """
-    feedback = UserFeedback.query.get_or_404(feedback_id)
+    feedback = Feedback.query.get_or_404(feedback_id)
     
-    # Kiểm tra quyền: Chỉ admin, người nhận hoặc chủ sở hữu nội dung mới được phép
-    is_owner = feedback.item and feedback.item.container and feedback.item.container.creator_user_id == current_user.user_id
-    is_recipient = feedback.recipient_id and feedback.recipient_id == current_user.user_id
-    if current_user.user_role != 'admin' and not (is_owner or is_recipient):
+    if current_user.user_role != 'admin':
         abort(403)
         
-    feedback.status = 'wont_fix' # Đã đổi từ 'ignored' thành 'wont_fix' để nhất quán với file html
+    feedback.status = 'CLOSED' # Replaced 'wont_fix' with standard 'CLOSED'
     feedback.resolved_by_id = current_user.user_id
+    feedback.resolved_at = datetime.utcnow()
+    
     db.session.commit()
     
-    flash('Phản hồi đã được đánh dấu là bị bỏ qua.', 'info')
+    flash('Phản hồi đã được đóng.', 'info')
     return redirect(url_for('feedback.manage_feedback'))

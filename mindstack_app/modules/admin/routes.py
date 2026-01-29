@@ -38,7 +38,9 @@ from ...models import (
     UserGoal, # NEW
     GoalProgress, # NEW
     UserNote,
-    UserFeedback,
+    UserNote,
+    Feedback, # MIGRATED: UserFeedback -> Feedback
+    FeedbackAttachment, # New attachment model
     # [NEW] Missing models for backup
     LearningSession,
     Badge,
@@ -125,7 +127,6 @@ DATASET_CATALOG: "OrderedDict[str, dict[str, object]]" = OrderedDict(
                 UserGoal, # Renamed from LearningGoal
                 GoalProgress, # Renamed from GoalDailyHistory
                 UserNote,
-                UserFeedback,
                 # [NEW]
                 LearningSession,
                 ReviewLog,
@@ -147,7 +148,7 @@ DATASET_CATALOG: "OrderedDict[str, dict[str, object]]" = OrderedDict(
         'feedback_reports': {
             'label': 'Phản hồi & báo cáo từ người dùng',
             'description': 'Tập trung vào phản hồi, điểm số và lịch sử tương tác phục vụ phân tích.',
-            'models': [UserFeedback, ScoreLog],
+            'models': [Feedback, FeedbackAttachment, ScoreLog],
         },
         'multiplayer': {
             'label': 'Multiplayer (Quiz & Flashcard)',
