@@ -1,72 +1,41 @@
-# File: mindstack_app/modules/notes/routes.py
-# Phiên bản: 1.0
-# Mục đích: Chứa các route và logic cho tính năng ghi chú của người dùng.
-
-from flask import render_template, redirect, url_for, flash, request, jsonify
-from mindstack_app.utils.template_helpers import render_dynamic_template
+from flask import request, jsonify
 from flask_login import login_required, current_user
 from . import notes_bp
-from .forms import NoteForm
-from ...models import db, UserNote, LearningItem, User
+from .orchestrator import NoteOrchestrator
+from mindstack_app.utils.template_helpers import render_dynamic_template
 
-@notes_bp.route('/notes/get/<int:item_id>', methods=['GET'])
+@notes_bp.route('/notes/get/<string:reference_type>/<int:reference_id>', methods=['GET'])
 @login_required
-def get_note(item_id):
-    """
-    Mô tả: API endpoint để lấy nội dung ghi chú cho một học liệu cụ thể.
-    """
-    note = UserNote.query.filter_by(user_id=current_user.user_id, item_id=item_id).first()
-    if note:
-        return jsonify({'success': True, 'content': note.content})
-    else:
-        return jsonify({'success': False, 'content': ''})
+def get_note(reference_type, reference_id):
+    """API: Get note for any entity type."""
+    result = NoteOrchestrator.get_note_for_ui(current_user.user_id, reference_type, reference_id)
+    return jsonify(result)
 
-@notes_bp.route('/notes/save/<int:item_id>', methods=['POST'])
+@notes_bp.route('/notes/save/<string:reference_type>/<int:reference_id>', methods=['POST'])
 @login_required
-def save_note(item_id):
-    """
-    Mô tả: API endpoint để lưu hoặc cập nhật ghi chú cho một học liệu.
-    """
+def save_note(reference_type, reference_id):
+    """API: Save/Update note for any entity type."""
     data = request.get_json()
-    content = data.get('content')
-
-    if content is None:
-        return jsonify({'success': False, 'message': 'Nội dung không hợp lệ.'}), 400
-
-    # Kiểm tra xem học liệu có tồn tại không
-    item = LearningItem.query.get(item_id)
-    if not item:
-        return jsonify({'success': False, 'message': 'Học liệu không tồn tại.'}), 404
-
-    if current_user.user_role == User.ROLE_FREE and (
-        not item.container or item.container.creator_user_id != current_user.user_id
-    ):
-        return jsonify({'success': False, 'message': 'Bạn không có quyền tạo ghi chú cho nội dung này.'}), 403
-
-    note = UserNote.query.filter_by(user_id=current_user.user_id, item_id=item_id).first()
-
-    if note:
-        # Cập nhật ghi chú đã có
-        note.content = content
-    else:
-        # Tạo ghi chú mới
-        note = UserNote(user_id=current_user.user_id, item_id=item_id, content=content)
-        db.session.add(note)
+    content = data.get('content', '')
+    title = data.get('title')
     
-    db.session.commit()
-    return jsonify({'success': True, 'message': 'Đã lưu ghi chú.'})
+    result = NoteOrchestrator.save_note(current_user.user_id, reference_type, reference_id, content, title=title)
+    return jsonify(result)
 
 @notes_bp.route('/notes')
 @login_required
 def manage_notes():
-    """
-    Mô tả: Hiển thị trang quản lý tất cả các ghi chú của người dùng.
-    """
-    # Lấy tất cả ghi chú của người dùng và thông tin thẻ liên quan
-    notes = db.session.query(UserNote, LearningItem).join(
-        LearningItem, UserNote.item_id == LearningItem.item_id
-    ).filter(
-        UserNote.user_id == current_user.user_id
-    ).order_by(UserNote.created_at.desc()).all()
+    """HTML: Render notes management page."""
+    notes_data = NoteOrchestrator.get_manage_notes_data(current_user.user_id)
+    return render_dynamic_template('pages/notes/manage_notes.html', notes_data=notes_data)
 
-    return render_dynamic_template('pages/notes/manage_notes.html', notes_with_items=notes)
+# Compatibility routes for old 'item' only calls
+@notes_bp.route('/notes/get/<int:item_id>', methods=['GET'])
+@login_required
+def get_note_legacy(item_id):
+    return get_note('item', item_id)
+
+@notes_bp.route('/notes/save/<int:item_id>', methods=['POST'])
+@login_required
+def save_note_legacy(item_id):
+    return save_note('item', item_id)

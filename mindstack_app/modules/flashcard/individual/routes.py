@@ -36,6 +36,7 @@ from mindstack_app.models import (
     ContainerContributor,
     LearningSession,
     LearningProgress,
+    Note # [NEW] Added Note model import
 )
 from sqlalchemy.sql import func
 from sqlalchemy.exc import OperationalError

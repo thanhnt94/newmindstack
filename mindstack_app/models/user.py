@@ -172,18 +172,7 @@ class UserSession(db.Model):
 
 
 
-class UserNote(db.Model):
-    """Personal notes for specific learning items."""
 
-    __tablename__ = 'user_notes'
-
-    note_id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('users.user_id'), nullable=False)
-    item_id = db.Column(db.Integer, db.ForeignKey('learning_items.item_id'), nullable=False)
-    content = db.Column(db.Text, nullable=False)
-    created_at = db.Column(db.DateTime(timezone=True), server_default=func.now())
-
-    item = db.relationship('LearningItem', backref=db.backref('user_notes', cascade='all, delete-orphan'))
 
 
 

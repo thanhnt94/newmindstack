@@ -12,7 +12,7 @@ from flask import current_app, url_for
 from sqlalchemy.orm.attributes import flag_modified
 from openpyxl.utils import get_column_letter
 from openpyxl.worksheet.datavalidation import DataValidation
-from mindstack_app.models import db, LearningContainer, LearningItem, LearningGroup, User, UserNote, ContainerContributor
+from mindstack_app.models import db, LearningContainer, LearningItem, LearningGroup, User, Note, ContainerContributor
 from mindstack_app.utils.db_session import safe_commit
 from mindstack_app.utils.excel import extract_info_sheet_mapping, format_info_warnings, read_excel_with_formulas
 from mindstack_app.utils.media_paths import (

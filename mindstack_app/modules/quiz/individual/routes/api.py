@@ -20,7 +20,7 @@ from mindstack_app.models import (
     LearningItem,
     User,
     UserContainerState,
-    UserNote,
+    Note,
     ContainerContributor,
     db,
 )
@@ -76,7 +76,7 @@ def _serialize_quiz_learning_item(item, user_id):
     if audio_path:
         content_copy['question_audio_file'] = _build_absolute_media_url(audio_path, audio_folder)
 
-    note = UserNote.query.filter_by(user_id=user_id, item_id=item.item_id).first()
+    note = Note.query.filter_by(user_id=user_id, reference_type='item', reference_id=item.item_id).first()
 
     can_edit = False
     if current_user.is_authenticated and current_user.user_role == User.ROLE_ADMIN:

@@ -17,7 +17,7 @@ from mindstack_app.models import (
     QuizBattleParticipant,
     QuizBattleRoom,
     QuizBattleRound,
-    UserNote,
+    Note,
     db,
 )
 
@@ -266,7 +266,7 @@ def _serialize_question(
 
     note_content = ''
     if user_id:
-        note = UserNote.query.filter_by(user_id=user_id, item_id=item.item_id).first()
+        note = Note.query.filter_by(user_id=user_id, reference_type='item', reference_id=item.item_id).first()
         note_content = note.content if note else ''
 
     return {

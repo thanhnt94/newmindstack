@@ -10,7 +10,7 @@ from mindstack_app.models import (
     LearningGroup,
     LearningItem,
     User,
-    UserNote,
+    Note,
     ContainerContributor,
     UserItemMarker,
     db,
@@ -421,7 +421,7 @@ class QuizSessionManager:
 
         for item in new_items_to_add_to_session:
             # Lấy ghi chú cho câu hỏi này
-            note = UserNote.query.filter_by(user_id=self.user_id, item_id=item.item_id).first()
+            note = Note.query.filter_by(user_id=self.user_id, reference_type='item', reference_id=item.item_id).first()
 
             group_details = None
             group_key = None

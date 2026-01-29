@@ -37,8 +37,7 @@ from ...models import (
     Goal, # NEW
     UserGoal, # NEW
     GoalProgress, # NEW
-    UserNote,
-    UserNote,
+    Note, # MIGRATED: UserNote -> Note
     Feedback, # MIGRATED: UserFeedback -> Feedback
     FeedbackAttachment, # New attachment model
     # [NEW] Missing models for backup
@@ -126,7 +125,7 @@ DATASET_CATALOG: "OrderedDict[str, dict[str, object]]" = OrderedDict(
                 ScoreLog,
                 UserGoal, # Renamed from LearningGoal
                 GoalProgress, # Renamed from GoalDailyHistory
-                UserNote,
+                Note,
                 # [NEW]
                 LearningSession,
                 ReviewLog,
@@ -138,7 +137,7 @@ DATASET_CATALOG: "OrderedDict[str, dict[str, object]]" = OrderedDict(
         'goals_notes': {
             'label': 'Mục tiêu & ghi chú học tập',
             'description': 'Chỉ bao gồm dữ liệu mục tiêu học tập và ghi chú cá nhân của người học.',
-            'models': [Goal, UserGoal, UserNote], # Added Goal template model
+            'models': [Goal, UserGoal, Note], # Added Goal template model
         },
         'system_configs': {
             'label': 'Cấu hình hệ thống & API',
@@ -1673,7 +1672,7 @@ def reset_learning_progress():
             .delete(synchronize_session=False)
         )
         deleted_notes = (
-            UserNote.query.filter_by(user_id=user.user_id)
+            Note.query.filter_by(user_id=user.user_id)
             .delete(synchronize_session=False)
         )
         deleted_feedback = (
@@ -1736,7 +1735,10 @@ def reset_learning_progress():
         )
 
         deleted_notes = (
-            UserNote.query.filter(UserNote.item_id.in_(item_subquery))
+            Note.query.filter(
+                (Note.reference_type == 'item') & Note.reference_id.in_(item_subquery) |
+                (Note.reference_type == 'container') & (Note.reference_id == container.container_id)
+            )
             .delete(synchronize_session=False)
         )
         deleted_feedback = (

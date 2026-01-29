@@ -24,7 +24,7 @@ from .user import (
     UserSession,
 
 
-    UserNote,
+
     ContainerContributor,
     ReviewLog,
     UserItemMarker,
@@ -40,6 +40,7 @@ from .translator import TranslationHistory
 from .stats import UserMetric, DailyStat, Achievement  # NEW: Stats Module Models
 from .notification import Notification, PushSubscription, NotificationPreference # NEW: Notification Models
 from .feedback import Feedback, FeedbackAttachment # NEW: Feedback Models
+from .note import Note # NEW: Unified Note Model
 
 __all__ = [
     'db',
@@ -66,7 +67,7 @@ __all__ = [
     'Goal',            # NEW
     'UserGoal',        # NEW
     'GoalProgress',    # NEW
-    'UserNote',
+    'GoalProgress',    # NEW
     'ContainerContributor',
     'ContainerContributor',
     'ReviewLog',
@@ -90,4 +91,5 @@ __all__ = [
     'NotificationPreference',
     'Feedback',
     'FeedbackAttachment',
+    'Note',
 ]

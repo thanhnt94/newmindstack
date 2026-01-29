@@ -16,7 +16,7 @@ from mindstack_app.models import (
     ScoreLog,
     User,
     UserContainerState,
-    UserNote,
+    Note,
     db,
 )
 from mindstack_app.models.learning_progress import LearningProgress
@@ -120,7 +120,7 @@ def course_session(lesson_id):
     )
     
     # THÊM MỚI: Lấy ghi chú của người dùng cho bài học này
-    note = UserNote.query.filter_by(user_id=current_user.user_id, item_id=lesson.item_id).first()
+    note = Note.query.filter_by(user_id=current_user.user_id, reference_type='item', reference_id=lesson.item_id).first()
 
     return render_dynamic_template('pages/learning/course/course_session.html', 
         lesson=lesson, 

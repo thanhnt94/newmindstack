@@ -11,7 +11,7 @@ from . import quiz_learning_bp
 from ..logics.session_logic import QuizSessionManager
 from ..logics.algorithms import get_quiz_mode_counts, get_filtered_quiz_sets
 from ..config import QuizLearningConfig
-from mindstack_app.models import LearningContainer, LearningItem, User, UserContainerState, UserNote
+from mindstack_app.models import LearningContainer, LearningItem, User, UserContainerState, Note
 import json
 
 
@@ -587,7 +587,7 @@ def get_quiz_item_stats(item_id):
                 break
     
     # [NEW] Get User Note
-    note = UserNote.query.filter_by(user_id=current_user.user_id, item_id=item_id).first()
+    note = Note.query.filter_by(user_id=current_user.user_id, reference_type='item', reference_id=item_id).first()
 
     item_data = {
         'item_id': item.item_id,

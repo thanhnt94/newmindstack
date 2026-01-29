@@ -22,7 +22,7 @@ from flask_login import login_required, current_user
 from sqlalchemy import or_, func
 from sqlalchemy.orm.attributes import flag_modified
 from ..forms import QuizSetForm, QuizItemForm
-from mindstack_app.models import db, LearningContainer, LearningItem, LearningGroup, ContainerContributor, User, UserNote
+from mindstack_app.models import db, LearningContainer, LearningItem, LearningGroup, ContainerContributor, User, Note
 from mindstack_app.core.error_handlers import error_response, success_response
 from mindstack_app.config import Config
 from mindstack_app.config import Config
@@ -356,7 +356,7 @@ def _serialize_quiz_item_for_response(item, user_id=None):
 
     note_content = ''
     if user_id is not None:
-        note = UserNote.query.filter_by(user_id=user_id, item_id=item.item_id).first()
+        note = Note.query.filter_by(user_id=user_id, reference_type='item', reference_id=item.item_id).first()
         note_content = note.content if note else ''
 
         group_details = None
