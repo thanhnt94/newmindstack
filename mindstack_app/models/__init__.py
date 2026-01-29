@@ -22,7 +22,7 @@ from .user import (
     User,
     UserContainerState,
     UserSession,
-    ScoreLog,
+
 
     UserNote,
     UserFeedback,
@@ -36,7 +36,7 @@ from .app_settings import AppSettings  # unified settings (replaces SiteSettings
 from .learning_progress import LearningProgress  # NEW: Unified progress model
 from .learning_session import LearningSession  # NEW: Database-backed sessions
 from .goals import Goal, UserGoal, GoalProgress  # NEW: Centralized Goal System
-from .gamification import Badge, UserBadge
+from .gamification import Badge, UserBadge, ScoreLog, Streak
 from .translator import TranslationHistory
 from .stats import UserMetric, DailyStat, Achievement  # NEW: Stats Module Models
 
@@ -78,6 +78,8 @@ __all__ = [
     'AiCache',
     'Badge',
     'UserBadge',
+    'ScoreLog',
+    'Streak',
     'AppSettings',
     'TranslationHistory',
     'UserMetric',
