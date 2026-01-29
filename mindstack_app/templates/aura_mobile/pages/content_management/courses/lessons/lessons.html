@@ -46,6 +46,12 @@
             {% endif %}
         </div>
 
+        {# Hidden search form source for mobile CMS #}
+        <div class="search-form-container-source hidden">
+            {{ render_search_form(search_query=search_query, placeholder="Tìm kiếm bài học...",
+            container_id=container.container_id) }}
+        </div>
+
         <div class="cm-card cm-card--padded">
             <div class="cm-search-header">
                 <div class="cm-heading-group">

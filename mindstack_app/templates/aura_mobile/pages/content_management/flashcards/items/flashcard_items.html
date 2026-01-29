@@ -21,12 +21,11 @@
 <script>
     (function () {
         window.addEventListener('content-management:refresh', function (event) {
-            var detail = event && event.detail ? event.detail : {};
-            if (detail.scope === 'flashcard-item' && Number(detail.setId || detail.containerId) === {{ container.container_id }
-        }) {
-            window.location.reload();
-        }
-    });
-    }) ();
+            var detail = (event && event.detail) ? event.detail : {};
+            if (detail.scope === 'flashcard-item' && Number(detail.setId || detail.containerId) === {{ container.container_id }}) {
+                window.location.reload();
+            }
+        });
+    })();
 </script>
 {% endblock %}

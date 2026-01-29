@@ -1,13 +1,13 @@
 {% set _v = template_version | default('aura_mobile') %}
 {% from _v ~ '/includes/pagination/_pagination_mobile.html' import render_pagination_mobile with context %}
 
-{% macro render_pagination(pagination, search_query=None, set_id=None, search_field=None, current_filter=None) %}
+{% macro render_pagination(pagination, search_query=None, set_id=None, container_id=None, search_field=None, current_filter=None) %}
 <div class="w-full">
-    {{ render_pagination_mobile(pagination, search_query, set_id, search_field, current_filter) }}
+    {{ render_pagination_mobile(pagination, search_query, set_id, container_id, search_field, current_filter) }}
 </div>
 {% endmacro %}
 
 {# Auto-render if directly included with a 'pagination' variable present #}
 {% if pagination is defined %}
-{{ render_pagination(pagination, search_query, set_id, search_field, current_filter) }}
+{{ render_pagination(pagination, search_query, set_id, container_id, search_field, current_filter) }}
 {% endif %}

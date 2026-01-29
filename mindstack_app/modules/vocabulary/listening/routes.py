@@ -495,10 +495,9 @@ def api_tts():
                 
                 # Convert backslashes to forward slashes for URLs
                 rel_path = rel_path.replace('\\', '/')
-                audio_url = url_for('static', filename=rel_path, _external=True)
-            
-            current_app.logger.info(f"[TTS] Success. Final audio_url: {audio_url}")
-            
+                audio_url = url_for('media_uploads', filename=rel_path, _external=True)
+                
+                current_app.logger.info(f"[TTS] Success. Final audio_url: {audio_url}")            
             # If it's a direct GET request (from <audio src="...">), just redirect to the file
             if request.method == 'GET':
                 return redirect(audio_url)

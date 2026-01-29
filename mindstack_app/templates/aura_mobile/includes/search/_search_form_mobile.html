@@ -1,9 +1,9 @@
 {# File: mindstack_app/templates/aura_mobile/includes/search/_search_form_mobile.html #}
 {# Mobile version of search form - Premium App Style #}
 
-{% macro render_search_form_mobile(search_query=None, search_field='all', placeholder="Tìm kiếm...", set_id=None,
+{% macro render_search_form_mobile(search_query=None, search_field='all', placeholder="Tìm kiếm...", set_id=None, container_id=None,
 search_options=None) %}
-<form method="GET" action="{{ url_for(request.endpoint, **({'set_id': set_id} if set_id is not none else {})) }}"
+<form method="GET" action="{{ url_for(request.endpoint, container_type=(container_type or request.view_args.get('container_type')), set_id=set_id, container_id=container_id) }}"
     class="w-full">
     <div class="flex items-center space-x-2 w-full bg-white p-1 rounded-2xl border border-slate-200 shadow-sm">
         {# Ô chọn trường tìm kiếm #}

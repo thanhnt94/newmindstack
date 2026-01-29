@@ -310,8 +310,9 @@ class QuizSessionManager:
                 return None
             if relative_path.startswith(('http://', 'https://')):
                 return relative_path
+            # THAY ĐỔI: Dùng media_uploads cho file người dùng tải lên thay vì static
             static_path = relative_path.lstrip('/')
-            full_url = url_for('static', filename=static_path)
+            full_url = url_for('media_uploads', filename=static_path)
             current_app.logger.debug(f"Media URL - Gốc: '{file_path}', URL: '{full_url}'")
             return full_url
         except Exception as e:

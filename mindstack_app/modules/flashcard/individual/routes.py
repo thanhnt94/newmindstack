@@ -537,11 +537,12 @@ def get_flashcard_item_api(item_id):
                 relative_path = build_relative_media_path(file_path, media_folders.get(media_type) if media_type else None)
                 if not relative_path:
                     return None
+                
                 if relative_path.startswith(('http://', 'https://')):
                     return relative_path
-                if relative_path.startswith('/'):
-                    return url_for('static', filename=relative_path.lstrip('/'), _external=True)
-                return url_for('static', filename=relative_path, _external=True)
+                
+                # User uploads are served via /media/, not /static/
+                return url_for('media_uploads', filename=relative_path.lstrip('/'), _external=True)
             except Exception:
                 return None
 
@@ -1049,7 +1050,7 @@ def generate_image_from_content():
                 image_folder = _ensure_container_media_folder(container, 'image')
 
             try:
-                os.makedirs(os.path.join(current_app.static_folder, image_folder), exist_ok=True)
+                os.makedirs(os.path.join(current_app.config['UPLOAD_FOLDER'], image_folder), exist_ok=True)
             except OSError as folder_exc:
                 current_app.logger.error(
                     "Không thể tạo thư mục ảnh %s: %s", image_folder, folder_exc, exc_info=True
@@ -1057,7 +1058,7 @@ def generate_image_from_content():
                 return jsonify({'success': False, 'message': 'Không thể chuẩn bị thư mục lưu ảnh.'}), 500
 
             filename = os.path.basename(absolute_path)
-            destination = os.path.join(current_app.static_folder, image_folder, filename)
+            destination = os.path.join(current_app.config['UPLOAD_FOLDER'], image_folder, filename)
 
             try:
                 if os.path.abspath(absolute_path) != os.path.abspath(destination):
@@ -1085,9 +1086,8 @@ def generate_image_from_content():
             return jsonify({
                 'success': True,
                 'message': 'Đã cập nhật ảnh minh họa thành công.',
-                'image_url': url_for('static', filename=relative_path)
-            })
-
+                        'image_url': url_for('media_uploads', filename=relative_path)
+                    })
         return jsonify({'success': False, 'message': message or 'Không tìm thấy ảnh phù hợp.'}), 500
     except Exception as exc:  # pylint: disable=broad-except
         db.session.rollback()
@@ -1137,7 +1137,7 @@ def regenerate_audio_from_content():
                 current_app.logger.warning(f"Failed to save audio to database: {db_exc}")
             
             # Generate final URL for frontend playback using the full relative path
-            final_audio_url = url_for('static', filename=full_relative_path)
+            final_audio_url = url_for('media_uploads', filename=full_relative_path)
             
             return jsonify({
                 'success': True,

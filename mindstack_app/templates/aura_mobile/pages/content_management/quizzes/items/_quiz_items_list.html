@@ -39,6 +39,27 @@
         {% endif %}
     </div>
 
+    {# Hidden search form source for mobile CMS #}
+    <div class="search-form-container-source hidden">
+        {% set display_item_search_options = {
+        'question': 'Câu hỏi',
+        'option_a': 'Lựa chọn A',
+        'option_b': 'Lựa chọn B',
+        'option_c': 'Lựa chọn C',
+        'option_d': 'Lựa chọn D',
+        'correct_answer': 'Đáp án đúng',
+        'guidance': 'Giải thích/Gợi ý',
+        'pre_question_text': 'Văn bản trước câu hỏi',
+        'question_image_file': 'Ảnh câu hỏi (URL)',
+        'question_audio_file': 'Audio câu hỏi (URL)',
+        'group_id': 'Group ID',
+        'group_item_order': 'Thứ tự trong group'
+        } %}
+        {{ render_search_form(search_query=search_query, placeholder="Tìm kiếm câu hỏi...",
+        container_id=container.container_id, search_field=search_field,
+        search_options=display_item_search_options) }}
+    </div>
+
     <div class="cm-card cm-card--padded">
         {% set display_item_search_options = {
         'question': 'Câu hỏi',

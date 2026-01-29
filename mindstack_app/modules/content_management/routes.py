@@ -6,7 +6,7 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash,
 from mindstack_app.utils.template_helpers import render_dynamic_template
 from flask_login import login_required, current_user
 from sqlalchemy import or_, func
-from ...models import db, LearningContainer, ContainerContributor, User
+from ...models import db, LearningContainer, LearningItem, ContainerContributor, User
 from .forms import ContributorForm, CourseForm, LessonForm, FlashcardSetForm, FlashcardItemForm, QuizSetForm, QuizItemForm
 from .services.management_service import ManagementService
 from .logics.validators import has_container_access, can_create_public_content
@@ -19,8 +19,17 @@ from mindstack_app.utils.media_paths import build_relative_media_path
 from werkzeug.utils import secure_filename
 from uuid import uuid4
 import os
+import pandas as pd
 from ...config import Config
 from ...services.config_service import get_runtime_config
+from mindstack_app.services.flashcard_config_service import FlashcardConfigService
+from mindstack_app.services.quiz_config_service import QuizConfigService
+
+TYPE_SLUG_MAP = {
+    'COURSE': 'courses',
+    'FLASHCARD_SET': 'flashcards',
+    'QUIZ_SET': 'quizzes'
+}
 
 # Import legacy blueprints for now (to be removed once routes are ported)
 from .courses.routes import courses_bp
@@ -94,8 +103,10 @@ def upload_rich_text_media():
         return error_response('Không thể lưu file media trên máy chủ.', 'SERVER_ERROR', 500)
 
     relative_path = os.path.relpath(candidate_path, upload_root).replace('\\', '/')
-    file_url = url_for('static', filename=relative_path, _external=False)
-
+    # Trả về đường dẫn để frontend hiển thị
+    # relative_path lưu trong DB, nhưng URL cần trỏ tới route media_uploads
+    file_url = url_for('media_uploads', filename=relative_path, _external=False)
+    
     return success_response(message='File uploaded successfully', data={'location': file_url, 'filename': candidate_name})
 
 
@@ -196,7 +207,9 @@ def list_containers(container_type):
         'pagination': pagination,
         'search_query': search_query,
         'search_field': search_field,
-        'search_field_map': search_field_map
+        'search_field_map': search_field_map,
+        'flashcard_config': FlashcardConfigService.get_all(),
+        'quiz_config': QuizConfigService.get_all()
     }
 
     # Template mapping
@@ -206,7 +219,7 @@ def list_containers(container_type):
         'QUIZ_SET': ('quiz_sets.html', '_quiz_sets_list.html')
     }
     
-    type_slug = container_type.lower().replace('_set', 's')
+    type_slug = TYPE_SLUG_MAP.get(container_type.upper(), container_type.lower())
     full_tpl, partial_tpl = templates.get(container_type, ('index.html', '_list.html'))
     
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
@@ -261,10 +274,14 @@ def add_container(container_type):
         'FLASHCARD_SET': 'add_edit_flashcard_set.html',
         'QUIZ_SET': 'add_edit_quiz_set.html'
     }
-    type_slug = container_type.lower().replace('_set', 's')
+    type_slug = TYPE_SLUG_MAP.get(container_type.upper(), container_type.lower())
     template = templates.get(container_type, 'add_edit.html')
     
-    return render_dynamic_template(f'pages/content_management/{type_slug}/sets/{template}', form=form, title=f'Thêm {container_type}')
+    return render_dynamic_template(f'pages/content_management/{type_slug}/sets/{template}', 
+                                   form=form, 
+                                   title=f'Thêm {container_type}',
+                                   flashcard_config=FlashcardConfigService.get_all(),
+                                   quiz_config=QuizConfigService.get_all())
 
 @content_management_bp.route('/edit/<int:container_id>', methods=['GET', 'POST'])
 @login_required
@@ -293,10 +310,26 @@ def edit_container(container_id):
                 ai_prompt=getattr(form, 'ai_prompt', None) and form.ai_prompt.data
             )
             flash('Đã cập nhật thành công!', 'success')
-            return redirect(url_for('content_management.content_dashboard', tab=container.container_type.lower()))
+            return redirect(url_for('content_management.content_dashboard', tab=TYPE_SLUG_MAP.get(container.container_type.upper(), container.container_type.lower())))
         except Exception as e:
             db.session.rollback()
             flash(f'Lỗi khi cập nhật: {str(e)}', 'danger')
+
+    # Template mapping
+    templates = {
+        'COURSE': 'add_edit_course_set.html',
+        'FLASHCARD_SET': 'add_edit_flashcard_set.html',
+        'QUIZ_SET': 'add_edit_quiz_set.html'
+    }
+    type_slug = TYPE_SLUG_MAP.get(container.container_type.upper(), container.container_type.lower())
+    template = templates.get(container.container_type, 'add_edit.html')
+    
+    return render_dynamic_template(f'pages/content_management/{type_slug}/sets/{template}', 
+                                   form=form, 
+                                   title='Chỉnh sửa', 
+                                   container=container,
+                                   flashcard_config=FlashcardConfigService.get_all(),
+                                   quiz_config=QuizConfigService.get_all())
 
 @content_management_bp.route('/container/<int:container_id>/delete', methods=['POST'])
 @login_required
@@ -340,18 +373,6 @@ def move_item(item_id):
     
     return success_response(message="Di chuyển thành công", data={'item_id': item_id, 'old_container_id': old_container_id, 'new_container_id': target_container_id})
 
-
-    # Template mapping
-    templates = {
-        'COURSE': 'add_edit_course_set.html',
-        'FLASHCARD_SET': 'add_edit_flashcard_set.html',
-        'QUIZ_SET': 'add_edit_quiz_set.html'
-    }
-    type_slug = container.container_type.lower().replace('_set', 's')
-    template = templates.get(container.container_type, 'add_edit.html')
-    
-    return render_dynamic_template(f'pages/content_management/{type_slug}/sets/{template}', form=form, title='Chỉnh sửa', container=container)
-
 @content_management_bp.route('/delete/<int:container_id>', methods=['POST'])
 @login_required
 def delete_container(container_id):
@@ -360,7 +381,7 @@ def delete_container(container_id):
     if container.creator_user_id != current_user.user_id and current_user.user_role != User.ROLE_ADMIN:
         abort(403)
         
-    type_slug = container.container_type.lower()
+    type_slug = TYPE_SLUG_MAP.get(container.container_type.upper(), container.container_type.lower())
     ContentKernelService.delete_container(container_id)
     flash('Đã xóa thành công!', 'success')
     return redirect(url_for('content_management.content_dashboard', tab=type_slug))
@@ -394,7 +415,9 @@ def list_items(container_id):
         'container': container,
         'items': items,
         'pagination': pagination,
-        'search_query': search_query
+        'search_query': search_query,
+        'flashcard_config': FlashcardConfigService.get_all(),
+        'quiz_config': QuizConfigService.get_all()
     }
     
     # Template mapping
@@ -415,7 +438,7 @@ def list_items(container_id):
     template_vars['flashcard_items'] = items if container.container_type == 'FLASHCARD_SET' else []
     template_vars['quiz_items'] = items if container.container_type == 'QUIZ_SET' else []
 
-    type_slug = container.container_type.lower().replace('_set', 's')
+    type_slug = TYPE_SLUG_MAP.get(container.container_type.upper(), container.container_type.lower())
     full_tpl, partial_tpl = templates.get(container.container_type, ('index.html', '_list.html'))
     
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
@@ -468,7 +491,7 @@ def add_item(container_id):
         'FLASHCARD_SET': 'add_edit_flashcard_item.html',
         'QUIZ_SET': 'add_edit_quiz_item.html'
     }
-    type_slug = container.container_type.lower().replace('_set', 's')
+    type_slug = TYPE_SLUG_MAP.get(container.container_type.upper(), container.container_type.lower())
     template = templates.get(container.container_type, 'add_edit.html')
     
     return render_dynamic_template(f'pages/content_management/{type_slug}/items/{template}', form=form, container=container, title='Thêm mục mới')
@@ -517,7 +540,7 @@ def edit_item(item_id):
         'FLASHCARD_SET': 'add_edit_flashcard_item.html',
         'QUIZ_SET': 'add_edit_quiz_item.html'
     }
-    type_slug = container.container_type.lower().replace('_set', 's')
+    type_slug = TYPE_SLUG_MAP.get(container.container_type.upper(), container.container_type.lower())
     template = templates.get(container.container_type, 'add_edit.html')
     
     return render_dynamic_template(f'pages/content_management/{type_slug}/items/{template}', form=form, container=container, item=item, title='Chỉnh sửa')
@@ -646,7 +669,7 @@ def import_container_excel(container_id):
             
         return redirect(url_for('content_management.list_items', container_id=container_id))
 
-    type_slug = container.container_type.lower().replace('_set', 's')
+    type_slug = TYPE_SLUG_MAP.get(container.container_type.upper(), container.container_type.lower())
     return render_dynamic_template(f'pages/content_management/{type_slug}/excel/import_export.html', container=container)
 
 @content_management_bp.route('/manage_contributors/<int:container_id>', methods=['GET', 'POST'])

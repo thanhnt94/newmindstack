@@ -185,7 +185,8 @@ class AudioService:
         
         if audio_folder:
             # Absolute path for FS operations
-            target_dir = os.path.join(current_app.static_folder, audio_folder)
+            # Fix: User uploads should go to UPLOAD_FOLDER, not static_folder
+            target_dir = os.path.join(current_app.config['UPLOAD_FOLDER'], audio_folder)
             os.makedirs(target_dir, exist_ok=True)
             target_path = os.path.join(target_dir, filename)
             # [STAKE] Store ONLY filename in DB if folder is set

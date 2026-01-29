@@ -58,7 +58,8 @@ def _build_absolute_media_url(file_path: Optional[str], media_folder: Optional[s
             return relative_path
 
         static_path = relative_path.lstrip('/')
-        return url_for('static', filename=static_path)
+        return url_for('media_uploads', filename=static_path)
+
     except Exception as exc:  # pragma: no cover - defensive logging
         current_app.logger.warning(
             "Không thể tạo URL media tuyệt đối cho %s: %s", file_path, exc

@@ -53,11 +53,13 @@ def get_storage_path(target_dir: str, filename: str) -> dict:
     physical_path = physical_dir / filename
     
     # URL Calculation
-    # We assume 'static' is at the start of relative path for URLs to work by default via Flask static serving
-    # URL should be root-relative, e.g. /static/audio/cache/hash.mp3
-    
-    # Ensure URL always uses forward slashes
-    url_path = f"/{rel_dir.as_posix()}/{filename}"
+    # Fix: If targeting uploads, use /media/ prefix for serving
+    if parts and parts[0] == 'uploads':
+        # Replace 'uploads' with 'media' for the URL
+        url_path = f"/media/{Path(*parts[1:]).as_posix()}/{filename}"
+    else:
+        # Default behavior: root-relative
+        url_path = f"/{rel_dir.as_posix()}/{filename}"
     
     return {
         'physical_path': str(physical_path.resolve() if physical_path.exists() else physical_path), # resolve only if exists validation needed? No, just str.

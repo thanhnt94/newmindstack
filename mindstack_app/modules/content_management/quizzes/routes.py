@@ -174,7 +174,7 @@ def _build_absolute_media_url(file_path, media_folder: Optional[str] = None):
         if relative_path.startswith(('http://', 'https://')):
             return relative_path
         static_path = relative_path.lstrip('/')
-        return url_for('static', filename=static_path)
+        return url_for('media_uploads', filename=static_path)
     except Exception as exc:
         current_app.logger.error(f"Không thể tạo URL tuyệt đối cho media '{file_path}': {exc}")
         return file_path
@@ -298,7 +298,7 @@ def _transfer_media_to_folder(
     if not local_path:
         return value
 
-    destination_dir = os.path.join(current_app.static_folder, normalized_target)
+    destination_dir = os.path.join(current_app.config['UPLOAD_FOLDER'], normalized_target)
     try:
         os.makedirs(destination_dir, exist_ok=True)
     except OSError as exc:

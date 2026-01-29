@@ -46,10 +46,9 @@ class User(UserMixin, db.Model):
         """Trả về URL avatar của người dùng hoặc ảnh mặc định."""
         if self.avatar_url:
             # Nếu là đường dẫn nội bộ, đảm bảo có tiền tố /static/ hoặc /uploads/
-            if self.avatar_url.startswith(('http://', 'https://')):
-                return self.avatar_url
-            return url_for('static', filename=self.avatar_url)
-        # Trả về mã màu hoặc avatar theo tên nếu không có ảnh
+                    if self.avatar_url.startswith(('http://', 'https://')):
+                        return self.avatar_url
+                    return url_for('media_uploads', filename=self.avatar_url)        # Trả về mã màu hoặc avatar theo tên nếu không có ảnh
         return None
 
     # DEPRECATED COLUMNS REMOVED: 

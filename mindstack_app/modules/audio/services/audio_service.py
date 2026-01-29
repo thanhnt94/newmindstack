@@ -22,43 +22,6 @@ class AudioService:
     async def get_audio(cls, text: str, engine: str = 'edge', voice: str = None, target_dir: str = None, custom_filename: str = None, is_manual: bool = False, auto_voice_parsing: bool = False) -> dict:
         """
         Get audio for the given text. Returns existing file or generates new one.
-        
-        Args:
-            text: Text to speak.
-            engine: 'edge' or 'gtts'.
-            voice: Specific voice ID. (Ignored if auto_voice_parsing is True and tags are present)
-            target_dir: Relative path to store audio.
-            custom_filename: Specific filename.
-            is_manual: If True, bypass hashing for custom filename (handled by logic layer usually, but passed here).
-            auto_voice_parsing: If True, parse 'en(m): ...' tags.
-            
-        Returns:
-            dict: { 'physical_path': str, 'url': str, 'status': 'exists'|'generated'|'error' }
-        """
-        
-        # --- Pre-processing: Voice Parsing ---
-        final_text = text
-        if auto_voice_parsing:
-            from ..logics.voice_parser import VoiceParser
-            
-            if engine == 'edge':
-                # Convert to SSML using mappings
-                mapping = current_app.config.get('AUDIO_VOICE_MAPPING_EDGE', {})
-                # Use provided voice as default fallback, or config default
-                default_voice = voice or current_app.config.get('AUDIO_DEFAULT_VOICE_EDGE', 'en-US-AriaNeural')
-                
-                ssml = VoiceParser.generate_ssml(text, mapping, default_voice)
-                if ssml:
-                    final_text = ssml
-                    # For SSML, filename hash should depend on the SSML content to ensure uniqueness of structure
-            else:
-                # Strip tags for unsupported engines (gTTS)
-                final_text = VoiceParser.strip_prompts(text)
-
-    @classmethod
-    async def get_audio(cls, text: str, engine: str = 'edge', voice: str = None, target_dir: str = None, custom_filename: str = None, is_manual: bool = False, auto_voice_parsing: bool = False) -> dict:
-        """
-        Get audio for the given text. Returns existing file or generates new one.
         """
         
         # --- Pre-processing: Voice Parsing and Config ---

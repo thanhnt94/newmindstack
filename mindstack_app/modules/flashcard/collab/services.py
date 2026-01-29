@@ -78,10 +78,9 @@ def _build_item_payload(item: LearningItem) -> dict[str, object]:
 
         if relative_path.startswith(('http://', 'https://')):
             return relative_path
-        if relative_path.startswith('/'):
-            return url_for('static', filename=relative_path.lstrip('/'))
-        return url_for('static', filename=relative_path)
-
+            if relative_path.startswith('/'):
+                return url_for('media_uploads', filename=relative_path.lstrip('/'))
+            return url_for('media_uploads', filename=relative_path)
     container_capabilities: Set[str] = set()
     try:
         if container:

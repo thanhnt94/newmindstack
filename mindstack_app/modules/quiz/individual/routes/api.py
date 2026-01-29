@@ -46,7 +46,7 @@ def _build_absolute_media_url(file_path, media_folder: Optional[str] = None):
         if relative_path.startswith(('http://', 'https://')):
             return relative_path
         static_path = relative_path.lstrip('/')
-        return url_for('static', filename=static_path)
+        return url_for('media_uploads', filename=static_path)
     except Exception as exc:
         current_app.logger.error(f"Không thể tạo URL tuyệt đối cho media '{file_path}': {exc}")
         return file_path
@@ -214,8 +214,11 @@ def get_quiz_transcript(item_id):
             return jsonify({'success': False, 'message': 'Audio là URL ngoài, không hỗ trợ transcript tự động.'}), 400
 
         candidates = []
+        if current_app.config.get('UPLOAD_FOLDER'):
+            candidates.append(current_app.config['UPLOAD_FOLDER'])
         if current_app.static_folder:
             candidates.append(current_app.static_folder)
+        
         standard_static = os.path.join(current_app.root_path, 'static')
         if standard_static not in candidates:
             candidates.append(standard_static)

@@ -877,7 +877,7 @@ def _collect_directory_listing(base_dir, upload_root):
             files.append({
                 'name': entry.name,
                 'path': relative,
-                'url': url_for('static', filename=relative),
+                'url': url_for('media_uploads', filename=relative),
                 'size': _format_file_size(stat.st_size),
                 'size_bytes': stat.st_size,
                 'modified': datetime.fromtimestamp(stat.st_mtime),

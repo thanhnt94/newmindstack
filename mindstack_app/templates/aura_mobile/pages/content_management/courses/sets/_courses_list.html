@@ -2,7 +2,7 @@
 <!-- File: mindstack_app/templates/aura_mobile/pages/content_management/courses/sets/_courses_list.html -->
 <!-- Updated to Unified CMS -->
 
-{% from _v ~ '/includes/search/_search_form.html' import render_search_form %}
+{% from _v ~ '/includes/search/_search_form.html' import render_search_form with context %}
 {% from _v ~ '/includes/pagination/_pagination.html' import render_pagination %}
 
 <div class="w-full space-y-8">
@@ -20,6 +20,17 @@
                 <span>Tạo khoá học mới</span>
             </button>
         </div>
+    </div>
+
+    {# Hidden search form source for mobile CMS #}
+    <div class="search-form-container-source hidden">
+        {% set display_search_options = {
+        'title': 'Tiêu đề',
+        'description': 'Mô tả',
+        'tags': 'Thẻ'
+        } %}
+        {{ render_search_form(search_query=search_query, placeholder="Tìm kiếm khóa học...",
+        search_field=search_field, search_options=display_search_options) }}
     </div>
 
     <div class="cm-card cm-card--padded">

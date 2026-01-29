@@ -286,9 +286,9 @@ class FlashcardSessionManager:
                 return None
             if relative_path.startswith(('http://', 'https://')):
                 return relative_path
-            if relative_path.startswith('/'):
-                return url_for('static', filename=relative_path.lstrip('/'))
-            return url_for('static', filename=relative_path)
+            
+            # User uploads are served via /media/, not /static/
+            return url_for('media_uploads', filename=relative_path.lstrip('/'))
         except Exception:
             return None
 

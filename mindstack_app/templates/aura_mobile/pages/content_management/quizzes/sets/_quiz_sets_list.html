@@ -1,3 +1,16 @@
+{% from _v ~ '/includes/search/_search_form.html' import render_search_form with context %}
+
+{# Hidden search form for mobile CMS to pick up #}
+<div class="search-form-container-source hidden">
+    {% set display_search_options = {
+    'title': 'Tiêu đề',
+    'description': 'Mô tả',
+    'tags': 'Thẻ'
+    } %}
+    {{ render_search_form(search_query=search_query, placeholder="Tìm kiếm bộ câu hỏi...",
+    search_field=search_field, search_options=display_search_options) }}
+</div>
+
 {% if containers %}
 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
     {% for container in containers %}

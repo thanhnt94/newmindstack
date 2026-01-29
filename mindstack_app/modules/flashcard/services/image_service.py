@@ -411,8 +411,6 @@ class ImageService:
     # Hàm tiện ích dùng chung bên ngoài dịch vụ
     # ------------------------------------------------------------------
     def convert_to_static_url(self, absolute_path: str) -> Optional[str]:
-        """Trả về đường dẫn tương đối (dùng với url_for('static', ...))."""
-        relative_path = self._to_relative_cache_path(absolute_path)
-        if relative_path:
-            return relative_path
-        return None
+        """Trả về đường dẫn tương đối (dùng với url_for('media_uploads', ...))."""
+        if not absolute_path:
+            return None
