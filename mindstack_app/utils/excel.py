@@ -222,3 +222,94 @@ def format_info_warnings(warnings: List[str]) -> str:
     if len(warnings) == 1:
         return warnings[0]
     return " ".join(f"{index + 1}. {message}" for index, message in enumerate(warnings))
+
+
+# --- Content Parsing Utilities (Unified) ---
+
+# Action normalization aliases
+ACTION_ALIASES = {
+    'delete': {'delete', 'remove'},
+    'skip': {'skip', 'keep', 'none', 'ignore', 'nochange', 'unchanged', 
+             'giu nguyen', 'giu-nguyen', 'giu_nguyen'},
+    'create': {'create', 'new', 'add', 'insert'},
+    'update': {'update', 'upsert', 'edit', 'modify'},
+}
+
+
+def classify_columns(
+    columns: List[str],
+    standard_columns: set[str],
+    system_columns: set[str],
+    ai_columns: set[str]
+) -> dict[str, List[str]]:
+    """Classify DataFrame columns into categories."""
+    columns_set = set(columns)
+    all_known = standard_columns | system_columns | ai_columns
+    
+    return {
+        'standard': sorted([c for c in columns if c in standard_columns]),
+        'system': sorted([c for c in columns if c in system_columns]),
+        'ai': sorted([c for c in columns if c in ai_columns]),
+        'custom': sorted([c for c in columns if c not in all_known]),
+        'missing_required': [c for c in ['front', 'back'] if c not in columns_set],
+        'all': sorted(list(columns))
+    }
+
+
+def normalize_action(
+    raw_action: Optional[str],
+    has_item_id: bool
+) -> str:
+    """Normalize action string to standard values: 'create', 'update', 'delete', or 'skip'."""
+    value = (raw_action or '').strip().lower()
+    
+    if value:
+        for normalized, alias_values in ACTION_ALIASES.items():
+            if value in alias_values:
+                if normalized == 'create' and has_item_id:
+                    return 'update'
+                if normalized == 'update' and not has_item_id:
+                    return 'create'
+                return normalized
+    
+    return 'update' if has_item_id else 'create'
+
+
+def get_cell_value(
+    row_data: Any,
+    column_name: str,
+    columns: List[str]
+) -> Optional[str]:
+    """Safely get a cell value from row data (dict or Series)."""
+    if column_name not in columns:
+        return None
+    
+    # Handle dict or pandas Series
+    if isinstance(row_data, dict):
+        value = row_data.get(column_name)
+    else:
+        value = row_data[column_name]
+    
+    if pd.isna(value):
+        return None
+    
+    return str(value).strip()
+
+
+def parse_column_pairs(pairs_string: str) -> List[dict[str, str]]:
+    """Parse column pair configuration string "q:a | q2:a2"."""
+    if not pairs_string:
+        return []
+    
+    pairs_list = []
+    raw_pairs = str(pairs_string).split('|')
+    
+    for raw_pair in raw_pairs:
+        parts = raw_pair.split(':')
+        if len(parts) == 2:
+            q_col = parts[0].strip()
+            a_col = parts[1].strip()
+            if q_col and a_col:
+                pairs_list.append({'q': q_col, 'a': a_col})
+    
+    return pairs_list

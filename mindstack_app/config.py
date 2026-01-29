@@ -52,6 +52,7 @@ class Config:
     # Định nghĩa thư mục con cho cache audio và hình ảnh của flashcard
     FLASHCARD_AUDIO_CACHE_DIR = os.path.join(UPLOAD_FOLDER, 'flashcard', 'audio', 'cache')
     FLASHCARD_IMAGE_CACHE_DIR = os.path.join(UPLOAD_FOLDER, 'flashcard', 'images', 'cache')
+    COVERS_FOLDER = os.path.join(UPLOAD_FOLDER, 'covers')
 
     # Đảm bảo thư mục database tồn tại khi ứng dụng khởi chạy
     db_dir = os.path.dirname(DATABASE_PATH)
@@ -62,6 +63,7 @@ class Config:
     os.makedirs(UPLOAD_FOLDER, exist_ok=True)
     os.makedirs(FLASHCARD_AUDIO_CACHE_DIR, exist_ok=True)
     os.makedirs(FLASHCARD_IMAGE_CACHE_DIR, exist_ok=True)
+    os.makedirs(COVERS_FOLDER, exist_ok=True)
     
     # VAPID Keys for Web Push
     VAPID_PRIVATE_KEY = os.environ.get('VAPID_PRIVATE_KEY')

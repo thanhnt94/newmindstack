@@ -22,6 +22,11 @@ class LearningContainer(db.Model):
     container_id = db.Column(db.Integer, primary_key=True)
     creator_user_id = db.Column(db.Integer, db.ForeignKey('users.user_id'), nullable=False)
     container_type = db.Column(db.String(50), nullable=False)
+    
+    __mapper_args__ = {
+        'polymorphic_on': container_type,
+        'polymorphic_identity': 'BASE_CONTAINER'
+    }
     title = db.Column(db.String(255), nullable=False)
     description = db.Column(db.Text)
     cover_image = db.Column(db.String(512), nullable=True)
@@ -224,6 +229,11 @@ class LearningItem(db.Model):
     )
     group_id = db.Column(db.Integer, db.ForeignKey('learning_groups.group_id'), nullable=True)
     item_type = db.Column(db.String(50), nullable=False)
+    
+    __mapper_args__ = {
+        'polymorphic_on': item_type,
+        'polymorphic_identity': 'BASE_ITEM'
+    }
     content = db.Column(JSON, nullable=False)
     order_in_container = db.Column(db.Integer, default=0)
     ai_explanation = db.Column(db.Text, nullable=True)

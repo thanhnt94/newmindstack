@@ -2,7 +2,7 @@
 {% from _v ~ '/includes/search/_search_form.html' import render_search_form %}
 {% from _v ~ '/includes/pagination/_pagination.html' import render_pagination %}
 
-{% block title %}The trong bo: {{ flashcard_set.title }}{% endblock %}
+{% block title %}Thẻ trong bộ: {{ container.title }}{% endblock %}
 
 {% block head %}
 {{ super() }}
@@ -22,10 +22,11 @@
     (function () {
         window.addEventListener('content-management:refresh', function (event) {
             var detail = event && event.detail ? event.detail : {};
-            if (detail.scope === 'flashcard-item' && Number(detail.setId || detail.containerId) === {{ flashcard_set.container_id }}) {
-                window.location.reload();
-            }
-        });
+            if (detail.scope === 'flashcard-item' && Number(detail.setId || detail.containerId) === {{ container.container_id }
+        }) {
+            window.location.reload();
+        }
+    });
     }) ();
 </script>
 {% endblock %}

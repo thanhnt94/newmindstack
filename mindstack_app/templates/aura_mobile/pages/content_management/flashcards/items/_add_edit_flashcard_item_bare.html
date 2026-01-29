@@ -101,8 +101,8 @@ THAY ĐỔI:
             </button>
             <div class="flex items-baseline gap-2">
                 <h1 class="text-base font-bold text-slate-800 leading-tight">{{ title }}</h1>
-                {% if flashcard_item %}
-                <span class="text-xs text-slate-400 font-mono">#{{ flashcard_item.item_id }}</span>
+                {% if item %}
+                <span class="text-xs text-slate-400 font-mono">#{{ item.item_id }}</span>
                 {% endif %}
             </div>
         </div>
@@ -111,7 +111,7 @@ THAY ĐỔI:
         <div class="flex items-center gap-2">
             <div class="hidden sm:flex items-center bg-slate-50 rounded-lg p-0.5 border border-slate-100">
                 {% if previous_item_id %}
-                <a href="{{ url_for('.edit_flashcard_item', set_id=flashcard_set.container_id, item_id=previous_item_id) }}{{ modal_suffix }}"
+                <a href="{{ url_for('.edit_item', item_id=previous_item_id) }}{{ modal_suffix }}"
                     class="w-7 h-7 flex items-center justify-center text-slate-600 hover:bg-white hover:text-blue-600 hover:shadow-sm rounded transition"
                     title="Thẻ trước">
                     <i class="fas fa-chevron-left text-[10px]"></i>
@@ -124,7 +124,7 @@ THAY ĐỔI:
                 <div class="w-px h-3 bg-slate-200 mx-0.5"></div>
 
                 {% if next_item_id %}
-                <a href="{{ url_for('.edit_flashcard_item', set_id=flashcard_set.container_id, item_id=next_item_id) }}{{ modal_suffix }}"
+                <a href="{{ url_for('.edit_item', item_id=next_item_id) }}{{ modal_suffix }}"
                     class="w-7 h-7 flex items-center justify-center text-slate-600 hover:bg-white hover:text-blue-600 hover:shadow-sm rounded transition"
                     title="Thẻ tiếp">
                     <i class="fas fa-chevron-right text-[10px]"></i>
@@ -177,11 +177,10 @@ THAY ĐỔI:
 
             <form id="flashcardItemForm" action="" method="post" class="space-y-6"
                 data-image-search-url="{{ image_search_url }}" data-front-source-id="{{ form.front.id }}"
-                data-back-source-id="{{ form.back.id }}"
-                data-item-id="{{ flashcard_item.item_id if flashcard_item else '' }}"
-                data-regenerate-audio-url="{{ regenerate_audio_url }}"
-                data-image-base-folder="{{ image_base_folder or '' }}"
-                data-audio-base-folder="{{ audio_base_folder or '' }}">
+                data-back-source-id="{{ form.back.id }}" data-item-id="{{ item.item_id if item else '' }}"
+                data-regenerate-audio-url="{{ url_for('audio.regenerate_audio_from_content') }}"
+                data-image-base-folder="{{ container.media_folders.image if container.media_folders else '' }}"
+                data-audio-base-folder="{{ container.media_folders.audio if container.media_folders else '' }}">
                 {{ form.csrf_token }}
 
                 <!-- TAB 1: GENERAL -->
@@ -243,7 +242,7 @@ THAY ĐỔI:
                     </div>
 
                     <!-- Move Card -->
-                    {% if flashcard_item and move_targets %}
+                    {% if item and move_targets %}
                     <div class="border-t border-slate-100 pt-6">
                         <h3
                             class="text-xs font-bold text-slate-800 mb-3 flex items-center gap-2 uppercase tracking-wide">
@@ -258,8 +257,7 @@ THAY ĐỔI:
                                     <option value="{{ target.container_id }}">{{ target.title }}</option>
                                     {% endfor %}
                                 </select>
-                                <button type="submit"
-                                    formaction="{{ url_for('.move_flashcard_item', set_id=flashcard_set.container_id, item_id=flashcard_item.item_id) }}"
+                                <button type="submit" formaction="{{ url_for('.move_item', item_id=item.item_id) }}"
                                     class="w-full sm:w-auto px-4 py-2 bg-slate-800 text-white text-xs font-bold rounded-md hover:bg-slate-700 transition">Thực
                                     hiện</button>
                             </div>
@@ -466,8 +464,8 @@ THAY ĐỔI:
                             </button>
                         </div>
                         <div id="custom-data-container" class="space-y-2">
-                            {% if flashcard_item and flashcard_item.custom_data %}
-                            {% for key, value in flashcard_item.custom_data.items() %}
+                            {% if item and item.custom_data %}
+                            {% for key, value in item.custom_data.items() %}
                             <div class="custom-data-row flex gap-2">
                                 <select name="custom_keys[]"
                                     class="flex-1 w-1/3 px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold focus:ring-2 focus:ring-teal-500">
@@ -597,8 +595,8 @@ THAY ĐỔI:
 
             // Form Submit
             const form = document.getElementById('flashcardItemForm');
-            let currentItemId = {{ (flashcard_item.item_id if flashcard_item else None) | tojson }};
-        const setId = {{ flashcard_set.container_id | tojson }};
+            let currentItemId = {{ (item.item_id if item else None) | tojson }};
+        const containerId = {{ container.container_id | tojson }};
 
         if (form) {
             const currentUrl = new URL(window.location.href);
@@ -628,10 +626,10 @@ THAY ĐỔI:
                         if (window.parent) {
                             if (window.parent.showFlashMessage) window.parent.showFlashMessage(data.message, 'success');
                             window.parent.dispatchEvent(new CustomEvent('content-management:refresh', {
-                                detail: { scope: 'flashcard-item', setId: setId, itemId: currentItemId, action: form.dataset.itemId ? 'update' : 'create', targetTab: 'flashcards' }
+                                detail: { scope: 'flashcard-item', containerId: containerId, itemId: currentItemId, action: form.dataset.itemId ? 'update' : 'create', targetTab: 'flashcards' }
                             }));
                             if (typeof window.parent.updateFlashcardCard === 'function') {
-                                await window.parent.updateFlashcardCard(currentItemId, setId);
+                                await window.parent.updateFlashcardCard(currentItemId, containerId);
                             }
                             if (window.parent.closeModal) window.parent.closeModal();
                         }

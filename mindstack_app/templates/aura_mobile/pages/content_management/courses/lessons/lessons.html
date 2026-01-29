@@ -3,7 +3,7 @@
 {% from _v ~ '/includes/search/_search_form.html' import render_search_form %}
 {% from _v ~ '/includes/pagination/_pagination.html' import render_pagination %}
 
-{% block title %}Bài học trong khoá học: {{ course.title }}{% endblock %}
+{% block title %}Bài học trong khoá học: {{ container.title }}{% endblock %}
 
 {% block head %}
 {{ super() }}
@@ -20,8 +20,8 @@
                     <span>Quay lại bảng điều khiển</span>
                 </a>
                 <span class="cm-eyebrow">Khoá học</span>
-                <h1 class="cm-heading">{{ course.title }}</h1>
-                <p class="cm-subheading">{{ (course.description or 'Sắp xếp các bài học, cập nhật nội dung và duy trì
+                <h1 class="cm-heading">{{ container.title }}</h1>
+                <p class="cm-subheading">{{ (container.description or 'Sắp xếp các bài học, cập nhật nội dung và duy trì
                     luồng học tập rõ ràng.') | truncate(110, True, '…') }}</p>
                 <div class="cm-chip-row">
                     <span class="cm-pill cm-pill--accent">
@@ -32,12 +32,12 @@
             </div>
             {% if can_edit %}
             <div class="cm-actions">
-                <a href="{{ url_for('content_management.content_management_courses.add_lesson', set_id=course.container_id) }}"
+                <a href="{{ url_for('content_management.add_item', container_id=container.container_id) }}"
                     class="cm-action cm-action--primary">
                     <i class="fas fa-plus-circle"></i>
                     <span>Thêm bài học mới</span>
                 </a>
-                <a href="{{ url_for('content_management.content_management_courses.manage_course_excel', set_id=course.container_id) }}"
+                <a href="{{ url_for('content_management.export_container_excel', container_id=container.container_id) }}"
                     class="cm-action cm-action--ghost">
                     <i class="fa-solid fa-file-excel"></i>
                     <span>Quản lý Excel</span>
@@ -54,14 +54,14 @@
                 </div>
                 <div class="w-full md:w-auto md:min-w-[320px]">
                     {{ render_search_form(search_query=search_query, placeholder="Tìm kiếm bài học...",
-                    set_id=course.container_id) }}
+                    container_id=container.container_id) }}
                 </div>
             </div>
         </div>
 
-        {% if lessons %}
+        {% if items %}
         <div class="cm-grid cm-grid--three">
-            {% for lesson in lessons %}
+            {% for lesson in items %}
             {% set preview_html = lesson.content.get('content_html') %}
             {% if not preview_html and lesson.content.get('bbcode_content') %}
             {% set preview_html = bbcode_to_html(lesson.content.get('bbcode_content')) %}
@@ -121,19 +121,18 @@
 
                 <div class="cm-divider"></div>
                 <div class="flex items-center justify-between">
-                    <a href="{{ url_for('content_management.content_management_courses.edit_lesson', set_id=course.container_id, item_id=lesson.item_id) }}"
+                    <a href="{{ url_for('content_management.edit_item', container_id=container.container_id, item_id=lesson.item_id) }}"
                         class="cm-link">
                         <i class="fa-solid fa-pen-to-square"></i>
                         <span>Mở trình chỉnh sửa</span>
                     </a>
                     {% if can_edit %}
                     <div class="cm-inline-actions">
-                        <a href="{{ url_for('content_management.content_management_courses.edit_lesson', set_id=course.container_id, item_id=lesson.item_id) }}"
+                        <a href="{{ url_for('content_management.edit_item', container_id=container.container_id, item_id=lesson.item_id) }}"
                             class="cm-icon-button" title="Chỉnh sửa">
                             <i class="fa-solid fa-pen"></i>
                         </a>
-                        <form
-                            action="{{ url_for('content_management.content_management_courses.delete_lesson', set_id=course.container_id, item_id=lesson.item_id) }}"
+                        <form action="{{ url_for('content_management.delete_item', item_id=lesson.item_id) }}"
                             method="post" onsubmit="return confirm('Bạn có chắc chắn muốn xóa bài học này?');">
                             <button type="submit" class="cm-icon-button" title="Xoá bài học">
                                 <i class="fa-solid fa-trash"></i>
@@ -147,7 +146,8 @@
         </div>
 
         <div class="pt-6">
-            {{ render_pagination(pagination=pagination, search_query=search_query, set_id=course.container_id) }}
+            {{ render_pagination(pagination=pagination, search_query=search_query, container_id=container.container_id)
+            }}
         </div>
 
         {% else %}
@@ -157,7 +157,7 @@
             </span>
             <p class="text-sm">Khoá học này chưa có bài học nào hoặc không tìm thấy kết quả phù hợp.</p>
             {% if can_edit %}
-            <a href="{{ url_for('content_management.content_management_courses.add_lesson', set_id=course.container_id) }}"
+            <a href="{{ url_for('content_management.add_item', container_id=container.container_id) }}"
                 class="cm-action cm-action--primary">
                 <i class="fas fa-plus-circle"></i>
                 <span>Thêm bài học đầu tiên</span>

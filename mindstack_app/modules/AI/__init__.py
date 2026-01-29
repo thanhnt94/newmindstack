@@ -9,5 +9,5 @@ def setup_module(app):
     from .services.ai_service import setup_ai_signals
     setup_ai_signals(app)
 
-# Register routes
-from . import routes
+# Register routes and events
+from . import routes, events

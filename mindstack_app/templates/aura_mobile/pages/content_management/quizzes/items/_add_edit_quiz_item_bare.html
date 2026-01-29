@@ -93,8 +93,8 @@
             </button>
             <div class="flex items-baseline gap-2">
                 <h1 class="text-base font-bold text-slate-800 leading-tight">{{ title }}</h1>
-                {% if quiz_item %}
-                <span class="text-xs text-slate-400 font-mono">#{{ quiz_item.item_id }}</span>
+                {% if item %}
+                <span class="text-xs text-slate-400 font-mono">#{{ item.item_id }}</span>
                 {% endif %}
             </div>
         </div>
@@ -103,7 +103,7 @@
         <div class="flex items-center gap-2">
             <div class="hidden sm:flex items-center bg-slate-50 rounded-lg p-0.5 border border-slate-100">
                 {% if previous_item_id %}
-                <a href="{{ url_for('.edit_quiz_item', set_id=quiz_set.container_id, item_id=previous_item_id) }}{{ modal_suffix }}"
+                <a href="{{ url_for('.edit_item', item_id=previous_item_id) }}{{ modal_suffix }}"
                     class="w-7 h-7 flex items-center justify-center text-slate-600 hover:bg-white hover:text-blue-600 hover:shadow-sm rounded transition"
                     title="Câu trước">
                     <i class="fas fa-chevron-left text-[10px]"></i>
@@ -116,7 +116,7 @@
                 <div class="w-px h-3 bg-slate-200 mx-0.5"></div>
 
                 {% if next_item_id %}
-                <a href="{{ url_for('.edit_quiz_item', set_id=quiz_set.container_id, item_id=next_item_id) }}{{ modal_suffix }}"
+                <a href="{{ url_for('.edit_item', item_id=next_item_id) }}{{ modal_suffix }}"
                     class="w-7 h-7 flex items-center justify-center text-slate-600 hover:bg-white hover:text-blue-600 hover:shadow-sm rounded transition"
                     title="Câu tiếp">
                     <i class="fas fa-chevron-right text-[10px]"></i>
@@ -158,8 +158,8 @@
 
     <!-- SCROLLABLE CONTENT -->
     <div class="flex-1 overflow-y-auto custom-scrollbar bg-slate-50/50 p-4 sm:p-6 full-height-container"
-        data-item-id="{{ quiz_item.item_id if quiz_item else '' }}"
-        data-set-id="{{ quiz_set.container_id if quiz_set else '' }}">
+        data-item-id="{{ item.item_id if item else '' }}"
+        data-set-id="{{ container.container_id if container else '' }}">
 
         <div class="max-w-4xl mx-auto w-full">
             <form id="quizItemForm" action="" method="post" class=""
@@ -328,8 +328,8 @@
                                     <div class="flex items-center justify-between mb-2">
                                         <label
                                             class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Transcript</label>
-                                        {% if quiz_item and (current_user.user_role == 'admin' or
-                                        quiz_set.creator_user_id == current_user.user_id) %}
+                                        {% if item and (current_user.user_role == 'admin' or
+                                        container.creator_user_id == current_user.user_id) %}
                                         <button type="button" id="quiz-transcript-generate-btn"
                                             class="text-[10px] bg-indigo-50 text-indigo-600 px-2 py-1 rounded hover:bg-indigo-100 transition font-medium">
                                             <i class="fas fa-closed-captioning mr-1"></i> Tạo tự động
@@ -368,7 +368,7 @@
                                 <div class="flex items-center justify-between mb-2">
                                     {{ form.ai_explanation.label(class="text-sm font-bold text-slate-800 flex
                                     items-center gap-2") }}
-                                    {% if quiz_item and (current_user.user_role == 'admin' or quiz_set.creator_user_id
+                                    {% if item and (current_user.user_role == 'admin' or container.creator_user_id
                                     == current_user.user_id) %}
                                     <button type="button" id="quiz-ai-regenerate-btn"
                                         class="text-xs bg-blue-50 text-blue-600 px-3 py-1.5 rounded-lg hover:bg-blue-100 transition font-medium">
@@ -422,7 +422,7 @@
                         </div>
                     </div>
 
-                    {% if quiz_item and move_targets %}
+                    {% if item and move_targets %}
                     <div
                         class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm border-l-4 border-l-purple-500">
                         <h3 class="text-sm font-bold text-slate-800 mb-4 flex items-center gap-2">
@@ -435,11 +435,9 @@
             </form>
 
             {# Move Form (Outside main form) #}
-            {% if quiz_item and move_targets %}
+            {% if item and move_targets %}
             <div id="move-form-container" class="hidden">
-                <form method="post"
-                    action="{{ url_for('.move_quiz_item', set_id=quiz_set.container_id, item_id=quiz_item.item_id) }}"
-                    class="space-y-4">
+                <form method="post" action="{{ url_for('.move_item', item_id=item.item_id) }}" class="space-y-4">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <input type="hidden" name="is_modal" value="{{ 'true' if is_modal_view else 'false' }}">
                     <div>
@@ -635,7 +633,7 @@
             const aiRegenerateBtn = document.getElementById('quiz-ai-regenerate-btn');
             const aiExplanationField = document.getElementById('ai_explanation');
             const getAiResponseUrl = "{{ url_for('AI.get_ai_response') }}";
-            const itemId = {{ (quiz_item.item_id if quiz_item else None) | tojson }};
+            const itemId = {{ (item.item_id if item else None) | tojson }};
 
         if (aiRegenerateBtn && aiExplanationField && itemId) {
             aiRegenerateBtn.addEventListener('click', async () => {

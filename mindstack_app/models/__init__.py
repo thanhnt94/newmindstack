@@ -3,6 +3,9 @@
 from ..db_instance import db
 
 from .learning import LearningContainer, LearningGroup, LearningItem
+from .course import Course, Lesson
+from .flashcard import FlashcardSet, Flashcard
+from .quiz import QuizSet, QuizMCQ
 from .flashcard_collab import (
     FlashcardCollabAnswer,
     FlashcardCollabMessage,
@@ -47,6 +50,12 @@ __all__ = [
     'LearningContainer',
     'LearningGroup',
     'LearningItem',
+    'Course',
+    'Lesson',
+    'FlashcardSet',
+    'Flashcard',
+    'QuizSet',
+    'QuizMCQ',
     'LearningProgress',  # NEW
     'LearningSession',  # NEW
     'FlashcardCollabAnswer',

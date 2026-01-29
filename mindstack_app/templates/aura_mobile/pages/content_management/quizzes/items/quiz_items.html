@@ -3,7 +3,7 @@
 {% from _v ~ '/includes/search/_search_form.html' import render_search_form %}
 {% from _v ~ '/includes/pagination/_pagination.html' import render_pagination %}
 
-{% block title %}Câu hỏi trong bộ: {{ quiz_set.title }}{% endblock %}
+{% block title %}Câu hỏi trong bộ: {{ container.title }}{% endblock %}
 
 {% block head %}
 {{ super() }}
@@ -22,11 +22,11 @@
     (function () {
         window.addEventListener('content-management:refresh', function (event) {
             const detail = event?.detail || {};
-            if (detail.scope === 'quiz-item' && Number(detail.setId || detail.containerId) === {{ quiz_set.container_id }
+            if (detail.scope === 'quiz-item' && Number(detail.setId || detail.containerId) === {{ container.container_id }
         }) {
             window.location.reload();
         }
     });
-        }) ();
+    }) ();
 </script>
 {% endblock %}
