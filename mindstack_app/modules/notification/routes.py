@@ -2,7 +2,7 @@ from flask import render_template, jsonify, request, current_app
 from flask_login import login_required, current_user
 from . import notification_bp
 from .services import NotificationService
-from .models import PushSubscription
+from mindstack_app.models import PushSubscription
 from ...db_instance import db
 
 @notification_bp.route('/api/list')

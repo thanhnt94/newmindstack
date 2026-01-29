@@ -5,8 +5,8 @@ try:
 except ImportError:
     webpush = None
 
-from ...db_instance import db
-from .models import Notification, PushSubscription
+from mindstack_app.db_instance import db
+from mindstack_app.models import Notification, PushSubscription
 
 class NotificationService:
     @staticmethod

@@ -6,4 +6,8 @@ notification_bp = Blueprint('notification', __name__,
 from . import routes
 
 # Register event listeners for signal-based notifications
-from . import events  # noqa: E402, F401
+from .services.notification_manager import NotificationManager
+
+# Initialize listeners
+NotificationManager.init_listeners()
+

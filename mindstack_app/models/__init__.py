@@ -39,6 +39,7 @@ from .goals import Goal, UserGoal, GoalProgress  # NEW: Centralized Goal System
 from .gamification import Badge, UserBadge, ScoreLog, Streak
 from .translator import TranslationHistory
 from .stats import UserMetric, DailyStat, Achievement  # NEW: Stats Module Models
+from .notification import Notification, PushSubscription, NotificationPreference # NEW: Notification Models
 
 __all__ = [
     'db',
@@ -85,4 +86,7 @@ __all__ = [
     'UserMetric',
     'DailyStat',
     'Achievement',
+    'Notification',
+    'PushSubscription',
+    'NotificationPreference',
 ]
