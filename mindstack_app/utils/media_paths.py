@@ -9,7 +9,7 @@ MEDIA_TYPES = ("image", "audio")
 
 
 def normalize_media_folder(folder: Optional[str]) -> Optional[str]:
-    """Return a sanitized folder path (relative to the uploads static root)."""
+    """Return a sanitized folder path (relative to the uploads root)."""
 
     if not folder:
         return None
@@ -17,9 +17,10 @@ def normalize_media_folder(folder: Optional[str]) -> Optional[str]:
     normalized = str(folder).strip().replace("\\", "/")
     normalized = normalized.strip("/")
 
-    uploads_prefix = "uploads/"
-    while normalized.startswith(uploads_prefix):
-        normalized = normalized[len(uploads_prefix):]
+    # Remove legacy prefixes
+    for prefix in ["uploads/", "static/"]:
+        if normalized.startswith(prefix):
+            normalized = normalized[len(prefix):]
 
     return normalized or None
 
@@ -53,10 +54,8 @@ def get_media_folders(settings: Optional[Mapping[str, object]]) -> dict[str, str
 
 def normalize_media_value_for_storage(value, media_folder: Optional[str]) -> Optional[str]:
     """
-    Normalize a user-provided path before storing it in the database.
-    Changed: Always returns the full path relative to uploads/ directory.
-    Does NOT strip the media_folder prefix anymore to ensure path integrity.
-    Does NOT use basename, preserving subdirectories.
+    Normalize a path before storing it in the database.
+    Returns the path relative to uploads/ directory.
     """
 
     if value is None:
@@ -73,14 +72,12 @@ def normalize_media_value_for_storage(value, media_folder: Optional[str]) -> Opt
     normalized = normalized.replace("\\", "/")
     normalized = normalized.lstrip("/")
 
-    # Strip 'uploads/' prefix if present
-    uploads_prefix = "uploads/"
-    while normalized.startswith(uploads_prefix):
-        normalized = normalized[len(uploads_prefix):]
+    # Strip legacy prefixes
+    for prefix in ["uploads/", "static/"]:
+        while normalized.startswith(prefix):
+            normalized = normalized[len(prefix):]
 
-    # [CHANGE] If the value has no slashes, it's likely a legacy filename
-    # or a shortcut (user just typed 'cover.jpg').
-    # Prepend the media_folder to make it a full relative path.
+    # Prepend media_folder if it's just a filename
     if "/" not in normalized:
         folder_normalized = normalize_media_folder(media_folder)
         if folder_normalized:
@@ -91,9 +88,7 @@ def normalize_media_value_for_storage(value, media_folder: Optional[str]) -> Opt
 
 def build_relative_media_path(value, media_folder: Optional[str]) -> Optional[str]:
     """
-    Build a relative path (from the static/uploads root) for the stored value.
-    Handles legacy data (filename only) by prepending media_folder.
-    Handles new data (full path) by returning as-is.
+    Build a relative path (from the uploads root) for the stored value.
     """
 
     if value is None:
@@ -111,21 +106,17 @@ def build_relative_media_path(value, media_folder: Optional[str]) -> Optional[st
 
     normalized = normalized.lstrip("/")
 
-    uploads_prefix = "uploads/"
-    while normalized.startswith(uploads_prefix):
-        normalized = normalized[len(uploads_prefix):]
+    # Strip legacy prefixes
+    for prefix in ["uploads/", "static/"]:
+        while normalized.startswith(prefix):
+            normalized = normalized[len(prefix):]
 
-    # Heuristic: If the value has no slashes, it's likely a legacy filename
-    # that implies it resides in the default media_folder.
+    # Prepend media_folder if it's just a filename
     if "/" not in normalized:
         folder_normalized = normalize_media_folder(media_folder)
         if folder_normalized:
-            # Prepend default folder
             normalized = f"{folder_normalized}/{normalized}"
     
-    # If it has slashes, we assume it's already a full relative path (e.g. 'folder/img.jpg')
-    # and return it as is.
-
     if not normalized:
         return None
 

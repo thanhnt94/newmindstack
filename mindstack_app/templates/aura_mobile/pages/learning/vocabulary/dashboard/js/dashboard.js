@@ -578,12 +578,13 @@ document.addEventListener('DOMContentLoaded', function () {
                     coverPath = coverPath.replace(/\\/g, '/'); // Normalize windows paths
 
                     if (coverPath.startsWith('http') || coverPath.startsWith('/')) {
-                        // Absolute path or root-relative path (http... or /static...) -> Valid as is
-                    } else if (coverPath.startsWith('uploads/')) {
-                        coverPath = '/' + coverPath;
+                        // Absolute path or root-relative path -> Valid as is
                     } else {
-                        // Assume relative -> prepend static
-                        coverPath = '/static/' + coverPath;
+                        // Normalize legacy prefixes and prepend /media/
+                        let p = coverPath;
+                        if (p.startsWith('static/')) p = p.substring(7);
+                        if (p.startsWith('uploads/')) p = p.substring(8);
+                        coverPath = '/media/' + p.replace(/^\//, '');
                     }
                 }
 
@@ -888,10 +889,12 @@ document.addEventListener('DOMContentLoaded', function () {
                         coverPath = coverPath.replace(/\\/g, '/'); // Normalize windows paths
                         if (coverPath.startsWith('http') || coverPath.startsWith('/')) {
                             // Absolute paths valid as is
-                        } else if (coverPath.startsWith('uploads/')) {
-                            coverPath = '/' + coverPath;
                         } else {
-                            coverPath = '/static/' + coverPath;
+                            // Normalize legacy prefixes and prepend /media/
+                            let p = coverPath;
+                            if (p.startsWith('static/')) p = p.substring(7);
+                            if (p.startsWith('uploads/')) p = p.substring(8);
+                            coverPath = '/media/' + p.replace(/^\//, '');
                         }
 
                         coverEl.innerHTML = '<img src="' + coverPath + '" class="vocab-detail-hero-img" alt="">';

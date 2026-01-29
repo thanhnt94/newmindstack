@@ -89,39 +89,26 @@ def register_extensions(app: Flask) -> None:
             app.logger.error(f"Lỗi khởi tạo Scheduler: {e}")
 
 
-def configure_static_uploads(app: Flask) -> None:
-    """Configure static file serving to use UPLOAD_FOLDER for /static/ route.
-    
-    This allows existing URLs stored in the database as /static/... to be served
-    from the UPLOAD_FOLDER (e.g., C:\\Code\\MindStack\\uploads) instead of the
-    default mindstack_app/static/ folder.
-    """
+def configure_static_media_routes(app: Flask) -> None:
+    """Configure specialized routes for media and theme assets."""
     from flask import send_from_directory
     import os
 
-    # Get the uploads folder path from config
-    upload_folder = app.config.get('UPLOAD_FOLDER')
-    
-    if upload_folder and os.path.isdir(upload_folder):
-        app.logger.info(f"UPLOAD_FOLDER đã được xác nhận tại: {upload_folder}")
-    else:
-        app.logger.warning(f"UPLOAD_FOLDER không tồn tại hoặc chưa cấu hình: {upload_folder}")
-    
-    # Override /static/ route to serve from UPLOAD_FOLDER
-    # This route has higher priority than Flask's default static route
-    @app.route('/static/<path:filename>')
-    def custom_static(filename):
-        """Serve static files from UPLOAD_FOLDER instead of default static folder."""
-        return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
-    
-    # Also keep the /uploads/ route as an alias
-    @app.route('/uploads/<path:filename>')
-    def uploaded_file(filename):
+    # 1. User Media (Stateful - Uploads)
+    @app.route('/media/<path:filename>')
+    def media_uploads(filename):
+        """Serve files from UPLOAD_FOLDER."""
         return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
-    app.logger.info("Đã cấu hình /static/ và /uploads/ để phục vụ từ UPLOAD_FOLDER")
+    # 2. Theme Assets (Stateless - Source Code)
+    @app.route('/theme-assets/<theme_name>/<path:filename>')
+    def theme_assets(theme_name, filename):
+        """Serve static assets from within theme directories."""
+        theme_path = os.path.join(app.template_folder, theme_name, 'assets')
+        return send_from_directory(theme_path, filename)
 
-    # Serve favicon from source
+    # 3. Keep standard favicon routes from root static if needed, 
+    # but preferred way is to move them to theme assets later.
     @app.route('/favicon.ico')
     def favicon_ico():
         return send_from_directory(
@@ -138,6 +125,7 @@ def configure_static_uploads(app: Flask) -> None:
             mimetype='image/png'
         )
 
+    app.logger.info("Core routes configured: /media/ (uploads) and /theme-assets/ (themes)")
 
 
 def register_context_processors(app: Flask) -> None:
@@ -166,7 +154,7 @@ def register_context_processors(app: Flask) -> None:
 
     @app.template_filter('media_url')
     def media_url_filter(path):
-        """Converts a stored media path to a valid public URL."""
+        """Converts a stored media path to a /media/ URL."""
         if not path:
             return ''
         
@@ -175,15 +163,13 @@ def register_context_processors(app: Flask) -> None:
         if p.startswith(('http://', 'https://', '/')):
             return p
             
-        # Remove static/ prefix if present to normalize
+        # Normalize: remove legacy prefixes
         if p.startswith('static/'):
             p = p[7:]
-            
-        # Remove uploads/ prefix if present (since /static/ serves from uploads)
         if p.startswith('uploads/'):
             p = p[8:]
             
-        return f"/static/{p}"
+        return f"/media/{p.lstrip('/')}"
 
     @app.template_filter('user_timezone')
     def user_timezone_filter(dt, fmt='%Y-%m-%d %H:%M:%S'):

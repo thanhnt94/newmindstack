@@ -1,143 +1,143 @@
 <script>
-(function() {
-    function normalizeBaseFolder(value) {
-        if (!value) {
-            return '';
-        }
-        return String(value).replace(/\\/g, '/').replace(/^\/+|\/+$/g, '');
-    }
-
-    function resolveCoverUrl(rawValue, baseFolder) {
-        if (!rawValue) {
-            return '';
-        }
-
-        let raw = String(rawValue).trim();
-        if (!raw) {
-            return '';
-        }
-
-        if (/^(?:https?:)?\/\//i.test(raw) || raw.startsWith('data:')) {
-            return raw;
-        }
-
-        raw = raw.replace(/\\/g, '/');
-        if (raw.startsWith('/')) {
-            return raw;
-        }
-
-        const uploadsPrefix = 'uploads/';
-        if (raw.toLowerCase().startsWith(uploadsPrefix)) {
-            raw = raw.slice(uploadsPrefix.length);
-        }
-
-        const base = normalizeBaseFolder(baseFolder);
-        if (base) {
-            const normalizedBase = base.endsWith('/') ? base : `${base}/`;
-            if (!raw.startsWith(normalizedBase) && !raw.startsWith(base) && !raw.includes('/')) {
-                raw = `${base}/${raw}`;
+    (function () {
+        function normalizeBaseFolder(value) {
+            if (!value) {
+                return '';
             }
+            return String(value).replace(/\\/g, '/').replace(/^\/+|\/+$/g, '');
         }
 
-        return `/static/${raw}`;
-    }
+        function resolveCoverUrl(rawValue, baseFolder) {
+            if (!rawValue) {
+                return '';
+            }
 
-    function setupCoverPreview(wrapper) {
-        if (!wrapper) {
-            return;
+            let raw = String(rawValue).trim();
+            if (!raw) {
+                return '';
+            }
+
+            if (/^(?:https?:)?\/\//i.test(raw) || raw.startsWith('data:')) {
+                return raw;
+            }
+
+            raw = raw.replace(/\\/g, '/');
+            if (raw.startsWith('/')) {
+                return raw;
+            }
+
+            const uploadsPrefix = 'uploads/';
+            if (raw.toLowerCase().startsWith(uploadsPrefix)) {
+                raw = raw.slice(uploadsPrefix.length);
+            }
+
+            const base = normalizeBaseFolder(baseFolder);
+            if (base) {
+                const normalizedBase = base.endsWith('/') ? base : `${base}/`;
+                if (!raw.startsWith(normalizedBase) && !raw.startsWith(base) && !raw.includes('/')) {
+                    raw = `${base}/${raw}`;
+                }
+            }
+
+            return `/media/${raw}`;
         }
 
-        const input = wrapper.querySelector('[data-role="cover-input"]');
-        const preview = wrapper.querySelector('[data-role="cover-preview"]');
-        const placeholder = wrapper.querySelector('[data-role="cover-placeholder"]');
-        const openButton = wrapper.querySelector('[data-role="cover-open"]');
-        const statusLabel = wrapper.querySelector('[data-role="cover-status"]');
-        const baseFolder = wrapper.dataset.baseFolder || '';
-        const initialUrl = wrapper.dataset.initialUrl || '';
-
-        const setStatus = (message, type) => {
-            if (!statusLabel) {
+        function setupCoverPreview(wrapper) {
+            if (!wrapper) {
                 return;
             }
-            statusLabel.textContent = message || '';
-            statusLabel.classList.remove('text-green-600', 'text-red-500', 'text-blue-600');
-            if (!message) {
-                return;
-            }
-            if (type === 'error') {
-                statusLabel.classList.add('text-red-500');
-            } else if (type === 'success') {
-                statusLabel.classList.add('text-green-600');
-            } else {
-                statusLabel.classList.add('text-blue-600');
-            }
-        };
 
-        const togglePreview = (url) => {
-            const hasUrl = Boolean(url);
+            const input = wrapper.querySelector('[data-role="cover-input"]');
+            const preview = wrapper.querySelector('[data-role="cover-preview"]');
+            const placeholder = wrapper.querySelector('[data-role="cover-placeholder"]');
+            const openButton = wrapper.querySelector('[data-role="cover-open"]');
+            const statusLabel = wrapper.querySelector('[data-role="cover-status"]');
+            const baseFolder = wrapper.dataset.baseFolder || '';
+            const initialUrl = wrapper.dataset.initialUrl || '';
+
+            const setStatus = (message, type) => {
+                if (!statusLabel) {
+                    return;
+                }
+                statusLabel.textContent = message || '';
+                statusLabel.classList.remove('text-green-600', 'text-red-500', 'text-blue-600');
+                if (!message) {
+                    return;
+                }
+                if (type === 'error') {
+                    statusLabel.classList.add('text-red-500');
+                } else if (type === 'success') {
+                    statusLabel.classList.add('text-green-600');
+                } else {
+                    statusLabel.classList.add('text-blue-600');
+                }
+            };
+
+            const togglePreview = (url) => {
+                const hasUrl = Boolean(url);
+                if (preview) {
+                    if (hasUrl) {
+                        preview.src = url;
+                        preview.classList.remove('hidden');
+                    } else {
+                        preview.removeAttribute('src');
+                        preview.classList.add('hidden');
+                    }
+                }
+
+                if (placeholder) {
+                    placeholder.classList.toggle('hidden', hasUrl);
+                }
+
+                if (openButton) {
+                    openButton.classList.toggle('hidden', !hasUrl);
+                    if (hasUrl) {
+                        openButton.onclick = () => window.open(url, '_blank');
+                    } else {
+                        openButton.onclick = null;
+                    }
+                }
+            };
+
+            const applyValue = (value) => {
+                const resolved = resolveCoverUrl(value, baseFolder);
+                if (!resolved) {
+                    togglePreview('');
+                    setStatus('', '');
+                    return;
+                }
+                togglePreview(resolved);
+                setStatus('Đang tải ảnh cover...', 'info');
+            };
+
             if (preview) {
-                if (hasUrl) {
-                    preview.src = url;
-                    preview.classList.remove('hidden');
-                } else {
-                    preview.removeAttribute('src');
-                    preview.classList.add('hidden');
-                }
+                preview.addEventListener('load', () => {
+                    setStatus('Ảnh cover đã sẵn sàng.', 'success');
+                });
+
+                preview.addEventListener('error', () => {
+                    togglePreview('');
+                    setStatus('Không thể tải ảnh cover. Vui lòng kiểm tra đường dẫn.', 'error');
+                });
             }
 
-            if (placeholder) {
-                placeholder.classList.toggle('hidden', hasUrl);
+            if (initialUrl) {
+                togglePreview(initialUrl);
             }
 
-            if (openButton) {
-                openButton.classList.toggle('hidden', !hasUrl);
-                if (hasUrl) {
-                    openButton.onclick = () => window.open(url, '_blank');
-                } else {
-                    openButton.onclick = null;
-                }
+            if (input) {
+                ['change', 'input'].forEach(evt => {
+                    input.addEventListener(evt, () => applyValue(input.value));
+                });
             }
-        };
-
-        const applyValue = (value) => {
-            const resolved = resolveCoverUrl(value, baseFolder);
-            if (!resolved) {
-                togglePreview('');
-                setStatus('', '');
-                return;
-            }
-            togglePreview(resolved);
-            setStatus('Đang tải ảnh cover...', 'info');
-        };
-
-        if (preview) {
-            preview.addEventListener('load', () => {
-                setStatus('Ảnh cover đã sẵn sàng.', 'success');
-            });
-
-            preview.addEventListener('error', () => {
-                togglePreview('');
-                setStatus('Không thể tải ảnh cover. Vui lòng kiểm tra đường dẫn.', 'error');
-            });
         }
 
-        if (initialUrl) {
-            togglePreview(initialUrl);
+        function initializeCoverPreviews(root = document) {
+            root.querySelectorAll('[data-role="cover-wrapper"]').forEach(setupCoverPreview);
         }
 
-        if (input) {
-            ['change', 'input'].forEach(evt => {
-                input.addEventListener(evt, () => applyValue(input.value));
-            });
-        }
-    }
+        document.addEventListener('DOMContentLoaded', () => initializeCoverPreviews());
 
-    function initializeCoverPreviews(root = document) {
-        root.querySelectorAll('[data-role="cover-wrapper"]').forEach(setupCoverPreview);
-    }
-
-    document.addEventListener('DOMContentLoaded', () => initializeCoverPreviews());
-
-    window.initializeCoverPreviews = initializeCoverPreviews;
-})();
+        window.initializeCoverPreviews = initializeCoverPreviews;
+    })();
 </script>

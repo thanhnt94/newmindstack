@@ -7,7 +7,7 @@ from flask import Flask
 from .config import Config
 from .core.bootstrap import (
     configure_logging,
-    configure_static_uploads,
+    configure_static_media_routes,
     initialize_database,
     register_blueprints,
     register_context_processors,
@@ -24,14 +24,14 @@ __all__ = ["create_app", "app", "db"]
 def create_app(config_class: type[Config] = Config) -> Flask:
     """Create and configure a Flask application instance."""
 
-    # Set static_folder to UPLOAD_FOLDER so /static/ serves from uploads directory
-    app = Flask(__name__, static_folder=config_class.UPLOAD_FOLDER)
+    # Use default static_folder (mindstack_app/static)
+    app = Flask(__name__)
     app.config.from_object(config_class)
 
     configure_logging(app)
     register_error_handlers(app)
     register_extensions(app)
-    configure_static_uploads(app)
+    configure_static_media_routes(app)
     register_context_processors(app)
     register_blueprints(app)
 
