@@ -1,0 +1,127 @@
+{% extends 'admin/admin_layout.html' %}
+
+{% block title %}Quản lý Modules - Mindstack Admin{% endblock %}
+
+{% block page_title %}Quản lý Modules{% endblock %}
+{% block page_subtitle %}Bật/Tắt các tính năng của hệ thống Mindstack trong thời gian thực.{% endblock %}
+
+{% block content %}
+<div class="space-y-6" x-data="moduleManager()">
+    <!-- Module List Card -->
+    <div class="data-card overflow-hidden">
+        <div class="data-card-header px-6 py-4 bg-white flex items-center justify-between">
+            <h2 class="text-lg font-bold text-slate-800">Danh sách Modules Hệ thống</h2>
+            <div class="flex items-center gap-2 text-xs text-slate-500">
+                <span class="flex items-center gap-1"><i class="fas fa-circle text-emerald-500"></i> Đang hoạt động</span>
+                <span class="flex items-center gap-1 ml-3"><i class="fas fa-circle text-slate-300"></i> Đã tắt</span>
+            </div>
+        </div>
+        
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-slate-200">
+                <thead class="bg-slate-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Tên Module</th>
+                        <th class="px-6 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider hidden md:table-cell">Import Path</th>
+                        <th class="px-6 py-3 text-center text-xs font-bold text-slate-500 uppercase tracking-wider">Trạng thái</th>
+                        <th class="px-6 py-3 text-right text-xs font-bold text-slate-500 uppercase tracking-wider">Thao tác</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-slate-200">
+                    {% for mod in modules %}
+                    <tr class="hover:bg-slate-50/80 transition-colors">
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="flex items-center gap-3">
+                                <div class="w-8 h-8 rounded-lg flex items-center justify-center {{ 'bg-indigo-100 text-indigo-600' if mod.is_core else 'bg-slate-100 text-slate-600' }}">
+                                    <i class="fas {{ 'fa-shield-halved' if mod.is_core else 'fa-puzzle-piece' }}"></i>
+                                </div>
+                                <div>
+                                    <div class="text-sm font-bold text-slate-900">{{ mod.name }}</div>
+                                    <div class="text-[10px] font-mono text-slate-400 uppercase">{{ mod.key }}</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500 hidden md:table-cell font-mono text-xs">
+                            {{ mod.import_path }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-center">
+                            {% if mod.is_active %}
+                            <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-700 uppercase tracking-wide">Active</span>
+                            {% else %}
+                            <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-500 uppercase tracking-wide">Disabled</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                            {% if mod.is_core %}
+                            <span class="text-xs text-slate-400 italic">Hệ thống cốt lõi</span>
+                            {% else %}
+                            <button 
+                                @click="toggleModule('{{ mod.key }}')"
+                                :class="isUpdating === '{{ mod.key }}' ? 'opacity-50 cursor-wait' : ''"
+                                class="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-all {{ 'text-rose-600 hover:bg-rose-50' if mod.is_active else 'text-emerald-600 hover:bg-emerald-50' }}">
+                                <i class="fas {{ 'fa-toggle-on' if mod.is_active else 'fa-toggle-off' }} text-lg"></i>
+                                {{ 'Tắt Module' if mod.is_active else 'Bật Module' }}
+                            </button>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Info Box -->
+    <div class="bg-amber-50 border border-amber-200 rounded-xl p-4 flex gap-3 text-amber-800">
+        <i class="fas fa-circle-info mt-1"></i>
+        <div class="text-sm leading-relaxed">
+            <p class="font-bold mb-1">Lưu ý quan trọng:</p>
+            <ul class="list-disc ml-4 space-y-1">
+                <li>Việc tắt một module sẽ chặn mọi truy cập vào các URL thuộc module đó ngay lập tức.</li>
+                <li>Các module cốt lõi (Admin, Xác thực, Trang chủ) không thể bị tắt để đảm bảo bạn luôn có thể quản trị hệ thống.</li>
+                <li>Giao diện (Sidebar/Menu) sẽ tự động ẩn các mục liên quan đến module bị tắt.</li>
+            </ul>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+<script>
+    function moduleManager() {
+        return {
+            isUpdating: null,
+            toggleModule(key) {
+                if (this.isUpdating) return;
+                
+                this.isUpdating = key;
+                fetch('{{ url_for("admin.toggle_module") }}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content
+                    },
+                    body: JSON.stringify({ key: key })
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        window.showFlashMessage(data.message, 'success');
+                        setTimeout(() => window.location.reload(), 1000);
+                    } else {
+                        window.showFlashMessage(data.message, 'danger');
+                    }
+                })
+                .catch(err => {
+                    console.error(err);
+                    window.showFlashMessage('Lỗi kết nối máy chủ', 'danger');
+                })
+                .finally(() => {
+                    this.isUpdating = null;
+                });
+            }
+        }
+    }
+</script>
+{% endblock %}

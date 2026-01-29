@@ -6,7 +6,7 @@ import logging
 import os
 from typing import Callable
 
-from flask import Flask
+from flask import Flask, request, abort
 from flask_login import current_user
 
 from sqlalchemy import inspect, or_, text
@@ -14,7 +14,7 @@ from sqlalchemy import inspect, or_, text
 from ..config import BASE_DIR
 from ..extensions import csrf_protect, db, login_manager, scheduler, migrate
 from mindstack_app.utils.bbcode_parser import bbcode_to_html
-from .module_registry import register_default_modules
+from .module_registry import register_default_modules, get_module_key_by_blueprint
 from .error_handlers import register_error_handlers
 
 
@@ -128,6 +128,33 @@ def configure_static_media_routes(app: Flask) -> None:
     app.logger.info("Core routes configured: /media/ (uploads) and /theme-assets/ (themes)")
 
 
+def configure_module_access_control(app: Flask) -> None:
+    """Check module active status before each request."""
+    from ..models import AppSettings
+
+    @app.before_request
+    def check_module_active():
+        # Skip static files
+        if request.endpoint and 'static' in request.endpoint:
+            return
+
+        # Check if the request belongs to a blueprint
+        if request.blueprint:
+            # Core modules are always active
+            if request.blueprint in ['admin', 'auth_api', 'auth', 'landing']:
+                return
+
+            module_key = get_module_key_by_blueprint(request.blueprint)
+            if module_key:
+                # If setting doesn't exist, it's enabled by default
+                is_active = AppSettings.get(f"MODULE_ENABLED_{module_key}", True)
+                
+                if not is_active:
+                    app.logger.warning(f"Blocked access to disabled module: {module_key} via {request.blueprint}")
+                    # Return 403 or redirect
+                    abort(403, description=f"Module '{module_key}' is currently disabled by administrator.")
+
+
 def register_context_processors(app: Flask) -> None:
     """Register global template context processors."""
 
@@ -140,9 +167,25 @@ def register_context_processors(app: Flask) -> None:
 
     @app.context_processor
     def inject_utility_functions() -> dict[str, Callable[..., Any]]:
+        from ..models import AppSettings
+        
+        def is_module_active(blueprint_name_or_key: str) -> bool:
+            """Check if a module is enabled."""
+            # Clean key from possible blueprint suffix
+            key = blueprint_name_or_key.replace('_bp', '').replace('_api', '')
+            # If it's a known blueprint name, find its module key
+            resolved_key = get_module_key_by_blueprint(blueprint_name_or_key) or key
+            
+            # Core modules always active
+            if resolved_key in ['admin', 'auth', 'landing']:
+                return True
+                
+            return AppSettings.get(f"MODULE_ENABLED_{resolved_key}", True)
+
         return {
             "bbcode_to_html": bbcode_to_html,
-            "is_module_active": lambda name: name in app.blueprints
+            "is_module_active": is_module_active,
+            "is_blueprint_active": lambda name: name in app.blueprints
         }
 
     @login_manager.user_loader

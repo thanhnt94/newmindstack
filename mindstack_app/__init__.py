@@ -8,6 +8,7 @@ from .config import Config
 from .core.bootstrap import (
     configure_logging,
     configure_static_media_routes,
+    configure_module_access_control,
     initialize_database,
     register_blueprints,
     register_context_processors,
@@ -31,6 +32,7 @@ def create_app(config_class: type[Config] = Config) -> Flask:
     configure_logging(app)
     register_error_handlers(app)
     register_extensions(app)
+    configure_module_access_control(app)
     configure_static_media_routes(app)
     register_context_processors(app)
     register_blueprints(app)
