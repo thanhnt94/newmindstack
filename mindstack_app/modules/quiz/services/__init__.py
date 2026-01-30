@@ -1,1 +1,1 @@
-﻿from .quiz_config_service import QuizConfigService
+from .quiz_config_service import QuizConfigService

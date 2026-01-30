@@ -3,7 +3,7 @@ Stats Module Models
 Defines aggregate statistics and metrics for users.
 """
 from datetime import datetime, timezone
-from ..db_instance import db
+from mindstack_app.core.extensions import db
 
 class UserMetric(db.Model):
     """

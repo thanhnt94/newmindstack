@@ -6,14 +6,14 @@ from flask_login import login_required, current_user
 from sqlalchemy import or_
 import math
 
-from . import vocabulary_bp
+from . import blueprint
 from mindstack_app.core.error_handlers import error_response, success_response
 from mindstack_app.models import (
     LearningContainer, LearningItem, User, UserContainerState, db, LearningProgress
 )
 
 # Import flashcard engine for session management
-from ...flashcard.engine import get_flashcard_mode_counts
+from ...flashcard.engine.algorithms import get_flashcard_mode_counts
 from mindstack_app.modules.AI.services.ai_manager import get_ai_service
 from mindstack_app.modules.AI.logics.prompts import get_formatted_prompt
 
@@ -42,7 +42,7 @@ class SimplePagination:
                 last = num
 
 
-@vocabulary_bp.route('/api/dashboard-global-stats')
+@blueprint.route('/api/dashboard-global-stats')
 @login_required
 def api_get_dashboard_stats():
     """API to get global vocabulary dashboard statistics."""
@@ -58,7 +58,7 @@ def api_get_dashboard_stats():
         return error_response(str(e), 'SERVER_ERROR', 500)
 
 
-@vocabulary_bp.route('/api/sets')
+@blueprint.route('/api/sets')
 @login_required  
 def api_get_sets():
     """API to get vocabulary sets with search and category filter."""
@@ -140,7 +140,7 @@ def api_get_sets():
     })
 
 
-@vocabulary_bp.route('/api/flashcard-modes/<int:set_id>')
+@blueprint.route('/api/flashcard-modes/<int:set_id>')
 @login_required
 def api_get_flashcard_modes(set_id):
     """API to get flashcard mode counts for inline rendering."""
@@ -177,7 +177,7 @@ def api_get_flashcard_modes(set_id):
         return error_response(str(e), 'SERVER_ERROR', 500)
 
 
-@vocabulary_bp.route('/api/settings/container/<int:set_id>', methods=['POST', 'DELETE'])
+@blueprint.route('/api/settings/container/<int:set_id>', methods=['POST', 'DELETE'])
 @login_required
 def api_container_settings(set_id):
     """
@@ -201,7 +201,7 @@ def api_container_settings(set_id):
         return error_response(str(e), 'SERVER_ERROR', 500)
 
 
-@vocabulary_bp.route('/api/set/<int:set_id>')
+@blueprint.route('/api/set/<int:set_id>')
 @login_required
 def api_get_set_detail(set_id):
     """API to get detailed info about a vocabulary set."""
@@ -292,7 +292,7 @@ def api_get_set_detail(set_id):
     })
 
 
-@vocabulary_bp.route('/api/stats/container/<int:container_id>')
+@blueprint.route('/api/stats/container/<int:container_id>')
 @login_required
 def api_get_container_stats(container_id):
     """
@@ -326,7 +326,7 @@ def api_get_container_stats(container_id):
         return error_response(str(e), 'SERVER_ERROR', 500)
 
 
-@vocabulary_bp.route('/api/progress/<int:item_id>/note', methods=['POST'])
+@blueprint.route('/api/progress/<int:item_id>/note', methods=['POST'])
 @login_required
 def api_save_item_note(item_id):
     """
@@ -368,7 +368,7 @@ def api_save_item_note(item_id):
         current_app.logger.error(f"Error saving note for item {item_id}: {e}")
         return error_response(str(e), 'SERVER_ERROR', 500)
 
-@vocabulary_bp.route('/api/item/<int:item_id>/generate-ai', methods=['POST'])
+@blueprint.route('/api/item/<int:item_id>/generate-ai', methods=['POST'])
 @login_required
 def api_generate_ai_explanation(item_id):
     """Generate AI explanation for a single item."""

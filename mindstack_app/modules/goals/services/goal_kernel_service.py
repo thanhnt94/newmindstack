@@ -7,7 +7,7 @@ Connects with 'goals', 'user_goals', 'goal_progress_logs' tables.
 from datetime import datetime, timezone, timedelta
 from typing import Optional, List
 
-from mindstack_app.db_instance import db
+from mindstack_app.core.extensions import db
 from mindstack_app.models import Goal, UserGoal, GoalProgress
 from sqlalchemy.dialects.postgresql import insert
 

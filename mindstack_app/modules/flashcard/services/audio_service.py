@@ -17,9 +17,9 @@ from flask import current_app
 
 from mindstack_app.logics.voice_engine import VoiceEngine
 
-from mindstack_app.db_instance import db
+from mindstack_app.core.extensions import db
 from mindstack_app.models import LearningContainer, LearningItem, User, BackgroundTask
-from mindstack_app.config import Config
+from mindstack_app.core.config import Config
 logger = logging.getLogger(__name__)
 
 class AudioService:

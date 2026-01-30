@@ -1,19 +1,17 @@
-"""
-Stats Module
-Thống kê và phân tích dữ liệu học tập.
-"""
+# File: mindstack_app/modules/stats/__init__.py
 from flask import Blueprint
 
-stats_bp = Blueprint(
-    'stats',
-    __name__,
-    static_folder='static',
-    url_prefix='/stats'
-)
+blueprint = Blueprint('stats', __name__)
 
-from .routes import *  # noqa: E402, F401
-from .services.analytics_listener import init_analytics_listener
+module_metadata = {
+    'name': 'Thống kê',
+    'icon': 'chart-bar',
+    'category': 'System',
+    'url_prefix': '/stats',
+    'enabled': True
+}
 
-# Initialize listeners
-init_analytics_listener()
-
+def setup_module(app):
+    from . import routes
+    from .services.analytics_listener import init_analytics_listener
+    init_analytics_listener()

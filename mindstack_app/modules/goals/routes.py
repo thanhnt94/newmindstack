@@ -6,21 +6,21 @@ from flask import flash, redirect, render_template, request, url_for
 from mindstack_app.utils.template_helpers import render_dynamic_template
 from flask_login import current_user, login_required
 
-from ...db_instance import db
-from ...models import UserGoal, Goal
+from mindstack_app.core.extensions import db
+from mindstack_app.models import UserGoal, Goal
 from mindstack_app.utils.pagination import get_pagination_data
 from mindstack_app.modules.goals.services.goal_kernel_service import GoalKernelService
-from . import goals_bp
+from . import blueprint
 from .constants import GOAL_TYPE_CONFIG, PERIOD_LABELS
 from .forms import LearningGoalForm
 from .view_helpers import build_goal_progress
 
 
-@goals_bp.route('/goals', methods=['GET', 'POST'])
+@blueprint.route('/goals', methods=['GET', 'POST'])
 @login_required
 def manage_goals():
     """Allow users to review and create their personalised learning goals."""
-    from ...models import LearningContainer
+    from mindstack_app.models import LearningContainer
 
     form = LearningGoalForm()
     
@@ -87,7 +87,7 @@ def manage_goals():
     goal_progress = build_goal_progress(pagination.items)
     
     # Fetch containers for selector (Only those learned/accessed by user)
-    from ...models import UserContainerState
+    from mindstack_app.models import UserContainerState
     
     def get_user_sets(ctype):
         return (
@@ -115,7 +115,7 @@ def manage_goals():
     )
 
 
-@goals_bp.route('/goals/<int:goal_id>/edit', methods=['GET', 'POST'])
+@blueprint.route('/goals/<int:goal_id>/edit', methods=['GET', 'POST'])
 @login_required
 def edit_goal(goal_id: int):
     # goal_id here is UserGoal ID
@@ -167,7 +167,7 @@ def edit_goal(goal_id: int):
     )
 
 
-@goals_bp.route('/goals/<int:goal_id>/toggle', methods=['POST'])
+@blueprint.route('/goals/<int:goal_id>/toggle', methods=['POST'])
 @login_required
 def toggle_goal(goal_id: int):
     user_goal = UserGoal.query.filter_by(user_id=current_user.user_id, user_goal_id=goal_id).first_or_404()
@@ -177,7 +177,7 @@ def toggle_goal(goal_id: int):
     return redirect(request.referrer or url_for('goals.manage_goals'))
 
 
-@goals_bp.route('/goals/<int:goal_id>/delete', methods=['POST'])
+@blueprint.route('/goals/<int:goal_id>/delete', methods=['POST'])
 @login_required
 def delete_goal(goal_id: int):
     user_goal = UserGoal.query.filter_by(user_id=current_user.user_id, user_goal_id=goal_id).first_or_404()

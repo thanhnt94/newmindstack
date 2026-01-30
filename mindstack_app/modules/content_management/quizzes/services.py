@@ -20,7 +20,7 @@ from mindstack_app.utils.media_paths import (
     normalize_media_value_for_storage,
     build_relative_media_path,
 )
-from mindstack_app.config import Config
+from mindstack_app.core.config import Config
 from mindstack_app.services.config_service import get_runtime_config
 from ...quiz.services.quiz_config_service import QuizConfigService
 

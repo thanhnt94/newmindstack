@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Iterable, Type
 
-from ...db_instance import db
+from mindstack_app.core.extensions import db
 
 
 def serialize_chat_message(message) -> dict[str, object]:

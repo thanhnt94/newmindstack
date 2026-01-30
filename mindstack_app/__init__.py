@@ -1,48 +1,24 @@
-"""Application factory for the Mindstack app."""
-
-from __future__ import annotations
+# File: mindstack_app/__init__.py
+# Ultra-Clean Application Factory
 
 from flask import Flask
+from .core.config import Config
+from .core.bootstrap import bootstrap_system
+from .core.extensions import db
 
-from .config import Config
-from .core.bootstrap import (
-    configure_logging,
-    configure_static_media_routes,
-    configure_module_access_control,
-    initialize_database,
-    register_blueprints,
-    register_context_processors,
-    register_extensions,
-    register_error_handlers,
-)
-from .extensions import db
-from .services.config_service import init_config_service
-from .core.maintenance import init_maintenance_mode
-
-__all__ = ["create_app", "app", "db"]
-
-
-def create_app(config_class: type[Config] = Config) -> Flask:
-    """Create and configure a Flask application instance."""
-
-    # Use default static_folder (mindstack_app/static)
+def create_app(config_class=Config) -> Flask:
+    """
+    Application Factory: Khởi tạo Flask App và kích hoạt hệ thống Core.
+    """
+    # 1. Instantiate Flask (Presentation & Static folders are handled by Themes)
     app = Flask(__name__)
     app.config.from_object(config_class)
-
-    configure_logging(app)
-    register_error_handlers(app)
-    register_extensions(app)
-    configure_module_access_control(app)
-    configure_static_media_routes(app)
-    register_context_processors(app)
-    register_blueprints(app)
-
+    
+    # 2. Infrastructure Initialization
+    config_class.init_app(app)
+    
+    # 3. Bootstrap Core System (Discovery, Themes, Models)
     with app.app_context():
-        initialize_database(app)
-        init_config_service(app)
-        init_maintenance_mode(app)
-
+        bootstrap_system(app)
+        
     return app
-
-
-app = create_app()

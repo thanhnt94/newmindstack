@@ -1,5 +1,15 @@
+# File: mindstack_app/modules/telegram_bot/__init__.py
 from flask import Blueprint
 
-telegram_bot_bp = Blueprint('telegram_bot', __name__, url_prefix='/telegram')
+blueprint = Blueprint('telegram_bot', __name__)
 
-from . import routes
+module_metadata = {
+    'name': 'Telegram Bot',
+    'icon': 'send',
+    'category': 'System',
+    'url_prefix': '/telegram',
+    'enabled': True
+}
+
+def setup_module(app):
+    from . import routes

@@ -1,5 +1,5 @@
 from datetime import datetime, timezone
-from mindstack_app.db_instance import db
+from mindstack_app.core.extensions import db
 from sqlalchemy.sql import func
 
 class Note(db.Model):

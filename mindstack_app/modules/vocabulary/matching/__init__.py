@@ -3,6 +3,6 @@
 
 from flask import Blueprint
 
-matching_bp = Blueprint('matching', __name__, url_prefix='/matching')
+matching_bp = Blueprint('matching', __name__)
 
 from . import routes

@@ -6,7 +6,7 @@ from typing import Any, List, Optional, Dict
 
 from sqlalchemy.sql import func
 
-from ..db_instance import db
+from mindstack_app.core.extensions import db
 
 
 class AppSettings(db.Model):

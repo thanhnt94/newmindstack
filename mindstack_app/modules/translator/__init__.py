@@ -1,5 +1,15 @@
+# File: mindstack_app/modules/translator/__init__.py
 from flask import Blueprint
 
-translator_bp = Blueprint('translator', __name__, url_prefix='/translator', static_folder='static')
+blueprint = Blueprint('translator', __name__, static_folder='static')
 
-from . import routes
+module_metadata = {
+    'name': 'Dịch thuật',
+    'icon': 'languages',
+    'category': 'System',
+    'url_prefix': '/translator',
+    'enabled': True
+}
+
+def setup_module(app):
+    from . import routes

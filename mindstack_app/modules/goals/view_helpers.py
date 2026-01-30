@@ -7,8 +7,8 @@ from typing import Iterable
 
 from flask import url_for
 
-from ...db_instance import db
-from ...models import UserGoal, GoalProgress
+from mindstack_app.core.extensions import db
+from mindstack_app.models import UserGoal, GoalProgress
 from .logics.calculation import calculate_percentage, get_progress_color_class
 
 def build_goal_progress(user_goals: Iterable[UserGoal], metrics: dict[str, object] = None) -> list[dict[str, object]]:
@@ -51,9 +51,9 @@ def build_goal_progress(user_goals: Iterable[UserGoal], metrics: dict[str, objec
         # TODO: Refactor URL logic properly
         final_url = url_for('dashboard.dashboard')
         if definition.domain == 'flashcard':
-             final_url = url_for('learning.flashcard.flashcard_dashboard.dashboard')
+             final_url = url_for('flashcard.flashcard_dashboard_internal.dashboard')
         elif definition.domain == 'quiz':
-             final_url = url_for('learning.quiz_learning.dashboard')
+             final_url = url_for('quiz.quiz_learning.dashboard')
         
         progress_list.append({
             'id': user_goal.user_goal_id,

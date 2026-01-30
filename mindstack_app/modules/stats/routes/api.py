@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 from sqlalchemy import func
 
 from mindstack_app.models import db, ScoreLog
-from .. import stats_bp
+from .. import blueprint as stats_bp
 from ..services.metrics import (
     get_score_trend_series,
     get_activity_breakdown,

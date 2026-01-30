@@ -6,16 +6,15 @@ from flask import render_template, request, redirect, url_for, flash, jsonify
 from mindstack_app.utils.template_helpers import render_dynamic_template
 from flask_login import login_required, current_user
 
-from . import practice_bp
+from . import blueprint as practice_bp
 
 # Import từ flashcard engine
-from ..flashcard.engine import (
-    FlashcardSessionManager,
-    FlashcardLearningConfig,
-    get_flashcard_mode_counts,
+from ..flashcard.engine.session_manager import FlashcardSessionManager
+from ..flashcard.engine.algorithms import (
     get_filtered_flashcard_sets,
     get_accessible_flashcard_set_ids,
 )
+from ..flashcard.engine.config import FlashcardLearningConfig
 
 
 @practice_bp.route('/')
@@ -59,7 +58,7 @@ def flashcard_setup():
             selected_sets = [int(s) for s in set_ids.split(',') if s]
         except ValueError:
             flash('Định dạng ID bộ thẻ không hợp lệ.', 'danger')
-            return redirect(url_for('learning.practice.flashcard_dashboard'))
+            return redirect(url_for('practice.flashcard_dashboard'))
 
     # Lấy các chế độ với số lượng thẻ
     set_identifier = selected_sets[0] if len(selected_sets) == 1 else selected_sets if selected_sets else 'all'
@@ -91,18 +90,18 @@ def flashcard_start():
             set_ids = [int(s) for s in set_ids_str.split(',') if s]
         except ValueError:
             flash('Định dạng ID bộ thẻ không hợp lệ.', 'danger')
-            return redirect(url_for('learning.practice.flashcard_dashboard'))
+            return redirect(url_for('practice.flashcard_dashboard'))
     else:
         flash('Vui lòng chọn ít nhất một bộ thẻ.', 'warning')
-        return redirect(url_for('learning.practice.flashcard_dashboard'))
+        return redirect(url_for('practice.flashcard_dashboard'))
     
     # Bắt đầu session sử dụng flashcard engine
     success, message = FlashcardSessionManager.start_new_flashcard_session(set_ids, mode)
     if success:
-        return redirect(url_for('learning.practice.flashcard_session'))
+        return redirect(url_for('practice.flashcard_session'))
     else:
         flash(message, 'warning')
-        return redirect(url_for('learning.practice.flashcard_dashboard'))
+        return redirect(url_for('practice.flashcard_dashboard'))
 
 
 @practice_bp.route('/flashcard/session')
@@ -113,7 +112,7 @@ def flashcard_session():
     
     if 'flashcard_session' not in session:
         flash('Không có phiên luyện tập nào đang hoạt động.', 'info')
-        return redirect(url_for('learning.practice.flashcard_dashboard'))
+        return redirect(url_for('practice.flashcard_dashboard'))
 
     user_button_count = 3
     if current_user.session_state:
@@ -237,17 +236,17 @@ def quiz_start():
             set_ids = [int(s) for s in set_ids_str.split(',') if s]
         except ValueError:
             flash('Định dạng ID bộ quiz không hợp lệ.', 'danger')
-            return redirect(url_for('learning.practice.quiz_dashboard'))
+            return redirect(url_for('practice.quiz_dashboard'))
     else:
         flash('Vui lòng chọn ít nhất một bộ quiz.', 'warning')
-        return redirect(url_for('learning.practice.quiz_dashboard'))
+        return redirect(url_for('practice.quiz_dashboard'))
     
     # Bắt đầu session sử dụng quiz engine
     if QuizSessionManager.start_new_quiz_session(set_ids, mode, batch_size):
-        return redirect(url_for('learning.quiz_learning.quiz_session'))
+        return redirect(url_for('quiz.quiz_learning.quiz_session'))
     else:
         flash('Không có câu hỏi nào khả dụng để bắt đầu phiên học.', 'warning')
-        return redirect(url_for('learning.practice.quiz_dashboard'))
+        return redirect(url_for('practice.quiz_dashboard'))
 
 
 @practice_bp.route('/quiz/api/sets')

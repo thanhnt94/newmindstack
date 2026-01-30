@@ -9,35 +9,18 @@ from flask_login import login_required, current_user
 from mindstack_app.models import LearningContainer
 from mindstack_app.modules.flashcard.services.session_service import LearningSessionService
 
-# Import các blueprint con
-from mindstack_app.modules.quiz import quiz_battle_bp, quiz_learning_bp
-from mindstack_app.modules.flashcard import flashcard_bp
-from mindstack_app.modules.flashcard.individual.routes import flashcard_learning_bp
-from mindstack_app.modules.course.routes import course_bp
-from mindstack_app.modules.flashcard.collab.routes import flashcard_collab_bp
-from mindstack_app.modules.vocabulary import vocabulary_bp
-from mindstack_app.modules.practice import practice_bp
-from mindstack_app.modules.collab import collab_bp
-from .api.markers import markers_bp  # NEW: Markers API
-# from .sub_modules.stats import stats_bp
-# Note: stats_api_bp is registered globally in module_registry.py
+# Import các blueprint con (Nếu cần thiết để link URL, nhưng không đăng ký ở đây)
+# Các module này giờ đã là top-level
+from mindstack_app.modules.quiz import blueprint as quiz_bp
+from mindstack_app.modules.flashcard import blueprint as flashcard_bp
+from mindstack_app.modules.vocabulary import blueprint as vocabulary_bp
 
+from . import blueprint
 
-# Định nghĩa Blueprint chính cho learning
-learning_bp = Blueprint('learning', __name__) # Các template chung cho learning (nếu có)
-
-# Đăng ký các blueprint con
-learning_bp.register_blueprint(quiz_learning_bp)
-learning_bp.register_blueprint(flashcard_bp)
-learning_bp.register_blueprint(flashcard_learning_bp)
-learning_bp.register_blueprint(course_bp)
-learning_bp.register_blueprint(quiz_battle_bp, url_prefix='/collab/quiz-battle')
-learning_bp.register_blueprint(flashcard_collab_bp, url_prefix='/collab/flashcard-collab')
-learning_bp.register_blueprint(vocabulary_bp)
-learning_bp.register_blueprint(practice_bp)  # NEW: Practice module
-learning_bp.register_blueprint(collab_bp)  # NEW: Collab module
+# Đăng ký các blueprint thực sự thuộc về 'learning' (nếu có)
+# Các module flashcard, quiz, vocabulary sẽ được Core load độc lập.
 # learning_bp.register_blueprint(markers_bp)  # MOVED: Registered globally in module_registry
-@learning_bp.route('/api/active')
+@blueprint.route('/api/active')
 @login_required
 def api_get_active_sessions():
     """
@@ -60,17 +43,17 @@ def api_get_active_sessions():
 
             # Determine Resume URL
             if s.learning_mode == 'quiz':
-                resume_url = url_for('learning.quiz_learning.quiz_session', session_id=s.session_id)
+                resume_url = url_for('quiz.quiz_learning.quiz_session', session_id=s.session_id)
             elif s.learning_mode == 'typing':
-                resume_url = url_for('learning.vocabulary.typing.session_page')
+                resume_url = url_for('vocabulary.typing.session_page')
             elif s.learning_mode == 'listening':
-                resume_url = url_for('learning.vocabulary.listening.session_page')
+                resume_url = url_for('vocabulary.listening.session_page')
             elif s.learning_mode == 'matching':
-                resume_url = url_for('learning.vocabulary.matching.session_page', set_id=s.set_id_data)
+                resume_url = url_for('vocabulary.matching.session_page', set_id=s.set_id_data)
             elif s.learning_mode == 'mcq':
-                resume_url = url_for('learning.vocabulary.mcq.session', set_id=s.set_id_data)
+                resume_url = url_for('vocabulary.mcq.session', set_id=s.set_id_data)
             else:
-                resume_url = url_for('learning.flashcard_learning.flashcard_session', session_id=s.session_id)
+                resume_url = url_for('flashcard.flashcard_learning.flashcard_session', session_id=s.session_id)
 
             results.append({
                 'session_id': s.session_id,
@@ -90,7 +73,7 @@ def api_get_active_sessions():
         return jsonify([]), 500
 
 
-@learning_bp.route('/')
+@blueprint.route('/')
 @login_required
 def learning_dashboard():
     """
@@ -100,7 +83,7 @@ def learning_dashboard():
     return redirect(url_for('stats.dashboard'))
 
 
-@learning_bp.route('/stats/dashboard')
+@blueprint.route('/stats/dashboard')
 @login_required
 def legacy_stats_dashboard_redirect():
     """
@@ -109,7 +92,7 @@ def legacy_stats_dashboard_redirect():
     return redirect(url_for('stats.dashboard'))
 
 
-@learning_bp.route('/assets/v3/<path:filename>')
+@blueprint.route('/assets/v3/<path:filename>')
 def serve_v3_asset(filename):
     """
     Serve static assets (CSS, JS, Images) directly from the active templates directory.
@@ -121,7 +104,7 @@ def serve_v3_asset(filename):
     
     # Resolve directory dynamically based on active template version
     version = TemplateService.get_active_version()
-    directory = os.path.join(current_app.root_path, 'templates', version, 'pages', 'learning')
+    directory = os.path.join(current_app.root_path, 'themes', version, 'templates', version, 'pages', 'learning')
     return send_from_directory(directory, filename)
 
 
@@ -176,7 +159,7 @@ def get_mode_description(session):
 
     return base_name
 
-@learning_bp.route('/session')
+@blueprint.route('/session')
 @login_required
 def manage_sessions():
     """ Trang quản lý các phiên học đang hoạt động. """
@@ -203,18 +186,18 @@ def manage_sessions():
         
         # Determine Resume URL
         if s.learning_mode == 'quiz':
-            resume_url = url_for('learning.quiz_learning.quiz_session', session_id=s.session_id)
+            resume_url = url_for('quiz.quiz_learning.quiz_session', session_id=s.session_id)
         elif s.learning_mode == 'typing':
-            resume_url = url_for('learning.vocabulary.typing.session_page')
+            resume_url = url_for('vocabulary.typing.session_page')
         elif s.learning_mode == 'listening':
-            resume_url = url_for('learning.vocabulary.listening.session_page')
+            resume_url = url_for('vocabulary.listening.session_page')
         elif s.learning_mode == 'matching':
             # Matching sessions are usually short-lived games, but if we support resume:
-            resume_url = url_for('learning.vocabulary.matching.session_page', set_id=s.set_id_data)
+            resume_url = url_for('vocabulary.matching.session_page', set_id=s.set_id_data)
         elif s.learning_mode == 'mcq':
-            resume_url = url_for('learning.vocabulary.mcq.session', set_id=s.set_id_data)
+            resume_url = url_for('vocabulary.mcq.session', set_id=s.set_id_data)
         else:
-            resume_url = url_for('learning.flashcard_learning.flashcard_session', session_id=s.session_id)
+            resume_url = url_for('flashcard.flashcard_learning.flashcard_session', session_id=s.session_id)
 
         session_list.append({
             'session_id': s.session_id,
@@ -273,7 +256,7 @@ def manage_sessions():
     return render_dynamic_template('pages/learning/sessions.html', sessions=session_list, history=history_list)
 
 
-@learning_bp.route('/session/<session_id>/summary')
+@blueprint.route('/session/<session_id>/summary')
 @login_required
 def session_summary(session_id):
     """
@@ -364,7 +347,7 @@ def session_summary(session_id):
     )
 
 
-@learning_bp.route('/api/active')
+@blueprint.route('/api/active')
 @login_required
 def api_active_sessions():
     """ API endpoint cho danh sách phiên học active. """
@@ -383,17 +366,17 @@ def api_active_sessions():
 
         # Determine Resume URL
         if s.learning_mode == 'quiz':
-            resume_url = url_for('learning.quiz_learning.quiz_session')
+            resume_url = url_for('quiz.quiz_learning.quiz_session')
         elif s.learning_mode == 'typing':
-            resume_url = url_for('learning.vocabulary.typing.session_page')
+            resume_url = url_for('vocabulary.typing.session_page')
         elif s.learning_mode == 'listening':
-            resume_url = url_for('learning.vocabulary.listening.session_page')
+            resume_url = url_for('vocabulary.listening.session_page')
         elif s.learning_mode == 'matching':
-            resume_url = url_for('learning.vocabulary.matching.session_page', set_id=s.set_id_data)
+            resume_url = url_for('vocabulary.matching.session_page', set_id=s.set_id_data)
         elif s.learning_mode == 'mcq':
-            resume_url = url_for('learning.vocabulary.mcq.session', set_id=s.set_id_data)
+            resume_url = url_for('vocabulary.mcq.session', set_id=s.set_id_data)
         else:
-            resume_url = url_for('learning.flashcard_learning.flashcard_session')
+            resume_url = url_for('flashcard.flashcard_learning.flashcard_session')
 
         result.append({
             'session_id': s.session_id,
@@ -408,7 +391,7 @@ def api_active_sessions():
 
 # === Daily Stats API ===
 
-@learning_bp.route('/api/stats/daily')
+@blueprint.route('/api/stats/daily')
 @login_required
 def api_daily_stats():
     """Get daily learning statistics for the current user."""
@@ -428,7 +411,7 @@ def api_daily_stats():
     return jsonify(stats)
 
 
-@learning_bp.route('/api/stats/weekly')
+@blueprint.route('/api/stats/weekly')
 @login_required
 def api_weekly_stats():
     """Get weekly learning statistics for the current user."""
@@ -438,7 +421,7 @@ def api_weekly_stats():
     return jsonify(stats)
 
 
-@learning_bp.route('/api/stats/streak')
+@blueprint.route('/api/stats/streak')
 @login_required
 def api_streak_stats():
     """Get learning streak information for the current user."""
@@ -448,7 +431,7 @@ def api_streak_stats():
     return jsonify(streak)
 
 
-@learning_bp.route('/api/stats/summary')
+@blueprint.route('/api/stats/summary')
 @login_required
 def api_stats_summary():
     """Get comprehensive stats summary (today, week, streak) for the current user."""

@@ -9,7 +9,7 @@ from sqlalchemy.sql import func
 from sqlalchemy.types import JSON
 from werkzeug.security import check_password_hash, generate_password_hash
 
-from ..db_instance import db
+from mindstack_app.core.extensions import db
 
 
 class User(UserMixin, db.Model):

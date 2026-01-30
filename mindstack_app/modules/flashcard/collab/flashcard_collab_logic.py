@@ -9,7 +9,7 @@
 from datetime import datetime, timezone, timedelta
 import math
 from flask import current_app
-from mindstack_app.db_instance import db
+from mindstack_app.core.extensions import db
 from mindstack_app.models import User, LearningItem, ScoreLog, FlashcardRoomProgress, FlashcardCollabRound, FlashcardCollabAnswer
 from mindstack_app.utils.db_session import safe_commit
 # --- CẤU HÌNH SRS ---

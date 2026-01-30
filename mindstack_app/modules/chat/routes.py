@@ -8,8 +8,8 @@ from typing import Callable, Type
 from flask import abort, jsonify, request
 from flask_login import current_user, login_required
 
-from ...db_instance import db
-from ...models import (
+from mindstack_app.core.extensions import db
+from mindstack_app.models import (
     FlashcardCollabMessage,
     FlashcardCollabParticipant,
     FlashcardCollabRoom,
@@ -17,7 +17,7 @@ from ...models import (
     QuizBattleParticipant,
     QuizBattleRoom,
 )
-from . import chat_bp
+from . import blueprint
 from .service import create_chat_message, get_recent_messages, serialize_chat_message
 
 
@@ -65,7 +65,7 @@ _CHAT_HANDLERS: dict[str, ChatHandler] = {
 }
 
 
-@chat_bp.route('/<room_type>/<string:room_code>/messages', methods=['GET'])
+@blueprint.route('/<room_type>/<string:room_code>/messages', methods=['GET'])
 @login_required
 def list_chat_messages(room_type: str, room_code: str):
     """Return the newest chat messages for the given room."""
@@ -84,7 +84,7 @@ def list_chat_messages(room_type: str, room_code: str):
     return jsonify({'messages': payload})
 
 
-@chat_bp.route('/<room_type>/<string:room_code>/messages', methods=['POST'])
+@blueprint.route('/<room_type>/<string:room_code>/messages', methods=['POST'])
 @login_required
 def post_chat_message(room_type: str, room_code: str):
     """Allow a room participant to send a chat message."""

@@ -1,7 +1,7 @@
 
 import logging
 import os
-from mindstack_app.db_instance import db
+from mindstack_app.core.extensions import db
 from mindstack_app.models import LearningContainer, LearningItem, BackgroundTask
 from mindstack_app.modules.audio.services.audio_service import AudioService
 

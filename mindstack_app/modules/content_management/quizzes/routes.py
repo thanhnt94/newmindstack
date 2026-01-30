@@ -24,8 +24,8 @@ from sqlalchemy.orm.attributes import flag_modified
 from ..forms import QuizSetForm, QuizItemForm
 from mindstack_app.models import db, LearningContainer, LearningItem, LearningGroup, ContainerContributor, User, Note
 from mindstack_app.core.error_handlers import error_response, success_response
-from mindstack_app.config import Config
-from mindstack_app.config import Config
+from mindstack_app.core.config import Config
+from mindstack_app.core.config import Config
 from mindstack_app.services.config_service import get_runtime_config
 from ...quiz.services.quiz_config_service import QuizConfigService
 

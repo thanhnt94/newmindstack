@@ -4,10 +4,9 @@
 from flask import Blueprint
 
 # Create blueprint
-vocabulary_bp = Blueprint(
+blueprint = Blueprint(
     'vocabulary',
-    __name__,
-    url_prefix='/vocabulary'
+    __name__
 )
 
 # Import route handlers (this registers the routes with the blueprint)

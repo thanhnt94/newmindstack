@@ -3,6 +3,6 @@
 
 from flask import Blueprint
 
-typing_bp = Blueprint('typing', __name__, url_prefix='/typing')
+typing_bp = Blueprint('typing', __name__)
 
 from . import routes

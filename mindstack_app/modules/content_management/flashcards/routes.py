@@ -32,7 +32,7 @@ from mindstack_app.utils.media_paths import (
 )
 from mindstack_app.utils.db_session import safe_commit
 from mindstack_app.utils.excel import extract_info_sheet_mapping, format_info_warnings
-from mindstack_app.config import Config
+from mindstack_app.core.config import Config
 from mindstack_app.services.config_service import get_runtime_config
 import pandas as pd
 import tempfile
@@ -1690,7 +1690,7 @@ def add_flashcard_item(set_id):
         'front_audio_url_resolved': _get_static_audio_url(form.front_audio_url.data, audio_folder),
         'back_audio_url_resolved': _get_static_audio_url(form.back_audio_url.data, audio_folder),
         'image_search_url': url_for('.search_flashcard_image', set_id=set_id, item_id=0),
-        'regenerate_audio_url': url_for('learning.flashcard_learning.regenerate_audio_from_content'),
+        'regenerate_audio_url': url_for('flashcard.flashcard_learning.regenerate_audio_from_content'),
         'image_base_folder': image_folder,
         'audio_base_folder': audio_folder,
         'move_targets': [],
@@ -1889,7 +1889,7 @@ def edit_flashcard_item(set_id, item_id):
         'front_audio_url_resolved': _get_static_audio_url(form.front_audio_url.data, audio_folder),
         'back_audio_url_resolved': _get_static_audio_url(form.back_audio_url.data, audio_folder),
         'image_search_url': url_for('.search_flashcard_image', set_id=set_id, item_id=item_id),
-        'regenerate_audio_url': url_for('learning.flashcard_learning.regenerate_audio_from_content'),
+        'regenerate_audio_url': url_for('flashcard.flashcard_learning.regenerate_audio_from_content'),
         'image_base_folder': image_folder,
         'audio_base_folder': audio_folder,
         'move_targets': move_targets,

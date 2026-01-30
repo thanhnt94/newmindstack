@@ -1,324 +1,133 @@
-"""Bootstrap helpers for configuring the Flask application."""
+# File: mindstack_app/core/bootstrap.py
+# Infrastructure Layer: System Bootstrapper (Discovery & Registry)
 
-from __future__ import annotations
-
-import logging
 import os
-from typing import Callable
+import importlib
+import logging
+from flask import Flask, Blueprint
+from .module_registry import get_module_key_by_blueprint
+from .extensions import db, login_manager, csrf_protect, scheduler, migrate
 
-from flask import Flask, request, abort
-from flask_login import current_user
+logger = logging.getLogger(__name__)
 
-from sqlalchemy import inspect, or_, text
+def bootstrap_system(app: Flask):
+    """
+    Trái tim của hệ thống: Khởi động toàn bộ Infrastructure, Modules và Themes.
+    """
+    # 1. Initialize Infrastructure
+    init_infrastructure(app)
+    
+    # 2. Register Global Handlers
+    from .error_handlers import register_error_handlers
+    register_error_handlers(app)
+    
+    # Register Template Filters
+    from mindstack_app.utils.template_filters import register_filters
+    register_filters(app)
+    
+    # 3. Auto-Discovery & Load Modules
+    load_modules(app)
+    
+    # 4. Load Themes (Presentation Layer)
+    load_themes(app)
+    
+    # 5. Model Registry (SQLAlchemy visibility)
+    register_all_models(app)
 
-from ..config import BASE_DIR
-from ..extensions import csrf_protect, db, login_manager, scheduler, migrate
-from mindstack_app.utils.bbcode_parser import bbcode_to_html
-from .module_registry import register_default_modules, get_module_key_by_blueprint
-from .error_handlers import register_error_handlers
-
-
-def configure_logging(app: Flask) -> None:
-    """Configure application logging if no handlers are present."""
-
-    if app.logger.handlers:
-        return
-
-    app.logger.setLevel(logging.DEBUG)
-    handler = logging.StreamHandler()
-    formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
-    handler.setFormatter(formatter)
-    app.logger.addHandler(handler)
-    app.logger.propagate = False
-    app.logger.info("Flask app logger configured successfully.")
-
-
-def register_extensions(app: Flask) -> None:
-    """Initialize shared extensions with the Flask app instance."""
-
+def init_infrastructure(app: Flask):
+    """Khởi tạo các extensions lõi."""
     db.init_app(app)
     migrate.init_app(app, db)
     login_manager.init_app(app)
     csrf_protect.init_app(app)
-
-    # Scheduler Configuration
+    
+    # Register media serving route
+    from flask import send_from_directory
+    @app.route('/media/<path:filename>')
+    def media_uploads(filename):
+        return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
+    
+    # Register user_loader for Flask-Login
+    from mindstack_app.models.user import User
+    @login_manager.user_loader
+    def load_user(user_id):
+        return User.query.get(int(user_id))
+    
     if not app.debug or os.environ.get("WERKZEUG_RUN_MAIN") == "true":
-        from apscheduler.schedulers import SchedulerAlreadyRunningError
         try:
             scheduler.init_app(app)
             if not scheduler.running:
                 scheduler.start()
-            
-            # WAL Checkpoint job - merge WAL to main DB every 30 minutes
-            def checkpoint_wal():
-                """Checkpoint WAL file to merge changes into main database."""
-                try:
-                    with app.app_context():
-                        db.session.execute(db.text('PRAGMA wal_checkpoint(PASSIVE)'))
-                        app.logger.info("WAL checkpoint completed successfully.")
-                except Exception as e:
-                    app.logger.error(f"WAL checkpoint failed: {e}")
-            
-            if not scheduler.get_job('wal_checkpoint'):
-                scheduler.add_job(
-                    id='wal_checkpoint',
-                    func=checkpoint_wal,
-                    trigger='interval',
-                    minutes=30,
-                    replace_existing=True
-                )
-                app.logger.info("Đã đăng ký job WAL Checkpoint (mỗi 30 phút).")
-            
-            try:
-                from ..modules.telegram_bot.tasks import send_daily_study_reminder
-                if not scheduler.get_job('telegram_daily_reminder'):
-                    scheduler.add_job(
-                        id='telegram_daily_reminder',
-                        func=send_daily_study_reminder,
-                        trigger='cron',
-                        hour=7,
-                        minute=0,
-                        replace_existing=True
-                    )
-                    app.logger.info("Đã đăng ký job Telegram Reminder (7:00 AM).")
-            except ImportError:
-                app.logger.warning("Module telegram_bot chưa sẵn sàng hoặc bị lỗi import.")
-        except SchedulerAlreadyRunningError:
-            app.logger.info("Scheduler đã chạy, bỏ qua khởi tạo lại.")
         except Exception as e:
-            app.logger.error(f"Lỗi khởi tạo Scheduler: {e}")
+            logger.error(f"Scheduler failed: {e}")
 
-
-def configure_static_media_routes(app: Flask) -> None:
-    """Configure specialized routes for media and theme assets."""
-    from flask import send_from_directory
-    import os
-
-    # 1. User Media (Stateful - Uploads)
-    @app.route('/media/<path:filename>')
-    def media_uploads(filename):
-        """Serve files from UPLOAD_FOLDER."""
-        return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
-
-    # 2. Theme Assets (Stateless - Source Code)
-    @app.route('/theme-assets/<theme_name>/<path:filename>')
-    def theme_assets(theme_name, filename):
-        """Serve static assets from within theme directories."""
-        theme_path = os.path.join(app.template_folder, theme_name, 'assets')
-        return send_from_directory(theme_path, filename)
-
-    # 3. Keep standard favicon routes from root static if needed, 
-    # but preferred way is to move them to theme assets later.
-    @app.route('/favicon.ico')
-    def favicon_ico():
-        return send_from_directory(
-            os.path.join(app.root_path, 'static'),
-            'favicon.ico',
-            mimetype='image/x-icon'
-        )
-
-    @app.route('/favicon.png')
-    def favicon_png():
-        return send_from_directory(
-            os.path.join(app.root_path, 'static'),
-            'favicon.png',
-            mimetype='image/png'
-        )
-
-    app.logger.info("Core routes configured: /media/ (uploads) and /theme-assets/ (themes)")
-
-
-def configure_module_access_control(app: Flask) -> None:
-    """Check module active status before each request."""
-    from ..models import AppSettings
-
-    @app.before_request
-    def check_module_active():
-        # Skip static files
-        if request.endpoint and 'static' in request.endpoint:
-            return
-
-        # Check if the request belongs to a blueprint
-        if request.blueprint:
-            # Core modules are always active
-            if request.blueprint in ['admin', 'auth_api', 'auth', 'landing']:
-                return
-
-            module_key = get_module_key_by_blueprint(request.blueprint)
-            if module_key:
-                # If setting doesn't exist, it's enabled by default
-                is_active = AppSettings.get(f"MODULE_ENABLED_{module_key}", True)
-                
-                if not is_active:
-                    app.logger.warning(f"Blocked access to disabled module: {module_key} via {request.blueprint}")
-                    # Return 403 or redirect
-                    abort(403, description=f"Module '{module_key}' is currently disabled by administrator.")
-
-
-def register_context_processors(app: Flask) -> None:
-    """Register global template context processors."""
-
-    @app.context_processor
-    def inject_template_version() -> dict[str, str]:
-        """Inject _v (template version) into all templates from database."""
-        from mindstack_app.services.template_service import TemplateService
-        version = TemplateService.get_active_version()
-        return {"_v": version, "template_version": version}
-
-    @app.context_processor
-    def inject_utility_functions() -> dict[str, Callable[..., Any]]:
-        from ..models import AppSettings
-        
-        def is_module_active(blueprint_name_or_key: str) -> bool:
-            """Check if a module is enabled."""
-            # Clean key from possible blueprint suffix
-            key = blueprint_name_or_key.replace('_bp', '').replace('_api', '')
-            # If it's a known blueprint name, find its module key
-            resolved_key = get_module_key_by_blueprint(blueprint_name_or_key) or key
-            
-            # Core modules always active
-            if resolved_key in ['admin', 'auth', 'landing']:
-                return True
-                
-            return AppSettings.get(f"MODULE_ENABLED_{resolved_key}", True)
-
-        return {
-            "bbcode_to_html": bbcode_to_html,
-            "is_module_active": is_module_active,
-            "is_blueprint_active": lambda name: name in app.blueprints
-        }
-
-    @login_manager.user_loader
-    def load_user(user_id: str):
-        from ..models import User
-
-        return User.query.get(int(user_id))
-
-    @app.context_processor
-    def inject_user() -> dict[str, object]:
-        return {"current_user": current_user}
-
-    @app.template_filter('media_url')
-    def media_url_filter(path):
-        """Converts a stored media path to a /media/ URL."""
-        if not path:
-            return ''
-        
-        p = str(path).strip().replace('\\', '/')
-        
-        if p.startswith(('http://', 'https://', '/')):
-            return p
-            
-        # Normalize: remove legacy prefixes
-        if p.startswith('static/'):
-            p = p[7:]
-        if p.startswith('uploads/'):
-            p = p[8:]
-            
-        return f"/media/{p.lstrip('/')}"
-
-    @app.template_filter('user_timezone')
-    def user_timezone_filter(dt, fmt='%Y-%m-%d %H:%M:%S'):
-        """Converts a UTC datetime to the user's timezone."""
-        if not dt:
-            return ''
-        
-        # Ensure timezone-aware (assume UTC if naive)
-        if dt.tzinfo is None:
-            from datetime import timezone
-            dt = dt.replace(tzinfo=timezone.utc)
-            
-        # Determine target timezone
-        tz_name = 'UTC'
-        if current_user.is_authenticated and getattr(current_user, 'timezone', None):
-            tz_name = current_user.timezone
-        else:
-            # Get from app.config (loaded from AppSettings by config_service)
-            if app.config.get('SYSTEM_TIMEZONE'):
-                tz_name = app.config.get('SYSTEM_TIMEZONE')
-
-        try:
-            # Try using zoneinfo (Python 3.9+)
+def load_modules(app: Flask):
+    """Quét và nạp các module từ mindstack_app/modules/"""
+    modules_dir = os.path.join(app.root_path, 'modules')
+    
+    for module_name in os.listdir(modules_dir):
+        module_path = os.path.join(modules_dir, module_name)
+        if os.path.isdir(module_path) and os.path.exists(os.path.join(module_path, '__init__.py')):
             try:
-                from zoneinfo import ZoneInfo
-                tz = ZoneInfo(tz_name)
-            except ImportError:
-                # Fallback to pytz
-                import pytz
-                tz = pytz.timezone(tz_name)
+                # Import module package
+                mod = importlib.import_module(f'mindstack_app.modules.{module_name}')
                 
-            local_dt = dt.astimezone(tz)
-            return local_dt.strftime(fmt)
-        except Exception:
-            return dt.strftime(fmt)
+                # Look for blueprint attribute (naming convention: blueprint or <name>_bp)
+                blueprint = getattr(mod, 'blueprint', None) or getattr(mod, f'{module_name}_bp', None)
+                
+                if isinstance(blueprint, Blueprint):
+                    # 1. Call setup_module FIRST to attach routes to the blueprint
+                    setup_func = getattr(mod, 'setup_module', None)
+                    if callable(setup_func):
+                        setup_func(app)
+                        logger.debug(f"Executed setup_module for: {module_name}")
 
+                    # 2. Get prefix from metadata
+                    metadata = getattr(mod, 'module_metadata', {})
+                    url_prefix = metadata.get('url_prefix')
+                    
+                    # 3. Register the blueprint to the app ONLY IF not already registered
+                    if blueprint.name not in app.blueprints:
+                        app.register_blueprint(blueprint, url_prefix=url_prefix)
+                        logger.debug(f"Module registered: {module_name} at {url_prefix or '/'}")
+                    else:
+                        logger.debug(f"Module {module_name} (blueprint {blueprint.name}) was already registered.")
+                    
+            except Exception as e:
+                logger.error(f"Failed to load module {module_name}: {e}")
 
-def register_blueprints(app: Flask) -> None:
-    """Register all default blueprints with the app."""
-
-    register_default_modules(app)
-
-
-def initialize_database(app: Flask) -> None:
-    """Create database tables and ensure the default data exists."""
-
-    from ..models import BackgroundTask, User
-
-    # === Startup WAL Checkpoint ===
-    # Gộp tất cả thay đổi từ WAL file vào database chính khi khởi động
-    # Sử dụng TRUNCATE để dọn dẹp WAL file hoàn toàn
+def load_themes(app: Flask):
+    """Nạp giao diện hệ thống (Admin & Active User Theme)"""
+    # 1. Always load Admin Theme
     try:
-        with db.engine.connect() as conn:
-            result = conn.execute(db.text('PRAGMA wal_checkpoint(TRUNCATE)'))
-            checkpoint_result = result.fetchone()
-            if checkpoint_result and checkpoint_result[0] == 0:
-                app.logger.info(
-                    f"Startup WAL checkpoint thành công: "
-                    f"{checkpoint_result[1]} pages đã gộp, "
-                    f"{checkpoint_result[2]} pages không thể gộp."
-                )
-            else:
-                app.logger.warning(f"WAL checkpoint kết quả: {checkpoint_result}")
+        from mindstack_app.themes.admin import blueprint as admin_theme_bp
+        app.register_blueprint(admin_theme_bp)
+    except ImportError:
+        logger.warning("Admin theme not found in themes/admin")
+
+    # 2. Load Active Theme from Config
+    active_theme = app.config.get('ACTIVE_THEME', 'aura_mobile')
+    try:
+        theme_mod = importlib.import_module(f'mindstack_app.themes.{active_theme}')
+        theme_bp = getattr(theme_mod, 'blueprint', None)
+        if theme_bp:
+            app.register_blueprint(theme_bp)
+            logger.info(f"Theme activated: {active_theme}")
     except Exception as e:
-        app.logger.warning(f"Startup WAL checkpoint failed (non-critical): {e}")
+        logger.error(f"Failed to load theme {active_theme}: {e}")
 
-    db.create_all()
-
-    inspector = inspect(db.engine)
+def register_all_models(app: Flask):
+    """SQLAlchemy Model Registry: Đảm bảo tất cả models được import."""
+    # Quét tất cả models trong mindstack_app/models/
+    models_dir = os.path.join(app.root_path, 'models')
+    for file in os.listdir(models_dir):
+        if file.endswith('.py') and not file.startswith('__'):
+            module_name = file[:-3]
+            importlib.import_module(f'mindstack_app.models.{module_name}')
     
-    # MANUAL MIGRATIONS REMOVED - Using Flask-Migrate instead.
-
-    admin_user = User.query.filter(
-        or_(
-            User.user_role == User.ROLE_ADMIN,
-            User.username == "admin",
-            User.email == "admin@example.com",
-        )
-    ).first()
-    if admin_user is None:
-        admin = User(username="admin", email="admin@example.com", user_role=User.ROLE_ADMIN)
-        admin.set_password("admin")
-        db.session.add(admin)
-        db.session.commit()
-        app.logger.info("Đã tạo user admin mặc định.")
-    else:
-        app.logger.info("Đã phát hiện user admin sẵn có, bỏ qua bước khởi tạo mặc định.")
-
-    for task_name in [
-        "generate_audio_cache",
-        "clean_audio_cache",
-        "generate_image_cache",
-        "clean_image_cache",
-        "generate_ai_explanations",
-    ]:
-        if not BackgroundTask.query.filter_by(task_name=task_name).first():
-            task = BackgroundTask(task_name=task_name, message="Sẵn sàng", is_enabled=True)
-            db.session.add(task)
-    
-    # Khởi tạo huy hiệu Gamification
-    from .gamification_seeds import seed_badges
-    badges_added = seed_badges()
-    if badges_added > 0:
-        app.logger.info(f"Đã khởi tạo thành công {badges_added} huy hiệu mới.")
-
-    db.session.commit()
+    # Quét models trong từng module (nếu có)
+    modules_dir = os.path.join(app.root_path, 'modules')
+    for module_name in os.listdir(modules_dir):
+        model_file = os.path.join(modules_dir, module_name, 'models.py')
+        if os.path.exists(model_file):
+            importlib.import_module(f'mindstack_app.modules.{module_name}.models')

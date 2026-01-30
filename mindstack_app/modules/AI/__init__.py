@@ -1,13 +1,20 @@
-"""AI Module Entry Point."""
+# File: mindstack_app/modules/AI/__init__.py
 from flask import Blueprint
 
-# Blueprint for the AI module features
-ai_bp = Blueprint('AI', __name__)
+blueprint = Blueprint('AI', __name__)
+
+module_metadata = {
+    'name': 'AI Coach',
+    'icon': 'robot',
+    'category': 'Learning',
+    'url_prefix': '/learn/ai',
+    'enabled': True
+}
 
 def setup_module(app):
     """Module-level infrastructure setup."""
     from .services.ai_service import setup_ai_signals
     setup_ai_signals(app)
-
-# Register routes and events
-from . import routes, events
+    
+    # Register routes and events
+    from . import routes, events

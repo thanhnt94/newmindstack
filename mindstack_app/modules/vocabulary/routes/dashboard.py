@@ -5,19 +5,19 @@ from flask import render_template, request, abort, current_app, redirect, url_fo
 from mindstack_app.utils.template_helpers import render_dynamic_template
 from flask_login import login_required, current_user
 
-from . import vocabulary_bp
+from . import blueprint
 from mindstack_app.models import LearningContainer, User
 
 
-@vocabulary_bp.route('/')
-@vocabulary_bp.route('/dashboard')
+@blueprint.route('/')
+@blueprint.route('/dashboard')
 @login_required
 def dashboard():
     """Main vocabulary learning hub dashboard."""
     return render_dynamic_template('pages/learning/vocabulary/dashboard/index.html')
 
 
-@vocabulary_bp.route('/set/<int:set_id>')
+@blueprint.route('/set/<int:set_id>')
 @login_required
 def set_detail_page(set_id):
     """Vocabulary set detail page"""
@@ -31,7 +31,7 @@ def set_detail_page(set_id):
                           set_id=set_id)
 
 
-@vocabulary_bp.route('/set/<int:set_id>/modes')
+@blueprint.route('/set/<int:set_id>/modes')
 @login_required
 def set_modes_page(set_id):
     """Step 2: Learning modes selection page."""
@@ -50,10 +50,10 @@ def set_modes_page(set_id):
         current_app.logger.warning(f"[MODE FILTER] No capabilities set, defaulting to all modes")
         capabilities = ['supports_flashcard', 'supports_quiz', 'supports_writing', 'supports_listening', 'supports_speaking']
     
-    return redirect(url_for('learning.vocabulary.modes_selection_page', set_id=set_id))
+    return redirect(url_for('vocabulary.modes_selection_page', set_id=set_id))
 
 
-@vocabulary_bp.route('/modes/<int:set_id>')
+@blueprint.route('/modes/<int:set_id>')
 @login_required
 def modes_selection_page(set_id):
     """
@@ -64,21 +64,21 @@ def modes_selection_page(set_id):
     return render_dynamic_template('pages/learning/vocabulary/modes/index.html', container=container)
 
 
-@vocabulary_bp.route('/set/<int:set_id>/flashcard')
+@blueprint.route('/set/<int:set_id>/flashcard')
 @login_required
 def set_flashcard_page(set_id):
     """Step 3: Flashcard options page."""
-    return redirect(url_for('learning.flashcard_learning.setup', set_id=set_id))
+    return redirect(url_for('flashcard.flashcard_learning.setup', set_id=set_id))
 
 
-@vocabulary_bp.route('/set/<int:set_id>/mcq')
+@blueprint.route('/set/<int:set_id>/mcq')
 @login_required
 def set_mcq_page(set_id):
     """Step 3: MCQ options page - Redirect to new setup wizard."""
-    return redirect(url_for('learning.vocabulary.mcq.setup', set_id=set_id))
+    return redirect(url_for('vocabulary.mcq.setup', set_id=set_id))
 
 
-@vocabulary_bp.route('/item/<int:item_id>/stats')
+@blueprint.route('/item/<int:item_id>/stats')
 @login_required
 def item_stats_page(item_id):
     """
@@ -97,7 +97,7 @@ def item_stats_page(item_id):
     return render_dynamic_template('pages/learning/vocabulary/stats/item_detail.html', stats=stats)
 
 
-@vocabulary_bp.route('/assets/<path:filename>')
+@blueprint.route('/assets/<path:filename>')
 def serve_dashboard_asset(filename):
     """Serve static assets from the dashboard template directory."""
     import os
@@ -108,7 +108,9 @@ def serve_dashboard_asset(filename):
     version = TemplateService.get_active_version()
     directory = os.path.join(
         current_app.root_path, 
-        'templates', 
+        'themes', 
+        version,
+        'templates',
         version, 
         'pages', 'learning', 'vocabulary', 'dashboard'
     )

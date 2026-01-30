@@ -8,7 +8,7 @@ from typing import Iterable, Optional
 from flask import current_app
 from sqlalchemy import or_
 
-from mindstack_app.db_instance import db
+from mindstack_app.core.extensions import db
 from mindstack_app.models import LearningContainer, LearningItem
 from .ai_manager import get_ai_service
 from ..logics.prompts import get_formatted_prompt

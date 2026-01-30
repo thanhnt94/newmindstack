@@ -1,1 +1,1 @@
-﻿from .note_service import NoteKernelService
+from .note_service import NoteKernelService

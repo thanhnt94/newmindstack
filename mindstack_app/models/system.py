@@ -7,7 +7,7 @@ from sqlalchemy.inspection import inspect
 from sqlalchemy.sql import func
 from sqlalchemy.types import JSON
 
-from ..db_instance import db
+from mindstack_app.core.extensions import db
 
 # SystemSetting class REMOVED - replaced by AppSettings in app_settings.py
 

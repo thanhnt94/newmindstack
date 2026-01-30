@@ -8,7 +8,7 @@ from typing import Any
 from flask import current_app
 
 from mindstack_app.core.signals import content_changed, ai_action_requested, ai_response_ready
-from mindstack_app.db_instance import db
+from mindstack_app.core.extensions import db
 from .ai_manager import AIServiceManager
 
 logger = logging.getLogger(__name__)

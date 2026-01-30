@@ -1,5 +1,5 @@
 from .services import send_telegram_message
-from ...models import User, db
+from mindstack_app.models import User, db
 from datetime import datetime
 
 def send_daily_study_reminder():

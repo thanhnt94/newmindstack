@@ -1,6 +1,15 @@
 # File: mindstack_app/modules/learning/__init__.py
-# Learning Module Initialization
+from flask import Blueprint
 
-from .routes import learning_bp
+blueprint = Blueprint('learning', __name__)
 
-__all__ = ['learning_bp']
+module_metadata = {
+    'name': 'Học tập',
+    'icon': 'graduation-cap',
+    'category': 'Learning',
+    'url_prefix': '/learn',
+    'enabled': True
+}
+
+def setup_module(app):
+    from . import routes

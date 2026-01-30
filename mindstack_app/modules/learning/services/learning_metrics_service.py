@@ -286,6 +286,21 @@ class LearningMetricsService:
         }
 
     @classmethod
+    def get_weekly_active_days_count(cls, user_id: int) -> int:
+        """Returns the number of unique days the user was active in the last 7 days."""
+        week_start = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0) - timedelta(days=6)
+        
+        count = (
+            db.session.query(func.count(distinct(func.date(ScoreLog.timestamp))))
+            .filter(
+                ScoreLog.user_id == user_id,
+                ScoreLog.timestamp >= week_start
+            )
+            .scalar() or 0
+        )
+        return int(count)
+
+    @classmethod
     def get_week_activity_counts(cls, user_id: int) -> Dict[str, int]:
         """Returns count of items reviewed/acted upon THIS WEEK (last 7 days)."""
         week_start = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0) - timedelta(days=6)

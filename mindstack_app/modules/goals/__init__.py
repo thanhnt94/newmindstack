@@ -2,7 +2,14 @@
 
 from flask import Blueprint
 
+blueprint = Blueprint('goals', __name__)
 
-goals_bp = Blueprint('goals', __name__)
+module_metadata = {
+    'name': 'Mục tiêu',
+    'icon': 'target',
+    'category': 'Learning',
+    'enabled': True
+}
 
-from . import routes  # noqa: E402  # isort:skip
+def setup_module(app):
+    from . import routes

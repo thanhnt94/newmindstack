@@ -4,15 +4,15 @@
 from flask import redirect, url_for, flash, request, session, current_app
 from flask_login import login_required, current_user
 
-from . import vocabulary_bp
+from . import blueprint
 from mindstack_app.models import UserContainerState, db
 from mindstack_app.utils.db_session import safe_commit
 
 # Import flashcard engine for session management
-from ...flashcard.engine import FlashcardSessionManager
+from ...flashcard.engine.session_manager import FlashcardSessionManager
 
 
-@vocabulary_bp.route('/flashcard/start/<int:set_id>/<string:mode>')
+@blueprint.route('/flashcard/start/<int:set_id>/<string:mode>')
 @login_required
 def start_flashcard_session(set_id, mode):
     """Bắt đầu phiên học flashcard cho một bộ từ vựng."""
@@ -123,7 +123,7 @@ def start_flashcard_session(set_id, mode):
     success, message = FlashcardSessionManager.start_new_flashcard_session(set_id, mode)
     if success:
         # Redirect đến flashcard session (có thể dùng route cũ hoặc practice mới)
-        return redirect(url_for('learning.flashcard_learning.flashcard_session'))
+        return redirect(url_for('flashcard.flashcard_learning.flashcard_session'))
     else:
         flash(message, 'warning')
-        return redirect(url_for('learning.vocabulary.set_detail_page', set_id=set_id))
+        return redirect(url_for('vocabulary.set_detail_page', set_id=set_id))

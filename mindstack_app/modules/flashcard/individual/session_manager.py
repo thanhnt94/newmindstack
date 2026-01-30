@@ -30,7 +30,7 @@ from .algorithms import (
     get_listening_items,
     get_speaking_items,
 )
-from ..engine import FlashcardEngine
+from ..engine.core import FlashcardEngine
 from .config import FlashcardLearningConfig
 from sqlalchemy.sql import func
 from sqlalchemy.orm.attributes import flag_modified
@@ -38,12 +38,8 @@ import random
 import datetime
 import os
 import asyncio
-from ..services import AudioService
 from mindstack_app.utils.media_paths import build_relative_media_path
 from mindstack_app.utils.content_renderer import render_text_field
-
-audio_service = AudioService()
-
 
 def _normalize_capability_flags(raw_flags):
     """Chuẩn hóa dữ liệu capability trong ai_settings thành tập hợp chuỗi."""

@@ -1,4 +1,4 @@
-from mindstack_app.db_instance import db
+from mindstack_app.core.extensions import db
 from sqlalchemy.sql import func
 from datetime import datetime
 

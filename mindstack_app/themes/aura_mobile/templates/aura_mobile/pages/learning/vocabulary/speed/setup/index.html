@@ -1,0 +1,438 @@
+{# Speed Setup Template #}
+{% set _v = template_version %}
+{% extends _v ~ '/base.html' %}
+{% block title %}Ôn nhanh - {{ container.title }}{% endblock %}
+{% block head %}
+{{ super() }}
+<style>
+    :root {
+        --primary: #ef4444;
+        /* Red for Speed/Urgency */
+        --primary-dark: #b91c1c;
+        --primary-light: #fef2f2;
+        --surface: #ffffff;
+        --background: #f8fafc;
+        --text-main: #0f172a;
+        --text-secondary: #64748b;
+        --border: #e2e8f0;
+        --gray-50: #f9fafb;
+    }
+
+    body {
+        font-family: 'Inter', -apple-system, sans-serif;
+        background: var(--background);
+        color: var(--text-main);
+        margin: 0;
+    }
+
+    /* Reuse Setup Layout */
+    .setup-container {
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .setup-header {
+        position: sticky;
+        top: 0;
+        z-index: 100;
+        background: var(--surface);
+        padding: 0.75rem 1rem;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .setup-back-btn {
+        width: 40px;
+        height: 40px;
+        background: var(--background);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--text-main);
+        text-decoration: none;
+        border: 1px solid var(--border);
+    }
+
+    .header-nav {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+    }
+
+    .breadcrumb {
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: var(--text-secondary);
+        text-transform: uppercase;
+        display: flex;
+        items-center;
+        gap: 0.5rem;
+    }
+
+    .header-title-main {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: var(--text-main);
+    }
+
+    .selected-set-bar {
+        background: var(--surface);
+        padding: 0.75rem 1rem;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .set-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        padding: 0.35rem 0.75rem;
+        border-radius: 100px;
+        font-size: 0.9rem;
+        font-weight: 600;
+    }
+
+    .setup-scroll {
+        flex: 1;
+        overflow-y: auto;
+        padding: 1rem;
+    }
+
+    .setup-content {
+        max-width: 600px;
+        margin: 0 auto;
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .setup-card {
+        background: var(--surface);
+        border-radius: 16px;
+        padding: 1.25rem;
+        border: 1px solid var(--border);
+    }
+
+    .card-header {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        margin-bottom: 1rem;
+    }
+
+    .card-icon {
+        width: 36px;
+        height: 36px;
+        background: var(--primary);
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+    }
+
+    .card-title {
+        font-weight: 700;
+        font-size: 1rem;
+    }
+
+    .card-desc {
+        font-size: 0.85rem;
+        color: var(--text-secondary);
+        display: block;
+        margin-top: 0.1rem;
+    }
+
+    /* Config Grid Options */
+    .config-options {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+        gap: 0.5rem;
+    }
+
+    .config-option {
+        padding: 0.75rem;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        text-align: center;
+        cursor: pointer;
+        font-weight: 600;
+        font-size: 0.95rem;
+    }
+
+    .config-option:hover {
+        background: var(--gray-50);
+    }
+
+    .config-option.selected {
+        border-color: var(--primary);
+        background: var(--primary-light);
+        color: var(--primary);
+    }
+
+    /* Pair Rows (Reused) */
+    .pairs-list {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    .add-new-btn {
+        width: 100%;
+        padding: 0.9rem;
+        margin-top: 1rem;
+        border: 2px dashed var(--primary);
+        background: var(--primary-light);
+        color: var(--primary);
+        font-weight: 600;
+        border-radius: 12px;
+        cursor: pointer;
+    }
+
+    /* Footer */
+    .sticky-footer {
+        position: sticky;
+        bottom: 0;
+        padding: 1rem;
+        background: var(--surface);
+        border-top: 1px solid var(--border);
+    }
+
+    .main-btn {
+        width: 100%;
+        padding: 1rem;
+        background: var(--primary);
+        color: white;
+        font-weight: 700;
+        border: none;
+        border-radius: 14px;
+        cursor: pointer;
+    }
+
+    .main-btn:hover {
+        background: var(--primary-dark);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="setup-container">
+    <header class="setup-header">
+        <a href="{{ url_for('vocabulary.dashboard') }}" class="setup-back-btn"><i
+                class="fas fa-arrow-left"></i></a>
+        <div class="header-nav">
+            <div class="breadcrumb">
+                <span>TỪ VỰNG</span> <i class="fas fa-chevron-right"></i> <span style="color:var(--primary)">ÔN
+                    NHANH</span>
+            </div>
+            <div class="header-title-main">Cấu hình Ôn nhanh</div>
+        </div>
+        <a href="/dashboard" class="setup-back-btn" title="Về trang chủ"
+            style="border-radius: 12px; width: 38px; height: 38px;">
+            <i class="fas fa-home"></i>
+        </a>
+    </header>
+
+    <div class="selected-set-bar">
+        <span class="selected-label">Bộ đã chọn:</span>
+        <div class="set-chip"> <i class="fas fa-layer-group" style="color:var(--primary)"></i> {{ container.title }}
+        </div>
+    </div>
+
+    <div class="setup-scroll">
+        <div class="setup-content">
+            <!-- Count -->
+            <div class="setup-card">
+                <div class="card-header">
+                    <div class="card-icon"><i class="fas fa-list-ol"></i></div>
+                    <div>
+                        <div class="card-title">Số lượng câu</div>
+                    </div>
+                </div>
+                <div class="config-options" id="count-options">
+                    <div class="config-option selected" data-value="10">10</div>
+                    <div class="config-option" data-value="20">20</div>
+                    <div class="config-option" data-value="{{ total_items }}">Tất cả ({{ total_items }})</div>
+                </div>
+            </div>
+
+            <!-- Time Limit -->
+            <div class="setup-card">
+                <div class="card-header">
+                    <div class="card-icon" style="background:var(--primary)"><i class="fas fa-stopwatch"></i></div>
+                    <div>
+                        <div class="card-title">Thời gian mỗi câu</div>
+                        <span class="card-desc">Hết giờ = Sai</span>
+                    </div>
+                </div>
+                <div class="config-options" id="time-options">
+                    <div class="config-option selected" data-value="5">5s</div>
+                    <div class="config-option" data-value="10">10s</div>
+                    <div class="config-option" data-value="15">15s</div>
+                </div>
+            </div>
+
+            <!-- Lives -->
+            <div class="setup-card">
+                <div class="card-header">
+                    <div class="card-icon" style="background:#ec4899"><i class="fas fa-heart"></i></div>
+                    <div>
+                        <div class="card-title">Số mạng</div>
+                        <span class="card-desc">Số lần được phép sai</span>
+                    </div>
+                </div>
+                <div class="config-options" id="lives-options">
+                    <div class="config-option selected" data-value="3">3 Mạng</div>
+                    <div class="config-option" data-value="5">5 Mạng</div>
+                    <div class="config-option" data-value="inf">Không giới hạn</div>
+                </div>
+            </div>
+
+            <!-- Column Configuration (Simply Custom Pairs always visible) -->
+            <div class="setup-card" id="custom-pairs-card">
+                <div class="card-header">
+                    <div class="card-icon" style="background:#8b5cf6"><i class="fas fa-random"></i></div>
+                    <div>
+                        <div class="card-title">Cấu hình Cột (Cặp từ)</div>
+                        <span class="card-desc">Tự chọn cột hỏi và trả lời</span>
+                    </div>
+                </div>
+                <div class="pairs-list" id="pairs-container"></div>
+                <button type="button" class="add-new-btn" id="add-pair-btn">+ Thêm cặp</button>
+            </div>
+
+        </div>
+    </div>
+
+    <footer class="sticky-footer">
+        <button class="main-btn" id="start-btn">Bắt đầu ngay <i class="fas fa-bolt"></i></button>
+    </footer>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+    (function () {
+        var setId = "{{ container.container_id }}";
+        var availableKeys = {{ available_keys | tojson
+    }};
+    var savedSettings = {{ saved_settings | tojson }};
+    var totalItems = {{ total_items }};
+    var customPairs = [];
+    // Always use 'custom' mode so backend uses the pairs we send
+    var config = { count: 10, time: 5, lives: '3', mode: 'custom' };
+
+    // --- Helpers ---
+    function setupOptionGroup(id, configKey, isInt = true) {
+        var opts = document.querySelectorAll('#' + id + ' .config-option');
+        // Load saved
+        if (savedSettings && savedSettings[configKey]) {
+            var savedVal = savedSettings[configKey];
+            config[configKey] = savedVal;
+        }
+
+        // Visual Update
+        opts.forEach(el => {
+            var val = el.dataset.value;
+            if (isInt && val !== 'inf') val = parseInt(val);
+
+            if (val == config[configKey]) { // Loose equality for string/int mix
+                opts.forEach(o => o.classList.remove('selected'));
+                el.classList.add('selected');
+            }
+
+            el.onclick = function () {
+                opts.forEach(o => o.classList.remove('selected'));
+                this.classList.add('selected');
+                var v = this.dataset.value;
+                if (isInt && v !== 'inf') v = parseInt(v);
+                config[configKey] = v;
+            }
+        });
+    }
+
+    setupOptionGroup('count-options', 'count');
+    setupOptionGroup('time-options', 'time_limit');
+    setupOptionGroup('lives-options', 'lives', false);
+
+    // No more hidden/show logic for custom pairs - it's always on.
+
+    // --- Pairs Logic (Reused Simplified) ---
+    // Same addPair logic as Typing/MCQ basically
+    var addBtn = document.getElementById('add-pair-btn');
+    if (addBtn) addBtn.onclick = function () { addPair(); };
+
+    // Load Saved Pairs or Default
+    if (savedSettings && savedSettings.custom_pairs && savedSettings.custom_pairs.length) {
+        savedSettings.custom_pairs.forEach(p => addPair(p.q, p.a));
+    } else {
+        var defQ = availableKeys.includes('front') ? 'front' : availableKeys[0];
+        var defA = availableKeys.includes('back') ? 'back' : availableKeys[1];
+        if (defQ && defA) addPair(defQ, defA);
+    }
+
+    function addPair(qVal, aVal) {
+        var container = document.getElementById('pairs-container');
+        var row = document.createElement('div');
+        row.style.cssText = "display:flex; gap:0.5rem; align-items:center; background:#f1f5f9; padding:0.5rem; border-radius:8px;";
+
+        var ops = '<option value="">Select</option>';
+        availableKeys.forEach(k => ops += '<option value="' + k + '">' + k + '</option>');
+
+        row.innerHTML = `
+                <select class="pair-q" style="flex:1; padding:0.5rem; border-radius:6px; border:1px solid #e2e8f0">${ops}</select>
+                <i class="fas fa-arrow-right" style="color:#94a3b8"></i>
+                <select class="pair-a" style="flex:1; padding:0.5rem; border-radius:6px; border:1px solid #e2e8f0">${ops}</select>
+                <button class="del-btn" style="color:red; background:none; border:none; cursor:pointer"><i class="fas fa-times"></i></button>
+             `;
+        container.appendChild(row);
+
+        if (qVal) row.querySelector('.pair-q').value = qVal;
+        if (aVal) row.querySelector('.pair-a').value = aVal;
+
+        row.querySelector('.del-btn').onclick = function () { row.remove(); updatePairs(); };
+        row.querySelectorAll('select').forEach(s => s.onchange = updatePairs);
+        updatePairs();
+    }
+
+    function updatePairs() {
+        customPairs = [];
+        document.querySelectorAll('#pairs-container > div').forEach(row => {
+            var q = row.querySelector('.pair-q').value;
+            var a = row.querySelector('.pair-a').value;
+            if (q && a) customPairs.push({ q: q, a: a });
+        });
+    }
+
+    // --- Start ---
+    document.getElementById('start-btn').onclick = function () {
+        if (!customPairs.length) {
+            alert("Vui lòng cấu hình ít nhất 1 cặp thẻ để ôn tập!");
+            return;
+        }
+
+        var url = "{{ url_for('vocabulary.vocab_speed.session_page', set_id=container.container_id) }}";
+        url += `?count=${Math.min(config.count, totalItems)}`;
+        url += `&time_limit=${config.time_limit}`;
+        url += `&lives=${config.lives}`;
+
+        // Force mode=custom and send pairs
+        url += `&mode=custom`;
+        url += `&custom_pairs=${encodeURIComponent(JSON.stringify(customPairs))}`;
+
+        window.location.href = url;
+    }
+
+    }) ();
+</script>
+{% endblock %}

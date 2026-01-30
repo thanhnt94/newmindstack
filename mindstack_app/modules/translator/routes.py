@@ -2,13 +2,13 @@ from datetime import datetime
 from sqlalchemy import func
 from flask import request, jsonify
 from flask_login import login_required, current_user
-from . import translator_bp
+from . import blueprint
 from .services import TranslatorService
 from ...core.error_handlers import error_response, success_response
 from ...utils.template_helpers import render_dynamic_template
 from mindstack_app.models import db, TranslationHistory
 
-@translator_bp.route('/api/translate', methods=['POST'])
+@blueprint.route('/api/translate', methods=['POST'])
 @login_required
 def translate():
     """
@@ -36,7 +36,7 @@ def translate():
     else:
         return error_response('Translation failed', 'SERVER_ERROR', 500)
 
-@translator_bp.route('/history', methods=['GET'])
+@blueprint.route('/history', methods=['GET'])
 @login_required
 def history_page():
     """Render dedicated translation history page."""
@@ -56,7 +56,7 @@ def history_page():
         today_count=today_count
     )
 
-@translator_bp.route('/api/history', methods=['GET'])
+@blueprint.route('/api/history', methods=['GET'])
 @login_required
 def get_history():
     """Fetch recent translation history (JSON)."""

@@ -10,9 +10,9 @@ import traceback
 from . import flashcard_learning_bp
 
 # Import từ engine module
-from ..engine import (
-    FlashcardSessionManager,
-    FlashcardLearningConfig,
+from ..engine.session_manager import FlashcardSessionManager
+from ..engine.config import FlashcardLearningConfig
+from ..engine.algorithms import (
     get_new_only_items,
     get_due_items,
     get_hard_items,
@@ -26,7 +26,7 @@ from ..engine import (
 from ..services import AudioService, ImageService, LearningSessionService
 from mindstack_app.modules.learning.services.fsrs_service import FsrsService
 
-from ..engine import FlashcardEngine
+from ..engine.core import FlashcardEngine
 from mindstack_app.models import (
     db,
     User,
@@ -50,12 +50,7 @@ from mindstack_app.utils.media_paths import (
     normalize_media_value_for_storage,
     build_relative_media_path,
 )
-from mindstack_app.utils.db_session import safe_commit
 from mindstack_app.modules.learning.logics.hybrid_fsrs import HybridFSRSEngine, CardState
-
-audio_service = AudioService()
-image_service = ImageService()
-
 
 def _ensure_container_media_folder(container: LearningContainer, media_type: str) -> str:
     """Return the folder for the requested media type, creating a default if missing."""
@@ -115,8 +110,8 @@ def serve_session_asset(filename):
     # Get active version (e.g., 'v4')
     version = TemplateService.get_active_version()
     
-    # Construct path: templates/{version}/pages/learning/vocabulary/flashcard/session
-    assets_dir = os.path.join(current_app.root_path, 'templates', version, 'pages', 'learning', 'vocabulary', 'flashcard', 'session')
+    # Construct path: themes/{version}/templates/{version}/pages/learning/vocabulary/flashcard/session
+    assets_dir = os.path.join(current_app.root_path, 'themes', version, 'templates', version, 'pages', 'learning', 'vocabulary', 'flashcard', 'session')
     
     try:
         return send_from_directory(assets_dir, filename)
@@ -231,10 +226,10 @@ def start_flashcard_session_all(mode):
 
     success, message, session_id = FlashcardSessionManager.start_new_flashcard_session(set_ids, mode)
     if success:
-        return redirect(url_for('learning.flashcard_learning.flashcard_session', session_id=session_id))
+        return redirect(url_for('flashcard.flashcard_learning.flashcard_session', session_id=session_id))
     else:
         flash(message, 'warning')
-        return redirect(url_for('learning.vocabulary.dashboard'))
+        return redirect(url_for('vocabulary.dashboard'))
 
 
 @flashcard_learning_bp.route('/start_flashcard_session/multi/<string:mode>', methods=['GET'])
@@ -247,20 +242,20 @@ def start_flashcard_session_multi(mode):
 
     if not set_ids_str:
         flash('Lỗi: Thiếu thông tin bộ thẻ.', 'danger')
-        return redirect(url_for('learning.vocabulary.dashboard'))
+        return redirect(url_for('vocabulary.dashboard'))
 
     try:
         set_ids = [int(s) for s in set_ids_str.split(',') if s]
     except ValueError:
         flash('Lỗi: Định dạng ID bộ thẻ không hợp lệ.', 'danger')
-        return redirect(url_for('learning.vocabulary.dashboard'))
+        return redirect(url_for('vocabulary.dashboard'))
 
     success, message, session_id = FlashcardSessionManager.start_new_flashcard_session(set_ids, mode)
     if success:
-        return redirect(url_for('learning.flashcard_learning.flashcard_session', session_id=session_id))
+        return redirect(url_for('flashcard.flashcard_learning.flashcard_session', session_id=session_id))
     else:
         flash(message, 'warning')
-        return redirect(url_for('learning.vocabulary.dashboard'))
+        return redirect(url_for('vocabulary.dashboard'))
 
 
 @flashcard_learning_bp.route('/start_flashcard_session/<int:set_id>/<string:mode>', methods=['GET'])
@@ -280,10 +275,10 @@ def start_flashcard_session_by_id(set_id, mode):
         
     success, message, session_id = FlashcardSessionManager.start_new_flashcard_session(set_id, mode)
     if success:
-        return redirect(url_for('learning.flashcard_learning.flashcard_session', session_id=session_id))
+        return redirect(url_for('flashcard.flashcard_learning.flashcard_session', session_id=session_id))
     else:
         flash(message, 'warning')
-        return redirect(url_for('learning.vocabulary.dashboard'))
+        return redirect(url_for('vocabulary.dashboard'))
 
 
 @flashcard_learning_bp.route('/vocabulary/flashcard/session')
@@ -292,10 +287,10 @@ def flashcard_session_legacy():
     # Attempt to find active session and redirect
     active_db_session = LearningSessionService.get_active_session(current_user.user_id, learning_mode='flashcard')
     if active_db_session:
-        return redirect(url_for('learning.flashcard_learning.flashcard_session', session_id=active_db_session.session_id))
+        return redirect(url_for('flashcard.flashcard_learning.flashcard_session', session_id=active_db_session.session_id))
         
     flash('Không có phiên học Flashcard nào đang hoạt động. Vui lòng chọn bộ thẻ để bắt đầu.', 'info')
-    return redirect(url_for('learning.vocabulary.dashboard'))
+    return redirect(url_for('vocabulary.dashboard'))
 
 
 @flashcard_learning_bp.route('/vocabulary/flashcard/session/<int:session_id>')
@@ -321,7 +316,7 @@ def flashcard_session(session_id):
         # Security check: User must own this session
         if not active_db_session or active_db_session.user_id != current_user.user_id:
              flash('Phiên học không tồn tại hoặc bạn không có quyền truy cập.', 'error')
-             return redirect(url_for('learning.vocabulary.dashboard'))
+             return redirect(url_for('vocabulary.dashboard'))
              
         # Reconstruct session manager from DB data
         session_manager = FlashcardSessionManager(
@@ -737,19 +732,19 @@ def check_active_vocab_session(set_id):
         resume_url = '#'
         mode = active_session.learning_mode
         if mode == 'flashcard':
-            resume_url = url_for('learning.flashcard_learning.flashcard_session', session_id=active_session.session_id)
+            resume_url = url_for('flashcard.flashcard_learning.flashcard_session', session_id=active_session.session_id)
         elif mode == 'mcq':
              # MCQ Session requires set_id
-             resume_url = url_for('learning.vocabulary.mcq.session', set_id=set_id)
+             resume_url = url_for('vocabulary.mcq.session', set_id=set_id)
         elif mode == 'typing':
-             resume_url = url_for('learning.vocabulary.typing.session_page')
+             resume_url = url_for('vocabulary.typing.session_page')
         elif mode == 'listening':
              # Listening Session requires set_id
-             resume_url = url_for('learning.vocabulary.listening.session', set_id=set_id)
+             resume_url = url_for('vocabulary.listening.session', set_id=set_id)
         elif mode == 'matching':
-             resume_url = url_for('learning.vocabulary.matching.session', set_id=set_id)
+             resume_url = url_for('vocabulary.matching.session', set_id=set_id)
         elif mode == 'speed':
-             resume_url = url_for('learning.vocabulary.speed.session_page', set_id=set_id)
+             resume_url = url_for('vocabulary.speed.session_page', set_id=set_id)
              
         # Map nice names
         mode_names = {
@@ -1038,6 +1033,10 @@ def generate_image_from_content():
     if not str(text_source).strip():
         return jsonify({'success': False, 'message': 'Không có nội dung để tìm ảnh minh họa.'}), 400
 
+    # BREAK CIRCULAR IMPORT
+    from mindstack_app.modules.flashcard.services import ImageService
+    image_service = ImageService()
+
     try:
         absolute_path, success, message = image_service.get_cached_or_download_image(str(text_source))
         if success and absolute_path:
@@ -1111,6 +1110,10 @@ def regenerate_audio_from_content():
     item = LearningItem.query.get(item_id)
     if not item or item.item_type != 'FLASHCARD':
         return jsonify({'success': False, 'message': 'Không tìm thấy thẻ hoặc loại thẻ không đúng.'}), 404
+
+    # BREAK CIRCULAR IMPORT
+    from mindstack_app.modules.flashcard.services import AudioService
+    audio_service = AudioService()
 
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)

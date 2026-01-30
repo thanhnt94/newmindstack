@@ -11,7 +11,7 @@ from datetime import datetime, timezone
 from sqlalchemy.sql import func
 from sqlalchemy.types import JSON
 
-from ..db_instance import db
+from mindstack_app.core.extensions import db
 
 
 class LearningProgress(db.Model):

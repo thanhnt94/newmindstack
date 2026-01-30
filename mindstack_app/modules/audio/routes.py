@@ -3,11 +3,9 @@ from flask import Blueprint, render_template, request, jsonify, current_app
 from flask_login import login_required, current_user
 from .services.audio_service import AudioService
 
-# Define Blueprint
-# We assume this will be registered at the app root '/' or we define routes with '/admin/...' prefix explicitly.
-audio_bp = Blueprint('audio_bp', __name__)
+from . import blueprint
 
-@audio_bp.route('/admin/audio-studio', methods=['GET'])
+@blueprint.route('/admin/audio-studio', methods=['GET'])
 @login_required
 def admin_audio_studio():
     """
@@ -27,7 +25,7 @@ def admin_audio_studio():
                            voice_mapping=current_app.config.get('AUDIO_VOICE_MAPPING_GLOBAL', {})
                            )
 
-@audio_bp.route('/admin/audio/settings', methods=['POST'])
+@blueprint.route('/admin/audio/settings', methods=['POST'])
 @login_required
 def update_audio_settings():
     """Update default audio settings."""
@@ -79,7 +77,7 @@ def update_audio_settings():
     except Exception as e:
         return jsonify({'status': 'error', 'message': str(e)})
 
-@audio_bp.route('/admin/audio/tasks/start', methods=['POST'])
+@blueprint.route('/admin/audio/tasks/start', methods=['POST'])
 @login_required
 def start_audio_task():
     """Trigger background audio maintenance tasks."""
@@ -135,7 +133,7 @@ def start_audio_task():
         current_app.logger.error(f"Settings Update Error: {tb}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
-@audio_bp.errorhandler(Exception)
+@blueprint.errorhandler(Exception)
 def handle_exception(e):
     """Global exception handler for the Audio Blueprint."""
     tb = traceback.format_exc()
@@ -146,7 +144,7 @@ def handle_exception(e):
         'traceback': tb
     }), 500
 
-@audio_bp.route('/audio-debug-test', methods=['GET'])
+@blueprint.route('/audio-debug-test', methods=['GET'])
 async def debug_audio():
     """Temporary debug route - Open Access"""
     try:
@@ -162,7 +160,7 @@ async def debug_audio():
         current_app.logger.error(f"Debug Route Error: {tb}")
         return jsonify({'error': str(e), 'traceback': tb}), 500
 
-@audio_bp.route('/admin/audio/process', methods=['POST'])
+@blueprint.route('/admin/audio/process', methods=['POST'])
 @login_required
 async def process_audio():
     """

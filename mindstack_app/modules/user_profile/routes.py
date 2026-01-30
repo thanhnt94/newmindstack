@@ -7,22 +7,22 @@ from mindstack_app.utils.template_helpers import render_dynamic_template
 from flask_login import login_required, current_user
 
 # Import Blueprint từ __init__.py của module này
-from . import user_profile_bp 
+from . import blueprint 
 
-from ...models import User # Import model User từ cấp trên (đi lên 2 cấp)
-from ...db_instance import db
+from mindstack_app.models import User # Import model User từ cấp trên (đi lên 2 cấp)
+from mindstack_app.core.extensions import db
 from ...modules.auth.forms import ProfileEditForm, ChangePasswordForm # Import specific forms
 
 # Middleware để đảm bảo người dùng đã đăng nhập cho toàn bộ Blueprint user_profile
-@user_profile_bp.before_request
+@blueprint.before_request
 @login_required # Đảm bảo người dùng đã đăng nhập
 def profile_required():
     # Không cần kiểm tra quyền admin ở đây, chỉ cần đã đăng nhập
     pass
 
 # Route để xem profile cá nhân
-@user_profile_bp.route('/')
-@user_profile_bp.route('/view')
+@blueprint.route('/')
+@blueprint.route('/view')
 def view_profile():
     # current_user đã có sẵn nhờ Flask-Login
     # current_user đã có sẵn nhờ Flask-Login
@@ -44,7 +44,7 @@ from werkzeug.utils import secure_filename
 from flask import current_app
 
 # Route để chỉnh sửa profile cá nhân
-@user_profile_bp.route('/edit', methods=['GET', 'POST'])
+@blueprint.route('/edit', methods=['GET', 'POST'])
 def edit_profile():
     user = current_user
     form = ProfileEditForm(obj=user)
@@ -80,7 +80,7 @@ def edit_profile():
     return render_dynamic_template('pages/user_profile/edit_profile.html', form=form, title='Sửa Profile', user=user)
 
 # Route để đổi mật khẩu
-@user_profile_bp.route('/change-password', methods=['GET', 'POST'])
+@blueprint.route('/change-password', methods=['GET', 'POST'])
 def change_password():
     form = ChangePasswordForm()
     if form.validate_on_submit():
@@ -92,7 +92,7 @@ def change_password():
     return render_dynamic_template('pages/user_profile/change_password.html', form=form, title='Đổi mật khẩu')
 
 # Route API để lấy và lưu preferences
-@user_profile_bp.route('/api/preferences', methods=['GET', 'POST'])
+@blueprint.route('/api/preferences', methods=['GET', 'POST'])
 def manage_preferences():
     if request.method == 'POST':
         try:

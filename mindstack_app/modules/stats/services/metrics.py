@@ -1,6 +1,6 @@
-﻿# File: mindstack_app/modules/stats/routes.py
-# PhiÃªn báº£n: 2.1
-# Má»¥c Ä‘Ã­ch: Bá»• sung logic Ä‘á»ƒ láº¥y dá»¯ liá»‡u thá»‘ng kÃª cho KhoÃ¡ há»c.
+# File: mindstack_app/modules/stats/routes.py
+# Phiên bản: 2.1
+# Mục đích: Bổ sung logic để lấy dữ liệu thống kê cho Khoá học.
 
 from datetime import datetime, timedelta, date, timezone
 from collections import defaultdict
@@ -28,9 +28,9 @@ from ..logics.chart_utils import (
 
 ITEM_TYPE_LABELS = {
     'FLASHCARD': 'Flashcard',
-    'QUIZ_MCQ': 'Tráº¯c nghiá»‡m',
-    'LESSON': 'BÃ i há»c',
-    'COURSE': 'KhoÃ¡ há»c',
+    'QUIZ_MCQ': 'Trắc nghiệm',
+    'LESSON': 'Bài học',
+    'COURSE': 'Khoá học',
 }
 
 
@@ -314,7 +314,7 @@ def get_activity_breakdown(user_id, timeframe='30d'):
         total_score += score
         buckets.append({
             'item_type': item_type,
-            'label': ITEM_TYPE_LABELS.get(item_type, 'Hoáº¡t Ä‘á»™ng khÃ¡c'),
+            'label': ITEM_TYPE_LABELS.get(item_type, 'Hoạt động khác'),
             'entries': entries,
             'score': score,
         })

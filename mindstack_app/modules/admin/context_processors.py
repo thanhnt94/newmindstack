@@ -12,9 +12,9 @@ from typing import Any
 from flask import current_app
 from flask_login import current_user
 
-from ...config import Config
-from ...models import ApiKey, BackgroundTask, LearningContainer, AppSettings, User
-from ...services.config_service import get_runtime_config
+from mindstack_app.core.config import Config
+from mindstack_app.models import ApiKey, BackgroundTask, LearningContainer, AppSettings, User
+from mindstack_app.services.config_service import get_runtime_config
 
 
 def _latest_backup_timestamp() -> str | None:

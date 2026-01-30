@@ -5,7 +5,7 @@ from sqlalchemy import func
 from datetime import datetime, timedelta, date
 
 from mindstack_app.models import db, ScoreLog, LearningProgress, LearningContainer, LearningItem
-from .. import stats_bp
+from .. import blueprint as stats_bp
 from ..services.metrics import (
     get_user_container_options,
     ITEM_TYPE_LABELS

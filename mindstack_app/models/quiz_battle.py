@@ -5,7 +5,7 @@ from __future__ import annotations
 from sqlalchemy.sql import func
 from sqlalchemy.types import JSON
 
-from ..db_instance import db
+from mindstack_app.core.extensions import db
 
 
 class QuizBattleRoom(db.Model):

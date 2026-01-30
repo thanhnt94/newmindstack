@@ -1,5 +1,5 @@
 from datetime import datetime
-from ..db_instance import db
+from mindstack_app.core.extensions import db
 
 class TranslationHistory(db.Model):
     __tablename__ = 'translation_history'

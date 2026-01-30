@@ -9,21 +9,21 @@ GOAL_TYPE_CONFIG: dict[str, dict[str, str]] = {
         'description': 'Ôn luyện flashcard và giữ chuỗi học.',
         'unit': 'thẻ',
         'icon': 'clone',
-        'endpoint': 'learning.flashcard.flashcard_dashboard.dashboard',
+        'endpoint': 'flashcard.flashcard_dashboard_internal.dashboard',
     },
     'quizzes_practiced': {
         'label': 'Quiz',
         'description': 'Luyện quiz để củng cố kiến thức.',
         'unit': 'câu',
         'icon': 'circle-question',
-        'endpoint': 'learning.quiz_learning.dashboard',
+        'endpoint': 'quiz.quiz_learning.dashboard',
     },
     'lessons_completed': {
         'label': 'Bài học',
         'description': 'Hoàn thành các bài học trong khóa.',
         'unit': 'bài',
         'icon': 'graduation-cap',
-        'endpoint': 'learning.course.course_learning_dashboard',
+        'endpoint': 'course.course_learning_dashboard',
     },
 }
 

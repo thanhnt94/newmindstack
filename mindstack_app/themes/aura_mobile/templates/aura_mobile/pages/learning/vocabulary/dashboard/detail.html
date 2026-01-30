@@ -1,0 +1,274 @@
+{# Vocabulary Learning Hub - Set Detail View v4.0 #}
+
+{% set _v = template_version %}
+{% extends _v ~ '/base.html' %}
+
+{% block title %}Chi tiết bộ thẻ - MindStack{% endblock %}
+
+{% block head %}
+{{ super() }}
+{% include _v ~ '/includes/assets/_markdown_assets.html' %}
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+<style>
+    :root {
+        --vocab-primary: #4f46e5;
+        --vocab-primary-light: #818cf8;
+        --vocab-primary-dark: #4f46e5;
+    }
+
+    body {
+        font-family: 'Inter', sans-serif;
+        background-color: #f8fafc;
+    }
+
+
+
+    /* Steps visibility */
+    .vocab-step {
+        display: none;
+    }
+
+    .vocab-step.active {
+        display: block;
+    }
+
+    /* Unified Mobile-First Styles */
+    body>header,
+    body>footer {
+        display: none !important;
+    }
+
+    body>main {
+        padding: 0 !important;
+        margin: 0 !important;
+        max-width: none !important;
+    }
+
+    .vocab-step {
+        display: none;
+        position: fixed;
+        inset: 0;
+        z-index: 100;
+        background: #f8fafc;
+        flex-direction: column;
+        overflow-y: auto;
+    }
+
+    .vocab-step.active {
+        display: flex;
+    }
+
+
+    /* Modal hide by default - but allow inline style override */
+    .vocab-modal:not([style*="flex"]),
+    .edit-modal-overlay:not(.active) {
+        display: none;
+    }
+
+    /* Word List Grid - Override Tailwind */
+    .js-word-list {
+        display: grid !important;
+        grid-template-columns: 1fr !important;
+        gap: 1rem !important;
+    }
+
+
+
+    /* Word Card Fix */
+    .js-word-list>div {
+        margin-bottom: 0 !important;
+    }
+</style>
+<link rel="stylesheet" href="{{ url_for('vocabulary.serve_dashboard_asset', filename='css/dashboard.css') }}">
+<link rel="stylesheet"
+    href="{{ url_for('vocabulary.serve_dashboard_asset', filename='css/dashboard_detail.css') }}">
+{% endblock %}
+
+
+
+
+
+{% block content %}
+<div id="vocab-detail-wrapper">
+    <!-- Detail View - Unified -->
+    <div id="detail-view-wrapper" class="js-detail-view-wrapper">
+        <div id="step-detail" class="vocab-step active">
+            <div class="step-header-left">
+                <a href="/learn/vocabulary/" class="step-back-btn">
+                    <i class="fas fa-arrow-left"></i>
+                </a>
+                <div class="step-header-info" style="opacity: 0; transition: opacity 0.3s;">
+                    <div class="step-header-title-compact js-header-title">Tên bộ thẻ</div>
+                    <div class="step-header-meta">
+                        <span class="js-header-card-count">1258</span> thẻ
+                        <span class="meta-separator">•</span>
+                        <span class="js-header-progress-percent">3%</span>
+                    </div>
+                </div>
+                <a href="javascript:void(0)" class="step-edit-btn js-edit-set-btn open-modal-btn" title="Sửa bộ thẻ"
+                    style="display: none;">
+                    <i class="fas fa-edit"></i>
+                </a>
+                <!-- Settings Button -->
+                <button type="button" class="step-edit-btn js-open-flashcard-settings" title="Cài đặt học tập">
+                    <i class="fas fa-cog"></i>
+                </button>
+                <a href="{{ url_for('stats.dashboard') }}" class="step-home-btn">
+                    <i class="fas fa-home"></i>
+                </a>
+            </div>
+
+            <div class="vocab-scroll">
+                <div class="vocab-detail-hero js-detail-cover">
+                    <i class="fas fa-book-open"></i>
+                </div>
+
+                <div class="vocab-detail-content" style="opacity: 0; transition: opacity 0.3s;">
+                    <!-- [MOVED] Active Session Banner -->
+                    <div id="active-session-banner-detail" style="display: none;"
+                        class="mb-6 rounded-2xl bg-orange-50/80 backdrop-blur border border-orange-100 p-4 shadow-xl shadow-orange-500/10 animate-fadeIn">
+                        <div class="flex items-center gap-4">
+                            <div
+                                class="flex-shrink-0 w-12 h-12 rounded-xl bg-gradient-to-br from-orange-400 to-amber-500 flex items-center justify-center text-white shadow-lg shadow-orange-500/30">
+                                <i class="fas fa-history text-xl animate-pulse"></i>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <h3 class="text-sm font-bold text-orange-900 flex items-center gap-2 mb-1">
+                                    <span class="truncate">Đang học dở:</span>
+                                    <span
+                                        class="js-active-mode-name text-orange-700 uppercase bg-white/50 px-2 py-0.5 rounded text-xs tracking-wider border border-orange-100">--</span>
+                                </h3>
+                                <div class="flex gap-3 mt-2">
+                                    <button
+                                        class="js-resume-session px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white text-xs font-bold rounded-lg transition-all shadow-md hover:shadow-lg flex items-center gap-2 group">
+                                        <span>Tiếp tục ngay</span> <i
+                                            class="fas fa-arrow-right group-hover:translate-x-1 transition-transform"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <h1 class="vocab-detail-title js-detail-title-full">Tên bộ thẻ</h1>
+                    <div class="vocab-creator-inline">
+                        <div class="vocab-creator-avatar-small js-creator-avatar">A</div>
+                        <span class="vocab-creator-name-small js-creator-name">Admin</span>
+                    </div>
+                    <p class="vocab-detail-desc js-detail-desc">Mô tả bộ thẻ...</p>
+
+                    <div class="vocab-detail-stats">
+                        <div class="vocab-stat">
+                            <div class="vocab-stat-value js-card-count">0</div>
+                            <div class="vocab-stat-label">Flashcard</div>
+                        </div>
+                        <div class="vocab-stat vocab-stat-progress">
+                            <div class="vocab-stat-value vocab-stat-count js-progress-count">0/0</div>
+                            <div class="vocab-stat-label">Đã học</div>
+                        </div>
+                    </div>
+
+                    <!-- Word List -->
+                    <h3 class="font-bold text-slate-700 mb-3 mt-6">Danh sách từ vựng</h3>
+                    <div class="js-word-list">
+                        <!-- Loading spinner initially -->
+                        <div class="py-12 flex justify-center">
+                            <i class="fas fa-spinner fa-spin text-2xl text-indigo-500"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Fixed Pagination for Detail View -->
+            <div id="detail-pagination-bar" class="vocab-pagination-bar visible">
+                <button class="pagination-nav-btn js-detail-prev-page" disabled>
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+                <div class="pagination-pages js-detail-page-numbers">
+                    <span class="page-num active">1</span>
+                </div>
+                <button class="pagination-nav-btn js-detail-next-page" disabled>
+                    <i class="fas fa-chevron-right"></i>
+                </button>
+            </div>
+
+            <div class="vocab-footer">
+                <button class="vocab-start-btn js-start-learning">
+                    <i class="fas fa-play-circle"></i> Bắt đầu học
+                </button>
+            </div>
+        </div>
+    </div>
+
+
+
+
+
+    <!-- STEP 3: Mode Selector (Mobile only, Desktop redirects or uses index.html/modes) -->
+    <!-- In this detail.html, we support the mobile wizard flow for consistency -->
+    <div id="step-modes" class="vocab-step">
+        {% include _v ~ '/pages/learning/vocabulary/dashboard/components/steps/_modes.html' %}
+        <div class="step-bottom-bar">
+            <button type="button" class="step-continue-btn js-mode-continue" disabled>
+                <span>Tiếp tục</span>
+                <i class="fas fa-arrow-right"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- STEP 4: Flashcard Options -->
+    <div id="step-flashcard-options" class="vocab-step">
+        {% include _v ~ '/pages/learning/vocabulary/dashboard/components/steps/_flashcard_options.html' %}
+    </div>
+
+    <!-- STEP 5: MCQ Options -->
+    <div id="step-mcq-options" class="vocab-step">
+        <div id="mcq-options-container" class="step-content-container">
+            <!-- Content loaded dynamically -->
+        </div>
+    </div>
+</div>
+
+{# Shared Modals #}
+{% include _v ~ '/pages/learning/vocabulary/dashboard/_container_stats_modal.html' %}
+{% include _v ~ '/pages/learning/vocabulary/dashboard/_item_stats_charts.html' %}
+{% include _v ~ '/pages/learning/vocabulary/dashboard/_stats_enhancement.html' %}
+{% include _v ~ '/pages/learning/vocabulary/dashboard/_inject_stats_button.html' %}
+{% include _v ~ '/pages/learning/vocabulary/stats/_modal_stats.html' %}
+
+
+<!-- Flashcard Settings Modal -->
+<div id="flashcard-settings-modal" class="vocab-modal" style="display: none;">
+    <div class="vocab-modal-overlay js-close-settings-modal"></div>
+    <div class="vocab-modal-content" style="max-width: 400px; height: auto; max-height: 80vh;">
+        <button class="vocab-modal-close js-close-settings-modal"><i class="fas fa-times"></i></button>
+        <div class="vocab-modal-body" style="padding: 1.5rem;">
+            <div id="settings-dynamic-content-wrapper">
+                <!-- Redesigned Settings Content from index.html -->
+                {% include _v ~ '/pages/learning/vocabulary/dashboard/components/modals/_flashcard_settings.html'
+                ignore
+                missing %}
+            </div>
+        </div>
+        <div class="p-6 border-t border-slate-100 bg-white flex gap-3">
+            <button
+                class="flex-1 py-3 px-4 rounded-xl text-slate-400 font-bold hover:bg-slate-50 transition-colors js-close-settings-modal">Hủy
+                bỏ</button>
+            <button
+                class="flex-1 py-3 px-4 rounded-xl bg-indigo-600 text-white font-bold hover:bg-indigo-700 shadow-xl transition-all js-save-settings">Lưu
+                cấu hình</button>
+        </div>
+    </div>
+</div>
+
+
+<!-- Item Stats Modal -->
+{% include _v ~ '/pages/learning/vocabulary/stats/_modal_stats.html' %}
+{% endblock %}
+
+
+{% block scripts %}
+{{ super() }}
+{# Stats components need their own scripts often or global helpers #}
+<script src="{{ url_for('vocabulary.serve_dashboard_asset', filename='js/dashboard_detail.js') }}"></script>
+{% endblock %}

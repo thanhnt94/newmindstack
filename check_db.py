@@ -1,6 +1,7 @@
-from mindstack_app import app, db
+from mindstack_app import create_app, db
 from mindstack_app.models import LearningContainer, User
 
+app = create_app()
 with app.app_context():
     print(f"DATABASE URI: {app.config['SQLALCHEMY_DATABASE_URI']}")
     import os

@@ -1,14 +1,15 @@
-# Collab Module
-# Entry point for collaborative learning modes (Quiz Battle, Flashcard Collab).
-# This module provides a unified dashboard for all collaboration features.
-
+# File: mindstack_app/modules/collab/__init__.py
 from flask import Blueprint
 
-collab_bp = Blueprint(
-    'collab', 
-    __name__, 
-    url_prefix='/collab'
-)
+blueprint = Blueprint('collab', __name__)
 
-# Import routes after blueprint creation to avoid circular imports
-from . import routes  # noqa: E402, F401
+module_metadata = {
+    'name': 'Học nhóm',
+    'icon': 'users',
+    'category': 'Learning',
+    'url_prefix': '/learn/collab',
+    'enabled': True
+}
+
+def setup_module(app):
+    from . import routes

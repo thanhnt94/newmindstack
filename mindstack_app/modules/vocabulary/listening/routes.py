@@ -5,7 +5,7 @@ from flask_login import login_required, current_user
 from . import listening_bp
 from .logic import get_listening_eligible_items, check_listening_answer
 from mindstack_app.models import LearningContainer
-from mindstack_app.extensions import csrf_protect
+from mindstack_app.core.extensions import csrf_protect
 
 
 @listening_bp.route('/setup/<int:set_id>')
@@ -153,7 +153,7 @@ def start_session():
             
         return jsonify({
             'success': True, 
-            'redirect_url': url_for('learning.vocabulary.listening.session_page')
+            'redirect_url': url_for('vocabulary.listening.session_page')
         })
     except Exception as outer_e:
         import traceback
@@ -171,7 +171,7 @@ def session_page():
     set_id = session_data.get('set_id')
     
     if not set_id:
-        return redirect(url_for('learning.vocabulary.dashboard'))
+        return redirect(url_for('vocabulary.dashboard'))
         
     container = LearningContainer.query.get_or_404(set_id)
     
@@ -360,7 +360,7 @@ def api_get_items(set_id):
         'success': True,
         'items': final_items,
         'total': len(final_items),
-        'tts_url': url_for('learning.vocabulary.listening.api_tts', _external=True)
+        'tts_url': url_for('vocabulary.listening.api_tts', _external=True)
     })
 
 
@@ -481,7 +481,7 @@ def api_tts():
             
         if success and path_or_url:
             from flask import url_for
-            from mindstack_app.config import Config
+            from mindstack_app.core.config import Config
             import os
             
             # Resolve to absolute URL for frontend

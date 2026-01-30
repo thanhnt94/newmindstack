@@ -5,8 +5,9 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, abort, jsonify, current_app
 from mindstack_app.utils.template_helpers import render_dynamic_template
 from flask_login import login_required, current_user
-from sqlalchemy import or_, func
-from ...models import db, LearningContainer, LearningItem, ContainerContributor, User
+from sqlalchemy import or_
+from . import blueprint
+from mindstack_app.models import db, LearningContainer, LearningItem, ContainerContributor, User
 from .forms import ContributorForm, CourseForm, LessonForm, FlashcardSetForm, FlashcardItemForm, QuizSetForm, QuizItemForm
 from .services.management_service import ManagementService
 from .logics.validators import has_container_access, can_create_public_content
@@ -20,8 +21,8 @@ from werkzeug.utils import secure_filename
 from uuid import uuid4
 import os
 import pandas as pd
-from ...config import Config
-from ...services.config_service import get_runtime_config
+from mindstack_app.core.config import Config
+from mindstack_app.services.config_service import get_runtime_config
 from mindstack_app.modules.flashcard.services.flashcard_config_service import FlashcardConfigService
 from mindstack_app.modules.quiz.services.quiz_config_service import QuizConfigService
 
@@ -36,15 +37,11 @@ from .courses.routes import courses_bp
 from .flashcards.routes import flashcards_bp
 from .quizzes.routes import quizzes_bp
 
-# Định nghĩa Blueprint chính cho content_management
-content_management_bp = Blueprint('content_management', __name__,
-                                  template_folder='templates') # Vẫn giữ template_folder này cho các template chung
-
 # Đăng ký các blueprint con
 # ĐÃ SỬA: Loại bỏ url_prefix vì các routes con đã tự định nghĩa đường dẫn đầy đủ
-content_management_bp.register_blueprint(courses_bp)
-content_management_bp.register_blueprint(flashcards_bp)
-content_management_bp.register_blueprint(quizzes_bp)
+blueprint.register_blueprint(courses_bp)
+blueprint.register_blueprint(flashcards_bp)
+blueprint.register_blueprint(quizzes_bp)
 
 
 def _select_media_subdir(media_type: str) -> str:
@@ -56,7 +53,7 @@ def _select_media_subdir(media_type: str) -> str:
     return 'files'
 
 
-@content_management_bp.route('/media/upload', methods=['POST'])
+@blueprint.route('/media/upload', methods=['POST'])
 @login_required
 def upload_rich_text_media():
     """Tải file media sử dụng trong trình soạn thảo WYSIWYG."""
@@ -80,7 +77,6 @@ def upload_rich_text_media():
     if not filename:
         return error_response('Tên file không hợp lệ.', 'BAD_REQUEST', 400)
 
-    ext = os.path.splitext(filename)[1].lower()
     ext = os.path.splitext(filename)[1].lower()
     if ext not in ALLOWED_RICH_TEXT_EXTENSIONS:
         return error_response(f'Định dạng file "{ext}" không được hỗ trợ.', 'BAD_REQUEST', 400)
@@ -110,7 +106,7 @@ def upload_rich_text_media():
     return success_response(message='File uploaded successfully', data={'location': file_url, 'filename': candidate_name})
 
 
-@content_management_bp.route('/cover/upload', methods=['POST'])
+@blueprint.route('/cover/upload', methods=['POST'])
 @login_required
 def upload_cover_image():
     """Tải ảnh bìa cho Course/Set vào thư mục covers."""
@@ -141,7 +137,7 @@ def upload_cover_image():
     return success_response(message='Đã tải ảnh bìa lên.', data={'url': file_url, 'db_path': db_path})
 
 
-@content_management_bp.route('/')
+@blueprint.route('/')
 @login_required
 def content_dashboard():
     """
@@ -151,7 +147,7 @@ def content_dashboard():
 
 # --- Unified Container Management ---
 
-@content_management_bp.route('/<container_type>')
+@blueprint.route('/<container_type>')
 @login_required
 def list_containers(container_type):
     """Unified listing for Courses, Flashcard Sets, and Quizzes."""
@@ -236,7 +232,7 @@ def _get_form_for_type(container_type):
     }
     return forms.get(container_type.upper())
 
-@content_management_bp.route('/<container_type>/add', methods=['GET', 'POST'])
+@blueprint.route('/<container_type>/add', methods=['GET', 'POST'])
 @login_required
 def add_container(container_type):
     """Unified route to add a new container."""
@@ -283,7 +279,7 @@ def add_container(container_type):
                                    flashcard_config=FlashcardConfigService.get_all(),
                                    quiz_config=QuizConfigService.get_all())
 
-@content_management_bp.route('/edit/<int:container_id>', methods=['GET', 'POST'])
+@blueprint.route('/edit/<int:container_id>', methods=['GET', 'POST'])
 @login_required
 def edit_container(container_id):
     """Unified route to edit any container."""
@@ -331,7 +327,7 @@ def edit_container(container_id):
                                    flashcard_config=FlashcardConfigService.get_all(),
                                    quiz_config=QuizConfigService.get_all())
 
-@content_management_bp.route('/container/<int:container_id>/delete', methods=['POST'])
+@blueprint.route('/container/<int:container_id>/delete', methods=['POST'])
 @login_required
 def delete_container_api(container_id):
     container = LearningContainer.query.get_or_404(container_id)
@@ -341,7 +337,7 @@ def delete_container_api(container_id):
     ContentKernelService.delete_container(container_id)
     return success_response(message="Xóa thành công", data={'container_id': container_id})
 
-@content_management_bp.route('/item/<int:item_id>/delete', methods=['POST'])
+@blueprint.route('/item/<int:item_id>/delete', methods=['POST'])
 @login_required
 def delete_item_api(item_id):
     item = LearningItem.query.get_or_404(item_id)
@@ -352,7 +348,7 @@ def delete_item_api(item_id):
     ContentKernelService.delete_item(item_id)
     return success_response(message="Xóa thành công", data={'item_id': item_id, 'container_id': container_id})
 
-@content_management_bp.route('/item/<int:item_id>/move', methods=['POST'])
+@blueprint.route('/item/<int:item_id>/move', methods=['POST'])
 @login_required
 def move_item(item_id):
     item = LearningItem.query.get_or_404(item_id)
@@ -373,7 +369,7 @@ def move_item(item_id):
     
     return success_response(message="Di chuyển thành công", data={'item_id': item_id, 'old_container_id': old_container_id, 'new_container_id': target_container_id})
 
-@content_management_bp.route('/delete/<int:container_id>', methods=['POST'])
+@blueprint.route('/delete/<int:container_id>', methods=['POST'])
 @login_required
 def delete_container_page(container_id):
     """Unified route to delete any container."""
@@ -388,7 +384,7 @@ def delete_container_page(container_id):
 
 # --- Unified Item Management ---
 
-@content_management_bp.route('/container/<int:container_id>/items')
+@blueprint.route('/container/<int:container_id>/items')
 @login_required
 def list_items(container_id):
     """Unified listing of items within a container."""
@@ -455,7 +451,7 @@ def _get_item_form_for_type(container_type):
     }
     return forms.get(container_type.upper())
 
-@content_management_bp.route('/container/<int:container_id>/items/add', methods=['GET', 'POST'])
+@blueprint.route('/container/<int:container_id>/items/add', methods=['GET', 'POST'])
 @login_required
 def add_item(container_id):
     """Unified route to add an item to a container."""
@@ -501,7 +497,7 @@ def add_item(container_id):
                                    flashcard_config=FlashcardConfigService.get_all(),
                                    quiz_config=QuizConfigService.get_all())
 
-@content_management_bp.route('/item/edit/<int:item_id>', methods=['GET', 'POST'])
+@blueprint.route('/item/edit/<int:item_id>', methods=['GET', 'POST'])
 @login_required
 def edit_item(item_id):
     """Unified route to edit any item."""
@@ -556,7 +552,7 @@ def edit_item(item_id):
                                    flashcard_config=FlashcardConfigService.get_all(),
                                    quiz_config=QuizConfigService.get_all())
 
-@content_management_bp.route('/item/delete/<int:item_id>', methods=['POST'])
+@blueprint.route('/item/delete/<int:item_id>', methods=['POST'])
 @login_required
 def delete_item(item_id):
     """Unified route to delete any item."""
@@ -570,7 +566,7 @@ def delete_item(item_id):
     flash('Đã xóa thành công!', 'success')
     return redirect(url_for('content_management.list_items', container_id=container_id))
 
-@content_management_bp.route('/container/<int:container_id>/export')
+@blueprint.route('/container/<int:container_id>/export')
 @login_required
 def export_container_excel(container_id):
     """Unified route to export container items to Excel."""
@@ -624,7 +620,7 @@ def export_container_excel(container_id):
     return send_file(output, as_attachment=True, download_name=filename, 
                      mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
 
-@content_management_bp.route('/container/<int:container_id>/import', methods=['GET', 'POST'])
+@blueprint.route('/container/<int:container_id>/import', methods=['GET', 'POST'])
 @login_required
 def import_container_excel(container_id):
     """Unified route to import container items from Excel."""
@@ -683,7 +679,7 @@ def import_container_excel(container_id):
     type_slug = TYPE_SLUG_MAP.get(container.container_type.upper(), container.container_type.lower())
     return render_dynamic_template(f'pages/content_management/{type_slug}/excel/import_export.html', container=container)
 
-@content_management_bp.route('/manage_contributors/<int:container_id>', methods=['GET', 'POST'])
+@blueprint.route('/manage_contributors/<int:container_id>', methods=['GET', 'POST'])
 @login_required
 def manage_contributors(container_id):
     """
@@ -776,7 +772,7 @@ def manage_contributors(container_id):
                            form=form,
                            username_suggestions=username_suggestions)
 
-@content_management_bp.route('/api/contributors/<int:container_id>/add', methods=['POST'])
+@blueprint.route('/api/contributors/<int:container_id>/add', methods=['POST'])
 @login_required
 def add_contributor_api(container_id):
     container = LearningContainer.query.get_or_404(container_id)
@@ -811,7 +807,7 @@ def add_contributor_api(container_id):
     db.session.commit()
     return {'success': True, 'message': msg, 'username': user_to_add.username, 'email': user_to_add.email, 'user_id': user_to_add.user_id}
 
-@content_management_bp.route('/api/contributors/<int:container_id>/remove', methods=['POST'])
+@blueprint.route('/api/contributors/<int:container_id>/remove', methods=['POST'])
 @login_required
 def remove_contributor_api(container_id):
     container = LearningContainer.query.get_or_404(container_id)
@@ -834,4 +830,3 @@ ALLOWED_RICH_TEXT_EXTENSIONS = {
     '.mp4', '.webm', '.mov', '.mkv', '.avi',
     '.pdf', '.docx', '.pptx', '.xlsx', '.zip', '.rar', '.txt'
 }
-

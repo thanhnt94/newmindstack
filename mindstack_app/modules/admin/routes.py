@@ -19,7 +19,8 @@ from flask import (
 from ...core.error_handlers import error_response, success_response
 from flask_login import login_required, current_user, login_user, logout_user
 from sqlalchemy import or_, nullslast
-from ...models import (
+from . import blueprint
+from mindstack_app.models import (
     db,
     User,
     LearningContainer,
@@ -76,10 +77,8 @@ from typing import Optional
 from sqlalchemy.sql.sqltypes import DateTime, Date, Time
 from datetime import date, time
 
-from ...config import Config
-# Refactored imports: services now in learning/flashcard/individual/ and learning/quiz/individual/services/
-from mindstack_app.modules.flashcard.services import AudioService, ImageService
-from mindstack_app.modules.quiz.individual.services.audio_service import QuizAudioService
+from mindstack_app.core.config import Config
+# Explanation service remains for generate_ai_explanations
 from mindstack_app.modules.AI.services.explanation_service import (
     DEFAULT_REQUEST_INTERVAL_SECONDS,
     generate_ai_explanations,
@@ -87,10 +86,6 @@ from mindstack_app.modules.AI.services.explanation_service import (
 from mindstack_app.modules.AI.logics.engines.gemini_client import GeminiClient
 from mindstack_app.modules.AI.logics.engines.huggingface_client import HuggingFaceClient
 from ...services.config_service import SENSITIVE_SETTING_KEYS, get_runtime_config
-
-audio_service = AudioService()
-image_service = ImageService()
-quiz_audio_service = QuizAudioService()
 
 # [NEW] Quiz Config Service
 from ..quiz.services.quiz_config_service import QuizConfigService
@@ -797,7 +792,7 @@ def _apply_dataset_restore(dataset_key, payload):
 
 # --- Các route (tuyến đường) ---
 
-from . import admin_bp  # Vẫn cần dòng này để các decorator như @admin_bp.route hoạt động chính xác.
+from . import blueprint as blueprint  # Vẫn cần dòng này để các decorator như @blueprint.route hoạt động chính xác.
 from .context_processors import build_admin_sidebar_metrics
 
 ADMIN_ALLOWED_MEDIA_EXTENSIONS = {
@@ -890,10 +885,10 @@ def _collect_directory_listing(base_dir, upload_root):
     return directories, files
 
 # Middleware để kiểm tra quyền admin cho toàn bộ Blueprint admin
-@admin_bp.before_request 
+@blueprint.before_request 
 def admin_required():
     """
-    Mô tả: Middleware (bộ lọc) chạy trước mọi request vào admin_bp.
+    Mô tả: Middleware (bộ lọc) chạy trước mọi request vào blueprint.
     Đảm bảo chỉ người dùng có vai trò 'admin' mới được truy cập.
     """
     # Whitelist login route & static files if needed
@@ -910,7 +905,7 @@ def admin_required():
         flash('Vui lòng đăng nhập với tài khoản Admin.', 'warning')
         return redirect(url_for('admin.login', next=request.url))
 
-@admin_bp.route('/login', methods=['GET', 'POST'])
+@blueprint.route('/login', methods=['GET', 'POST'])
 def login():
     """Separate login route for Administrators."""
     if current_user.is_authenticated:
@@ -956,8 +951,8 @@ def login():
     # Use standard render_template for Admin Login (independent of v3/v4 user themes)
     return render_template('admin/login.html', form=form)
 
-@admin_bp.route('/')
-@admin_bp.route('/dashboard')
+@blueprint.route('/')
+@blueprint.route('/dashboard')
 def admin_dashboard():
     """
     Mô tả: Hiển thị trang dashboard admin tổng quan.
@@ -1017,7 +1012,7 @@ def admin_dashboard():
     )
 
 
-@admin_bp.route('/media-library', methods=['GET', 'POST'])
+@blueprint.route('/media-library', methods=['GET', 'POST'])
 def media_library():
     """
     Mô tả: Hiển thị trang quản lý thư viện media (tải file, tạo thư mục).
@@ -1124,7 +1119,7 @@ def media_library():
     )
 
 
-@admin_bp.route('/media-library/delete', methods=['POST'])
+@blueprint.route('/media-library/delete', methods=['POST'])
 def delete_media_item():
     """
     Mô tả: Xử lý yêu cầu xóa một file media.
@@ -1159,7 +1154,7 @@ def delete_media_item():
 
 
 
-@admin_bp.route('/tasks')
+@blueprint.route('/tasks')
 def manage_background_tasks():
     """
     Mô tả: Hiển thị trang quản lý các tác vụ nền (ví dụ: tạo cache audio).
@@ -1214,7 +1209,7 @@ def _serialize_task_log(log: BackgroundTaskLog) -> dict[str, object]:
         'created_at': log.created_at.isoformat() if log.created_at else None,
     }
 
-@admin_bp.route('/tasks/toggle/<int:task_id>', methods=['POST'])
+@blueprint.route('/tasks/toggle/<int:task_id>', methods=['POST'])
 def toggle_task(task_id):
     """
     Mô tả: Bật/tắt một tác vụ nền.
@@ -1224,7 +1219,7 @@ def toggle_task(task_id):
     db.session.commit()
     return success_response(data={'is_enabled': task.is_enabled})
 
-@admin_bp.route('/tasks/start/<int:task_id>', methods=['POST'])
+@blueprint.route('/tasks/start/<int:task_id>', methods=['POST'])
 def start_task(task_id):
     """
     Mô tả: Bắt đầu một tác vụ nền.
@@ -1277,6 +1272,14 @@ def start_task(task_id):
     task.message = f"Đang khởi chạy cho {scope_label}..."
     db.session.commit()
 
+    # Load services locally to break circular imports
+    from mindstack_app.modules.flashcard.services import AudioService, ImageService
+    from mindstack_app.modules.quiz.individual.services.audio_service import QuizAudioService
+    
+    audio_service = AudioService()
+    image_service = ImageService()
+    quiz_audio_service = QuizAudioService()
+
     # Chạy tác vụ (hiện tại là đồng bộ, nên nâng cấp lên thread/process)
     if task.task_name == 'generate_audio_cache':
         audio_service.generate_cache_for_all_cards(task, container_ids=container_scope_ids)
@@ -1300,7 +1303,7 @@ def start_task(task_id):
 
     return success_response(data={'scope_label': scope_label})
 
-@admin_bp.route('/tasks/stop/<int:task_id>', methods=['POST'])
+@blueprint.route('/tasks/stop/<int:task_id>', methods=['POST'])
 def stop_task(task_id):
     """
     Mô tả: Dừng một tác vụ nền đang chạy.
@@ -1314,7 +1317,7 @@ def stop_task(task_id):
     return error_response('Tác vụ không chạy.', 'BAD_REQUEST', 400)
 
 
-@admin_bp.route('/tasks/<int:task_id>/logs', methods=['GET'])
+@blueprint.route('/tasks/<int:task_id>/logs', methods=['GET'])
 def view_task_logs(task_id: int):
     """Hiển thị log chi tiết cho một tác vụ nền."""
 
@@ -1333,7 +1336,7 @@ def view_task_logs(task_id: int):
     )
 
 
-@admin_bp.route('/tasks/<int:task_id>/logs/data', methods=['GET'])
+@blueprint.route('/tasks/<int:task_id>/logs/data', methods=['GET'])
 def fetch_task_logs(task_id: int):
     """Trả về log dạng JSON để auto-refresh giao diện."""
 
@@ -1361,10 +1364,10 @@ def fetch_task_logs(task_id: int):
     )
 
 from ...core.module_registry import DEFAULT_MODULES
-from . import admin_bp
+from . import blueprint
 
 
-@admin_bp.route('/modules', methods=['GET'])
+@blueprint.route('/modules', methods=['GET'])
 @login_required
 def manage_modules():
     """Hiển thị danh sách các modules và trạng thái bật/tắt."""
@@ -1390,7 +1393,7 @@ def manage_modules():
                            active_page='modules')
 
 
-@admin_bp.route('/modules/toggle', methods=['POST'])
+@blueprint.route('/modules/toggle', methods=['POST'])
 @login_required
 def toggle_module():
     """API để bật/tắt một module."""
@@ -1421,7 +1424,7 @@ def toggle_module():
     })
 
 
-@admin_bp.route('/settings', methods=['GET', 'POST'])
+@blueprint.route('/settings', methods=['GET', 'POST'])
 def manage_system_settings():
     """
     Mô tả: Quản lý các cài đặt hệ thống (ví dụ: chế độ bảo trì).
@@ -1480,7 +1483,7 @@ def manage_system_settings():
         maintenance_end_time=maintenance_end_time
     )
 
-@admin_bp.route('/settings', methods=['POST'])
+@blueprint.route('/settings', methods=['POST'])
 def save_maintenance_mode():
     """Lưu chế độ bảo trì."""
     maintenance_mode = 'maintenance_mode' in request.form
@@ -1500,7 +1503,7 @@ def save_maintenance_mode():
     return redirect(url_for('admin.manage_system_settings'))
 
 
-@admin_bp.route('/settings/telegram-token', methods=['POST'])
+@blueprint.route('/settings/telegram-token', methods=['POST'])
 def save_telegram_token():
     """Lưu Telegram Bot Token."""
     token_value = (request.form.get('value') or '').strip()
@@ -1531,7 +1534,7 @@ def save_telegram_token():
     return redirect(url_for('admin.manage_system_settings'))
 
 
-@admin_bp.route('/settings/core', methods=['POST'])
+@blueprint.route('/settings/core', methods=['POST'])
 def update_core_settings():
     """Cập nhật nhanh các cấu hình vận hành quan trọng."""
 
@@ -1588,7 +1591,7 @@ def update_core_settings():
     return redirect(url_for('admin.manage_system_settings'))
 
 
-@admin_bp.route('/settings/create', methods=['POST'])
+@blueprint.route('/settings/create', methods=['POST'])
 def create_system_setting():
     """
     Mô tả: Thêm mới một cấu hình hệ thống từ biểu mẫu admin.
@@ -1628,7 +1631,7 @@ def create_system_setting():
     return redirect(url_for('admin.manage_system_settings'))
 
 
-@admin_bp.route('/settings/<string:setting_key>/update', methods=['POST'])
+@blueprint.route('/settings/<string:setting_key>/update', methods=['POST'])
 def update_system_setting(setting_key):
     """
     Mô tả: Cập nhật giá trị cấu hình hiện có.
@@ -1666,7 +1669,7 @@ def update_system_setting(setting_key):
     return redirect(url_for('admin.manage_system_settings'))
 
 
-@admin_bp.route('/settings/<string:setting_key>/delete', methods=['POST'])
+@blueprint.route('/settings/<string:setting_key>/delete', methods=['POST'])
 def delete_system_setting(setting_key):
     """
     Mô tả: Xóa một cấu hình khỏi hệ thống.
@@ -1690,7 +1693,7 @@ def delete_system_setting(setting_key):
     return redirect(url_for('admin.manage_system_settings'))
 
 
-@admin_bp.route('/settings/reset-progress', methods=['POST'])
+@blueprint.route('/settings/reset-progress', methods=['POST'])
 def reset_learning_progress():
     """
     Đặt lại tiến độ học tập cho một người dùng hoặc toàn bộ người dùng của một bộ câu hỏi.
@@ -1831,7 +1834,7 @@ def reset_learning_progress():
     flash('Phạm vi đặt lại không hợp lệ.', 'danger')
     return redirect(url_for('admin.manage_system_settings'))
     
-@admin_bp.route('/backup-restore')
+@blueprint.route('/backup-restore')
 def manage_backup_restore():
     """
     Mô tả: Hiển thị trang quản lý sao lưu và khôi phục dữ liệu.
@@ -1894,7 +1897,7 @@ def manage_backup_restore():
         dataset_options=dataset_options,
     )
 
-@admin_bp.route('/backup/database', methods=['POST'])
+@blueprint.route('/backup/database', methods=['POST'])
 def create_database_backup():
     """
     Mô tả: Tạo bản sao lưu cơ sở dữ liệu và lưu trên máy chủ.
@@ -1928,7 +1931,7 @@ def create_database_backup():
     return redirect(url_for('admin.manage_backup_restore'))
 
 
-@admin_bp.route('/backup/files/<path:filename>')
+@blueprint.route('/backup/files/<path:filename>')
 def download_backup_file(filename):
     """
     Mô tả: Cho phép tải xuống một file sao lưu.
@@ -1976,7 +1979,7 @@ def _build_dataset_export_response(dataset_key):
     return redirect(url_for('admin.manage_backup_restore'))
 
 
-@admin_bp.route('/backup/export', methods=['POST'])
+@blueprint.route('/backup/export', methods=['POST'])
 def export_dataset_from_form():
     """
     Mô tả: Route xử lý khi người dùng bấm nút "Xuất dữ liệu" từ form.
@@ -1989,7 +1992,7 @@ def export_dataset_from_form():
     return _build_dataset_export_response(dataset_key)
 
 
-@admin_bp.route('/backup/export/<string:dataset_key>')
+@blueprint.route('/backup/export/<string:dataset_key>')
 def export_dataset(dataset_key):
     """
     Mô tả: Route xử lý khi người dùng bấm link xuất (nếu có).
@@ -1997,7 +2000,7 @@ def export_dataset(dataset_key):
     return _build_dataset_export_response(dataset_key)
 
 
-@admin_bp.route('/backup/delete/<path:filename>', methods=['POST'])
+@blueprint.route('/backup/delete/<path:filename>', methods=['POST'])
 def delete_backup_file(filename):
     """
     Mô tả: Xóa một file sao lưu khỏi máy chủ.
@@ -2019,7 +2022,7 @@ def delete_backup_file(filename):
     return redirect(url_for('admin.manage_backup_restore'))
 
 
-@admin_bp.route('/backup/full', methods=['POST'])
+@blueprint.route('/backup/full', methods=['POST'])
 def download_full_backup():
     """
     Mô tả: Tạo gói sao lưu toàn bộ (DB + Uploads) và trả về cho người dùng tải xuống.
@@ -2082,8 +2085,8 @@ def download_full_backup():
         return redirect(url_for('admin.manage_backup_restore'))
 
 
-@admin_bp.route('/restore-dataset/<string:dataset_key>', methods=['POST'])
-@admin_bp.route('/restore-dataset', methods=['POST'])
+@blueprint.route('/restore-dataset/<string:dataset_key>', methods=['POST'])
+@blueprint.route('/restore-dataset', methods=['POST'])
 def restore_dataset(dataset_key = None):
     """
     Mô tả: Khôi phục dữ liệu từ file (zip/json) do người dùng tải lên.
@@ -2120,8 +2123,8 @@ def restore_dataset(dataset_key = None):
 
     return redirect(url_for('admin.manage_backup_restore'))
 
-@admin_bp.route('/restore/<string:filename>', methods=['POST'])
-@admin_bp.route('/restore', methods=['POST'])
+@blueprint.route('/restore/<string:filename>', methods=['POST'])
+@blueprint.route('/restore', methods=['POST'])
 def restore_backup(filename = None):
     """
     Mô tả: Khôi phục dữ liệu từ một bản sao lưu đã chọn (lưu trên server).
@@ -2194,7 +2197,7 @@ def restore_backup(filename = None):
     return redirect(url_for('admin.manage_backup_restore'))
 
 
-@admin_bp.route('/settings/fetch-gemini-models', methods=['GET'])
+@blueprint.route('/settings/fetch-gemini-models', methods=['GET'])
 def fetch_gemini_models_api():
     """
     API nội bộ để lấy danh sách model mới nhất từ Google.
@@ -2202,7 +2205,7 @@ def fetch_gemini_models_api():
     result = GeminiClient.get_available_models()
     return jsonify(result)
 
-@admin_bp.route('/settings/fetch-hf-models', methods=['GET'])
+@blueprint.route('/settings/fetch-hf-models', methods=['GET'])
 def fetch_hf_models_api():
     """
     API nội bộ để lấy danh sách model mới nhất từ Hugging Face.
@@ -2211,7 +2214,7 @@ def fetch_hf_models_api():
     return jsonify(result)
 
 
-@admin_bp.route('/settings/browse-directories', methods=['GET'])
+@blueprint.route('/settings/browse-directories', methods=['GET'])
 def browse_directories_api():
     """
     API nội bộ để duyệt thư mục trên server cho chức năng chọn đường dẫn.
@@ -2260,7 +2263,7 @@ def browse_directories_api():
         return error_response(f'Lỗi: {str(e)}', 'SERVER_ERROR', 500, details={'directories': [], 'current_path': base_path})
 
 
-@admin_bp.route('/settings/create-directory', methods=['POST'])
+@blueprint.route('/settings/create-directory', methods=['POST'])
 def create_directory_api():
     """
     API nội bộ để tạo thư mục mới trong folder picker.
@@ -2301,7 +2304,7 @@ def create_directory_api():
 
 # ==================== TEMPLATE MANAGEMENT ====================
 
-@admin_bp.route('/templates')
+@blueprint.route('/templates')
 @login_required
 def manage_templates():
     """
@@ -2322,7 +2325,7 @@ def manage_templates():
     )
 
 
-@admin_bp.route('/templates/update', methods=['POST'])
+@blueprint.route('/templates/update', methods=['POST'])
 @login_required
 def update_template_settings():
     """
@@ -2332,7 +2335,7 @@ def update_template_settings():
         return error_response('Không có quyền.', 'FORBIDDEN', 403)
     
     from ...services.template_service import TemplateService
-    from ...models import db
+    from mindstack_app.models import db
     
     try:
         data = request.get_json() or {}
@@ -2363,7 +2366,7 @@ def update_template_settings():
 # SRS / Memory Power Configuration Routes
 # =====================================================================
 
-@admin_bp.route('/fsrs-config', methods=['GET'])
+@blueprint.route('/fsrs-config', methods=['GET'])
 @login_required
 def fsrs_config():
     """
@@ -2400,7 +2403,7 @@ def fsrs_config():
     )
 
 
-@admin_bp.route('/fsrs-config', methods=['POST'])
+@blueprint.route('/fsrs-config', methods=['POST'])
 @login_required
 def save_fsrs_config():
     """
@@ -2467,7 +2470,7 @@ def save_fsrs_config():
 
 # === Quiz Config Routes ===
 
-@admin_bp.route('/content-config', methods=['GET'])
+@blueprint.route('/content-config', methods=['GET'])
 @login_required
 def content_config_page():
     """Admin page for managing both Quiz and Flashcard configurations."""
@@ -2481,7 +2484,7 @@ def content_config_page():
                           quiz_settings=quiz_settings,
                           flashcard_settings=flashcard_settings)
 
-@admin_bp.route('/quiz-config', methods=['GET'])
+@blueprint.route('/quiz-config', methods=['GET'])
 @login_required
 def quiz_config_page():
     """[DEPRECATED] Redirects to combined content config."""
@@ -2489,7 +2492,7 @@ def quiz_config_page():
 
 
 
-@admin_bp.route('/quiz-config/save', methods=['POST'])
+@blueprint.route('/quiz-config/save', methods=['POST'])
 @login_required
 def save_quiz_config():
     """API to save updated quiz configuration."""
@@ -2512,7 +2515,7 @@ def save_quiz_config():
         return jsonify({'success': False, 'message': f'Lỗi khi lưu: {str(e)}'}), 500
 
 
-@admin_bp.route('/quiz-config/reset', methods=['POST'])
+@blueprint.route('/quiz-config/reset', methods=['POST'])
 @login_required
 def reset_quiz_config():
     """API to reset quiz configuration to defaults."""
@@ -2529,7 +2532,7 @@ def reset_quiz_config():
 # [NEW] Flashcard Configuration Routes
 # ==========================================
 
-@admin_bp.route('/flashcard-config', methods=['GET'])
+@blueprint.route('/flashcard-config', methods=['GET'])
 @login_required
 def flashcard_config():
     """[DEPRECATED] Redirects to combined content config."""
@@ -2537,7 +2540,7 @@ def flashcard_config():
 
 
 
-@admin_bp.route('/flashcard-config/save', methods=['POST'])
+@blueprint.route('/flashcard-config/save', methods=['POST'])
 @login_required
 def save_flashcard_config():
     """API lưu cấu hình Flashcard."""
@@ -2552,7 +2555,7 @@ def save_flashcard_config():
         return jsonify({'success': False, 'message': f'Lỗi khi lưu cấu hình: {str(e)}'}), 500
 
 
-@admin_bp.route('/flashcard-config/reset', methods=['POST'])
+@blueprint.route('/flashcard-config/reset', methods=['POST'])
 @login_required
 def reset_flashcard_config():
     """API reset cấu hình Flashcard về mặc định."""

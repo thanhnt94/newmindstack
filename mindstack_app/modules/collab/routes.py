@@ -6,10 +6,10 @@ from flask import render_template, redirect, url_for
 from mindstack_app.utils.template_helpers import render_dynamic_template
 from flask_login import login_required
 
-from . import collab_bp
+from . import blueprint
 
 
-@collab_bp.route('/')
+@blueprint.route('/')
 @login_required
 def dashboard():
     """Dashboard cho các chế độ học cộng tác."""

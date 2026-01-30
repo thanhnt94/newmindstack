@@ -1,9 +1,9 @@
 from flask import render_template, redirect, url_for
 from mindstack_app.utils.template_helpers import render_dynamic_template
 from flask_login import current_user
-from . import landing_bp
+from . import blueprint
 
-@landing_bp.route('/')
+@blueprint.route('/')
 def index():
     """
     Trang chủ của ứng dụng.

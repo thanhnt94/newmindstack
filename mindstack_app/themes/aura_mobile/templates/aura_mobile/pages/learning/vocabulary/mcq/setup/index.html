@@ -1,0 +1,584 @@
+{# MCQ Setup Template - Wizard Style #}
+{% set _v = template_version %}
+{% extends _v ~ '/base.html' %}
+{% from _v ~ '/includes/components/dashboard_header.html' import render_dashboard_header %}
+
+{% block title %}Trắc nghiệm - {{ container.title }}{% endblock %}
+
+{% block head %}
+{{ super() }}
+<style>
+    :root {
+        --primary: #6366f1;
+        /* Indigo 500 */
+        --primary-bg: #eef2ff;
+        /* Indigo 50 */
+        --surface: #ffffff;
+        --background: #f8fafc;
+        --text-main: #0f172a;
+        --text-sub: #64748b;
+        --border: #e2e8f0;
+        --radius: 24px;
+        --shadow-sm: 0 4px 6px -1px rgb(0 0 0 / 0.05);
+        --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1);
+    }
+
+    body {
+        background: var(--background);
+        font-family: 'Outfit', 'Inter', sans-serif;
+    }
+
+    .wizard-container {
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        max-width: 600px;
+        margin: 0 auto;
+        background: var(--background);
+        position: relative;
+        overflow: hidden;
+    }
+
+    /* Steps Content */
+    .wizard-content {
+        flex: 1;
+        padding: 10px 1.5rem 100px 1.5rem;
+        /* Space for fixed header/footer handled by macro spacer */
+        display: flex;
+        flex-direction: column;
+        overflow-y: auto;
+    }
+
+    .step-screen {
+        display: none;
+        animation: fadeIn 0.4s ease-out;
+    }
+
+    .step-screen.active {
+        display: block;
+    }
+
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .title-area {
+        margin-bottom: 2rem;
+        text-align: center;
+    }
+
+    .title-area h2 {
+        font-size: 1.75rem;
+        font-weight: 800;
+        color: var(--text-main);
+        margin: 0 0 0.5rem 0;
+        line-height: 1.2;
+    }
+
+    .title-area p {
+        color: var(--text-sub);
+        margin: 0;
+        font-size: 1rem;
+    }
+
+    /* Mode Grid */
+    .mode-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+
+    .mode-card {
+        background: var(--surface);
+        border: 2px solid transparent;
+        border-radius: 20px;
+        padding: 1.25rem;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        cursor: pointer;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: var(--shadow-sm);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .mode-card:hover:not(.disabled) {
+        transform: translateY(-2px);
+        border-color: rgba(99, 102, 241, 0.3);
+    }
+
+    .mode-card.selected {
+        background: var(--primary-bg);
+        border-color: var(--primary);
+        box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
+    }
+
+    .mode-card.disabled {
+        opacity: 0.5;
+        filter: grayscale(1);
+        cursor: not-allowed;
+        background: var(--background);
+    }
+
+    .mode-icon {
+        width: 50px;
+        height: 50px;
+        border-radius: 16px;
+        background: var(--background);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        color: var(--text-sub);
+        transition: all 0.3s;
+    }
+
+    .mode-card.selected .mode-icon {
+        background: var(--primary);
+        color: white;
+        transform: scale(1.1) rotate(-5deg);
+    }
+
+    .mode-info {
+        flex: 1;
+    }
+
+    .mode-title {
+        font-weight: 700;
+        font-size: 1.1rem;
+        color: var(--text-main);
+        display: block;
+    }
+
+    .mode-desc {
+        font-size: 0.9rem;
+        color: var(--text-sub);
+        margin-top: 2px;
+        display: block;
+    }
+
+    /* Config Cards */
+    .config-card {
+        background: var(--surface);
+        border-radius: 20px;
+        padding: 1rem;
+        box-shadow: var(--shadow-sm);
+        margin-bottom: 1rem;
+        border: 1px solid var(--border);
+    }
+
+    .config-header {
+        font-size: 0.95rem;
+        font-weight: 700;
+        color: var(--text-main);
+        margin-bottom: 0.75rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .config-header i {
+        color: var(--primary);
+        opacity: 0.8;
+    }
+
+    /* Chips */
+    .options-row {
+        display: flex;
+        gap: 0.5rem;
+        overflow-x: auto;
+        padding-bottom: 0.5rem;
+    }
+
+    .option-chip {
+        padding: 0.5rem 1rem;
+        border-radius: 10px;
+        border: 1px solid var(--border);
+        background: var(--background);
+        font-size: 0.9rem;
+        font-weight: 600;
+        color: var(--text-sub);
+        cursor: pointer;
+        white-space: nowrap;
+        transition: all 0.2s;
+    }
+
+    .option-chip:hover {
+        background: #f1f5f9;
+    }
+
+    .option-chip.selected {
+        background: var(--primary);
+        color: white;
+        border-color: var(--primary);
+        box-shadow: 0 4px 10px rgba(99, 102, 241, 0.3);
+    }
+
+    /* Footer */
+    .wizard-footer {
+        padding: 1rem;
+        background: var(--surface);
+        border-top: 1px solid var(--border);
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        max-width: 600px;
+        margin: 0 auto;
+        z-index: 100;
+        display: flex;
+        gap: 0.75rem;
+    }
+
+    .btn-secondary {
+        width: 48px;
+        height: 48px;
+        border-radius: 16px;
+        background: var(--background);
+        color: var(--text-sub);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.2rem;
+        border: none;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .btn-primary {
+        flex: 1;
+        height: 48px;
+        border-radius: 16px;
+        background: var(--primary);
+        color: white;
+        font-weight: 700;
+        font-size: 1rem;
+        border: none;
+        cursor: pointer;
+        transition: all 0.2s;
+        box-shadow: 0 4px 10px rgba(99, 102, 241, 0.3);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+    }
+
+    .btn-primary:active {
+        transform: scale(0.98);
+        box-shadow: none;
+    }
+
+    .btn-primary:hover {
+        background: #4f46e5;
+        box-shadow: 0 12px 20px -4px rgba(99, 102, 241, 0.5);
+    }
+
+    .btn-primary:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
+
+    .toggle-switch {
+        position: relative;
+        display: inline-block;
+        width: 44px;
+        height: 24px;
+    }
+
+    .toggle-switch input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+    }
+
+    .toggle-slider {
+        position: absolute;
+        cursor: pointer;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: #cbd5e1;
+        transition: .4s;
+        border-radius: 24px;
+    }
+
+    .toggle-slider:before {
+        position: absolute;
+        content: "";
+        height: 18px;
+        width: 18px;
+        left: 3px;
+        bottom: 3px;
+        background-color: white;
+        transition: .4s;
+        border-radius: 50%;
+    }
+
+    input:checked+.toggle-slider {
+        background-color: var(--primary);
+    }
+
+    input:checked+.toggle-slider:before {
+        transform: translateX(20px);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="wizard-container">
+
+    {% call render_dashboard_header(title=container.title, subtitle='TRẮC NGHIỆM') %}
+    {% endcall %}
+
+    <div class="wizard-content">
+
+        <!-- STEP 1: MODE SELECTION -->
+        <div class="step-screen active" id="step-1">
+            <div class="title-area">
+                <h2>Chọn chế độ làm bài</h2>
+                <p>Bạn muốn kiểm tra theo cách nào?</p>
+            </div>
+
+            <div class="mode-grid">
+                <!-- Mixed SRS (NEW + DUE) -->
+                <div class="mode-card selected" data-value="mixed_srs">
+                    <div class="mode-icon"><i class="fas fa-brain"></i></div>
+                    <div class="mode-info">
+                        <span class="mode-title">Luyện tập thông minh</span>
+                        <span class="mode-desc">Ưu tiên từ mới và từ đến hạn</span>
+                    </div>
+                </div>
+
+                <!-- All Review -->
+                <div class="mode-card" data-value="all_review">
+                    <div class="mode-icon"><i class="fas fa-history"></i></div>
+                    <div class="mode-info">
+                        <span class="mode-title">Ôn tất cả</span>
+                        <span class="mode-desc">Làm lại toàn bộ câu hỏi đã học</span>
+                    </div>
+                </div>
+
+                <!-- Hard -->
+                <div class="mode-card" data-value="hard_only">
+                    <div class="mode-icon"><i class="fas fa-fire-alt"></i></div>
+                    <div class="mode-info">
+                        <span class="mode-title">Câu hỏi khó</span>
+                        <span class="mode-desc">Tập trung vào câu hay làm sai</span>
+                    </div>
+                </div>
+
+                <!-- Random -->
+                <div class="mode-card" data-value="random">
+                    <div class="mode-icon"><i class="fas fa-random"></i></div>
+                    <div class="mode-info">
+                        <span class="mode-title">Ngẫu nhiên</span>
+                        <span class="mode-desc">Chọn ngẫu nhiên câu hỏi</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- STEP 2: CONFIGURATION -->
+        <div class="step-screen" id="step-2">
+            <div class="title-area">
+                <h2>Cấu hình bài thi</h2>
+                <p>Tùy chỉnh số lượng và thời gian</p>
+                <div id="selected-mode-display"
+                    class="mt-3 inline-flex items-center gap-2 px-3 py-1.5 bg-indigo-50 border border-indigo-100 rounded-xl text-indigo-700 text-sm font-semibold">
+                    <i class="fas fa-info-circle"></i> <span>...</span>
+                </div>
+            </div>
+
+            <!-- Question Limit -->
+            <div class="config-card">
+                <div class="config-header">
+                    <i class="fas fa-list-ol"></i> Số lượng câu hỏi
+                    <div class="ml-auto flex items-center gap-2">
+                        <span class="text-xs font-medium text-slate-500">Tất cả</span>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="limit-toggle">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                </div>
+                <div id="limit-options" class="options-row hidden mt-2">
+                    <div class="option-chip selected" data-value="10">10 câu</div>
+                    <div class="option-chip" data-value="20">20 câu</div>
+                    <div class="option-chip" data-value="30">30 câu</div>
+                    <div class="option-chip" data-value="50">50 câu</div>
+                    <div class="option-chip" data-value="100">100 câu</div>
+                </div>
+            </div>
+
+            <!-- Timer Settings -->
+            <div class="config-card">
+                <div class="config-header"><i class="fas fa-clock"></i> Giới hạn thời gian</div>
+                <div class="options-row">
+                    <div class="option-chip selected" data-value="0">Không giới hạn</div>
+                    <div class="option-chip" data-value="10">10s/câu</div>
+                    <div class="option-chip" data-value="20">20s/câu</div>
+                    <div class="option-chip" data-value="30">30s/câu</div>
+                </div>
+            </div>
+
+            <!-- Sound Settings -->
+            <div class="config-card">
+                <div class="config-header"><i class="fas fa-volume-up"></i> Âm thanh</div>
+                <div class="options-row">
+                    <label class="option-chip selected" id="sound-option">
+                        <input type="checkbox" id="sound-check" style="display:none;" checked />
+                        <i class="fas fa-volume-up"></i> Tự động phát
+                    </label>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="wizard-footer">
+        <button class="btn-secondary" id="back-btn" style="display: none;" onclick="prevStep()">
+            <i class="fas fa-arrow-left"></i>
+        </button>
+        <button class="btn-primary" id="next-btn" onclick="nextStep()">
+            Tiếp tục <i class="fas fa-arrow-right"></i>
+        </button>
+        <button class="btn-primary" id="start-btn" style="display: none;" onclick="startSession()">
+            Bắt đầu làm bài <i class="fas fa-play"></i>
+        </button>
+    </div>
+</div>
+
+<script>
+    let currentStep = 1;
+    let config = {
+        mode: 'mixed_srs',
+        limit: 0, // 0 = all
+        timer: 0,
+        auto_audio: true
+    };
+
+    const modeLabels = {
+        'mixed_srs': 'Luyện tập thông minh',
+        'all_review': 'Ôn tất cả',
+        'hard_only': 'Câu hỏi khó',
+        'random': 'Ngẫu nhiên'
+    };
+
+    function showStep(step) {
+        document.querySelectorAll('.step-screen').forEach(el => el.classList.remove('active'));
+        document.getElementById(`step-${step}`).classList.add('active');
+        currentStep = step;
+
+        const backBtn = document.getElementById('back-btn');
+        const nextBtn = document.getElementById('next-btn');
+        const startBtn = document.getElementById('start-btn');
+
+        if (step === 1) {
+            backBtn.style.display = 'none';
+            nextBtn.style.display = 'flex';
+            startBtn.style.display = 'none';
+        } else {
+            backBtn.style.display = 'flex';
+            nextBtn.style.display = 'none';
+            startBtn.style.display = 'flex';
+            // Update summary
+            document.querySelector('#selected-mode-display span').textContent = modeLabels[config.mode];
+        }
+    }
+
+    function nextStep() {
+        if (currentStep === 1) {
+            showStep(2);
+        }
+    }
+
+    function prevStep() {
+        if (currentStep === 2) {
+            showStep(1);
+        }
+    }
+
+    // Mode Selection
+    document.querySelectorAll('.mode-card').forEach(card => {
+        card.addEventListener('click', () => {
+            if (card.classList.contains('disabled')) return;
+            document.querySelectorAll('.mode-card').forEach(c => c.classList.remove('selected'));
+            card.classList.add('selected');
+            config.mode = card.dataset.value;
+            // Auto next step for smoother UX? Maybe wait for user to click Next
+        });
+    });
+
+    // Limit Toggle
+    const limitToggle = document.getElementById('limit-toggle');
+    const limitOptions = document.getElementById('limit-options');
+    limitToggle.addEventListener('change', () => {
+        if (limitToggle.checked) {
+            limitOptions.classList.remove('hidden');
+            config.limit = parseInt(document.querySelector('#limit-options .option-chip.selected')?.dataset.value || 10);
+        } else {
+            limitOptions.classList.add('hidden');
+            config.limit = 0;
+        }
+    });
+
+    // Chip Selection (Generic)
+    document.querySelectorAll('.options-row').forEach(row => {
+        row.querySelectorAll('.option-chip').forEach(chip => {
+            chip.addEventListener('click', (e) => {
+                if (chip.querySelector('input')) return; // Handle checkbox separately
+
+                row.querySelectorAll('.option-chip').forEach(c => c.classList.remove('selected'));
+                chip.classList.add('selected');
+
+                if (row.id === 'limit-options') {
+                    config.limit = parseInt(chip.dataset.value);
+                } else if (chip.dataset.value !== undefined) {
+                    // Timer settings
+                    config.timer = parseInt(chip.dataset.value);
+                }
+            });
+        });
+    });
+
+    // Sound Checkbox
+    document.getElementById('sound-option').addEventListener('change', (e) => {
+        const checkbox = e.target.querySelector('input') || e.target;
+        if (checkbox.checked) {
+            document.getElementById('sound-option').classList.add('selected');
+            config.auto_audio = true;
+        } else {
+            document.getElementById('sound-option').classList.remove('selected');
+            config.auto_audio = false;
+        }
+    });
+
+    function startSession() {
+        const startBtn = document.getElementById('start-btn');
+        startBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang tạo...';
+        startBtn.disabled = true;
+
+        // Build URL
+        // /learn/vocabulary/mcq/session/START?set_id=...&mode=...
+        const baseUrl = "{{ url_for('vocabulary.mcq.session', set_id=container.container_id) }}";
+        const query = new URLSearchParams({
+            mode: config.mode,
+            limit: config.limit,
+            timer: config.timer,
+            auto_audio: config.auto_audio
+        });
+
+        window.location.href = `${baseUrl}?${query.toString()}`;
+    }
+</script>
+{% endblock %}

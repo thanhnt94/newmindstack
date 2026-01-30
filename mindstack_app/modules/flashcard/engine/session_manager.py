@@ -39,17 +39,12 @@ import random
 import datetime
 import os
 import asyncio
-from mindstack_app.modules.flashcard.services.audio_service import AudioService
-from mindstack_app.modules.flashcard.services.session_service import LearningSessionService
 
 # [NEW] Imports for Preview Simulation
 from mindstack_app.modules.learning.logics.scoring_engine import ScoringEngine
 
 from mindstack_app.utils.media_paths import build_relative_media_path
 from mindstack_app.utils.content_renderer import render_text_field
-
-audio_service = AudioService()
-
 
 def _normalize_capability_flags(raw_flags):
     """Chuẩn hóa dữ liệu capability trong ai_settings thành tập hợp chuỗi."""
@@ -127,6 +122,7 @@ class FlashcardSessionManager:
 
     @classmethod
     def start_new_flashcard_session(cls, set_id, mode):
+        from mindstack_app.modules.flashcard.services.session_service import LearningSessionService
         user_id = current_user.user_id
         
         # [UPDATED] Smart Session Cleanup
@@ -580,6 +576,7 @@ class FlashcardSessionManager:
         }
 
     def process_flashcard_answer(self, item_id, user_answer_quality, duration_ms=0, user_answer_text=None):
+        from mindstack_app.modules.flashcard.services.session_service import LearningSessionService
         try:
             current_user_obj = User.query.get(self.user_id)
             current_user_total_score = current_user_obj.total_score if current_user_obj else 0
@@ -646,6 +643,7 @@ class FlashcardSessionManager:
 
     @classmethod
     def end_flashcard_session(cls):
+        from mindstack_app.modules.flashcard.services.session_service import LearningSessionService
         if cls.SESSION_KEY in session:
             session_data = session.get(cls.SESSION_KEY)
             db_session_id = session_data.get('db_session_id') if session_data else None

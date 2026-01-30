@@ -1,7 +1,7 @@
 from flask import render_template, jsonify, request
 from mindstack_app.utils.template_helpers import render_dynamic_template
 from flask_login import login_required, current_user
-from .. import stats_bp
+from .. import blueprint as stats_bp
 from mindstack_app.modules.gamification.services.scoring_service import ScoreService
 
 @stats_bp.route('/history')

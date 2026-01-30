@@ -1,11 +1,15 @@
-# Tệp: web/mindstack_app/modules/auth/__init__.py
-# Version: 1.0
-# Mục đích: Định nghĩa Blueprint và import các routes liên quan.
-
+# File: mindstack_app/modules/auth/__init__.py
 from flask import Blueprint
 
-# 1. Tạo đối tượng Blueprint
-auth_bp = Blueprint('auth', __name__)
+blueprint = Blueprint('auth', __name__)
 
-# 2. Import các routes ở cuối để chúng được đăng ký với Blueprint
-from . import routes, forms
+module_metadata = {
+    'name': 'Xác thực',
+    'icon': 'lock',
+    'category': 'System',
+    'url_prefix': '/auth',
+    'enabled': True
+}
+
+def setup_module(app):
+    from . import routes

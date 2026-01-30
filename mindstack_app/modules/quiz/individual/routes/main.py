@@ -15,7 +15,7 @@ from mindstack_app.models import LearningContainer, LearningItem, User, UserCont
 import json
 
 
-@quiz_learning_bp.route('/quiz/dashboard')
+@quiz_learning_bp.route('/dashboard')
 @login_required
 def dashboard():
     """Hiển thị trang chính để chọn bộ câu hỏi và chế độ học Quiz."""
@@ -49,7 +49,7 @@ def dashboard():
     return render_dynamic_template('pages/learning/quiz/dashboard/index.html', **template_vars)
 
 
-@quiz_learning_bp.route('/quiz/set/<int:set_id>')
+@quiz_learning_bp.route('/set/<int:set_id>')
 @login_required
 def set_detail(set_id):
     """Render the wizard-style Quiz setup page."""
@@ -185,19 +185,19 @@ def start_quiz_session_all(mode):
 
     if not session_size:
         flash('Lỗi: Thiếu kích thước phiên học.', 'danger')
-        return redirect(url_for('learning.quiz_learning.dashboard'))
+        return redirect(url_for('quiz.quiz_learning.dashboard'))
 
     # [UPDATED] Unpack tuple return
     success, message, session_id = QuizSessionManager.start_new_quiz_session(set_ids, mode, session_size, turn_size)
     
     if success:
         if session_id:
-            return redirect(url_for('learning.quiz_learning.quiz_session', session_id=session_id))
+            return redirect(url_for('quiz.quiz_learning.quiz_session', session_id=session_id))
         else:
-            return redirect(url_for('learning.quiz_learning.quiz_session'))
+            return redirect(url_for('quiz.quiz_learning.quiz_session'))
     else:
         flash(message or 'Không có bộ quiz nào khả dụng để bắt đầu phiên học.', 'warning')
-        return redirect(url_for('learning.quiz_learning.dashboard'))
+        return redirect(url_for('quiz.quiz_learning.dashboard'))
 
 
 @quiz_learning_bp.route('/start_quiz_session/multi/<string:mode>', methods=['GET'])
@@ -210,25 +210,25 @@ def start_quiz_session_multi(mode):
 
     if not set_ids_str or not session_size:
         flash('Lỗi: Thiếu thông tin bộ câu hỏi hoặc kích thước phiên.', 'danger')
-        return redirect(url_for('learning.quiz_learning.dashboard'))
+        return redirect(url_for('quiz.quiz_learning.dashboard'))
 
     try:
         set_ids = [int(s) for s in set_ids_str.split(',') if s]
     except ValueError:
         flash('Lỗi: Định dạng ID bộ quiz không hợp lệ.', 'danger')
-        return redirect(url_for('learning.quiz_learning.dashboard'))
+        return redirect(url_for('quiz.quiz_learning.dashboard'))
 
     # [UPDATED] Unpack tuple return
     success, message, session_id = QuizSessionManager.start_new_quiz_session(set_ids, mode, session_size, turn_size)
     
     if success:
         if session_id:
-            return redirect(url_for('learning.quiz_learning.quiz_session', session_id=session_id))
+            return redirect(url_for('quiz.quiz_learning.quiz_session', session_id=session_id))
         else:
-            return redirect(url_for('learning.quiz_learning.quiz_session'))
+            return redirect(url_for('quiz.quiz_learning.quiz_session'))
     else:
         flash(message or 'Không có bộ quiz nào khả dụng để bắt đầu phiên học.', 'warning')
-        return redirect(url_for('learning.quiz_learning.dashboard'))
+        return redirect(url_for('quiz.quiz_learning.dashboard'))
 
 
 @quiz_learning_bp.route('/start_quiz_session/<int:set_id>/<string:mode>', methods=['GET'])
@@ -249,7 +249,7 @@ def start_quiz_session_by_id(set_id, mode):
 
     if not session_size:
         flash('Lỗi: Thiếu kích thước phiên học.', 'danger')
-        return redirect(url_for('learning.quiz_learning.dashboard'))
+        return redirect(url_for('quiz.quiz_learning.dashboard'))
 
     # [NEW] Save session size preference for next time
     try:
@@ -266,28 +266,28 @@ def start_quiz_session_by_id(set_id, mode):
     
     if success:
         if session_id:
-            return redirect(url_for('learning.quiz_learning.quiz_session', session_id=session_id))
+            return redirect(url_for('quiz.quiz_learning.quiz_session', session_id=session_id))
         else:
-             return redirect(url_for('learning.quiz_learning.quiz_session'))
+             return redirect(url_for('quiz.quiz_learning.quiz_session'))
     else:
         flash(message or 'Không có câu hỏi nào để bắt đầu phiên học với các lựa chọn này.', 'warning')
-        return redirect(url_for('learning.quiz_learning.dashboard'))
+        return redirect(url_for('quiz.quiz_learning.dashboard'))
 
 
-@quiz_learning_bp.route('/quiz/session')
+@quiz_learning_bp.route('/session')
 @login_required
 def quiz_active_session_redirect():
     """Legacy route: Redirects to the active session if one exists."""
     from mindstack_app.modules.flashcard.services.session_service import LearningSessionService
     active_db_session = LearningSessionService.get_active_session(current_user.user_id, learning_mode='quiz')
     if active_db_session:
-        return redirect(url_for('learning.quiz_learning.quiz_session', session_id=active_db_session.session_id))
+        return redirect(url_for('quiz.quiz_learning.quiz_session', session_id=active_db_session.session_id))
     else:
         flash('Không có phiên học Quiz nào đang hoạt động. Vui lòng chọn bộ Quiz để bắt đầu.', 'info')
-        return redirect(url_for('learning.quiz_learning.dashboard'))
+        return redirect(url_for('quiz.quiz_learning.dashboard'))
 
 
-@quiz_learning_bp.route('/quiz/session/<int:session_id>')
+@quiz_learning_bp.route('/session/<int:session_id>')
 @login_required
 def quiz_session(session_id):
     """Hiển thị giao diện làm bài Quiz."""
@@ -310,13 +310,13 @@ def quiz_session(session_id):
         # Security check
         if not db_session or db_session.user_id != current_user.user_id:
              flash('Phiên học không tồn tại hoặc bạn không có quyền truy cập.', 'danger')
-             return redirect(url_for('learning.quiz_learning.dashboard'))
+             return redirect(url_for('quiz.quiz_learning.dashboard'))
              
         # Check if completed? (Optional, maybe allow review?)
         if db_session.end_time: # is_completed
              flash('Phiên học này đã kết thúc.', 'info')
              # Could redirect to a summary page if implemented
-             return redirect(url_for('learning.quiz_learning.dashboard'))
+             return redirect(url_for('quiz.quiz_learning.dashboard'))
 
         # Reconstruct session manager from DB data
         session_manager = QuizSessionManager(
@@ -540,7 +540,7 @@ def api_get_quiz_set_detail(set_id):
 # Item Stats Modal (Similar to Vocabulary)
 # ============================================
 
-@quiz_learning_bp.route('/quiz/item/<int:item_id>/stats')
+@quiz_learning_bp.route('/item/<int:item_id>/stats')
 @login_required
 def get_quiz_item_stats(item_id):
     """

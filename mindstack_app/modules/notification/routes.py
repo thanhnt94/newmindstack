@@ -1,11 +1,11 @@
 from flask import render_template, jsonify, request, current_app
 from flask_login import login_required, current_user
-from . import notification_bp
+from . import blueprint
 from .services import NotificationService
 from mindstack_app.models import PushSubscription
-from ...db_instance import db
+from mindstack_app.core.extensions import db
 
-@notification_bp.route('/api/list')
+@blueprint.route('/api/list')
 @login_required
 def api_get_notifications():
     limit = request.args.get('limit', 20, type=int)
@@ -19,25 +19,25 @@ def api_get_notifications():
         'unread_count': unread_count
     })
 
-@notification_bp.route('/api/mark-read/<int:notif_id>', methods=['POST'])
+@blueprint.route('/api/mark-read/<int:notif_id>', methods=['POST'])
 @login_required
 def api_mark_read(notif_id):
     success = NotificationService.mark_as_read(notif_id, current_user.user_id)
     return jsonify({'success': success})
 
-@notification_bp.route('/api/mark-all-read', methods=['POST'])
+@blueprint.route('/api/mark-all-read', methods=['POST'])
 @login_required
 def api_mark_all_read():
     NotificationService.mark_all_as_read(current_user.user_id)
     return jsonify({'success': True})
 
-@notification_bp.route('/api/delete/<int:notif_id>', methods=['DELETE'])
+@blueprint.route('/api/delete/<int:notif_id>', methods=['DELETE'])
 @login_required
 def api_delete_notification(notif_id):
     success = NotificationService.delete(notif_id, current_user.user_id)
     return jsonify({'success': success})
 
-@notification_bp.route('/api/subscribe', methods=['POST'])
+@blueprint.route('/api/subscribe', methods=['POST'])
 @login_required
 def api_subscribe():
     data = request.json
@@ -68,7 +68,7 @@ def api_subscribe():
     db.session.commit()
     return jsonify({'success': True})
 
-@notification_bp.route('/api/vapid-public-key')
+@blueprint.route('/api/vapid-public-key')
 def api_vapid_key():
     from ...services.config_service import get_runtime_config
     # Usually VAPID keys are in config, assuming key name 'VAPID_PUBLIC_KEY'
@@ -76,7 +76,7 @@ def api_vapid_key():
     pub_key = get_runtime_config('VAPID_PUBLIC_KEY', current_app.config.get('VAPID_PUBLIC_KEY'))
     return jsonify({'publicKey': pub_key})
 
-@notification_bp.route('/sw.js')
+@blueprint.route('/sw.js')
 def service_worker():
     from flask import send_from_directory, current_app
     import os

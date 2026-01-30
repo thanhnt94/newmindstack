@@ -1,11 +1,15 @@
-# mindstack_app/modules/learning/course/__init__.py
-# Phiên bản: 1.0
-# Mục đích: Định nghĩa Blueprint cho module học Course.
-
+# File: mindstack_app/modules/course/__init__.py
 from flask import Blueprint
 
-# Tạo đối tượng Blueprint cho module con học Course
-course_bp = Blueprint('course', __name__)
+blueprint = Blueprint('course', __name__)
 
-# Import các routes để chúng được đăng ký với Blueprint
-from . import routes
+module_metadata = {
+    'name': 'Khóa học',
+    'icon': 'graduation-cap',
+    'category': 'Learning',
+    'url_prefix': '/learn/course',
+    'enabled': True
+}
+
+def setup_module(app):
+    from . import routes

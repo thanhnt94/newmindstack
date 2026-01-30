@@ -1,6 +1,6 @@
 """Database models package for Mindstack."""
 
-from ..db_instance import db
+from mindstack_app.core.extensions import db
 
 from .learning import LearningContainer, LearningGroup, LearningItem
 from .course import Course, Lesson

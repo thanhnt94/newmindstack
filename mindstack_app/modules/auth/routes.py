@@ -2,12 +2,12 @@
 # Version: 1.0
 from flask import render_template, flash, redirect, url_for, request
 from mindstack_app.utils.template_helpers import render_dynamic_template
-from flask_login import login_user, logout_user, current_user
-from . import auth_bp
-from .forms import LoginForm, RegistrationForm
-from ...models import User, UserSession
+from flask_login import login_user, logout_user, login_required, current_user
+from urllib.parse import urlparse
+from . import blueprint as auth_bp
+from mindstack_app.models import User, UserSession
 from datetime import datetime, timezone
-from ...db_instance import db
+from mindstack_app.core.extensions import db
 
 @auth_bp.before_app_request
 def update_last_seen():
@@ -54,7 +54,7 @@ def login():
         flash('Đăng nhập thành công!', 'success')
         
         next_page = request.args.get('next')
-        if not next_page or url_for(next_page.lstrip('/')) == url_for('landing.index'):
+        if not next_page or urlparse(next_page).netloc != '':
             next_page = url_for('dashboard.dashboard')
         return redirect(next_page)
         

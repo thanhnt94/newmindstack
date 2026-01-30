@@ -1,22 +1,26 @@
-# File: mindstack_app/modules/learning/vocabulary/__init__.py
-# Vocabulary Learning Hub Module
-# Refactored to use routes/ package structure
+"""Vocabulary Learning Hub: Consolidated multiple learning modes."""
 
-# Import blueprint from routes package
-from .routes import vocabulary_bp
+from .routes import blueprint
 
-# Import and register submodules
-from .mcq import mcq_bp
-from .typing import typing_bp
-from .matching import matching_bp
-from .speed import speed_bp
-from .listening import listening_bp
+# Module Metadata
+module_metadata = {
+    'name': 'Vocabulary',
+    'icon': 'book-open',
+    'category': 'Learning',
+    'url_prefix': '/learn/vocabulary',
+    'enabled': True
+}
 
-# Register submodule blueprints
-vocabulary_bp.register_blueprint(mcq_bp, url_prefix='/mcq')
-vocabulary_bp.register_blueprint(typing_bp, url_prefix='/typing')
-vocabulary_bp.register_blueprint(matching_bp, url_prefix='/matching')
-vocabulary_bp.register_blueprint(speed_bp, url_prefix='/speed')
-vocabulary_bp.register_blueprint(listening_bp, url_prefix='/listening')
+def setup_module(app):
+    """Register sub-blueprints for the vocabulary module."""
+    from .mcq import mcq_bp
+    from .typing import typing_bp
+    from .matching import matching_bp
+    from .speed import speed_bp
+    from .listening import listening_bp
 
-__all__ = ['vocabulary_bp']
+    blueprint.register_blueprint(mcq_bp)
+    blueprint.register_blueprint(typing_bp)
+    blueprint.register_blueprint(matching_bp)
+    blueprint.register_blueprint(speed_bp, url_prefix='/speed')
+    blueprint.register_blueprint(listening_bp, url_prefix='/listening')

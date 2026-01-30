@@ -1,0 +1,40 @@
+{% from _v ~ '/includes/components/dashboard_header.html' import mobile_footer %}
+
+<div class="w-full space-y-3 pb-24">
+    {% if modes %}
+    {% for mode in modes %}
+    {% if mode.id in ['new_only', 'due_only', 'hard_only'] %}
+    {% set is_disabled_mode = (mode.count == 0) %}
+    <div class="quiz-mode-item bg-white p-4 rounded-2xl border border-slate-200 transition-all duration-200 flex justify-between items-center shadow-sm hover:border-blue-300 hover:shadow-md 
+                            {% if is_disabled_mode %}opacity-40 grayscale pointer-events-none{% else %}cursor-pointer{% endif %}"
+        data-mode-id="{{ mode.id }}" data-count="{{ mode.count }}">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-500">
+                {% if mode.id == 'new_only' %}<i class="fas fa-seedling"></i>
+                {% elif mode.id == 'due_only' %}<i class="fas fa-history"></i>
+                {% elif mode.id == 'hard_only' %}<i class="fas fa-fire-alt"></i>
+                {% else %}<i class="fas fa-random"></i>{% endif %}
+            </div>
+            <h3 class="font-bold text-slate-800">{{ mode.name }}</h3>
+        </div>
+        <div class="flex items-center">
+            <span class="text-lg font-bold text-blue-600 bg-blue-50 px-3 py-1 rounded-lg">{{ mode.count }}</span>
+        </div>
+    </div>
+    {% endif %}
+    {% endfor %}
+    {% else %}
+    <div class="text-center py-12 px-6 text-slate-400">
+        <i class="fas fa-info-circle text-5xl mb-4 opacity-20"></i>
+        <p class="font-medium">Không có chế độ học nào khả dụng.</p>
+    </div>
+    {% endif %}
+
+    {% call mobile_footer() %}
+    <button type="button"
+        class="vocab-start-btn js-quiz-continue w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-lg shadow-lg shadow-blue-500/30 flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+        disabled>
+        <span>Bắt đầu kiểm tra</span> <i class="fas fa-play"></i>
+    </button>
+    {% endcall %}
+</div>

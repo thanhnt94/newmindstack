@@ -1,13 +1,19 @@
+# File: mindstack_app/modules/notification/__init__.py
 from flask import Blueprint
 
-notification_bp = Blueprint('notification', __name__,
-                           url_prefix='/notifications')
+blueprint = Blueprint('notification', __name__)
 
-from . import routes
+module_metadata = {
+    'name': 'Thông báo',
+    'icon': 'bell',
+    'category': 'System',
+    'url_prefix': '/notifications',
+    'enabled': True
+}
 
-# Register event listeners for signal-based notifications
-from .services.notification_manager import NotificationManager
-
-# Initialize listeners
-NotificationManager.init_listeners()
-
+def setup_module(app):
+    from . import routes
+    
+    # Register event listeners for signal-based notifications
+    from .services.notification_manager import NotificationManager
+    NotificationManager.init_listeners()

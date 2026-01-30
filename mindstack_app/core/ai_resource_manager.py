@@ -8,7 +8,7 @@ import logging
 from typing import Optional, Tuple, Dict, Any
 from datetime import datetime
 
-from ..db_instance import db
+from mindstack_app.core.extensions import db
 from ..models.ai import ApiKey, AiTokenLog, AiCache
 
 logger = logging.getLogger(__name__)

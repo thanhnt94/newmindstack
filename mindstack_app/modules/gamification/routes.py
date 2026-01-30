@@ -4,13 +4,13 @@ Routes quản trị cho hệ thống điểm số và huy hiệu.
 """
 from flask import render_template, request, redirect, url_for, flash, current_app
 from flask_login import login_required, current_user
-from . import gamification_bp
+from . import blueprint
 from mindstack_app.models import Badge
 from mindstack_app.models import db, AppSettings
-from mindstack_app.extensions import csrf_protect
+from mindstack_app.core.extensions import csrf_protect
 
 
-@gamification_bp.route('/points')
+@blueprint.route('/points')
 @login_required
 def gamification_points():
     """Hiển thị trang cấu hình điểm số."""
@@ -26,7 +26,7 @@ def gamification_points():
                           active_page='badges')
 
 
-@gamification_bp.route('/points/update', methods=['POST'])
+@blueprint.route('/points/update', methods=['POST'])
 @login_required
 @csrf_protect.exempt
 def update_gamification_points():
@@ -74,7 +74,7 @@ def update_gamification_points():
     return redirect(url_for('gamification.gamification_points'))
 
 
-@gamification_bp.route('/badges')
+@blueprint.route('/badges')
 @login_required
 def list_badges():
     """Hiển thị danh sách huy hiệu."""
@@ -86,7 +86,7 @@ def list_badges():
     return render_template('admin/admin_gamification/badges_list.html', badges=badges, active_tab='badges', active_page='badges')
 
 
-@gamification_bp.route('/badges/new', methods=['GET', 'POST'])
+@blueprint.route('/badges/new', methods=['GET', 'POST'])
 @login_required
 def create_badge():
     """Tạo huy hiệu mới."""
@@ -120,7 +120,7 @@ def create_badge():
     return render_template('admin/admin_gamification/badge_form.html', badge=None)
 
 
-@gamification_bp.route('/badges/<int:badge_id>/edit', methods=['GET', 'POST'])
+@blueprint.route('/badges/<int:badge_id>/edit', methods=['GET', 'POST'])
 @login_required
 def edit_badge(badge_id):
     """Sửa huy hiệu."""
@@ -149,7 +149,7 @@ def edit_badge(badge_id):
     return render_template('admin/admin_gamification/badge_form.html', badge=badge)
 
 
-@gamification_bp.route('/badges/<int:badge_id>/delete', methods=['POST'])
+@blueprint.route('/badges/<int:badge_id>/delete', methods=['POST'])
 @login_required
 def delete_badge(badge_id):
     """Xóa huy hiệu."""

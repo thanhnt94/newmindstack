@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from sqlalchemy.sql import func
-from ..db_instance import db
+from mindstack_app.core.extensions import db
 
 class Goal(db.Model):
     """

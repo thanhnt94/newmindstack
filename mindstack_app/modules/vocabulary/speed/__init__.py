@@ -5,8 +5,7 @@ from flask import Blueprint
 
 speed_bp = Blueprint(
     'vocab_speed',
-    __name__,
-    url_prefix='/speed'
+    __name__
 )
 
 from . import routes

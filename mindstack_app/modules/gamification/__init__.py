@@ -1,20 +1,18 @@
-"""
-Gamification Module
-Quản lý hệ thống điểm số, huy hiệu và thành tích.
-"""
+# File: mindstack_app/modules/gamification/__init__.py
 from flask import Blueprint
 
-gamification_bp = Blueprint(
-    'gamification', 
-    __name__, 
-    url_prefix='/admin/gamification'
-)
+blueprint = Blueprint('gamification', __name__)
 
-from . import routes  # noqa: E402, F401
+module_metadata = {
+    'name': 'Game hóa (Hệ thống điểm)',
+    'icon': 'medal',
+    'category': 'System',
+    'url_prefix': '/admin/gamification',
+    'admin_route': 'gamification.list_badges',
+    'enabled': True
+}
 
-# Register event listeners for signal-based integration
-from .services.reward_manager import RewardManager
-
-# Initialize listeners
-RewardManager.init_listeners()
-
+def setup_module(app):
+    from . import routes
+    from .services.reward_manager import RewardManager
+    RewardManager.init_listeners()

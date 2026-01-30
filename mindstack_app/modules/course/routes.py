@@ -22,20 +22,9 @@ from mindstack_app.models import (
 from mindstack_app.models.learning_progress import LearningProgress
 from mindstack_app.modules.gamification.services.scoring_service import ScoreService
 
-course_bp = Blueprint('course', __name__)
+from . import blueprint
 
-
-def _get_score_value(key: str, default: int) -> int:
-    """Fetch an integer score value from runtime config with fallback."""
-    from mindstack_app.services.config_service import get_runtime_config
-    raw_value = get_runtime_config(key, default)
-    try:
-        return int(raw_value)
-    except (TypeError, ValueError):
-        return default
-
-
-@course_bp.route('/course_learning_dashboard')
+@blueprint.route('/course_learning_dashboard')
 @login_required
 def course_learning_dashboard():
     """
@@ -44,7 +33,7 @@ def course_learning_dashboard():
     current_filter = request.args.get('filter', 'doing', type=str)
     return render_dynamic_template('pages/learning/course/course_learning_dashboard.html', current_filter=current_filter)
 
-@course_bp.route('/get_course_sets_partial')
+@blueprint.route('/get_course_sets_partial')
 @login_required
 def get_course_sets_partial():
     """
@@ -70,7 +59,7 @@ def get_course_sets_partial():
                            search_field=search_field,
                            current_filter=current_filter)
 
-@course_bp.route('/get_lesson_list_partial/<int:course_id>')
+@blueprint.route('/get_lesson_list_partial/<int:course_id>')
 @login_required
 def get_lesson_list_partial(course_id):
     """
@@ -83,7 +72,7 @@ def get_lesson_list_partial(course_id):
     
     return render_dynamic_template('pages/learning/course/_lesson_selection.html', lessons=lessons, course=course)
 
-@course_bp.route('/course_session/<int:lesson_id>')
+@blueprint.route('/course_session/<int:lesson_id>')
 @login_required
 def course_session(lesson_id):
     """
@@ -131,7 +120,7 @@ def course_session(lesson_id):
     )
 
 
-@course_bp.route('/update_lesson_progress/<int:lesson_id>', methods=['POST'])
+@blueprint.route('/update_lesson_progress/<int:lesson_id>', methods=['POST'])
 @login_required
 def update_lesson_progress(lesson_id):
     """
@@ -237,7 +226,7 @@ def update_lesson_progress(lesson_id):
 
     return jsonify({'success': True, 'message': 'Đã cập nhật tiến độ.'})
 
-@course_bp.route('/toggle_archive_course/<int:course_id>', methods=['POST'])
+@blueprint.route('/toggle_archive_course/<int:course_id>', methods=['POST'])
 @login_required
 def toggle_archive_course(course_id):
     """

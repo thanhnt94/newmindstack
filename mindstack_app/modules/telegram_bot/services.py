@@ -1,5 +1,5 @@
 import requests
-from ...models import AppSettings, User, db
+from mindstack_app.models import AppSettings, User, db
 
 def get_bot_token():
     return AppSettings.get('telegram_bot_token')

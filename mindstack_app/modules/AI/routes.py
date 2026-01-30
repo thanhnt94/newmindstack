@@ -7,14 +7,14 @@
 from flask import request, jsonify, current_app
 from flask_login import login_required
 import mistune
-from mindstack_app.modules.AI import ai_bp
+from mindstack_app.modules.AI import blueprint
 from mindstack_app.modules.AI.services.ai_manager import get_ai_service
 from mindstack_app.modules.AI.logics.prompts import get_formatted_prompt
 from mindstack_app.models import db, LearningItem
 from mindstack_app.utils.html_sanitizer import sanitize_rich_text
 from sqlalchemy.orm.attributes import flag_modified
 
-@ai_bp.route('/ai/get-ai-response', methods=['POST'])
+@blueprint.route('/ai/get-ai-response', methods=['POST'])
 @login_required
 def get_ai_response():
     """

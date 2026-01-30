@@ -1,5 +1,14 @@
+# File: mindstack_app/modules/landing/__init__.py
 from flask import Blueprint
 
-landing_bp = Blueprint('landing', __name__)
+blueprint = Blueprint('landing', __name__)
 
-from . import routes
+module_metadata = {
+    'name': 'Trang chủ',
+    'icon': 'home',
+    'category': 'System',
+    'enabled': True
+}
+
+def setup_module(app):
+    from . import routes

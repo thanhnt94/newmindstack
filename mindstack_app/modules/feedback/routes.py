@@ -3,13 +3,13 @@ from mindstack_app.utils.template_helpers import render_dynamic_template
 from flask_login import login_required, current_user
 from sqlalchemy import or_
 
-from . import feedback_bp
+from . import blueprint
 # We now use the new Feedback models from kernel
 from mindstack_app.models import db, Feedback, LearningItem, LearningContainer, User
 from datetime import datetime
 
 
-@feedback_bp.route('/')
+@blueprint.route('/')
 @login_required
 def manage_feedback():
     """
@@ -36,7 +36,7 @@ def manage_feedback():
                             users=User.query.order_by(User.username).all())
 
 
-@feedback_bp.route('/submit', methods=['POST'])
+@blueprint.route('/submit', methods=['POST'])
 @login_required
 def submit_feedback():
     """
@@ -71,7 +71,7 @@ def submit_feedback():
 
 
 
-@feedback_bp.route('/submit-general', methods=['POST'])
+@blueprint.route('/submit-general', methods=['POST'])
 @login_required
 def submit_general_feedback():
     """Endpoint để gửi phản hồi chung."""
@@ -80,7 +80,7 @@ def submit_general_feedback():
     return submit_feedback() # Use the robust one above
 
 
-@feedback_bp.route('/<int:feedback_id>/resolve', methods=['POST'])
+@blueprint.route('/<int:feedback_id>/resolve', methods=['POST'])
 @login_required
 def resolve_feedback(feedback_id):
     """
@@ -104,7 +104,7 @@ def resolve_feedback(feedback_id):
     return redirect(url_for('feedback.manage_feedback'))
 
 
-@feedback_bp.route('/<int:feedback_id>/ignore', methods=['POST'])
+@blueprint.route('/<int:feedback_id>/ignore', methods=['POST'])
 @login_required
 def ignore_feedback(feedback_id):
     """

@@ -1,0 +1,196 @@
+{% extends "admin/admin_layout.html" %}
+
+{% block content %}
+<div class="px-4 sm:px-6 lg:px-8 py-8 w-full max-w-9xl mx-auto">
+
+    <!-- Page Header -->
+    <div class="sm:flex sm:justify-between sm:items-center mb-8">
+        <div class="mb-4 sm:mb-0">
+            <h1 class="text-2xl md:text-3xl text-slate-800 font-bold">Cấu hình Gamification</h1>
+        </div>
+    </div>
+
+    <!-- Tabs -->
+    {% include 'admin/admin_gamification/_tabs.html' %}
+
+    <!-- Content -->
+    <div class="bg-white border border-slate-200 rounded-sm shadow-lg">
+        <div class="p-6">
+            <div class="mb-6">
+                <h2 class="text-lg text-slate-800 font-bold mr-2">Cấu hình điểm số (Points)</h2>
+                <p class="text-sm text-slate-500">Thiết lập số điểm thưởng cho các hoạt động của người dùng.</p>
+            </div>
+
+            <form action="{{ url_for('gamification.update_gamification_points') }}" method="POST">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+
+
+
+                <!-- Quiz Section -->
+                <div class="mb-6">
+                    <h3
+                        class="text-sm font-bold text-slate-800 uppercase tracking-wide border-b border-slate-200 pb-2 mb-4">
+                        <i class="fa-solid fa-circle-question mr-2"></i> Quiz
+                    </h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-sm font-medium mb-1">Thưởng lần đầu làm câu hỏi</label>
+                            <input type="number" name="QUIZ_FIRST_TIME_BONUS"
+                                value="{{ config.QUIZ_FIRST_TIME_BONUS or defaults.QUIZ_FIRST_TIME_BONUS }}"
+                                class="form-input w-full" />
+                            <div class="text-xs text-slate-400 mt-1">Mặc định: {{ defaults.QUIZ_FIRST_TIME_BONUS }}
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium mb-1">Điểm trả lời đúng</label>
+                            <input type="number" name="QUIZ_CORRECT_BONUS"
+                                value="{{ config.QUIZ_CORRECT_BONUS or defaults.QUIZ_CORRECT_BONUS }}"
+                                class="form-input w-full" />
+                            <div class="text-xs text-slate-400 mt-1">Mặc định: {{ defaults.QUIZ_CORRECT_BONUS }}</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Course Section -->
+                <div class="mb-6">
+                    <h3
+                        class="text-sm font-bold text-slate-800 uppercase tracking-wide border-b border-slate-200 pb-2 mb-4">
+                        <i class="fa-solid fa-graduation-cap mr-2"></i> Khóa học
+                    </h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-sm font-medium mb-1">Hoàn thành bài học (Lesson)</label>
+                            <input type="number" name="COURSE_LESSON_COMPLETION_SCORE"
+                                value="{{ config.COURSE_LESSON_COMPLETION_SCORE or defaults.COURSE_LESSON_COMPLETION_SCORE }}"
+                                class="form-input w-full" />
+                            <div class="text-xs text-slate-400 mt-1">Mặc định: {{
+                                defaults.COURSE_LESSON_COMPLETION_SCORE }}</div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium mb-1">Hoàn thành khóa học (Course)</label>
+                            <input type="number" name="COURSE_COMPLETION_SCORE"
+                                value="{{ config.COURSE_COMPLETION_SCORE or defaults.COURSE_COMPLETION_SCORE }}"
+                                class="form-input w-full" />
+                            <div class="text-xs text-slate-400 mt-1">Mặc định: {{ defaults.COURSE_COMPLETION_SCORE }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Vocabulary Section -->
+                <div class="mb-6">
+                    <h3
+                        class="text-sm font-bold text-slate-800 uppercase tracking-wide border-b border-slate-200 pb-2 mb-4">
+                        <i class="fa-solid fa-book-open mr-2"></i> Học từ vựng (Vocabulary)
+                    </h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <!-- Flashcard FSRS Rating Scores -->
+                        <div>
+                            <label class="block text-sm font-medium mb-1">Rating 1 (Again/Quên)</label>
+                            <input type="number" name="SCORE_FSRS_AGAIN"
+                                value="{{ config.SCORE_FSRS_AGAIN or defaults.SCORE_FSRS_AGAIN }}"
+                                class="form-input w-full" />
+                            <div class="text-xs text-slate-500 mt-1">Mặc định: {{ defaults.SCORE_FSRS_AGAIN }}. Điểm khi
+                                người dùng chọn "Quên".</div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium mb-1">Rating 2 (Hard/Khó)</label>
+                            <input type="number" name="SCORE_FSRS_HARD"
+                                value="{{ config.SCORE_FSRS_HARD or defaults.SCORE_FSRS_HARD }}"
+                                class="form-input w-full" />
+                            <div class="text-xs text-slate-500 mt-1">Mặc định: {{ defaults.SCORE_FSRS_HARD }}. Khi trả
+                                lời được nhưng thấy "Khó".</div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium mb-1">Rating 3 (Good/Được)</label>
+                            <input type="number" name="SCORE_FSRS_GOOD"
+                                value="{{ config.SCORE_FSRS_GOOD or defaults.SCORE_FSRS_GOOD }}"
+                                class="form-input w-full" />
+                            <div class="text-xs text-slate-500 mt-1">Mặc định: {{ defaults.SCORE_FSRS_GOOD }}. Khi trả
+                                lời trôi chảy "Bình thường".</div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium mb-1">Rating 4 (Easy/Dễ)</label>
+                            <input type="number" name="SCORE_FSRS_EASY"
+                                value="{{ config.SCORE_FSRS_EASY or defaults.SCORE_FSRS_EASY }}"
+                                class="form-input w-full" />
+                            <div class="text-xs text-slate-500 mt-1">Mặc định: {{ defaults.SCORE_FSRS_EASY }}. Khi trả
+                                lời cực kỳ "Dễ".</div>
+                        </div>
+
+                        <!-- Typing Fields -->
+                        <div>
+                            <label class="block text-sm font-medium mb-1">Gõ từ (Typing)</label>
+                            <input type="number" name="VOCAB_TYPING_CORRECT_BONUS"
+                                value="{{ config.VOCAB_TYPING_CORRECT_BONUS or defaults.VOCAB_TYPING_CORRECT_BONUS }}"
+                                class="form-input w-full" />
+                            <div class="text-xs text-slate-500 mt-1">Mặc định: {{ defaults.VOCAB_TYPING_CORRECT_BONUS
+                                }}. Điểm thưởng khi gõ đúng từ.</div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium mb-1">Ghép cặp (Matching)</label>
+                            <input type="number" name="VOCAB_MATCHING_CORRECT_BONUS"
+                                value="{{ config.VOCAB_MATCHING_CORRECT_BONUS or defaults.VOCAB_MATCHING_CORRECT_BONUS }}"
+                                class="form-input w-full" />
+                            <div class="text-xs text-slate-500 mt-1">Mặc định: {{ defaults.VOCAB_MATCHING_CORRECT_BONUS
+                                }}. Điểm thưởng mỗi cặp ghép đúng.</div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium mb-1">Luyện nghe (Listening)</label>
+                            <input type="number" name="VOCAB_LISTENING_CORRECT_BONUS"
+                                value="{{ config.VOCAB_LISTENING_CORRECT_BONUS or defaults.VOCAB_LISTENING_CORRECT_BONUS }}"
+                                class="form-input w-full" />
+                            <div class="text-xs text-slate-500 mt-1">Mặc định: {{ defaults.VOCAB_LISTENING_CORRECT_BONUS
+                                }}. Điểm thưởng khi chọn đúng từ nghe được.</div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium mb-1">Ôn tập nhanh (Speed Review)</label>
+                            <input type="number" name="VOCAB_SPEED_CORRECT_BONUS"
+                                value="{{ config.VOCAB_SPEED_CORRECT_BONUS or defaults.VOCAB_SPEED_CORRECT_BONUS }}"
+                                class="form-input w-full" />
+                            <div class="text-xs text-slate-500 mt-1">Mặc định: {{ defaults.VOCAB_SPEED_CORRECT_BONUS }}.
+                                Điểm thưởng khi trả lời đúng trong thời gian ngắn.
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium mb-1">Trắc nghiệm (MCQ)</label>
+                            <input type="number" name="VOCAB_MCQ_CORRECT_BONUS"
+                                value="{{ config.VOCAB_MCQ_CORRECT_BONUS or defaults.VOCAB_MCQ_CORRECT_BONUS }}"
+                                class="form-input w-full" />
+                            <div class="text-xs text-slate-500 mt-1">Mặc định: {{ defaults.VOCAB_MCQ_CORRECT_BONUS }}.
+                                Điểm thưởng cho chế độ trắc nghiệm thường.</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- System Section -->
+                <div class="mb-6">
+                    <h3
+                        class="text-sm font-bold text-slate-800 uppercase tracking-wide border-b border-slate-200 pb-2 mb-4">
+                        <i class="fa-solid fa-cogs mr-2"></i> Hệ thống
+                    </h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-sm font-medium mb-1">Điểm danh hàng ngày</label>
+                            <input type="number" name="DAILY_LOGIN_SCORE"
+                                value="{{ config.DAILY_LOGIN_SCORE or defaults.DAILY_LOGIN_SCORE }}"
+                                class="form-input w-full" />
+                            <div class="text-xs text-slate-500 mt-1">Mặc định: {{ defaults.DAILY_LOGIN_SCORE }}. Cộng
+                                khi user đăng nhập lần đầu tiên trong ngày
+                                server.</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex justify-end pt-5">
+                    <button type="submit" class="btn bg-indigo-500 hover:bg-indigo-600 text-white">
+                        <i class="fa-solid fa-save mr-2"></i> Lưu cấu hình
+                    </button>
+                </div>
+
+            </form>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

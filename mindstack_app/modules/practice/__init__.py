@@ -1,14 +1,15 @@
-# Practice Module
-# Entry point for flashcard practice modes.
-# Supports single-set and multi-set practice by calling the flashcard engine.
-
+# File: mindstack_app/modules/practice/__init__.py
 from flask import Blueprint
 
-practice_bp = Blueprint(
-    'practice', 
-    __name__, 
-    url_prefix='/practice'
-)
+blueprint = Blueprint('practice', __name__)
 
-# Import routes after blueprint creation to avoid circular imports
-from . import routes  # noqa: E402, F401
+module_metadata = {
+    'name': 'Luyện tập',
+    'icon': 'dumbbell',
+    'category': 'Learning',
+    'url_prefix': '/learn/practice',
+    'enabled': True
+}
+
+def setup_module(app):
+    from . import routes

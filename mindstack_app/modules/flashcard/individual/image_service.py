@@ -29,8 +29,8 @@ except ModuleNotFoundError:  # Fallback cho môi trường chưa nâng cấp
     )
 from sqlalchemy.orm.attributes import flag_modified
 
-from mindstack_app.config import Config
-from mindstack_app.db_instance import db
+from mindstack_app.core.config import Config
+from mindstack_app.core.extensions import db
 from mindstack_app.models import LearningContainer, LearningItem
 
 logger = logging.getLogger(__name__)

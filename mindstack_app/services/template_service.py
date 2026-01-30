@@ -66,14 +66,14 @@ class TemplateService:
 
     @classmethod
     def get_available_global_versions(cls) -> List[str]:
-        """Scan templates directory for available global versions."""
-        templates_root = os.path.join(current_app.root_path, 'templates')
-        if not os.path.exists(templates_root):
+        """Scan themes directory for available global versions."""
+        themes_root = os.path.join(current_app.root_path, 'themes')
+        if not os.path.exists(themes_root):
             return [cls.DEFAULT_VERSION]
             
         versions = []
-        for item in os.listdir(templates_root):
-            if os.path.isdir(os.path.join(templates_root, item)) and item != 'admin' and not item.startswith('.'):
+        for item in os.listdir(themes_root):
+            if os.path.isdir(os.path.join(themes_root, item)) and item != 'admin' and not item.startswith('.'):
                 versions.append(item)
         
         return sorted(versions) if versions else [cls.DEFAULT_VERSION]

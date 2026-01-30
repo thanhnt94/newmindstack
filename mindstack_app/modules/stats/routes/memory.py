@@ -3,7 +3,7 @@ from flask_login import login_required, current_user
 from mindstack_app.modules.learning.services.fsrs_service import FsrsService
 from mindstack_app.modules.learning.services.progress_service import ProgressService
 from mindstack_app.models.learning_progress import LearningProgress
-from .. import stats_bp
+from .. import blueprint as stats_bp
 
 @stats_bp.route('/api/memory/item/<int:item_id>', methods=['GET'])
 @login_required

@@ -1,0 +1,154 @@
+{#
+File: mindstack_app/modules/shared/templates/includes/_navbar.html
+Phiên bản: 3.4
+Mục đích: Clean minimal navbar - no heavy gradients, subtle colors.
+#}
+{% macro render_navbar(current_user, request) %}
+<nav class="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
+    {# LOGO #}
+    <a href="{{ url_for('landing.index') }}" class="flex items-center gap-2 group">
+        <div
+            class="w-9 h-9 bg-indigo-100 rounded-lg flex items-center justify-center group-hover:bg-indigo-200 transition-colors">
+            <i class="fa-solid fa-brain text-indigo-500 text-base"></i>
+        </div>
+        <span class="font-bold text-slate-700 text-lg">Mindstack</span>
+        <span class="text-xs text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded">3.0</span>
+    </a>
+
+    {# CENTER LINKS #}
+    <ul class="flex items-center gap-1 hidden md:flex">
+        {% if current_user.is_authenticated %}
+        <li>
+            <a class="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors
+                {% if request.endpoint.startswith('learning.vocabulary') %}bg-indigo-50 text-indigo-600{% else %}text-slate-500 hover:text-slate-700 hover:bg-slate-50{% endif %}"
+                href="{{ url_for('vocabulary.dashboard') }}">
+                <i class="fas fa-layer-group text-sm"></i>
+                <span>Vocabulary</span>
+            </a>
+        </li>
+        <li>
+            <a class="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors
+                {% if request.endpoint.startswith('learning.quiz') %}bg-indigo-50 text-indigo-600{% else %}text-slate-500 hover:text-slate-700 hover:bg-slate-50{% endif %}"
+                href="{{ url_for('quiz.quiz_learning.dashboard') }}">
+                <i class="fas fa-question-circle text-sm"></i>
+                <span>Quiz</span>
+            </a>
+        </li>
+        <li>
+            <a class="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors
+                {% if request.endpoint.startswith('course') %}bg-indigo-50 text-indigo-600{% else %}text-slate-500 hover:text-slate-700 hover:bg-slate-50{% endif %}"
+                href="{{ url_for('course.course_learning_dashboard') }}">
+                <i class="fas fa-graduation-cap text-sm"></i>
+                <span>Course</span>
+            </a>
+        </li>
+        <li>
+            <a class="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors
+                {% if request.endpoint.startswith('learning.stats') %}bg-indigo-50 text-indigo-600{% else %}text-slate-500 hover:text-slate-700 hover:bg-slate-50{% endif %}"
+                href="{{ url_for('stats.dashboard') }}">
+                <i class="fas fa-chart-line text-sm"></i>
+                <span>Analytics</span>
+            </a>
+        </li>
+        {% endif %}
+    </ul>
+
+    {# RIGHT ACTIONS #}
+    <ul class="flex items-center gap-3">
+        {% if current_user.is_authenticated %}
+
+        <!-- Score Badge -->
+        <li class="hidden sm:block">
+            <div
+                class="flex items-center gap-1.5 bg-amber-50 text-amber-600 px-3 py-1.5 rounded-lg border border-amber-100">
+                <i class="fas fa-gem text-blue-500 text-sm"></i>
+                <span class="font-semibold text-sm">{{ "{:,}".format(current_user.total_score if
+                    current_user.total_score is not none else 0) }}</span>
+            </div>
+        </li>
+
+        <!-- Notification -->
+        <li>
+            <button id="desktop-noti-btn" onclick="toggleNotificationCenter()"
+                class="w-9 h-9 flex items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors relative">
+                <i class="fas fa-bell text-base"></i>
+                <span id="desktop-noti-badge"
+                    class="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full hidden"></span>
+            </button>
+        </li>
+
+        <!-- Settings -->
+        <li class="hidden sm:block">
+            <button onclick="window.dispatchEvent(new CustomEvent('open-settings-modal'))"
+                class="w-9 h-9 flex items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors"
+                title="Cài đặt">
+                <i class="fas fa-cog text-base"></i>
+            </button>
+        </li>
+
+        <!-- User Menu -->
+        <li class="relative" x-data="{ open: false }" @click.outside="open = false">
+            <button class="flex items-center gap-2 pl-1 focus:outline-none" @click="open = !open">
+                <span class="hidden md:inline font-medium text-slate-600 text-sm">{{ current_user.username }}</span>
+                <div class="w-9 h-9 rounded-full bg-slate-200 flex items-center justify-center overflow-hidden border border-slate-200 transition-colors"
+                    :class="{ 'border-indigo-300': open }">
+                    {% if current_user.avatar_url %}
+                    <img src="{{ current_user.get_avatar_url() }}" class="w-full h-full object-cover">
+                    {% else %}
+                    <span class="font-bold text-slate-500 text-sm">{{ current_user.username[0] | upper }}</span>
+                    {% endif %}
+                </div>
+            </button>
+            <div x-show="open" x-transition:enter="transition ease-out duration-100"
+                x-transition:enter-start="transform opacity-0 scale-95"
+                x-transition:enter-end="transform opacity-100 scale-100"
+                x-transition:leave="transition ease-in duration-75"
+                x-transition:leave-start="transform opacity-100 scale-100"
+                x-transition:leave-end="transform opacity-0 scale-95"
+                class="absolute right-0 top-full mt-2 w-56 transform origin-top-right z-50">
+                <div
+                    class="bg-white rounded-xl shadow-lg border border-slate-100 p-1.5 ring-1 ring-black ring-opacity-5">
+                    <a class="flex items-center gap-2 px-3 py-2 text-sm text-slate-600 hover:bg-slate-50 rounded-lg transition-colors"
+                        href="{{ url_for('user_profile.view_profile') }}">
+                        <i class="fas fa-user w-4 text-slate-400"></i> Hồ sơ cá nhân
+                    </a>
+                    <a class="flex items-center gap-2 px-3 py-2 text-sm text-slate-600 hover:bg-slate-50 rounded-lg transition-colors"
+                        href="{{ url_for('notes.manage_notes') }}">
+                        <i class="fas fa-sticky-note w-4 text-slate-400"></i> Ghi chú
+                    </a>
+                    <a class="flex items-center gap-2 px-3 py-2 text-sm text-slate-600 hover:bg-slate-50 rounded-lg transition-colors"
+                        href="{{ url_for('goals.manage_goals') }}">
+                        <i class="fas fa-bullseye w-4 text-slate-400"></i> Mục tiêu
+                    </a>
+                    <a class="flex items-center gap-2 px-3 py-2 text-sm text-slate-600 hover:bg-slate-50 rounded-lg transition-colors"
+                        href="{{ url_for('content_management.content_dashboard') }}">
+                        <i class="fas fa-folder-open w-4 text-slate-400"></i> Quản lý nội dung
+                    </a>
+                    {% if current_user.user_role == 'admin' %}
+                    <div class="h-px bg-slate-100 my-1"></div>
+                    <a class="flex items-center gap-2 px-3 py-2 text-sm text-slate-600 hover:bg-slate-50 rounded-lg transition-colors"
+                        href="{{ url_for('admin.admin_dashboard') }}">
+                        <i class="fas fa-shield-alt w-4 text-slate-400"></i> Admin Dashboard
+                    </a>
+                    {% endif %}
+                    <div class="h-px bg-slate-100 my-1"></div>
+                    <a class="flex items-center gap-2 px-3 py-2 text-sm text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                        href="{{ url_for('auth.logout') }}">
+                        <i class="fas fa-sign-out-alt w-4"></i> Đăng xuất
+                    </a>
+                </div>
+            </div>
+        </li>
+        {% else %}
+        <li>
+            <a class="text-slate-500 hover:text-slate-700 font-medium text-sm" href="{{ url_for('auth.login') }}">Đăng
+                nhập</a>
+        </li>
+        <li>
+            <a class="bg-indigo-600 text-white px-4 py-2 rounded-lg font-medium text-sm hover:bg-indigo-700 transition-colors"
+                href="{{ url_for('auth.register') }}">Đăng ký</a>
+        </li>
+        {% endif %}
+    </ul>
+</nav>
+{% endmacro %}

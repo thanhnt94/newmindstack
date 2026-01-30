@@ -161,7 +161,7 @@ def start_session():
             
         return jsonify({
             'success': True, 
-            'redirect_url': url_for('learning.vocabulary.typing.session_page')
+            'redirect_url': url_for('vocabulary.typing.session_page')
         })
     except Exception as outer_e:
         import traceback
@@ -180,7 +180,7 @@ def session_page():
     
     if not set_id:
         # Fallback or redirect to dashboard
-        return redirect(url_for('learning.vocabulary.dashboard'))
+        return redirect(url_for('vocabulary.dashboard'))
         
     container = LearningContainer.query.get_or_404(set_id)
     

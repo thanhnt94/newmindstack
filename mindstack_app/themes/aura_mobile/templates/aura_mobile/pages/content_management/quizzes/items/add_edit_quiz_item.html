@@ -1,0 +1,26 @@
+{% set _v = template_version %}
+{% extends _v ~ '/base.html' %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block head %}
+{{ super() }}
+{% include _v ~ '/pages/content_management/shared/_shared_styles.html' %}
+<style>
+    /* Full-screen editor adjustment for non-modal view */
+    #quiz-item-editor-wrapper {
+        height: calc(100vh - 0px) !important;
+        /* Adjust if base.html has a fixed navbar */
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="cm-shell bg-white min-h-0">
+    {% include _v ~ '/pages/content_management/quizzes/items/_add_edit_quiz_item_bare.html' %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+{% endblock %}
