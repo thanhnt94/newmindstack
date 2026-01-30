@@ -93,14 +93,14 @@ image_service = ImageService()
 quiz_audio_service = QuizAudioService()
 
 # [NEW] Quiz Config Service
-from ...services.quiz_config_service import QuizConfigService
+from ..quiz.services.quiz_config_service import QuizConfigService
 # [NEW] Flashcard Config Service
-from ...services.flashcard_config_service import FlashcardConfigService
+from ..flashcard.services.flashcard_config_service import FlashcardConfigService
 
 
 
 # [NEW] Quiz Config Service
-from ...services.quiz_config_service import QuizConfigService
+from ..quiz.services.quiz_config_service import QuizConfigService
 
 
 # Danh mục các gói dữ liệu có thể sao lưu/khôi phục
@@ -2373,7 +2373,7 @@ def fsrs_config():
     if current_user.user_role != User.ROLE_ADMIN:
         abort(403)
 
-    from ...services.memory_power_config_service import MemoryPowerConfigService
+    from ..learning.services.memory_power_config_service import MemoryPowerConfigService
     
     # Get current values for FSRS keys
     keys = [
@@ -2410,7 +2410,7 @@ def save_fsrs_config():
     if current_user.user_role != User.ROLE_ADMIN:
         return error_response('Không có quyền.', 'FORBIDDEN', 403)
 
-    from ...services.memory_power_config_service import MemoryPowerConfigService
+    from ..learning.services.memory_power_config_service import MemoryPowerConfigService
 
     try:
         data = request.get_json() or {}

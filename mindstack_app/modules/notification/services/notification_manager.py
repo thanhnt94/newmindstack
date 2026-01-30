@@ -16,7 +16,7 @@ from mindstack_app.core.signals import (
 # e.g. from mindstack_app.modules.gamification.signals import level_up
 # For now, let's assume we use what's available or simulated.
 
-from mindstack_app.services.delivery_service import DeliveryService
+from mindstack_app.modules.notification.services.delivery_service import DeliveryService
 
 class NotificationManager:
     """Orchestrates notification logic."""

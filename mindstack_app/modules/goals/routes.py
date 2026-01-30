@@ -9,7 +9,7 @@ from flask_login import current_user, login_required
 from ...db_instance import db
 from ...models import UserGoal, Goal
 from mindstack_app.utils.pagination import get_pagination_data
-from mindstack_app.services.goal_kernel_service import GoalKernelService
+from mindstack_app.modules.goals.services.goal_kernel_service import GoalKernelService
 from . import goals_bp
 from .constants import GOAL_TYPE_CONFIG, PERIOD_LABELS
 from .forms import LearningGoalForm

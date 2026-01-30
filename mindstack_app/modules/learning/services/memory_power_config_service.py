@@ -13,7 +13,7 @@ import json
 
 from flask import current_app
 
-from ..models import AppSettings, db
+from mindstack_app.models import AppSettings, db
 
 
 from mindstack_app.core.defaults import DEFAULT_APP_CONFIGS

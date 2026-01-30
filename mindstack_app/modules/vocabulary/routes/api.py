@@ -185,7 +185,7 @@ def api_container_settings(set_id):
     POST: Update settings (merge).
     DELETE: Reset settings to default.
     """
-    from ...services.settings_service import LearningSettingsService
+    from mindstack_app.modules.learning.services.settings_service import LearningSettingsService
     try:
         if request.method == 'DELETE':
             LearningSettingsService.update_container_settings(current_user.user_id, set_id, {

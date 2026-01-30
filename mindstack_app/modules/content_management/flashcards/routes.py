@@ -50,7 +50,7 @@ from openpyxl.worksheet.datavalidation import DataValidation
 # THÊM MỚI: Import AudioService
 from mindstack_app.modules.flashcard.services import AudioService, ImageService
 from .services import FlashcardExcelService
-from mindstack_app.services.flashcard_config_service import FlashcardConfigService
+from mindstack_app.modules.flashcard.services.flashcard_config_service import FlashcardConfigService
 from mindstack_app.core.error_handlers import error_response, success_response
 
 
@@ -1682,8 +1682,8 @@ def add_flashcard_item(set_id):
     
     context = {
         'form': form,
-        'flashcard_set': flashcard_set,
-        'flashcard_item': None,
+        'container': flashcard_set,
+        'item': None,
         'title': 'Thêm Thẻ',
         'front_image_url': _get_static_image_url(form.front_img.data, image_folder),
         'back_image_url': _get_static_image_url(form.back_img.data, image_folder),
@@ -1881,8 +1881,8 @@ def edit_flashcard_item(set_id, item_id):
     
     context = {
         'form': form,
-        'flashcard_set': flashcard_set,
-        'flashcard_item': flashcard_item,
+        'container': flashcard_set,
+        'item': flashcard_item,
         'title': 'Sửa Thẻ',
         'front_image_url': _get_static_image_url(form.front_img.data, image_folder),
         'back_image_url': _get_static_image_url(form.back_img.data, image_folder),

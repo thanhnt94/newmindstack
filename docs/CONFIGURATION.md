@@ -186,7 +186,7 @@ all_configs = ConfigService.get_all()
 ### Memory Power Config
 
 ```python
-from mindstack_app.services.memory_power_config_service import MemoryPowerConfigService
+from mindstack_app.modules.learning.services.memory_power_config_service import MemoryPowerConfigService
 
 # Get memory power settings
 config = MemoryPowerConfigService.get_config()

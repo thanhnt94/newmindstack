@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from typing import Any, Dict, List, Optional
 from flask import current_app
-from ..models import AppSettings, db
+from mindstack_app.models import AppSettings, db
 
 class QuizConfigService:
     """Service for managing Quiz configuration."""

@@ -3,7 +3,7 @@ Goal Orchestrator
 Listens to system events and updates goal progress.
 """
 from mindstack_app.core.signals import session_completed, goal_completed
-from mindstack_app.services.goal_kernel_service import GoalKernelService
+from mindstack_app.modules.goals.services.goal_kernel_service import GoalKernelService
 from mindstack_app.db_instance import db
 
 def handle_session_completed(sender, **kwargs):

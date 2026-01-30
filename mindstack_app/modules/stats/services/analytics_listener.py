@@ -5,7 +5,7 @@ This is the 'Writer' component of the Analytics system.
 """
 from datetime import datetime, timezone
 from mindstack_app.core.signals import session_completed, user_logged_in, score_awarded
-from mindstack_app.services.metrics_kernel import MetricsKernel
+from mindstack_app.modules.stats.services.metrics_kernel import MetricsKernel
 from flask import current_app
 
 def init_analytics_listener():

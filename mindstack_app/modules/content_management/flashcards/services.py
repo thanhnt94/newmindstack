@@ -12,7 +12,7 @@ from mindstack_app.utils.media_paths import (
     normalize_media_folder,
     normalize_media_value_for_storage,
 )
-from mindstack_app.services.flashcard_config_service import FlashcardConfigService
+from ...flashcard.services.flashcard_config_service import FlashcardConfigService
 from mindstack_app.core.signals import content_created
 
 

@@ -16,7 +16,7 @@ class Rating:
     Easy = 4
 
 @patch('mindstack_app.services.container_config_service.ContainerConfigService.get_retention')
-@patch('mindstack_app.services.memory_power_config_service.MemoryPowerConfigService.get')
+@patch('mindstack_app.modules.learning.services.memory_power_config_service.MemoryPowerConfigService.get')
 def test_per_container_retention(mock_global_get, mock_container_get):
     print("Verifying Per-Container FSRS Configuration...")
     

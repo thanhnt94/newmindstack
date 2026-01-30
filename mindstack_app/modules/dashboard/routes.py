@@ -13,7 +13,7 @@ def dashboard():
     user_id = current_user.user_id
 
     # [REFACTORED] Use LearningMetricsService
-    from mindstack_app.services.learning_metrics_service import LearningMetricsService
+    from mindstack_app.modules.learning.services.learning_metrics_service import LearningMetricsService
     
     summary = LearningMetricsService.get_user_learning_summary(user_id)
     

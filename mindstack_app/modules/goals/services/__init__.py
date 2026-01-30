@@ -1,3 +1,1 @@
-from .goal_orchestrator import init_orchestrator
-
-__all__ = ['init_orchestrator']
+﻿from .goal_kernel_service import GoalKernelService

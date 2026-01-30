@@ -886,9 +886,9 @@ def add_lesson(set_id):
         return error_response('Dữ liệu không hợp lệ', 'VALIDATION_ERROR', 400, details=form.errors)
         
     if request.method == 'GET' and request.args.get('is_modal') == 'true':
-        return render_dynamic_template('pages/content_management/courses/lessons/add_edit_lesson.html', form=form, course_set=course_set, title='Thêm Bài học')
+        return render_dynamic_template('pages/content_management/courses/lessons/add_edit_lesson.html', form=form, container=course_set, title='Thêm Bài học')
         
-    return render_dynamic_template('pages/content_management/courses/lessons/add_edit_lesson.html', form=form, course_set=course_set, title='Thêm Bài học')
+    return render_dynamic_template('pages/content_management/courses/lessons/add_edit_lesson.html', form=form, container=course_set, title='Thêm Bài học')
 
 @courses_bp.route('/courses/<int:set_id>/lessons/edit/<int:item_id>', methods=['GET', 'POST'])
 @login_required
@@ -955,9 +955,9 @@ def edit_lesson(set_id, item_id):
         form.order_in_container.data = lesson_item.order_in_container
         
     if request.method == 'GET' and request.args.get('is_modal') == 'true':
-        return render_dynamic_template('pages/content_management/courses/lessons/add_edit_lesson.html', form=form, course_set=course_set, lesson_item=lesson_item, title='Sửa Bài học')
+        return render_dynamic_template('pages/content_management/courses/lessons/add_edit_lesson.html', form=form, container=course_set, item=lesson_item, title='Sửa Bài học')
         
-    return render_dynamic_template('pages/content_management/courses/lessons/add_edit_lesson.html', form=form, course_set=course_set, lesson_item=lesson_item, title='Sửa Bài học')
+    return render_dynamic_template('pages/content_management/courses/lessons/add_edit_lesson.html', form=form, container=course_set, item=lesson_item, title='Sửa Bài học')
 
 @courses_bp.route('/courses/<int:set_id>/lessons/delete/<int:item_id>', methods=['POST'])
 @login_required

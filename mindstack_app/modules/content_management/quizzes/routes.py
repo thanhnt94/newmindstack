@@ -27,7 +27,7 @@ from mindstack_app.core.error_handlers import error_response, success_response
 from mindstack_app.config import Config
 from mindstack_app.config import Config
 from mindstack_app.services.config_service import get_runtime_config
-from mindstack_app.services.quiz_config_service import QuizConfigService
+from ...quiz.services.quiz_config_service import QuizConfigService
 
 import pandas as pd
 import tempfile
@@ -1016,7 +1016,7 @@ def add_quiz_item(set_id):
 
     template_context = {
         'form': form,
-        'quiz_set': quiz_set,
+        'container': quiz_set,
         'title': 'Thêm Câu hỏi',
         'image_base_folder': image_folder or '',
         'audio_base_folder': audio_folder or '',
@@ -1190,8 +1190,8 @@ def edit_quiz_item(set_id, item_id):
 
     template_context = {
         'form': form,
-        'quiz_set': quiz_set,
-        'quiz_item': quiz_item,
+        'container': quiz_set,
+        'item': quiz_item,
         'title': 'Chỉnh sửa Câu hỏi',
         'image_base_folder': image_folder or '',
         'audio_base_folder': audio_folder or '',

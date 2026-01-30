@@ -17,7 +17,7 @@ from mindstack_app.core.signals import (
 # We need to define new signals if lacking, e.g. 'ai_action_completed'
 # For now, let's use what we have or generic ones.
 
-from mindstack_app.services.gamification_kernel import GamificationKernel
+from mindstack_app.modules.gamification.services.gamification_kernel import GamificationKernel
 from ..logics.streak_logic import calculate_streak_from_dates
 from datetime import datetime, date, timezone
 

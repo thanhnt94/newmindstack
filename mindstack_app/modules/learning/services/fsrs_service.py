@@ -103,7 +103,7 @@ class FsrsService:
         if not is_correct:
             return Rating.Again
         
-        from mindstack_app.services.memory_power_config_service import MemoryPowerConfigService
+        from mindstack_app.modules.learning.services.memory_power_config_service import MemoryPowerConfigService
         easy_threshold = MemoryPowerConfigService.get('QUIZ_RATING_EASY_MS', 3000)
         good_threshold = MemoryPowerConfigService.get('QUIZ_RATING_GOOD_MS', 10000)
         
@@ -172,7 +172,7 @@ class FsrsService:
             pass # Fallthrough if optimizer service fails or data invalid
 
         # Tier 2: Global Admin Config
-        from mindstack_app.services.memory_power_config_service import MemoryPowerConfigService
+        from mindstack_app.modules.learning.services.memory_power_config_service import MemoryPowerConfigService
         global_params = MemoryPowerConfigService.get('FSRS_GLOBAL_WEIGHTS')
         
         # Validate global params
@@ -268,7 +268,7 @@ class FsrsService:
         )
 
         # Fetch Configuration with Caps
-        from mindstack_app.services.memory_power_config_service import MemoryPowerConfigService
+        from mindstack_app.modules.learning.services.memory_power_config_service import MemoryPowerConfigService
         from mindstack_app.services.container_config_service import ContainerConfigService
         
         # Priority: Container-specific retention -> Global retention

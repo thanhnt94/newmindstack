@@ -22,8 +22,8 @@ import os
 import pandas as pd
 from ...config import Config
 from ...services.config_service import get_runtime_config
-from mindstack_app.services.flashcard_config_service import FlashcardConfigService
-from mindstack_app.services.quiz_config_service import QuizConfigService
+from mindstack_app.modules.flashcard.services.flashcard_config_service import FlashcardConfigService
+from mindstack_app.modules.quiz.services.quiz_config_service import QuizConfigService
 
 TYPE_SLUG_MAP = {
     'COURSE': 'courses',
@@ -375,7 +375,7 @@ def move_item(item_id):
 
 @content_management_bp.route('/delete/<int:container_id>', methods=['POST'])
 @login_required
-def delete_container(container_id):
+def delete_container_page(container_id):
     """Unified route to delete any container."""
     container = LearningContainer.query.get_or_404(container_id)
     if container.creator_user_id != current_user.user_id and current_user.user_role != User.ROLE_ADMIN:
@@ -494,7 +494,12 @@ def add_item(container_id):
     type_slug = TYPE_SLUG_MAP.get(container.container_type.upper(), container.container_type.lower())
     template = templates.get(container.container_type, 'add_edit.html')
     
-    return render_dynamic_template(f'pages/content_management/{type_slug}/items/{template}', form=form, container=container, title='Thêm mục mới')
+    return render_dynamic_template(f'pages/content_management/{type_slug}/items/{template}', 
+                                   form=form, 
+                                   container=container, 
+                                   title='Thêm mục mới',
+                                   flashcard_config=FlashcardConfigService.get_all(),
+                                   quiz_config=QuizConfigService.get_all())
 
 @content_management_bp.route('/item/edit/<int:item_id>', methods=['GET', 'POST'])
 @login_required
@@ -543,7 +548,13 @@ def edit_item(item_id):
     type_slug = TYPE_SLUG_MAP.get(container.container_type.upper(), container.container_type.lower())
     template = templates.get(container.container_type, 'add_edit.html')
     
-    return render_dynamic_template(f'pages/content_management/{type_slug}/items/{template}', form=form, container=container, item=item, title='Chỉnh sửa')
+    return render_dynamic_template(f'pages/content_management/{type_slug}/items/{template}', 
+                                   form=form, 
+                                   container=container, 
+                                   item=item, 
+                                   title='Chỉnh sửa',
+                                   flashcard_config=FlashcardConfigService.get_all(),
+                                   quiz_config=QuizConfigService.get_all())
 
 @content_management_bp.route('/item/delete/<int:item_id>', methods=['POST'])
 @login_required

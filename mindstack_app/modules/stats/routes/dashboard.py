@@ -17,7 +17,7 @@ def dashboard():
     """
     Route chính để hiển thị trang dashboard thống kê.
     """
-    from mindstack_app.services.learning_metrics_service import LearningMetricsService
+    from mindstack_app.modules.learning.services.learning_metrics_service import LearningMetricsService
 
     initial_sort_by = request.args.get('sort_by', 'total_score')
     initial_timeframe = request.args.get('timeframe', 'week')

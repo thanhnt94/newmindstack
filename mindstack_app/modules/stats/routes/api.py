@@ -19,7 +19,7 @@ from ..services.metrics import (
     paginate_course_items,
     sanitize_pagination_args
 )
-from mindstack_app.services.learning_metrics_service import LearningMetricsService
+from mindstack_app.modules.learning.services.learning_metrics_service import LearningMetricsService
 
 
 @stats_bp.route('/api/leaderboard-data')

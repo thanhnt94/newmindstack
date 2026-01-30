@@ -47,7 +47,7 @@ class AnalyticsService:
             - flashcard_sets, quiz_sets, course_sets: Container options
             - recent_activity, recent_sessions: Activity lists
         """
-        from mindstack_app.services.learning_metrics_service import LearningMetricsService
+        from mindstack_app.modules.learning.services.learning_metrics_service import LearningMetricsService
         from mindstack_app.modules.learning.services.daily_stats_service import DailyStatsService
         
         # 1. Get leaderboard

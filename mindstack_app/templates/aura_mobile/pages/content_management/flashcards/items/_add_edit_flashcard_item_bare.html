@@ -111,7 +111,7 @@ THAY ĐỔI:
         <div class="flex items-center gap-2">
             <div class="hidden sm:flex items-center bg-slate-50 rounded-lg p-0.5 border border-slate-100">
                 {% if previous_item_id %}
-                <a href="{{ url_for('.edit_flashcard_item', item_id=previous_item_id) }}{{ modal_suffix }}"
+                <a href="{{ url_for('.edit_flashcard_item', set_id=container.container_id, item_id=previous_item_id) }}{{ modal_suffix }}"
                     class="w-7 h-7 flex items-center justify-center text-slate-600 hover:bg-white hover:text-blue-600 hover:shadow-sm rounded transition"
                     title="Thẻ trước">
                     <i class="fas fa-chevron-left text-[10px]"></i>
@@ -124,7 +124,7 @@ THAY ĐỔI:
                 <div class="w-px h-3 bg-slate-200 mx-0.5"></div>
 
                 {% if next_item_id %}
-                <a href="{{ url_for('.edit_flashcard_item', item_id=next_item_id) }}{{ modal_suffix }}"
+                <a href="{{ url_for('.edit_flashcard_item', set_id=container.container_id, item_id=next_item_id) }}{{ modal_suffix }}"
                     class="w-7 h-7 flex items-center justify-center text-slate-600 hover:bg-white hover:text-blue-600 hover:shadow-sm rounded transition"
                     title="Thẻ tiếp">
                     <i class="fas fa-chevron-right text-[10px]"></i>

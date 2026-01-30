@@ -479,7 +479,7 @@ class FlashcardSessionManager:
                 card_state = CardState()  # New card
             
             # 2. Use HybridFSRSEngine to preview states for rating 1-4
-            from mindstack_app.services.memory_power_config_service import MemoryPowerConfigService
+            from mindstack_app.modules.learning.services.memory_power_config_service import MemoryPowerConfigService
             desired_retention = MemoryPowerConfigService.get('FSRS_DESIRED_RETENTION', 0.9)
             engine = HybridFSRSEngine(desired_retention=desired_retention)
             now_utc = datetime.datetime.now(datetime.timezone.utc)

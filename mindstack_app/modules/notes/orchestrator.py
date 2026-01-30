@@ -1,6 +1,6 @@
 from typing import Optional, Dict, Any, List
 from flask import current_app
-from mindstack_app.services.note_service import NoteKernelService
+from mindstack_app.modules.notes.services.note_service import NoteKernelService
 from mindstack_app.models import db, Note, LearningItem, LearningContainer
 from .logics.content_processor import NoteContentProcessor
 

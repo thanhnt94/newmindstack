@@ -6,7 +6,7 @@ Provides the 'write' layer for the Analytics system.
 from datetime import date, datetime, timezone
 from typing import Optional, List, Dict, Any
 
-from ..models import db, UserMetric, DailyStat, Achievement
+from mindstack_app.models import db, UserMetric, DailyStat, Achievement
 
 class MetricsKernel:
     """

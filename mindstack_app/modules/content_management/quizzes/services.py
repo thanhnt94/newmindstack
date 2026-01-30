@@ -22,7 +22,7 @@ from mindstack_app.utils.media_paths import (
 )
 from mindstack_app.config import Config
 from mindstack_app.services.config_service import get_runtime_config
-from mindstack_app.services.quiz_config_service import QuizConfigService
+from ...quiz.services.quiz_config_service import QuizConfigService
 
 
 # Constants exported from here
