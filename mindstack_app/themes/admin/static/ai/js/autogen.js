@@ -59,7 +59,7 @@
     async function loadSets(type) {
         console.log('[Autogen] loadSets called with type:', type);
         try {
-            const url = '/admin/api-keys/autogen/get-sets/' + type;
+            const url = '/admin/ai/autogen/get-sets/' + type;
             const response = await fetch(url, { credentials: 'same-origin' });
             const data = await response.json();
 
@@ -155,7 +155,7 @@
         addLog('info', 'Đang gửi yêu cầu...');
 
         try {
-            const response = await fetch('/admin/api-keys/autogen/start', {
+            const response = await fetch('/admin/ai/autogen/start', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -191,7 +191,7 @@
         
         if (confirm('Bạn có chắc chắn muốn dừng tác vụ?')) {
             try {
-                const response = await fetch('/admin/api-keys/autogen/stop', {
+                const response = await fetch('/admin/ai/autogen/stop', {
                     method: 'POST',
                     headers: { 
                         'Content-Type': 'application/json',
@@ -224,7 +224,7 @@
     
     async function loadLogs() {
         try {
-            const response = await fetch('/admin/api-keys/autogen/logs');
+            const response = await fetch('/admin/ai/autogen/logs');
             const data = await response.json();
             
             if (data.success && data.logs) {
@@ -254,7 +254,7 @@
 
     async function checkStatus() {
         try {
-            const response = await fetch('/admin/api-keys/autogen/status');
+            const response = await fetch('/admin/ai/autogen/status');
             const data = await response.json();
             
             if (!data.active) {

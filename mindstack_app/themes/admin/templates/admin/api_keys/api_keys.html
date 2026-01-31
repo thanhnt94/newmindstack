@@ -182,11 +182,15 @@ endblock %}
                         </td>
                         <td class="px-5 py-4">
                             <div class="flex items-center gap-2">
+                                <button type="button" onclick="checkKeyQuota({{ key.key_id }}, this)" 
+                                    class="text-slate-400 hover:text-emerald-600 transition" title="Kiểm tra Key">
+                                    <i class="fas fa-stethoscope"></i>
+                                </button>
                                 <a href="{{ url_for('ai_admin.edit_key', key_id=key.key_id) }}"
                                     class="text-slate-400 hover:text-blue-600 transition"><i
                                         class="fas fa-edit"></i></a>
-                                <form action="{{ url_for('ai_admin.delete_key', key_id=key.key_id) }}"
-                                    method="post" onsubmit="return confirm('Xóa key này?');" class="inline">
+                                <form action="{{ url_for('ai_admin.delete_key', key_id=key.key_id) }}" method="post"
+                                    onsubmit="return confirm('Xóa key này?');" class="inline">
                                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                     <button type="submit" class="text-slate-400 hover:text-rose-600 transition"><i
                                             class="fas fa-trash-alt"></i></button>
@@ -515,24 +519,24 @@ endblock %}
     document.addEventListener('DOMContentLoaded', function () {
         chartDataGlobal = {{ chart_data | tojson | safe }};
 
-        if (chartDataGlobal) {
-            updateChartMetric();
-        }
+    if (chartDataGlobal) {
+        updateChartMetric();
+    }
 
-        if (window.location.hash === '#view-logs') {
-            switchTab('logs');
-        } else if (window.location.hash === '#view-autogen') {
-            switchTab('autogen');
-        } else if (window.location.hash === '#view-test') {
-            switchTab('test');
-        }
+    if (window.location.hash === '#view-logs') {
+        switchTab('logs');
+    } else if (window.location.hash === '#view-autogen') {
+        switchTab('autogen');
+    } else if (window.location.hash === '#view-test') {
+        switchTab('test');
+    }
 
-        const geminiHidden = document.getElementById('gemini_model_value');
-        if (geminiHidden && geminiHidden.value) {
-            updateGeminiBadges(geminiHidden.value.split(',').map(s => s.trim()).filter(s => s));
-        }
+    const geminiHidden = document.getElementById('gemini_model_value');
+    if (geminiHidden && geminiHidden.value) {
+        updateGeminiBadges(geminiHidden.value.split(',').map(s => s.trim()).filter(s => s));
+    }
 
-        toggleProviderSettings();
+    toggleProviderSettings();
     });
 
     const colors = ['#3b82f6', '#10b981', '#f59e0b', '#6366f1', '#ec4899', '#8b5cf6', '#14b8a6', '#f43f5e'];
@@ -714,6 +718,35 @@ endblock %}
         });
     }
 
+    async function checkKeyQuota(keyId, btn) {
+        const originalHtml = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+        
+        try {
+            const response = await fetch(`/admin/ai/keys/check/${keyId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': "{{ csrf_token() }}"
+                }
+            });
+            const data = await response.json();
+            
+            if (data.success) {
+                alert('✅ ' + data.message);
+                location.reload(); // Reload to update status icon
+            } else {
+                alert('❌ ' + data.message);
+            }
+        } catch (e) {
+            alert('Lỗi kết nối: ' + e);
+        } finally {
+            btn.innerHTML = originalHtml;
+            btn.disabled = false;
+        }
+    }
+
     async function fetchGeminiModels() {
         const btn = event.currentTarget;
         const originalHtml = btn.innerHTML;
@@ -722,7 +755,8 @@ endblock %}
         btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Loading...';
         btn.disabled = true;
         try {
-            const response = await fetch("{{ url_for('admin.fetch_gemini_models_api') }}");
+            // Fetching models from ai_admin blueprint
+            const response = await fetch("{{ url_for('ai_admin.fetch_gemini_models_api') }}");
             const data = await response.json();
             if (data.success) {
                 checkboxList.innerHTML = '';
@@ -820,7 +854,7 @@ endblock %}
 
         if (provider === 'gemini') {
             try {
-                const response = await fetch("{{ url_for('admin.fetch_gemini_models_api') }}");
+                const response = await fetch("{{ url_for('ai_admin.fetch_gemini_models_api') }}");
                 const data = await response.json();
                 if (data.success) {
                     data.models.forEach(m => {

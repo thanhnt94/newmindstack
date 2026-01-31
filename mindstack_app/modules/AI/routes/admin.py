@@ -194,14 +194,62 @@ def delete_key(key_id):
     flash('Đã xóa API key thành công.', 'success')
     return redirect(url_for('.dashboard'))
 
+@admin_bp.route('/keys/check/<int:key_id>', methods=['POST'])
+def check_key_quota(key_id):
+    """
+    Check if an API key is alive and not rate-limited.
+    """
+    key = ApiKey.query.get_or_404(key_id)
+    
+    if key.provider != 'gemini':
+        return jsonify({'success': False, 'message': 'Chỉ hỗ trợ check quota cho Gemini.'})
 
-# ==================== AUTO-GENERATE ROUTES ====================
+    try:
+        import google.generativeai as genai
+        from google.api_core import exceptions as google_exceptions
+        
+        genai.configure(api_key=key.key_value)
+        # Try a lightweight call
+        list(genai.list_models(page_size=1))
+        
+        # If successful
+        key.is_exhausted = False
+        db.session.commit()
+        return jsonify({'success': True, 'message': 'Key hoạt động tốt (Active).'})
+        
+    except google_exceptions.ResourceExhausted:
+        key.is_exhausted = True
+        db.session.commit()
+        return jsonify({'success': False, 'message': 'Key đã hết quota (Resource Exhausted).'})
+        
+    except google_exceptions.PermissionDenied:
+        return jsonify({'success': False, 'message': 'Key không hợp lệ hoặc bị từ chối quyền.'})
+        
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'Lỗi kiểm tra: {str(e)}'})
+
 
 @admin_bp.route('/autogen/get-sets/<content_type>', methods=['GET'])
 def get_sets_for_autogen(content_type):
     from mindstack_app.modules.AI.services.autogen_service import get_sets_with_missing_content
     result = get_sets_with_missing_content(content_type)
     return success_response(data=result)
+
+@admin_bp.route('/models/gemini', methods=['GET'])
+def fetch_gemini_models_api():
+    """
+    Fetch available Gemini models from Google API.
+    """
+    try:
+        from mindstack_app.modules.AI.engines.gemini_client import GeminiClient
+        raw_list = GeminiClient.get_available_models()
+        
+        # Format as list of objects for frontend consistency
+        models = [{'id': m, 'display_name': m} for m in raw_list]
+        
+        return jsonify({'success': True, 'models': models})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
 
 @admin_bp.route('/autogen/start', methods=['POST'])
 def start_autogen():
