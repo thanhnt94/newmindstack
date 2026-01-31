@@ -1,5 +1,6 @@
 # File: mindstack_app/modules/content_management/routes/views.py
-from flask import render_template, request, redirect, url_for, flash, abort, current_app
+from flask import render_template, request, redirect, url_for, flash, abort, current_app, jsonify
+import json
 from mindstack_app.utils.template_helpers import render_dynamic_template
 from mindstack_app.utils.db_session import safe_commit
 from flask_login import login_required, current_user
@@ -132,7 +133,12 @@ def add_container(container_type):
                 media_image_folder=getattr(form, 'image_base_folder', None) and form.image_base_folder.data,
                 media_audio_folder=getattr(form, 'audio_base_folder', None) and form.audio_base_folder.data
             )
-            flash(f'Đã tạo {container_type.lower()} mới thành công!', 'success')
+            
+            message = f'Đã tạo {container_type.lower()} mới thành công!'
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return jsonify({'success': True, 'message': message, 'container_id': container.container_id})
+                
+            flash(message, 'success')
             return redirect(url_for('content_management.content_dashboard', tab=container_type.lower()))
         except Exception as e:
             db.session.rollback()
@@ -149,6 +155,7 @@ def add_container(container_type):
     return render_dynamic_template(f'pages/content_management/{type_slug}/sets/{template}', 
                                    form=form, 
                                    title=f'Thêm {container_type}',
+                                   available_keys=['front', 'back'],
                                    flashcard_config=FlashcardConfigService.get_all(),
                                    quiz_config=QuizConfigService.get_all())
 
@@ -163,28 +170,112 @@ def edit_container(container_id):
     form_class = _get_form_for_type(container.container_type)
     form = form_class(obj=container)
     
+    # [FIX] Manually populate media folder fields, AI capabilities, and settings - ONLY ON GET
+    if request.method == 'GET':
+        if hasattr(form, 'image_base_folder'):
+            form.image_base_folder.data = container.media_image_folder
+        if hasattr(form, 'audio_base_folder'):
+            form.audio_base_folder.data = container.media_audio_folder
+            
+        # Map ai_capabilities list ['flashcard', 'quiz'] to supports_xxx checkboxes
+        if container.ai_capabilities and isinstance(container.ai_capabilities, list):
+            for cap in container.ai_capabilities:
+                field_name = f'supports_{cap}'
+                if hasattr(form, field_name):
+                    getattr(form, field_name).data = True
+                    
+        # [NEW] Map display settings from settings JSON to form fields
+        if container.settings and isinstance(container.settings, dict):
+            display_fields = ['display_front_align', 'display_back_align', 'display_force_bold_front', 'display_force_bold_back']
+            for field in display_fields:
+                if field in container.settings and hasattr(form, field):
+                    getattr(form, field).data = container.settings[field]
+                    
+        # [FIX] Ensure settings are JSON stringified for JS consumption - ONLY ON GET
+        if hasattr(form, 'settings') and container.settings:
+            form.settings.data = json.dumps(container.settings, ensure_ascii=False)
+    
+    # [NEW] Get available keys for column pairing (from existing items)
+    available_keys = ['front', 'back']
+    first_item = LearningItem.query.filter_by(container_id=container_id).first()
+    if first_item and first_item.content:
+        available_keys = list(first_item.content.keys())
+    
     if hasattr(form, 'is_public') and current_user.user_role == User.ROLE_FREE:
         form.is_public.data = False
         form.is_public.render_kw = {'disabled': 'disabled'}
 
     if form.validate_on_submit():
         try:
-            ContentKernelService.update_container(
-                container_id,
-                title=form.title.data,
-                description=getattr(form, 'description', None) and form.description.data,
-                cover_image=getattr(form, 'cover_image', None) and form.cover_image.data,
-                tags=getattr(form, 'tags', None) and form.tags.data,
-                is_public=form.is_public.data if hasattr(form, 'is_public') else False,
-                ai_prompt=getattr(form, 'ai_prompt', None) and form.ai_prompt.data,
-                media_image_folder=getattr(form, 'image_base_folder', None) and form.image_base_folder.data,
-                media_audio_folder=getattr(form, 'audio_base_folder', None) and form.audio_base_folder.data
-            )
-            flash('Đã cập nhật thành công!', 'success')
+            # 1. Collect basic fields
+            update_data = {
+                'title': form.title.data,
+                'description': getattr(form, 'description', None) and form.description.data,
+                'cover_image': getattr(form, 'cover_image', None) and form.cover_image.data,
+                'tags': getattr(form, 'tags', None) and form.tags.data,
+                'is_public': form.is_public.data if hasattr(form, 'is_public') else container.is_public,
+                'ai_prompt': getattr(form, 'ai_prompt', None) and form.ai_prompt.data,
+                'media_image_folder': getattr(form, 'image_base_folder', None) and form.image_base_folder.data,
+                'media_audio_folder': getattr(form, 'audio_base_folder', None) and form.audio_base_folder.data
+            }
+            
+            # 2. Collect AI Capabilities (supports_xxx checkboxes)
+            capabilities = []
+            possible_caps = [
+                'supports_flashcard', 'supports_quiz', 'supports_writing', 
+                'supports_matching', 'supports_speed', 'supports_listening',
+                'supports_pronunciation', 'supports_essay', 'supports_speaking'
+            ]
+            for cap_field in possible_caps:
+                field_obj = getattr(form, cap_field, None)
+                if field_obj and field_obj.data:
+                    # Strip 'supports_' to get the actual capability key
+                    capabilities.append(cap_field.replace('supports_', ''))
+            
+            update_data['ai_capabilities'] = capabilities
+            
+            # 3. Parse and save Settings (from HiddenField + Display Fields)
+            final_settings = container.settings.copy() if (container.settings and isinstance(container.settings, dict)) else {}
+            
+            if hasattr(form, 'settings') and form.settings.data:
+                try:
+                    js_settings = json.loads(form.settings.data)
+                    if isinstance(js_settings, dict):
+                        final_settings.update(js_settings)
+                except Exception as json_err:
+                    current_app.logger.warning(f"Failed to parse settings JSON: {json_err}")
+            
+            # Inject Display Settings into final_settings
+            display_fields = ['display_front_align', 'display_back_align', 'display_force_bold_front', 'display_force_bold_back']
+            for field in display_fields:
+                if hasattr(form, field):
+                    final_settings[field] = getattr(form, field).data
+                    
+            update_data['settings'] = final_settings
+            
+            # 4. Perform update
+            ContentKernelService.update_container(container_id, **update_data)
+            
+            message = 'Đã cập nhật thành công!'
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return jsonify({'success': True, 'message': message})
+                
+            flash(message, 'success')
             return redirect(url_for('content_management.content_dashboard', tab=ContentManagementModuleDefaultConfig.TYPE_SLUG_MAP.get(container.container_type.upper(), container.container_type.lower())))
         except Exception as e:
             db.session.rollback()
+            current_app.logger.error(f"Update error: {e}", exc_info=True)
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return jsonify({'success': False, 'message': str(e)}), 500
             flash(f'Lỗi khi cập nhật: {str(e)}', 'danger')
+
+    # [NEW] Handle validation errors for AJAX requests
+    if request.method == 'POST' and request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return jsonify({
+            'success': False, 
+            'message': 'Dữ liệu không hợp lệ. Vui lòng kiểm tra lại các trường đỏ.',
+            'errors': form.errors
+        }), 400
 
     templates = {
         'COURSE': 'add_edit_course_set.html',
@@ -198,8 +289,39 @@ def edit_container(container_id):
                                    form=form, 
                                    title='Chỉnh sửa', 
                                    container=container,
+                                   set_id=container_id,
+                                   available_keys=available_keys,
                                    flashcard_config=FlashcardConfigService.get_all(),
                                    quiz_config=QuizConfigService.get_all())
+
+@blueprint.route('/container/<int:container_id>/update-settings', methods=['POST'])
+@login_required
+def update_container_settings(container_id):
+    """
+    Dedicated endpoint for updating only the settings JSON via AJAX.
+    Used by the 'Save Config' button in the configuration tab.
+    """
+    if not has_container_access(container_id, 'editor'):
+        return jsonify({'success': False, 'message': 'Permission denied'}), 403
+        
+    data = request.get_json()
+    if not data or 'settings' not in data:
+        return jsonify({'success': False, 'message': 'Invalid data'}), 400
+        
+    try:
+        container = LearningContainer.query.get_or_404(container_id)
+        # Merge new settings with existing ones to avoid losing display settings
+        new_settings = data['settings']
+        current_settings = container.settings.copy() if container.settings else {}
+        current_settings.update(new_settings)
+        
+        ContentKernelService.update_container(container_id, settings=current_settings)
+        return jsonify({'success': True, 'message': 'Đã lưu cấu hình thành công!'})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
 
 @blueprint.route('/container/<int:container_id>/items')
 @login_required

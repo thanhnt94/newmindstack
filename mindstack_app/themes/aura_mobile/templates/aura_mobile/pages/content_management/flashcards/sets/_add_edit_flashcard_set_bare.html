@@ -274,16 +274,17 @@
                 <!-- Tab 2: Resources -->
                 <div id="tab-main-resources" class="main-tab-content space-y-6 hidden animate-fade-in">
                     {% set current_cover = form.cover_image.data or '' %}
+                    {% set resolved_cover = current_cover | media_url if current_cover else '' %}
                     <div>
                         {{ form.cover_image.label(class="block text-sm font-medium text-gray-700") }}
-                        <div class="mt-1 space-y-3" data-role="cover-wrapper" data-initial-url="{{ current_cover }}"
+                        <div class="mt-1 space-y-3" data-role="cover-wrapper" data-initial-url="{{ resolved_cover }}"
                             data-base-folder="{{ form.image_base_folder.data or '' }}">
                             {{ form.cover_image(class="block w-full px-4 py-2 border border-gray-300 rounded-md
                             shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500", placeholder="VD:
                             uploads/flashcards/covers/n5.png", **{'data-role': 'cover-input'}) }}
                             <div
                                 class="relative border border-dashed border-gray-300 rounded-lg overflow-hidden bg-gray-50">
-                                <img data-role="cover-preview" src="{{ current_cover }}" alt="Xem trước ảnh cover"
+                                <img data-role="cover-preview" src="{{ resolved_cover }}" alt="Xem trước ảnh cover"
                                     class="w-full max-h-64 object-contain{% if not current_cover %} hidden{% endif %}">
                                 <div data-role="cover-placeholder"
                                     class="flex items-center justify-center text-sm text-gray-400 py-10{% if current_cover %} hidden{% endif %}">
@@ -454,7 +455,7 @@
                         <h3 class="text-lg font-semibold text-gray-800">Cấu hình Mặc định</h3>
                         {% if set_id %}
                         <button type="button"
-                            class="save-config-btn bg-teal-600 text-white px-3 py-1.5 rounded-md hover:bg-teal-700 text-sm font-medium transition-colors flex items-center gap-2 shadow-sm">
+                            class="save-config-btn bg-teal-600 text-white px-3 py-1.5 rounded-md hover:bg-teal-700 text-sm font-medium transition-colors hidden items-center gap-2 shadow-sm">
                             <i class="fas fa-save"></i> Lưu Cấu hình
                         </button>
                         {% endif %}
@@ -595,8 +596,18 @@
     let currentSettings = {};
 
     try {
-        currentSettings = JSON.parse(settingsInput.value || '{}');
-    } catch (e) { console.error("Error parsing settings", e); }
+        const rawSettings = settingsInput.value || '{}';
+        console.log("Raw settings from input:", rawSettings);
+        currentSettings = JSON.parse(rawSettings);
+        
+        // Final safety check: if JSON.parse results in null or non-object
+        if (!currentSettings || typeof currentSettings !== 'object') {
+            currentSettings = {};
+        }
+    } catch (e) { 
+        console.error("Error parsing settings JSON:", e); 
+        currentSettings = {};
+    }
 
     // Initialize structure if missing or empty, apply defaults
     const defaultPairs = {
@@ -606,11 +617,25 @@
     };
 
     ['mcq', 'typing', 'listening'].forEach(mode => {
-        if (!currentSettings[mode]) currentSettings[mode] = {};
-        if (!currentSettings[mode].pairs || currentSettings[mode].pairs.length === 0) {
+        if (!currentSettings[mode] || typeof currentSettings[mode] !== 'object') {
+            currentSettings[mode] = {};
+        }
+        if (!currentSettings[mode].pairs || !Array.isArray(currentSettings[mode].pairs) || currentSettings[mode].pairs.length === 0) {
             currentSettings[mode].pairs = JSON.parse(JSON.stringify(defaultPairs[mode]));
         }
     });
+
+    // Ensure selectable_columns is an array
+    if (!currentSettings.selectable_columns || !Array.isArray(currentSettings.selectable_columns)) {
+        currentSettings.selectable_columns = availableKeys.length > 0 ? [...availableKeys] : ['front', 'back'];
+    }
+
+    // Final check for availableKeys to avoid empty UI
+    if (!availableKeys || availableKeys.length === 0) {
+        availableKeys = ['front', 'back'];
+    }
+
+    console.log("Initialized currentSettings:", currentSettings);
 
     // --- Selectable Columns Logic ---
     // Initialize selectable_columns: if not set, default to ALL availableKeys
@@ -1359,6 +1384,12 @@
         // ALWAYS prevent default immediately to avoid accidental normal submission
         event.preventDefault();
 
+        // [NEW] Synchronize all settings UI data to the hidden input before submission
+        if (typeof saveToInput === 'function') {
+            console.log("Synchronizing settings before submission...");
+            saveToInput();
+        }
+
         console.log("Submit button clicked, starting validation...");
 
         if (!form.checkValidity()) {
@@ -1470,6 +1501,15 @@
             }
         }
     });
+
+    // --- INITIALIZATION ---
+    renderSelectableColumns();
+    ['mcq', 'typing', 'listening'].forEach(mode => renderPairs(mode));
+    saveToInput();
+    
+    // Auto-trigger first internal config tab if available
+    const firstTab = wrapper.querySelector('button[data-tab]');
+    if (firstTab) firstTab.click();
 
     console.log("Flashcard Form Script Loaded Successfully with Integrated Settings Logic");
     }) ();

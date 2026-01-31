@@ -249,6 +249,21 @@ class QuizSetForm(FlaskForm):
         description='Khai báo thư mục con dùng để lưu file âm thanh, ví dụ: quiz/level1/audio',
     )
     is_public = BooleanField('Công khai (người khác có thể tìm thấy và làm)')
+    
+    # Mode Configuration Flags
+    supports_flashcard = BooleanField('Chế độ Flashcard (Lật thẻ)', default="checked")
+    supports_quiz = BooleanField('Chế độ Trắc nghiệm (MCQ)')
+    supports_writing = BooleanField('Chế độ Gõ đáp án (Typing)')
+    supports_matching = BooleanField('Chế độ Ghép đôi (Matching)')
+    supports_speed = BooleanField('Chế độ Ôn nhanh (Speed Review)')
+    supports_listening = BooleanField('Chế độ Luyện nghe (Dictation)')
+    
+    # Legacy/Advanced Capabilities (can be hidden or kept for specific logic)
+    supports_pronunciation = BooleanField('Hỗ trợ luyện phát âm')
+    supports_essay = BooleanField('Hỗ trợ tự luận')
+    supports_listening = BooleanField('Hỗ trợ luyện nghe')
+    supports_speaking = BooleanField('Hỗ trợ luyện nói')
+    
     ai_prompt = TextAreaField('AI Prompt Tùy chỉnh (cho bộ Quiz)',
                               description='Nhập prompt tùy chỉnh để AI tạo câu hỏi. Nếu để trống, hệ thống sẽ sử dụng prompt mặc định.',
                               validators=[Optional()])
@@ -256,6 +271,26 @@ class QuizSetForm(FlaskForm):
         FileAllowed(['xlsx'], 'Chỉ cho phép file Excel (.xlsx)!'),
         Optional()
     ], description='Nếu bạn tải file lên, các thông tin bạn điền ở trên (ngoại trừ Tiêu đề, Mô tả, Tags, Trạng thái) sẽ bị bỏ qua.')
+    
+    # Store settings JSON (MCQ defaults, etc.)
+    settings = HiddenField('Settings')
+    
+    # Display Options (Quick Formatting)
+    display_front_align = SelectField(
+        'Căn lề mặt trước',
+        choices=[('left', 'Trái (Left)'), ('center', 'Giữa (Center)')],
+        default='left',
+        validators=[Optional()]
+    )
+    display_back_align = SelectField(
+        'Căn lề mặt sau',
+        choices=[('left', 'Trái (Left)'), ('center', 'Giữa (Center)')],
+        default='left',
+        validators=[Optional()]
+    )
+    display_force_bold_front = BooleanField('In đậm mặt trước', default=False)
+    display_force_bold_back = BooleanField('In đậm mặt sau', default=False)
+    
     submit = SubmitField('Lưu bộ Quiz')
 
 class QuizItemForm(FlaskForm):
