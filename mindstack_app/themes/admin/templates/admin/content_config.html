@@ -13,10 +13,10 @@ Mục đích: Giao diện cấu hình Nội dung (Quiz & Flashcard) cho Admin (G
     <div class="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
             <h1 class="text-2xl font-bold text-gray-800 flex items-center">
-                <i class="fas fa-cogs mr-3 text-indigo-600"></i>
-                Cấu hình Nội dung
+                <i class="fas fa-chess-knight mr-3 text-indigo-600"></i>
+                Chiến lược & Cấu hình Học tập
             </h1>
-            <p class="text-gray-500 mt-1">Quản lý tham số hệ thống cho các module học tập</p>
+            <p class="text-gray-500 mt-1">Quản lý tham số hệ thống, điểm thưởng và thuật toán FSRS.</p>
         </div>
 
         <!-- Global Actions (Save for active tab) -->
@@ -40,6 +40,13 @@ Mục đích: Giao diện cấu hình Nội dung (Quiz & Flashcard) cho Admin (G
             data-tabs-toggle="#config-tab-content" role="tablist">
             <li class="mr-2" role="presentation">
                 <button class="inline-block p-4 border-b-2 rounded-t-lg hover:text-gray-600 hover:border-gray-300"
+                    id="general-tab" data-tabs-target="#general-content" type="button" role="tab"
+                    aria-controls="general-content" aria-selected="false">
+                    <i class="fas fa-sliders-h mr-2 text-indigo-500"></i>Cấu hình Chung
+                </button>
+            </li>
+            <li class="mr-2" role="presentation">
+                <button class="inline-block p-4 border-b-2 rounded-t-lg hover:text-gray-600 hover:border-gray-300"
                     id="quiz-tab" data-tabs-target="#quiz-content" type="button" role="tab" aria-controls="quiz-content"
                     aria-selected="false">
                     <i class="fas fa-question-circle mr-2 text-purple-500"></i>Quiz Config
@@ -56,6 +63,64 @@ Mục đích: Giao diện cấu hình Nội dung (Quiz & Flashcard) cho Admin (G
     </div>
 
     <div id="config-tab-content">
+
+        <!-- GENERAL TAB -->
+        <div class="hidden p-4 rounded-lg bg-gray-50 dark:bg-gray-800" id="general-content" role="tabpanel"
+            aria-labelledby="general-tab">
+            <form id="general-config-form" data-save-url="{{ url_for('admin.save_general_config') }}"
+                data-reset-url="{{ url_for('admin.reset_general_config') }}">
+                <div class="space-y-6">
+                    {% for group_key, group_data in general_settings.items() %}
+                    <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+                        <div class="bg-gradient-to-r from-gray-50 to-slate-50 px-5 py-4 border-b border-gray-100">
+                            <h2 class="font-semibold text-gray-800 flex items-center">
+                                <i class="{{ group_data.icon }} mr-3 text-slate-500"></i>
+                                {{ group_data.label }}
+                            </h2>
+                        </div>
+                        <div class="p-5 space-y-5">
+                            {% for setting in group_data.settings %}
+                            <div class="border border-gray-100 rounded-lg p-4 hover:border-slate-200 transition-colors">
+                                <div class="flex flex-col lg:flex-row lg:items-start gap-4">
+                                    <div class="lg:w-1/3">
+                                        <label class="block text-sm font-semibold text-gray-800" for="{{ setting.key }}">
+                                            {{ setting.key.replace('CONTENT_', '').replace('_', ' ').title() }}
+                                        </label>
+                                        <code class="text-xs text-gray-400 font-mono">{{ setting.key }}</code>
+                                    </div>
+                                    <div class="lg:w-2/3">
+                                        {% if setting.data_type == 'json' %}
+                                        <textarea id="{{ setting.key }}" name="{{ setting.key }}"
+                                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-slate-500 font-mono text-sm bg-gray-50"
+                                            rows="3" data-type="json">{{ setting.value | tojson }}</textarea>
+                                        {% elif setting.data_type == 'int' %}
+                                        <input type="number" step="1" id="{{ setting.key }}" name="{{ setting.key }}"
+                                            value="{{ setting.value }}"
+                                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-slate-500"
+                                            data-type="int">
+                                        {% else %}
+                                        <input type="text" id="{{ setting.key }}" name="{{ setting.key }}"
+                                            value="{{ setting.value }}"
+                                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-slate-500"
+                                            data-type="string">
+                                        {% endif %}
+                                        <div class="flex items-center justify-between mt-2">
+                                            <span class="text-xs text-gray-400">Mặc định: <code>{{ setting.default }}</code></span>
+                                            <button type="button"
+                                                class="text-xs text-slate-600 hover:text-slate-800 reset-to-default"
+                                                data-key="{{ setting.key }}"
+                                                data-default="{{ setting.default | tojson }}">Khôi phục</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </form>
+        </div>
 
         <!-- QUIZ TAB -->
         <div class="hidden p-4 rounded-lg bg-gray-50 dark:bg-gray-800" id="quiz-content" role="tabpanel"
@@ -223,12 +288,13 @@ Mục đích: Giao diện cấu hình Nội dung (Quiz & Flashcard) cho Admin (G
     document.addEventListener('DOMContentLoaded', function () {
         // --- TABS LOGIC (Tailwind Flowbite-style) ---
         const tabs = [
+            { id: 'general-tab', target: 'general-content' },
             { id: 'quiz-tab', target: 'quiz-content' },
             { id: 'flashcard-tab', target: 'flashcard-content' }
         ];
 
         // Load active tab from localStorage or default to first
-        let activeTabId = localStorage.getItem('adminConfitActiveTab') || 'quiz-tab';
+        let activeTabId = localStorage.getItem('adminConfitActiveTab') || 'general-tab';
 
         function switchTab(tabId) {
             tabs.forEach(tab => {
@@ -278,6 +344,7 @@ Mục đích: Giao diện cấu hình Nội dung (Quiz & Flashcard) cho Admin (G
         }
 
         function getActiveForm() {
+            if (activeTabId === 'general-tab') return document.getElementById('general-config-form');
             if (activeTabId === 'quiz-tab') return document.getElementById('quiz-config-form');
             if (activeTabId === 'flashcard-tab') return document.getElementById('flashcard-config-form');
             return null;

@@ -1,0 +1,48 @@
+{% extends "admin/admin_layout.html" %}
+{% block title %}Nội dung học tập{% endblock %}
+{% block page_title %}Quản lý Nội dung{% endblock %}
+{% block page_subtitle %}Trung tâm quản lý Courses, Flashcards và Quizzes.{% endblock %}
+
+{% block content %}
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+    <a href="{{ url_for('admin.list_content', container_type='course') }}" class="data-card p-6 hover:shadow-lg transition flex items-center gap-4 group">
+        <div class="w-12 h-12 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center text-xl group-hover:scale-110 transition">
+            <i class="fas fa-book-open"></i>
+        </div>
+        <div>
+            <div class="text-2xl font-bold text-slate-800">{{ stats.total_courses }}</div>
+            <div class="text-sm text-slate-500">Khóa học (Courses)</div>
+        </div>
+    </a>
+    
+    <a href="{{ url_for('admin.list_content', container_type='flashcard_set') }}" class="data-card p-6 hover:shadow-lg transition flex items-center gap-4 group">
+        <div class="w-12 h-12 rounded-lg bg-indigo-100 text-indigo-600 flex items-center justify-center text-xl group-hover:scale-110 transition">
+            <i class="fas fa-layer-group"></i>
+        </div>
+        <div>
+            <div class="text-2xl font-bold text-slate-800">{{ stats.total_flashcards }}</div>
+            <div class="text-sm text-slate-500">Bộ Flashcards</div>
+        </div>
+    </a>
+
+    <a href="{{ url_for('admin.list_content', container_type='quiz_set') }}" class="data-card p-6 hover:shadow-lg transition flex items-center gap-4 group">
+        <div class="w-12 h-12 rounded-lg bg-purple-100 text-purple-600 flex items-center justify-center text-xl group-hover:scale-110 transition">
+            <i class="fas fa-question-circle"></i>
+        </div>
+        <div>
+            <div class="text-2xl font-bold text-slate-800">{{ stats.total_quizzes }}</div>
+            <div class="text-sm text-slate-500">Bộ Quiz</div>
+        </div>
+    </a>
+</div>
+
+<div class="data-card bg-white p-8 text-center text-slate-500">
+    <p class="mb-4">Chọn một loại nội dung ở trên để bắt đầu quản lý.</p>
+    <div class="inline-flex gap-2 text-xs">
+        <span class="px-2 py-1 bg-slate-100 rounded">Create</span>
+        <span class="px-2 py-1 bg-slate-100 rounded">Edit</span>
+        <span class="px-2 py-1 bg-slate-100 rounded">Delete</span>
+        <span class="px-2 py-1 bg-slate-100 rounded">Audit</span>
+    </div>
+</div>
+{% endblock %}

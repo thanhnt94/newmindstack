@@ -126,53 +126,65 @@
             </div>
 
             <nav class="px-4 py-6 space-y-1 overflow-y-auto flex-1">
-                {% set nav_items = [
-                {'key': 'home', 'label': 'Trang chủ', 'icon': 'fa-house', 'endpoint': 'landing.index'},
-                {'key': 'dashboard', 'label': 'Tổng quan', 'icon': 'fa-chart-line', 'endpoint':
-                'admin.admin_dashboard'},
-                {'key': 'users', 'label': 'Người dùng', 'icon': 'fa-users', 'endpoint': 'user_management.manage_users'},
-                {'key': 'badges', 'label': 'Gamification', 'icon': 'fa-medal', 'endpoint': 'gamification.list_badges'},
-                {'key': 'content', 'label': 'Nội dung học tập', 'icon': 'fa-layer-group', 'endpoint':
-                'content_management.content_dashboard'},
-                {'key': 'api_keys', 'label': 'AI Coach', 'icon': 'fa-robot', 'endpoint':
-                'ai_admin.dashboard'},
-                {'key': 'media', 'label': 'Thư viện Media', 'icon': 'fa-photo-video', 'endpoint':
-                'admin.media_library'},
-                {'key': 'audio_studio', 'label': 'Audio Studio', 'icon': 'fa-sliders', 'endpoint':
-                'audio.admin_audio_studio'},
-                {'key': 'tasks', 'label': 'Tác vụ nền', 'icon': 'fa-diagram-project', 'endpoint':
-                'admin.manage_background_tasks'},
-                {'key': 'modules', 'label': 'Quản lý Module', 'icon': 'fa-puzzle-piece', 'endpoint':
-                'admin.manage_modules'},
-                {'key': 'templates', 'label': 'Giao diện', 'icon': 'fa-palette', 'endpoint':
-                'admin.manage_templates'},
-                {'key': 'fsrs_config', 'label': 'FSRS Configuration', 'icon': 'fa-brain', 'endpoint':
-                'admin.fsrs_config'},
-                {'key': 'content_config', 'label': 'Cấu hình Nội dung', 'icon': 'fa-cogs', 'endpoint':
-                'admin.content_config_page'},
-
-                {'key': 'settings', 'label': 'Cài đặt hệ thống', 'icon': 'fa-sliders-h', 'endpoint':
-                'admin.manage_system_settings'},
-
-                {'key': 'backup', 'label': 'Sao lưu & khôi phục', 'icon': 'fa-database', 'endpoint':
-                'admin.manage_backup_restore'},
+                {% set nav_groups = [
+                    {
+                        'title': 'Tổng quan',
+                        'items': [
+                            {'key': 'dashboard', 'label': 'Dashboard', 'icon': 'fa-chart-line', 'endpoint': 'admin.admin_dashboard'},
+                        ]
+                    },
+                    {
+                        'title': 'Học tập & AI',
+                        'items': [
+                            {'key': 'content', 'label': 'Nội dung (CMS)', 'icon': 'fa-layer-group', 'endpoint': 'admin.content_dashboard'},
+                            {'key': 'api_keys', 'label': 'AI Console', 'icon': 'fa-robot', 'endpoint': 'ai_admin.dashboard'},
+                            {'key': 'audio_studio', 'label': 'Audio Studio', 'icon': 'fa-microphone-lines', 'endpoint': 'audio.admin_audio_studio'},
+                        ]
+                    },
+                    {
+                        'title': 'Người dùng & Game',
+                        'items': [
+                            {'key': 'users', 'label': 'Người dùng', 'icon': 'fa-users', 'endpoint': 'user_management.manage_users'},
+                            {'key': 'badges', 'label': 'Huy hiệu (Badges)', 'icon': 'fa-medal', 'endpoint': 'gamification.list_badges'},
+                        ]
+                    },
+                    {
+                        'title': 'Cấu hình hệ thống',
+                        'items': [
+                            {'key': 'content_config', 'label': 'Chiến lược Học tập', 'icon': 'fa-chess-knight', 'endpoint': 'admin.content_config_page'},
+                            {'key': 'settings', 'label': 'Cài đặt hệ thống', 'icon': 'fa-sliders-h', 'endpoint': 'admin.manage_system_settings'},
+                            {'key': 'templates', 'label': 'Giao diện (Themes)', 'icon': 'fa-palette', 'endpoint': 'admin.manage_templates'},
+                            {'key': 'modules', 'label': 'Modules', 'icon': 'fa-puzzle-piece', 'endpoint': 'admin.manage_modules'},
+                        ]
+                    },
+                    {
+                        'title': 'Vận hành (Ops)',
+                        'items': [
+                            {'key': 'tasks', 'label': 'Tác vụ nền', 'icon': 'fa-diagram-project', 'endpoint': 'admin.manage_background_tasks'},
+                            {'key': 'media', 'label': 'File Manager', 'icon': 'fa-folder-open', 'endpoint': 'admin.media_library'},
+                            {'key': 'backup', 'label': 'Backup & Restore', 'icon': 'fa-database', 'endpoint': 'admin.manage_backup_restore'},
+                        ]
+                    }
                 ] %}
-                {% for item in nav_items %}
-                <a href="{{ url_for(item.endpoint) }}"
-                    class="admin-sidebar-link {% if active_page == item.key %}is-active{% else %}text-slate-200{% endif %}">
-                    <span class="w-5 text-center"><i class="fas {{ item.icon }}"></i></span>
-                    <span>{{ item.label }}</span>
-                    {% if item.key == 'tasks' and admin_sidebar_metrics.running_tasks %}
-                    <span class="ml-auto admin-chip bg-amber-100 text-amber-700">{{ admin_sidebar_metrics.running_tasks
-                        }}</span>
-                    {% endif %}
-                    {% if item.key == 'settings' and admin_sidebar_metrics.maintenance_mode %}
-                    <span class="ml-auto admin-chip bg-rose-100 text-rose-700">Bảo trì</span>
-                    {% endif %}
-                    {% if item.key == 'templates' %}
-                    <span class="ml-auto admin-chip bg-indigo-100 text-indigo-700">{{ template_version|upper }}</span>
-                    {% endif %}
-                </a>
+
+                {% for group in nav_groups %}
+                    <div class="pt-4 pb-2 px-3 text-xs font-bold text-slate-500 uppercase tracking-wider">{{ group.title }}</div>
+                    {% for item in group['items'] %}
+                    <a href="{{ url_for(item.endpoint) }}"
+                        class="admin-sidebar-link {% if active_page == item.key %}is-active{% else %}text-slate-200{% endif %}">
+                        <span class="w-5 text-center"><i class="fas {{ item.icon }}"></i></span>
+                        <span>{{ item.label }}</span>
+                        {% if item.key == 'tasks' and admin_sidebar_metrics.running_tasks %}
+                        <span class="ml-auto admin-chip bg-amber-100 text-amber-700">{{ admin_sidebar_metrics.running_tasks }}</span>
+                        {% endif %}
+                        {% if item.key == 'settings' and admin_sidebar_metrics.maintenance_mode %}
+                        <span class="ml-auto admin-chip bg-rose-100 text-rose-700">Bảo trì</span>
+                        {% endif %}
+                        {% if item.key == 'templates' %}
+                        <span class="ml-auto admin-chip bg-indigo-100 text-indigo-700">{{ template_version|upper }}</span>
+                        {% endif %}
+                    </a>
+                    {% endfor %}
                 {% endfor %}
             </nav>
 

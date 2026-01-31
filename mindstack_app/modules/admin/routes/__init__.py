@@ -1,2 +1,2 @@
 # File: mindstack_app/modules/admin/routes/__init__.py
-from . import auth, dashboard, media, tasks, modules, settings, backup, templates, fsrs, content_config
+from . import auth, dashboard, media, tasks, modules, settings, backup, templates, fsrs, content_config, content
