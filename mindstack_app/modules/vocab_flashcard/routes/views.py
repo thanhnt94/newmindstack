@@ -3,11 +3,17 @@
 # MỤC ĐÍCH: Entry point routes cho chế độ học flashcard cá nhân.
 # Routes này sử dụng engine module như dependency.
 
-from flask import render_template, request, jsonify, abort, current_app, redirect, url_for, flash, session
+from flask import Blueprint, render_template, request, jsonify, abort, current_app, redirect, url_for, flash, session
 from mindstack_app.utils.template_helpers import render_dynamic_template
 from flask_login import login_required, current_user
 import traceback
-from . import flashcard_learning_bp
+import os
+
+# Define Blueprint here
+flashcard_learning_bp = Blueprint(
+    'flashcard_learning',
+    __name__
+)
 
 # Import từ engine module
 from ..engine.session_manager import FlashcardSessionManager
@@ -128,7 +134,7 @@ def setup(set_id):
     
     # Check access
     if not container.is_public and container.creator_user_id != current_user.user_id:
-        from mindstack_app.modules.vocab_flashcard.individual.routes import _user_can_edit_flashcard
+        from mindstack_app.modules.vocab_flashcard.routes.views import _user_can_edit_flashcard
         if not _user_can_edit_flashcard(set_id):
              abort(403)
         

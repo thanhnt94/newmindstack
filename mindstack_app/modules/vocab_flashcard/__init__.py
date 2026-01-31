@@ -16,9 +16,9 @@ module_metadata = {
 
 def setup_module(app):
     """Register sub-blueprints for the flashcard module."""
-    from .dashboard import dashboard_bp
-    from .individual import flashcard_learning_bp
-    from .collab.routes import flashcard_collab_bp
+    from .routes.dashboard import dashboard_bp
+    from .routes.views import flashcard_learning_bp
+    from .routes.collab import flashcard_collab_bp
     
     blueprint.register_blueprint(dashboard_bp)
     blueprint.register_blueprint(flashcard_learning_bp)

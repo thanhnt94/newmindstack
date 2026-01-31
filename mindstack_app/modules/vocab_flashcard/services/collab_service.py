@@ -21,7 +21,7 @@ from mindstack_app.models import (
     db,
 )
 from mindstack_app.utils.media_paths import build_relative_media_path
-from ..individual import algorithms
+from ..engine import algorithms
 
 
 def generate_room_code(length: int = 6) -> str:

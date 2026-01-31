@@ -20,11 +20,11 @@ from mindstack_app.models import (
     User,
     db,
 )
-from ..individual.algorithms import get_accessible_flashcard_set_ids
-from ..individual.config import FlashcardLearningConfig
+from ..engine.algorithms import get_accessible_flashcard_set_ids
+from ..engine.config import FlashcardLearningConfig
 from ..engine.core import FlashcardEngine
-from .flashcard_collab_logic import calculate_room_srs
-from .services import build_round_payload, ensure_active_round, generate_room_code, serialize_room
+from ..logics.collab_logic import calculate_room_srs
+from ..services.collab_service import build_round_payload, ensure_active_round, generate_room_code, serialize_room
 from ..dashboard.routes import _build_dashboard_context
 import os
 

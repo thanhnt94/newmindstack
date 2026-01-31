@@ -1,8 +1,13 @@
-from flask import render_template, request
+from flask import Blueprint, render_template, request
 from mindstack_app.utils.template_helpers import render_dynamic_template
 from flask_login import current_user, login_required
-from . import dashboard_bp
-from ..individual.config import FlashcardLearningConfig
+from ..engine.config import FlashcardLearningConfig
+
+dashboard_bp = Blueprint(
+    'flashcard_dashboard_internal',
+    __name__,
+)
+
 
 def _build_dashboard_context(user):
     search_query = request.args.get('q', '', type=str)
