@@ -63,6 +63,7 @@ def init_infrastructure(app: Flask):
 
 def load_modules(app: Flask):
     """Quét và nạp các module từ mindstack_app/modules/"""
+    # Force reload trigger
     modules_dir = os.path.join(app.root_path, 'modules')
     
     for module_name in os.listdir(modules_dir):

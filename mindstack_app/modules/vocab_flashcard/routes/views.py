@@ -1162,7 +1162,7 @@ def regenerate_audio_from_content():
         loop.close()
 
 
-@flashcard_learning_bp.route('/flashcard/api/preview_fsrs', methods=['POST'])
+@flashcard_learning_bp.route('/api/preview_fsrs', methods=['POST'])
 @login_required
 def preview_fsrs():
     """

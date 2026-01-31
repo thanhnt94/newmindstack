@@ -26,9 +26,6 @@ def manage_system_settings():
     """
     Mô tả: Quản lý các cài đặt hệ thống.
     """
-    maintenance_mode = AppSettings.get('MAINTENANCE_MODE', False)
-    maintenance_end_time = AppSettings.get('MAINTENANCE_END_TIME', '')
-        
     telegram_token_setting = AppSettings.query.get('telegram_bot_token')
 
     raw_settings = AppSettings.query.order_by(AppSettings.key.asc()).all()
@@ -66,7 +63,6 @@ def manage_system_settings():
 
     return render_template(
         'admin/system_settings.html',
-        maintenance_mode=maintenance_mode,
         telegram_token_setting=telegram_token_setting,
         core_settings=get_core_settings(),
         grouped_core_settings=get_grouped_core_settings(),
@@ -75,29 +71,8 @@ def manage_system_settings():
         category_labels=SETTING_CATEGORY_LABELS,
         data_type_options=data_type_options,
         users=users,
-        quiz_sets=quiz_sets,
-        maintenance_end_time=maintenance_end_time
+        quiz_sets=quiz_sets
     )
-
-@blueprint.route('/settings', methods=['POST'])
-def save_maintenance_mode():
-    """Lưu chế độ bảo trì."""
-    maintenance_mode = 'maintenance_mode' in request.form
-    maintenance_end_time = request.form.get('maintenance_end_time', '')
-
-    try:
-        AppSettings.set('MAINTENANCE_MODE', maintenance_mode, category='system', description='Chế độ bảo trì')
-        AppSettings.set('MAINTENANCE_END_TIME', maintenance_end_time, category='system', description='Thời gian kết thúc bảo trì')
-        db.session.commit()
-        
-        refresh_runtime_settings()
-        flash('Cài đặt hệ thống đã được cập nhật thành công!', 'success')
-    except Exception as e:
-        db.session.rollback()
-        flash(f'Lỗi cập nhật: {str(e)}', 'danger')
-        
-    return redirect(url_for('admin.manage_system_settings'))
-
 
 @blueprint.route('/settings/telegram-token', methods=['POST'])
 def save_telegram_token():

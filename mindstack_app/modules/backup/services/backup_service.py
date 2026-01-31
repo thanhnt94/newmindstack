@@ -1,4 +1,4 @@
-# File: mindstack_app/modules/admin/services/backup_service.py
+# File: mindstack_app/modules/backup/services/backup_service.py
 import os
 import io
 import csv
@@ -8,7 +8,7 @@ import zipfile
 import tempfile
 from collections import OrderedDict
 from datetime import datetime, date, time
-from typing import Optional
+from typing import Optional, Dict
 
 from flask import current_app
 from sqlalchemy.sql.sqltypes import DateTime, Date, Time
@@ -114,79 +114,6 @@ DATASET_CATALOG: "OrderedDict[str, dict[str, object]]" = OrderedDict(
         },
     }
 )
-
-
-def reset_system_data(scope):
-    """
-    Reset dữ liệu hệ thống dựa trên phạm vi (scope).
-    scope: 'progress' (chỉ xóa tiến độ), 'full_factory' (xóa tất cả trừ admin hiện tại).
-    """
-    if scope == 'progress':
-        models_to_clear = [
-            LearningProgress, UserContainerState, ScoreLog, LearningSession, ReviewLog, 
-            UserItemMarker, UserGoal, GoalProgress, Note, UserBadge, Streak,
-            TranslationHistory, AiTokenLog, AiCache, BackgroundTaskLog,
-            Notification, UserMetric, DailyStat, 
-            QuizBattleRoom, FlashcardCollabRoom # Cascades should handle children
-        ]
-    elif scope == 'full_factory':
-        # Clear everything but keep the current Admin User session alive if possible (or just wipe all users except specific ones)
-        # For simplicity in 'factory reset', we usually wipe content too.
-        models_to_clear = [
-            # Content
-            LearningItem, LearningGroup, LearningContainer,
-            # Progress & Logs
-            LearningProgress, UserContainerState, ScoreLog, LearningSession, ReviewLog, 
-            UserItemMarker, UserGoal, GoalProgress, Note, UserBadge, Badge, Streak,
-            Feedback, FeedbackAttachment,
-            TranslationHistory, AiTokenLog, AiCache, BackgroundTaskLog,
-            Notification, PushSubscription, NotificationPreference,
-            UserMetric, DailyStat, Achievement,
-            QuizBattleRoom, FlashcardCollabRoom,
-            # Configurations (maybe keep AppSettings?)
-            ApiKey, BackgroundTask
-        ]
-        # Users are special, we might want to delete all non-admins or all users.
-        # Handling users in a generic list is risky for the current session.
-        # We will handle users separately in the controller or here if passed logic.
-    else:
-        raise ValueError("Invalid reset scope")
-
-    try:
-        if db.session.is_active:
-            db.session.rollback()
-        
-        # Disable foreign key checks for SQLite to allow bulk deletion order independence if needed (optional but recommended for full wipes)
-        if 'sqlite' in str(db.engine.url):
-             db.session.execute(db.text('PRAGMA foreign_keys=OFF;'))
-
-        for model in models_to_clear:
-            try:
-                db.session.query(model).delete()
-            except Exception as e:
-                current_app.logger.warning(f"Could not delete {model.__tablename__}: {e}")
-
-        if scope == 'full_factory':
-             # Handle Users: Delete all non-admin users? Or delete all except current?
-             # For a true factory reset, we often want to delete ALL courses/content but Keep the Admin account.
-             # Let's delete all users except those with role='admin' to be safe?
-             # Or just delete everything.
-             # Strategy: Delete all users where id != current_user.id (passed from caller? No, service doesn't know user)
-             # We will just leave Users alone in this list and let the caller handle User cleanup if needed, 
-             # OR we add User to the list but exclude 1.
-             pass
-
-        db.session.commit()
-        
-        if 'sqlite' in str(db.engine.url):
-             db.session.execute(db.text('PRAGMA foreign_keys=ON;'))
-
-        return True
-    except Exception as e:
-        db.session.rollback()
-        current_app.logger.error(f"Reset Data Error: {e}")
-        raise e
-
 
 def resolve_database_path():
     uri = get_runtime_config('SQLALCHEMY_DATABASE_URI', Config.SQLALCHEMY_DATABASE_URI)
@@ -378,54 +305,61 @@ def apply_dataset_restore(dataset_key, payload):
                     setattr(instance, column.name, coerce_column_value(column, record[column.name]))
                 db.session.add(instance)
 
-def restore_from_uploaded_bytes(raw_bytes, dataset_hint=None):
+def restore_from_uploaded_bytes(raw_bytes, dataset_hint=None) -> Dict[str, object]:
     if not raw_bytes:
-        raise ValueError('File tải lên rỗng.')
+        return {'success': False, 'error': 'File tải lên rỗng.'}
     buffer = io.BytesIO(raw_bytes)
-    if zipfile.is_zipfile(buffer):
-        buffer.seek(0)
-        with zipfile.ZipFile(buffer) as zipf:
-            manifest_data, _ = read_backup_manifest(zipf)
-            manifest_type = manifest_data.get('type') if isinstance(manifest_data, dict) else None
-            if manifest_type == 'full':
-                includes_uploads = bool(manifest_data.get('includes_uploads', False))
-                restore_backup_from_zip(zipf, restore_database=True, restore_uploads=includes_uploads)
-                return 'full', None
-            if manifest_type == 'database':
-                restore_backup_from_zip(zipf, restore_database=True, restore_uploads=False)
-                return 'database', None
-            dataset_key = None
-            if dataset_hint and dataset_hint in DATASET_CATALOG:
-                dataset_key = dataset_hint
-            elif manifest_data and isinstance(manifest_data, dict):
-                manifest_dataset = manifest_data.get('dataset')
-                if isinstance(manifest_dataset, str) and manifest_dataset in DATASET_CATALOG:
-                    dataset_key = manifest_dataset
-            if not dataset_key:
-                dataset_key = infer_dataset_key_from_zip(zipf)
-            if dataset_key:
-                payload = extract_dataset_payload_from_zip(zipf, dataset_key)
-                if not payload:
-                    raise ValueError('Không tìm thấy dữ liệu hợp lệ trong gói sao lưu.')
-                apply_dataset_restore(dataset_key, payload)
-                return 'dataset', dataset_key
-        raise ValueError('Không thể xác định loại gói sao lưu từ file ZIP đã tải lên.')
     try:
-        text = raw_bytes.decode('utf-8')
-    except UnicodeDecodeError as exc:
-        raise ValueError('File tải lên không phải là file ZIP hoặc JSON hợp lệ.') from exc
-    data = json.loads(text)
-    if not isinstance(data, dict):
-        raise ValueError('Định dạng JSON không hợp lệ. Hãy tải lên file JSON chứa dữ liệu bảng.')
-    dataset_key = None
-    if dataset_hint and dataset_hint in DATASET_CATALOG:
-        dataset_key = dataset_hint
-    else:
-        dataset_key = infer_dataset_key_from_json(data)
-    if not dataset_key:
-        raise ValueError('Không thể xác định dataset phù hợp cho dữ liệu đã tải lên.')
-    payload = {table: records for table, records in data.items() if isinstance(records, list)}
-    if not payload:
-        raise ValueError('Không tìm thấy dữ liệu hợp lệ trong file JSON đã tải lên.')
-    apply_dataset_restore(dataset_key, payload)
-    return 'dataset', dataset_key
+        if zipfile.is_zipfile(buffer):
+            buffer.seek(0)
+            with zipfile.ZipFile(buffer) as zipf:
+                manifest_data, _ = read_backup_manifest(zipf)
+                manifest_type = manifest_data.get('type') if isinstance(manifest_data, dict) else None
+                if manifest_type == 'full':
+                    includes_uploads = bool(manifest_data.get('includes_uploads', False))
+                    restore_backup_from_zip(zipf, restore_database=True, restore_uploads=includes_uploads)
+                    return {'success': True, 'message': 'Đã khôi phục toàn bộ hệ thống (Full Backup).'}
+                if manifest_type == 'database':
+                    restore_backup_from_zip(zipf, restore_database=True, restore_uploads=False)
+                    return {'success': True, 'message': 'Đã khôi phục cơ sở dữ liệu.'}
+                dataset_key = None
+                if dataset_hint and dataset_hint in DATASET_CATALOG:
+                    dataset_key = dataset_hint
+                elif manifest_data and isinstance(manifest_data, dict):
+                    manifest_dataset = manifest_data.get('dataset')
+                    if isinstance(manifest_dataset, str) and manifest_dataset in DATASET_CATALOG:
+                        dataset_key = manifest_dataset
+                if not dataset_key:
+                    dataset_key = infer_dataset_key_from_zip(zipf)
+                if dataset_key:
+                    payload = extract_dataset_payload_from_zip(zipf, dataset_key)
+                    if not payload:
+                        return {'success': False, 'error': 'Không tìm thấy dữ liệu hợp lệ trong gói sao lưu.'}
+                    apply_dataset_restore(dataset_key, payload)
+                    return {'success': True, 'message': f"Đã khôi phục dataset '{DATASET_CATALOG[dataset_key]['label']}'."}
+            return {'success': False, 'error': 'Không thể xác định loại gói sao lưu từ file ZIP.'}
+        
+        try:
+            text = raw_bytes.decode('utf-8')
+        except UnicodeDecodeError as exc:
+            return {'success': False, 'error': 'File tải lên không phải là file ZIP hoặc JSON hợp lệ.'}
+        
+        data = json.loads(text)
+        if not isinstance(data, dict):
+            return {'success': False, 'error': 'Định dạng JSON không hợp lệ.'}
+        dataset_key = None
+        if dataset_hint and dataset_hint in DATASET_CATALOG:
+            dataset_key = dataset_hint
+        else:
+            dataset_key = infer_dataset_key_from_json(data)
+        if not dataset_key:
+            return {'success': False, 'error': 'Không thể xác định dataset phù hợp cho dữ liệu đã tải lên.'}
+        payload = {table: records for table, records in data.items() if isinstance(records, list)}
+        if not payload:
+            return {'success': False, 'error': 'Không tìm thấy dữ liệu hợp lệ trong file JSON.'}
+        apply_dataset_restore(dataset_key, payload)
+        return {'success': True, 'message': f"Đã khôi phục dataset '{DATASET_CATALOG[dataset_key]['label']}' từ JSON."}
+        
+    except Exception as e:
+        current_app.logger.error(f"Restore error: {e}")
+        return {'success': False, 'error': str(e)}

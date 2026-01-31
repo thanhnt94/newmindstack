@@ -19,15 +19,12 @@
 using the .flashcard-session-active class on the body #}
 
 {# Flashcard Session CSS - External Files stored in template directory #}
-{# ... imports ... #}
-<link rel="stylesheet"
-    href="{{ url_for('vocab_flashcard.flashcard_learning.serve_session_asset', filename='css/core.css') }}">
+{# Missing files commented out #}
+{# <link rel="stylesheet" href="{{ url_for('vocab_flashcard.flashcard_learning.serve_session_asset', filename='css/core.css') }}"> #}
 <link rel="stylesheet"
     href="{{ url_for('vocab_flashcard.flashcard_learning.serve_session_asset', filename='css/session.css') }}">
-<link rel="stylesheet"
-    href="{{ url_for('vocab_flashcard.flashcard_learning.serve_session_asset', filename='css/card.css') }}">
-<link rel="stylesheet"
-    href="{{ url_for('vocab_flashcard.flashcard_learning.serve_session_asset', filename='css/components.css') }}">
+{# <link rel="stylesheet" href="{{ url_for('vocab_flashcard.flashcard_learning.serve_session_asset', filename='css/card.css') }}"> #}
+{# <link rel="stylesheet" href="{{ url_for('vocab_flashcard.flashcard_learning.serve_session_asset', filename='css/components.css') }}"> #}
 
 {% include _v ~ '/includes/assets/_markdown_assets.html' %}
 {% endblock %}

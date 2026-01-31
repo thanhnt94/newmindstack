@@ -202,7 +202,7 @@ Mục đích: Giao diện cấu hình pure FSRS v5 (thay thế SRS cũ)
         };
 
         try {
-            const response = await fetch("{{ url_for('admin.save_fsrs_config') }}", {
+            const response = await fetch("{{ url_for('fsrs.save_config') }}", {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

@@ -151,8 +151,11 @@
                     {
                         'title': 'Cấu hình hệ thống',
                         'items': [
-                            {'key': 'content_config', 'label': 'Chiến lược Học tập', 'icon': 'fa-chess-knight', 'endpoint': 'admin.content_config_page'},
-                            {'key': 'settings', 'label': 'Cài đặt hệ thống', 'icon': 'fa-sliders-h', 'endpoint': 'admin.manage_system_settings'},
+                            {'key': 'content_config', 'label': 'Cấu hình Upload & Quyền', 'icon': 'fa-sliders-h', 'endpoint': 'admin.content_config_page'},
+                            {'key': 'scoring', 'label': 'Quản lý Điểm số', 'icon': 'fa-trophy', 'endpoint': 'scoring.dashboard'},
+                            {'key': 'fsrs_config', 'label': 'Cấu hình FSRS', 'icon': 'fa-brain', 'endpoint': 'fsrs.config_page'},
+                            {'key': 'maintenance', 'label': 'Chế độ Bảo trì', 'icon': 'fa-wrench', 'endpoint': 'maintenance.admin_dashboard'},
+                            {'key': 'settings', 'label': 'Cài đặt hệ thống', 'icon': 'fa-cogs', 'endpoint': 'admin.manage_system_settings'},
                             {'key': 'templates', 'label': 'Giao diện (Themes)', 'icon': 'fa-palette', 'endpoint': 'admin.manage_templates'},
                             {'key': 'modules', 'label': 'Modules', 'icon': 'fa-puzzle-piece', 'endpoint': 'admin.manage_modules'},
                         ]
@@ -162,7 +165,8 @@
                         'items': [
                             {'key': 'tasks', 'label': 'Tác vụ nền', 'icon': 'fa-diagram-project', 'endpoint': 'admin.manage_background_tasks'},
                             {'key': 'media', 'label': 'File Manager', 'icon': 'fa-folder-open', 'endpoint': 'admin.media_library'},
-                            {'key': 'backup', 'label': 'Backup & Restore', 'icon': 'fa-database', 'endpoint': 'admin.manage_backup_restore'},
+                            {'key': 'backup', 'label': 'Backup & Restore', 'icon': 'fa-database', 'endpoint': 'backup.manage_backup_restore'},
+                            {'key': 'ops_reset', 'label': 'System Reset', 'icon': 'fa-radiation', 'endpoint': 'ops.reset_page'},
                         ]
                     }
                 ] %}
@@ -229,21 +233,29 @@
         <div class="flex-1 flex flex-col min-h-screen lg:h-screen overflow-hidden">
             <header class="bg-white border-b border-slate-200 sticky top-0 z-30">
                 <div class="flex items-center justify-between px-4 py-4 lg:px-8">
-                    <div class="flex items-center gap-3">
-                        <button
-                            class="lg:hidden w-10 h-10 rounded-lg bg-slate-900 text-white flex items-center justify-center"
-                            data-sidebar-toggle>
-                            <i class="fas fa-bars"></i>
-                        </button>
-                        <div>
-                            <h1 class="text-xl font-semibold text-slate-900">
-                                {% block page_title %}Bảng điều khiển quản trị{% endblock %}
-                            </h1>
-                            <p class="text-sm text-slate-500 mt-1">
-                                {% block page_subtitle %}Quản lý mọi thứ của Mindstack trong một bảng điều khiển trực
-                                quan.{% endblock %}
-                            </p>
+                    <div class="flex items-center justify-between w-full lg:w-auto lg:justify-start lg:gap-6">
+                        <div class="flex items-center gap-3">
+                            <button
+                                class="lg:hidden w-10 h-10 rounded-lg bg-slate-900 text-white flex items-center justify-center"
+                                data-sidebar-toggle>
+                                <i class="fas fa-bars"></i>
+                            </button>
+                            <div>
+                                <h1 class="text-xl font-semibold text-slate-900">
+                                    {% block page_title %}Bảng điều khiển quản trị{% endblock %}
+                                </h1>
+                                <p class="text-sm text-slate-500 mt-1">
+                                    {% block page_subtitle %}Quản lý mọi thứ của Mindstack trong một bảng điều khiển trực
+                                    quan.{% endblock %}
+                                </p>
+                            </div>
                         </div>
+                        <!-- Home Button -->
+                        <a href="{{ url_for('landing.index') }}" 
+                           class="w-10 h-10 rounded-lg bg-slate-50 text-slate-500 flex items-center justify-center hover:bg-white hover:text-indigo-600 border border-slate-200 shadow-sm transition-all duration-200" 
+                           title="Về trang chủ">
+                            <i class="fas fa-house"></i>
+                        </a>
                     </div>
                     <div class="hidden lg:flex items-center gap-4 text-sm text-slate-500">
                         <div class="text-right">
