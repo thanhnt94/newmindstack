@@ -586,7 +586,7 @@
         // Actually, let's just fetch. It's fast.
 
         // Call Backend API
-        fetch('/learn/flashcard/api/preview_fsrs', {
+        fetch('/learn/vocab-flashcard/api/preview_fsrs', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
