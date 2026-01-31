@@ -1794,7 +1794,7 @@
   const mobileRoundStepEl = document.getElementById('collab-round-step-mobile');
   const autoplayToggleButtons = document.querySelectorAll('.collab-autoplay-toggle-btn');
 
-  const editUrlTemplate = {{ url_for('content_management.content_management_flashcards.edit_flashcard_item', set_id = room_payload.container_id, item_id = 0) | tojson }};
+  const editUrlTemplate = {{ url_for('content_management.edit_flashcard_item', set_id = room_payload.container_id, item_id = 0) | tojson }};
 
   let isMediaHidden = false;
   let isAudioAutoplayEnabled = true;

@@ -25,7 +25,7 @@ from ..engine.config import FlashcardLearningConfig
 from ..engine.core import FlashcardEngine
 from ..logics.collab_logic import calculate_room_srs
 from ..services.collab_service import build_round_payload, ensure_active_round, generate_room_code, serialize_room
-from ..dashboard.routes import _build_dashboard_context
+from .dashboard import _build_dashboard_context
 import os
 
 # Calculate absolute path to the templates folder (one level up)

@@ -1168,7 +1168,7 @@
             if (csrfToken) headers['X-CSRFToken'] = csrfToken;
 
             const processExcelUrl = new URL(
-                "{{ url_for('content_management.content_management_flashcards.process_excel_info') }}",
+                "{{ url_for('content_management.process_excel_info') }}",
                 window.location.origin
             ).toString();
 

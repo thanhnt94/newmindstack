@@ -26,8 +26,8 @@
         </div>
         {% if can_edit %}
         <div class="cm-actions">
-            <a href="{{ url_for('content_management.content_management_flashcards.add_flashcard_item', set_id=flashcard_set.container_id) }}"
-                data-modal-url="{{ url_for('content_management.content_management_flashcards.add_flashcard_item', set_id=flashcard_set.container_id) }}"
+            <a href="{{ url_for('content_management.add_flashcard_item', set_id=flashcard_set.container_id) }}"
+                data-modal-url="{{ url_for('content_management.add_flashcard_item', set_id=flashcard_set.container_id) }}"
                 class="open-modal-btn cm-action cm-action--primary">
                 <i class="fas fa-plus-circle"></i>
                 <span>Thêm thẻ mới</span>
@@ -136,8 +136,8 @@
 
             <div class="cm-divider"></div>
             <div class="flex items-center justify-between">
-                <a href="{{ url_for('content_management.content_management_flashcards.edit_flashcard_item', set_id=flashcard_set.container_id, item_id=item.item_id) }}"
-                    data-modal-url="{{ url_for('content_management.content_management_flashcards.edit_flashcard_item', set_id=flashcard_set.container_id, item_id=item.item_id) }}"
+                <a href="{{ url_for('content_management.edit_flashcard_item', set_id=flashcard_set.container_id, item_id=item.item_id) }}"
+                    data-modal-url="{{ url_for('content_management.edit_flashcard_item', set_id=flashcard_set.container_id, item_id=item.item_id) }}"
                     class="open-modal-btn cm-link">
                     <i class="fa-solid fa-pen-to-square"></i>
                     <span>Mở trình chỉnh sửa</span>
@@ -145,12 +145,12 @@
                 {% if can_edit %}
                 <div class="cm-inline-actions">
                     <button type="button"
-                        data-modal-url="{{ url_for('content_management.content_management_flashcards.edit_flashcard_item', set_id=flashcard_set.container_id, item_id=item.item_id) }}"
+                        data-modal-url="{{ url_for('content_management.edit_flashcard_item', set_id=flashcard_set.container_id, item_id=item.item_id) }}"
                         class="open-modal-btn cm-icon-button" title="Chỉnh sửa">
                         <i class="fa-solid fa-pen"></i>
                     </button>
                     <form
-                        action="{{ url_for('content_management.content_management_flashcards.delete_flashcard_item', set_id=flashcard_set.container_id, item_id=item.item_id) }}"
+                        action="{{ url_for('content_management.delete_flashcard_item', set_id=flashcard_set.container_id, item_id=item.item_id) }}"
                         method="post" onsubmit="return confirm('Bạn có chắc chắn muốn xóa thẻ này?');">
                         <button type="submit" class="cm-icon-button" title="Xoá thẻ">
                             <i class="fa-solid fa-trash"></i>
@@ -175,8 +175,8 @@
         </span>
         <p class="text-sm">Bộ thẻ này chưa có thẻ nào hoặc không tìm thấy kết quả phù hợp.</p>
         {% if can_edit %}
-        <a href="{{ url_for('content_management.content_management_flashcards.add_flashcard_item', set_id=flashcard_set.container_id) }}"
-            data-modal-url="{{ url_for('content_management.content_management_flashcards.add_flashcard_item', set_id=flashcard_set.container_id) }}"
+        <a href="{{ url_for('content_management.add_flashcard_item', set_id=flashcard_set.container_id) }}"
+            data-modal-url="{{ url_for('content_management.add_flashcard_item', set_id=flashcard_set.container_id) }}"
             class="open-modal-btn cm-action cm-action--primary">
             <i class="fas fa-plus-circle"></i>
             <span>Thêm thẻ đầu tiên</span>

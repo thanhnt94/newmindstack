@@ -1,1 +1,1 @@
-from . import views, media, api
+from . import views, media, api, flashcards
