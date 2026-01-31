@@ -707,8 +707,7 @@
         <div class="flex items-center gap-2 text-sm text-slate-500">
             <a href="/" class="hover:text-blue-600"><i class="fa-solid fa-house"></i></a>
             <span class="text-slate-300">/</span>
-            <a href="{{ url_for('quiz.quiz_battle_dashboard') }}"
-                class="hover:text-blue-600 font-medium">Quiz
+            <a href="{{ url_for('quiz.quiz_battle_dashboard') }}" class="hover:text-blue-600 font-medium">Quiz
                 Battle</a>
             <span class="text-slate-300">/</span>
             <span class="font-bold text-slate-800">{{ room_title }}</span>
@@ -2011,7 +2010,7 @@
         if (!confirm('Rời phòng?')) return;
         try {
             await postJson(leaveRoomUrl);
-            window.location.href = "{{ url_for('quiz.dashboard') }}";
+            window.location.href = "{{ url_for('practice.quiz_dashboard') }}";
         } catch (e) { setAlert(e.message, 'error'); }
     });
 

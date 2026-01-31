@@ -1,0 +1,6 @@
+﻿c:\Code\MindStack\newmindstack\mindstack_app\modules\audio\engines\base.py:class AudioEngine(ABC):
+c:\Code\MindStack\newmindstack\mindstack_app\modules\audio\engines\edge.py:class EdgeEngine(AudioEngine):
+c:\Code\MindStack\newmindstack\mindstack_app\modules\audio\engines\gtts_engine.py:class GTTSEngine(AudioEngine):
+c:\Code\MindStack\newmindstack\mindstack_app\modules\flashcard\engine\core.py:class FlashcardEngine:
+c:\Code\MindStack\newmindstack\mindstack_app\modules\learning\logics\hybrid_fsrs.py:class HybridFSRSEngine:
+c:\Code\MindStack\newmindstack\mindstack_app\modules\learning\logics\scoring_engine.py:class ScoringEngine:

@@ -16,7 +16,7 @@ GOAL_TYPE_CONFIG: dict[str, dict[str, str]] = {
         'description': 'Luyện quiz để củng cố kiến thức.',
         'unit': 'câu',
         'icon': 'circle-question',
-        'endpoint': 'quiz.dashboard',
+        'endpoint': 'practice.quiz_dashboard',
         'color': 'indigo',
     },
     'lessons_completed': {

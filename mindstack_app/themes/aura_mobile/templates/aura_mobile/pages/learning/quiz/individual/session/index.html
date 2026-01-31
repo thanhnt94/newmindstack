@@ -422,7 +422,7 @@
     const getAiResponseUrl = "{{ url_for('AI.get_ai_response') }}";
     const saveNoteUrlTemplate = "{{ url_for('notes.save_note', reference_type='item', reference_id=0) }}";
     const transcriptUrlTemplate = "{{ url_for('quiz.get_quiz_transcript', item_id=0) }}";
-    const quizDashboardUrl = "{{ url_for('quiz.dashboard') }}";
+    const quizDashboardUrl = "{{ url_for('practice.quiz_dashboard') }}";
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
     const csrfHeaders = csrfToken ? { 'X-CSRFToken': csrfToken } : {};
 

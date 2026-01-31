@@ -91,7 +91,7 @@ class DashboardService:
                         'title': 'Tiếp tục luyện quiz',
                         'description': f"Bạn còn {quiz_summary['learning']} câu hỏi ở trạng thái đang học.",
                         'icon': 'circle-question',
-                        'url': url_for('quiz.dashboard'),
+                        'url': url_for('practice.quiz_dashboard'),
                     })
         
         if course_summary['in_progress_lessons'] > 0:

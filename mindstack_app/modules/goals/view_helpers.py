@@ -53,7 +53,7 @@ def build_goal_progress(user_goals: Iterable[UserGoal], metrics: dict[str, objec
         if definition.domain == 'flashcard':
             final_url = url_for('flashcard.flashcard_dashboard_internal.dashboard')
         elif definition.domain == 'quiz':
-            final_url = url_for('quiz.dashboard')
+            final_url = url_for('practice.quiz_dashboard')
         
         progress_list.append({
             'id': user_goal.user_goal_id,

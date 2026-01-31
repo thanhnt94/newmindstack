@@ -12,3 +12,6 @@ class QuizLearningConfig:
         {'id': 'due_only', 'name': 'Ôn tập câu đã làm', 'algorithm_func_name': 'get_reviewed_items'},
         {'id': 'hard_only', 'name': 'Ôn tập câu khó', 'algorithm_func_name': 'get_hard_items'},
     ]
+
+# Alias for backward compatibility or different naming conventions used in refactor
+QuizModuleDefaultConfig = QuizLearningConfig
