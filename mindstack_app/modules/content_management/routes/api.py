@@ -2,7 +2,7 @@
 from flask import request, jsonify, abort
 from flask_login import login_required, current_user
 from mindstack_app.models import db, LearningContainer, LearningItem, User, ContainerContributor
-from mindstack_app.services.content_kernel_service import ContentKernelService
+from ..services.kernel_service import ContentKernelService
 from mindstack_app.core.error_handlers import success_response, error_response
 from sqlalchemy import func
 from .. import blueprint

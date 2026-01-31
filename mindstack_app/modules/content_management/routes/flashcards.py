@@ -2,7 +2,7 @@ from flask import render_template, request, redirect, url_for, flash, abort, jso
 from mindstack_app.utils.template_helpers import render_dynamic_template
 from flask_login import login_required, current_user
 from mindstack_app.models import db, LearningContainer, LearningItem
-from mindstack_app.services.content_kernel_service import ContentKernelService
+from ..services.kernel_service import ContentKernelService
 from ..forms import FlashcardItemForm
 from ..logics.validators import has_container_access
 from .. import blueprint
@@ -42,7 +42,10 @@ def add_flashcard_item(set_id):
     return render_dynamic_template('pages/content_management/flashcards/items/add_edit_flashcard_item.html', 
                            form=form, 
                            container=container,
-                           title="Thêm thẻ mới")
+                           title="Thêm thẻ mới",
+                           image_base_folder=container.media_image_folder,
+                           audio_base_folder=container.media_audio_folder,
+                           regenerate_audio_url=url_for('vocab_flashcard.flashcard_learning.regenerate_audio_from_content'))
 
 @blueprint.route('/flashcards/process_excel_info', methods=['POST'])
 @login_required
@@ -100,11 +103,27 @@ def edit_flashcard_item(set_id, item_id):
             db.session.rollback()
             flash(f'Lỗi khi cập nhật: {str(e)}', 'danger')
 
+    # Resolve audio URLs for the player
+    from mindstack_app.utils.media_paths import build_relative_media_path
+    
+    front_audio_url_resolved = ""
+    if item.content.get('front_audio_url'):
+        front_audio_url_resolved = url_for('media_uploads', filename=build_relative_media_path(item.content.get('front_audio_url'), item.container.media_audio_folder))
+
+    back_audio_url_resolved = ""
+    if item.content.get('back_audio_url'):
+        back_audio_url_resolved = url_for('media_uploads', filename=build_relative_media_path(item.content.get('back_audio_url'), item.container.media_audio_folder))
+
     return render_dynamic_template('pages/content_management/flashcards/items/add_edit_flashcard_item.html', 
                            form=form, 
                            container=item.container,
-                           item=item,
-                           title="Chỉnh sửa thẻ")
+                           flashcard_item=item,
+                           front_audio_url_resolved=front_audio_url_resolved,
+                           back_audio_url_resolved=back_audio_url_resolved,
+                           image_base_folder=item.container.media_image_folder,
+                           audio_base_folder=item.container.media_audio_folder,
+                           title="Chỉnh sửa thẻ",
+                           regenerate_audio_url=url_for('vocab_flashcard.flashcard_learning.regenerate_audio_from_content'))
 
 @blueprint.route('/flashcards/<int:set_id>/delete/<int:item_id>', methods=['POST'])
 @login_required

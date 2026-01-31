@@ -122,7 +122,11 @@
             }
 
             if (initialUrl) {
-                togglePreview(initialUrl);
+                if (initialUrl.startsWith('/') || initialUrl.startsWith('http')) {
+                    togglePreview(initialUrl);
+                } else {
+                    applyValue(initialUrl);
+                }
             }
 
             if (input) {

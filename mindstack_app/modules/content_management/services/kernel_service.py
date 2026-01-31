@@ -17,20 +17,17 @@ class ContentKernelService:
 
     @staticmethod
     def create_container(creator_id: int, container_type: str, title: str, 
-                         description: str = None, cover_image: str = None, 
-                         tags: str = None, is_public: bool = False, 
-                         ai_prompt: str = None, settings: Dict = None) -> LearningContainer:
+                         **kwargs) -> LearningContainer:
         container = LearningContainer(
             creator_user_id=creator_id,
             container_type=container_type,
-            title=title,
-            description=description,
-            cover_image=cover_image,
-            tags=tags,
-            is_public=is_public,
-            ai_prompt=ai_prompt,
-            settings=settings
+            title=title
         )
+        
+        for key, value in kwargs.items():
+            if hasattr(container, key):
+                setattr(container, key, value)
+        
         db.session.add(container)
         db.session.commit()
         return container

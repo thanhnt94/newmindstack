@@ -12,7 +12,58 @@
 
 {% block content %}
 <div class="cm-shell">
-    {% include _v ~ '/pages/content_management/quizzes/items/_quiz_items_list.html' %}
+    <div class="cm-container space-y-6">
+        <!-- TOP NAVIGATION -->
+        <div class="cm-section-header">
+            <div class="cm-heading-group">
+                <div class="flex items-center gap-3 mb-2">
+                    <a href="{{ url_for('content_management.content_dashboard', tab='quizzes') }}" 
+                       class="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 hover:bg-slate-200 transition-colors"
+                       title="Quay lại">
+                        <i class="fa-solid fa-arrow-left"></i>
+                    </a>
+                    <a href="{{ url_for('dashboard.dashboard') }}" 
+                       class="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 hover:bg-slate-200 transition-colors"
+                       title="Về trang chủ">
+                        <i class="fa-solid fa-house"></i>
+                    </a>
+                </div>
+                <span class="cm-eyebrow">Bộ câu hỏi Quiz</span>
+                <h1 class="cm-heading">{{ container.title }}</h1>
+                <p class="cm-subheading">{{ (container.description or 'Quản lý câu hỏi trắc nghiệm, cập nhật đáp án và giải thích chi tiết.') | truncate(110, True, '…') }}</p>
+                <div class="cm-chip-row">
+                    <span class="cm-pill cm-pill--accent">
+                        <i class="fa-solid fa-layer-group"></i>
+                        {{ pagination.total }} câu hỏi
+                    </span>
+                </div>
+            </div>
+            
+            <div class="cm-actions">
+                <a href="{{ url_for('content_management.add_item', container_id=container.container_id) }}"
+                    class="cm-action cm-action--primary">
+                    <i class="fas fa-plus-circle"></i>
+                    <span>Thêm câu hỏi mới</span>
+                </a>
+            </div>
+        </div>
+
+        {# Search Section #}
+        <div class="cm-card cm-card--padded">
+            <div class="cm-search-header">
+                <div class="cm-heading-group">
+                    <h2 class="text-lg font-semibold text-slate-800">Tìm kiếm câu hỏi</h2>
+                    <p class="cm-subheading text-sm">Lọc danh sách câu hỏi để chỉnh sửa nhanh.</p>
+                </div>
+                <div class="w-full md:w-auto md:min-w-[320px]">
+                    {{ render_search_form(search_query=search_query, placeholder="Tìm kiếm câu hỏi...",
+                    container_id=container.container_id) }}
+                </div>
+            </div>
+        </div>
+
+        {% include _v ~ '/pages/content_management/quizzes/items/_quiz_items_list.html' %}
+    </div>
 </div>
 {% endblock %}
 

@@ -3,10 +3,10 @@ from flask_login import login_required, current_user
 from mindstack_app.models import User, LearningContainer, LearningItem, db
 from mindstack_app.utils.pagination import get_pagination_data
 from mindstack_app.modules.content_management.forms import CourseForm, FlashcardSetForm, QuizSetForm
-from mindstack_app.services.content_kernel_service import ContentKernelService
+from mindstack_app.modules.content_management.services.kernel_service import ContentKernelService
 from .. import blueprint
 
-@blueprint.route('/content', methods=['GET'])
+@blueprint.route('/content/', methods=['GET'])
 @login_required
 def content_dashboard():
     """
@@ -26,7 +26,7 @@ def content_dashboard():
 
     return render_template('admin/content/dashboard.html', stats=stats, active_page='content')
 
-@blueprint.route('/content/list/<container_type>', methods=['GET'])
+@blueprint.route('/content/list/<container_type>/', methods=['GET'])
 @login_required
 def list_content(container_type):
     if current_user.user_role != User.ROLE_ADMIN:

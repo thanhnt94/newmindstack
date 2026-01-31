@@ -7,7 +7,7 @@ module_metadata = {
     'name': 'Quản lý nội dung',
     'icon': 'layer-group',
     'category': 'System',
-    'url_prefix': '/admin/content',
+    'url_prefix': '/content/manage',
     'admin_route': 'content_management.content_dashboard',
     'enabled': True
 }

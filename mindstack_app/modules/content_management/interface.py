@@ -1,6 +1,6 @@
 from typing import List, Optional
 from .schemas import ContainerDTO, ItemDTO
-from mindstack_app.services.content_kernel_service import ContentKernelService
+from .services.kernel_service import ContentKernelService
 
 def get_container(container_id: int) -> Optional[ContainerDTO]:
     """Public API to get container metadata."""

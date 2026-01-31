@@ -141,7 +141,8 @@
     }
 </style>
 
-<script src="{{ url_for('theme_assets', theme_name='aura_mobile', filename='js/cms.js') }}"></script>
+    <!-- Custom CMS Logic -->
+    <script src="{{ url_for('static', filename='aura_mobile/js/cms.js') }}"></script>
 <script>
     (function () {
         MindStackCMS.initMobile({

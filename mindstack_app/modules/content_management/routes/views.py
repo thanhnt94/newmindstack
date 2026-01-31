@@ -1,10 +1,11 @@
 # File: mindstack_app/modules/content_management/routes/views.py
 from flask import render_template, request, redirect, url_for, flash, abort, current_app
 from mindstack_app.utils.template_helpers import render_dynamic_template
+from mindstack_app.utils.db_session import safe_commit
 from flask_login import login_required, current_user
 from sqlalchemy import or_, func
-from mindstack_app.models import db, LearningContainer, LearningItem, ContainerContributor, User
-from mindstack_app.services.content_kernel_service import ContentKernelService
+from mindstack_app.models import db, LearningContainer, LearningItem, ContainerContributor, User, LearningGroup
+from ..services.kernel_service import ContentKernelService
 from mindstack_app.utils.pagination import get_pagination_data
 from mindstack_app.utils.search import apply_search_filter
 from mindstack_app.services.config_service import get_runtime_config
@@ -127,7 +128,9 @@ def add_container(container_type):
                 cover_image=getattr(form, 'cover_image', None) and form.cover_image.data,
                 tags=getattr(form, 'tags', None) and form.tags.data,
                 is_public=form.is_public.data if hasattr(form, 'is_public') else False,
-                ai_prompt=getattr(form, 'ai_prompt', None) and form.ai_prompt.data
+                ai_prompt=getattr(form, 'ai_prompt', None) and form.ai_prompt.data,
+                media_image_folder=getattr(form, 'image_base_folder', None) and form.image_base_folder.data,
+                media_audio_folder=getattr(form, 'audio_base_folder', None) and form.audio_base_folder.data
             )
             flash(f'Đã tạo {container_type.lower()} mới thành công!', 'success')
             return redirect(url_for('content_management.content_dashboard', tab=container_type.lower()))
@@ -173,7 +176,9 @@ def edit_container(container_id):
                 cover_image=getattr(form, 'cover_image', None) and form.cover_image.data,
                 tags=getattr(form, 'tags', None) and form.tags.data,
                 is_public=form.is_public.data if hasattr(form, 'is_public') else False,
-                ai_prompt=getattr(form, 'ai_prompt', None) and form.ai_prompt.data
+                ai_prompt=getattr(form, 'ai_prompt', None) and form.ai_prompt.data,
+                media_image_folder=getattr(form, 'image_base_folder', None) and form.image_base_folder.data,
+                media_audio_folder=getattr(form, 'audio_base_folder', None) and form.audio_base_folder.data
             )
             flash('Đã cập nhật thành công!', 'success')
             return redirect(url_for('content_management.content_dashboard', tab=ContentManagementModuleDefaultConfig.TYPE_SLUG_MAP.get(container.container_type.upper(), container.container_type.lower())))
@@ -221,7 +226,8 @@ def list_items(container_id):
         'pagination': pagination,
         'search_query': search_query,
         'flashcard_config': FlashcardConfigService.get_all(),
-        'quiz_config': QuizConfigService.get_all()
+        'quiz_config': QuizConfigService.get_all(),
+        'can_edit': has_container_access(container_id, 'editor')
     }
     
     templates = {
@@ -290,3 +296,188 @@ def manage_contributors(container_id):
                            contributors=contributors,
                            form=form,
                            username_suggestions=username_suggestions)
+
+@blueprint.route('/container/<int:container_id>/add_item', methods=['GET', 'POST'])
+@login_required
+def add_item(container_id):
+    """Unified route to add an item (Lesson or Quiz) to a container."""
+    container = LearningContainer.query.get_or_404(container_id)
+    if not has_container_access(container_id, 'editor'):
+        abort(403)
+        
+    if container.container_type == 'FLASHCARD_SET':
+        return redirect(url_for('.add_flashcard_item', set_id=container_id))
+        
+    # Handle Course (Lesson) and Quiz
+    form_map = {
+        'COURSE': LessonForm,
+        'QUIZ_SET': QuizItemForm
+    }
+    form_class = form_map.get(container.container_type)
+    if not form_class:
+        abort(404)
+        
+    form = form_class()
+    if form.validate_on_submit():
+        try:
+            # Process content based on form type
+            content = {}
+            item_type = ''
+            if container.container_type == 'COURSE':
+                item_type = 'LESSON'
+                content = {
+                    'title': form.title.data,
+                    'content_html': form.content_html.data,
+                    'estimated_time': form.estimated_time.data
+                }
+            elif container.container_type == 'QUIZ_SET':
+                item_type = 'QUIZ_MCQ'
+                content = {
+                    'question': form.question.data,
+                    'pre_question_text': form.pre_question_text.data,
+                    'option_a': form.option_a.data,
+                    'option_b': form.option_b.data,
+                    'option_c': form.option_c.data,
+                    'option_d': form.option_d.data,
+                    'correct_answer_text': form.correct_answer_text.data,
+                    'guidance': form.guidance.data,
+                    'question_image_file': form.question_image_file.data,
+                    'question_audio_file': form.question_audio_file.data
+                }
+                
+            ContentKernelService.create_item(
+                container_id=container_id,
+                item_type=item_type,
+                content=content,
+                order=form.order_in_container.data or 0,
+                ai_explanation=getattr(form, 'ai_explanation', None) and form.ai_explanation.data
+            )
+            flash('Đã thêm nội dung mới!', 'success')
+            return redirect(url_for('.list_items', container_id=container_id))
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Lỗi khi thêm: {str(e)}', 'danger')
+
+    templates = {
+        'COURSE': 'pages/content_management/courses/lessons/add_edit_lesson.html',
+        'QUIZ_SET': 'pages/content_management/quizzes/items/add_edit_quiz_item.html'
+    }
+    template = templates.get(container.container_type)
+    
+    return render_dynamic_template(template, 
+                                   form=form, 
+                                   container=container,
+                                   title="Thêm mới")
+
+@blueprint.route('/container/<int:container_id>/edit_item/<int:item_id>', methods=['GET', 'POST'])
+@login_required
+def edit_item(container_id, item_id):
+    """Unified route to edit an item (Lesson or Quiz)."""
+    container = LearningContainer.query.get_or_404(container_id)
+    item = LearningItem.query.get_or_404(item_id)
+    if item.container_id != container_id:
+        abort(404)
+        
+    if not has_container_access(container_id, 'editor'):
+        abort(403)
+        
+    if container.container_type == 'FLASHCARD_SET':
+        return redirect(url_for('.edit_flashcard_item', set_id=container_id, item_id=item_id))
+        
+    form_map = {
+        'COURSE': LessonForm,
+        'QUIZ_SET': QuizItemForm
+    }
+    form_class = form_map.get(container.container_type)
+    
+    # Pre-populate form
+    form_data = item.content.copy()
+    form_data['order_in_container'] = item.order_in_container
+    form_data['ai_explanation'] = item.ai_explanation
+    
+    form = form_class(data=form_data)
+    
+    if form.validate_on_submit():
+        try:
+            content = {}
+            if container.container_type == 'COURSE':
+                content = {
+                    'title': form.title.data,
+                    'content_html': form.content_html.data,
+                    'estimated_time': form.estimated_time.data
+                }
+            elif container.container_type == 'QUIZ_SET':
+                content = {
+                    'question': form.question.data,
+                    'pre_question_text': form.pre_question_text.data,
+                    'option_a': form.option_a.data,
+                    'option_b': form.option_b.data,
+                    'option_c': form.option_c.data,
+                    'option_d': form.option_d.data,
+                    'correct_answer_text': form.correct_answer_text.data,
+                    'guidance': form.guidance.data,
+                    'question_image_file': form.question_image_file.data,
+                    'question_audio_file': form.question_audio_file.data
+                }
+                
+            ContentKernelService.update_item(
+                item_id,
+                content=content,
+                order=form.order_in_container.data,
+                ai_explanation=getattr(form, 'ai_explanation', None) and form.ai_explanation.data
+            )
+            flash('Đã cập nhật thành công!', 'success')
+            return redirect(url_for('.list_items', container_id=container_id))
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Lỗi khi cập nhật: {str(e)}', 'danger')
+
+    templates = {
+        'COURSE': 'pages/content_management/courses/lessons/add_edit_lesson.html',
+        'QUIZ_SET': 'pages/content_management/quizzes/items/add_edit_quiz_item.html'
+    }
+    template = templates.get(container.container_type)
+    
+    return render_dynamic_template(template, 
+                                   form=form, 
+                                   container=container,
+                                   item=item,
+                                   title="Chỉnh sửa")
+
+@blueprint.route('/item/<int:item_id>/delete_confirm', methods=['POST'])
+@login_required
+def delete_item(item_id):
+    """Unified route to delete an item."""
+    item = LearningItem.query.get_or_404(item_id)
+    container_id = item.container_id
+    if not has_container_access(container_id, 'editor'):
+        abort(403)
+        
+    ContentKernelService.delete_item(item_id)
+    flash("Đã xóa thành công.", "success")
+    return redirect(url_for('.list_items', container_id=container_id))
+
+@blueprint.route('/container/<int:container_id>/export-excel')
+@login_required
+def export_container_excel(container_id):
+    """
+    Export container data to Excel using the specialized engine.
+    """
+    from flask import send_file
+    from ..engine.excel_exporter import ExcelExporter
+    
+    container = LearningContainer.query.get_or_404(container_id)
+    if not has_container_access(container_id, 'viewer'):
+        abort(403)
+
+    output, filename = ExcelExporter.export_container(container)
+
+    return send_file(
+        output,
+        as_attachment=True,
+        download_name=filename,
+        mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+
+
+

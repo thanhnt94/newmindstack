@@ -5,7 +5,7 @@ import tempfile
 from typing import Any, Dict, List, Optional
 import pandas as pd
 from flask import current_app
-from mindstack_app.services.content_kernel_service import ContentKernelService
+from .kernel_service import ContentKernelService
 from mindstack_app.core.signals import content_changed
 from mindstack_app.utils.excel import (
     read_excel_with_formulas, 
@@ -24,34 +24,70 @@ class ManagementService:
                            url_fields: set[str] = None,
                            image_folder: str = None,
                            audio_folder: str = None) -> Dict[str, Any]:
-        """Generic builder for item content JSON."""
+        """
+        Generic builder for item content JSON.
+        Supports both direct column names and 'content:' prefixed columns.
+        """
         from mindstack_app.utils.excel import get_cell_value
         from mindstack_app.utils.media_paths import normalize_media_value_for_storage
         
         content = {}
         url_fields = url_fields or set()
         
+        # 1. Handle Prefixed Columns (content:field_name) - High Priority
+        for col in columns:
+            if col.startswith('content:'):
+                field_name = col.replace('content:', '')
+                value = get_cell_value(row_data, col, columns)
+                if value is not None:
+                    if field_name in url_fields:
+                        folder = image_folder if 'img' in field_name or 'cover' in field_name else audio_folder
+                        value = normalize_media_value_for_storage(value, folder)
+                    content[field_name] = value
+
+        # 2. Handle Standard Fields (fallback for non-prefixed columns)
         for field in standard_fields:
-            value = get_cell_value(row_data, field, columns)
-            if value:
-                if field in url_fields:
-                    folder = image_folder if 'img' in field or 'cover' in field else audio_folder
-                    value = normalize_media_value_for_storage(value, folder)
-                content[field] = value
+            if field not in content:
+                value = get_cell_value(row_data, field, columns)
+                if value is not None:
+                    if field in url_fields:
+                        folder = image_folder if 'img' in field or 'cover' in field else audio_folder
+                        value = normalize_media_value_for_storage(value, folder)
+                    content[field] = value
+                    
         return content
 
     @staticmethod
     def build_custom_data(row_data: Any, columns: List[str], 
                           known_fields: set[str]) -> Optional[Dict[str, Any]]:
-        """Generic builder for custom_data JSON."""
+        """
+        Generic builder for custom_data JSON.
+        Supports 'custom:' prefixed columns and unknown columns.
+        """
         from mindstack_app.utils.excel import get_cell_value
         
         custom_data = {}
+        
+        # 1. Handle Prefixed Columns (custom:field_name)
         for col in columns:
-            if col not in known_fields and col not in {'item_id', 'action', 'order_in_container'}:
+            if col.startswith('custom:'):
+                field_name = col.replace('custom:', '')
                 value = get_cell_value(row_data, col, columns)
-                if value:
+                if value is not None:
+                    custom_data[field_name] = value
+
+        # 2. Handle Unknown Columns (legacy/fallback)
+        for col in columns:
+            clean_col = col.replace('content:', '').replace('custom:', '')
+            if (col not in known_fields and 
+                clean_col not in known_fields and 
+                not col.startswith(('content:', 'custom:')) and
+                col not in {'item_id', 'action', 'order_in_container', 'item_type', 'group_id'}):
+                
+                value = get_cell_value(row_data, col, columns)
+                if value is not None:
                     custom_data[col] = value
+                    
         return custom_data if custom_data else None
 
     @staticmethod
@@ -106,9 +142,33 @@ class ManagementService:
             # 1. Process Info sheet if exists
             info_mapping, _ = extract_info_sheet_mapping(temp_filepath)
             if info_mapping:
-                # Update container metadata if needed (title, description, etc.)
-                # This can be handled by a more specific update logic in subclasses or callers
-                pass
+                update_payload = {}
+                settings_payload = {}
+                
+                standard_container_fields = {
+                    'title', 'description', 'tags', 'is_public', 
+                    'ai_prompt', 'media_image_folder', 'media_audio_folder', 'cover_image'
+                }
+                
+                for k, v in info_mapping.items():
+                    if k in standard_container_fields:
+                        if k == 'is_public':
+                            update_payload[k] = str(v).upper() == 'TRUE'
+                        else:
+                            update_payload[k] = v
+                    elif k.startswith('setting:'):
+                        setting_key = k.replace('setting:', '')
+                        # Try to parse JSON for complex types
+                        try:
+                            settings_payload[setting_key] = json.loads(v)
+                        except:
+                            settings_payload[setting_key] = v
+                
+                if settings_payload:
+                    update_payload['settings'] = settings_payload
+                
+                if update_payload:
+                    ContentKernelService.update_container(container_id, **update_payload)
 
             # 2. Process Data rows
             for index, row in df.iterrows():
