@@ -1,5 +1,6 @@
 # File: mindstack_app/modules/admin/routes/backup.py
 import os
+import io
 import zipfile
 import json
 from datetime import datetime
@@ -105,6 +106,51 @@ def create_database_backup():
     return redirect(url_for('admin.manage_backup_restore'))
 
 
+@blueprint.route('/backup/full', methods=['POST'])
+def download_full_backup():
+    """
+    Mô tả: Tạo và tải xuống bản sao lưu toàn bộ (database + uploads).
+    """
+    try:
+        # Create a temporary full backup
+        backup_folder = get_backup_folder()
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        backup_filename = f'mindstack_full_backup_{timestamp}.zip'
+        backup_path = os.path.join(backup_folder, backup_filename)
+
+        db_path = resolve_database_path()
+        if not os.path.exists(db_path):
+            raise FileNotFoundError('Không tìm thấy file cơ sở dữ liệu.')
+
+        with zipfile.ZipFile(backup_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
+            # Add Database
+            zipf.write(db_path, os.path.basename(db_path))
+            
+            # Add Uploads folder
+            uploads_folder = os.path.join(current_app.root_path, 'static', 'uploads')
+            if os.path.exists(uploads_folder):
+                for root, dirs, files in os.walk(uploads_folder):
+                    for file in files:
+                        file_path = os.path.join(root, file)
+                        arcname = os.path.join('uploads', os.path.relpath(file_path, uploads_folder))
+                        zipf.write(file_path, arcname)
+
+            manifest = {
+                'type': 'full',
+                'generated_at': datetime.utcnow().isoformat() + 'Z',
+                'database_file': os.path.basename(db_path),
+                'includes_uploads': True
+            }
+            zipf.writestr('manifest.json', json.dumps(manifest, ensure_ascii=False, indent=2))
+
+        return send_file(backup_path, as_attachment=True, download_name=backup_filename)
+
+    except Exception as exc:
+        current_app.logger.error('Lỗi khi tạo bản sao lưu toàn bộ: %s', exc)
+        flash(f'Lỗi khi tạo bản sao lưu toàn bộ: {exc}', 'danger')
+        return redirect(url_for('admin.manage_backup_restore'))
+
+
 @blueprint.route('/backup/files/<path:filename>')
 def download_backup_file(filename):
     """
@@ -118,6 +164,27 @@ def download_backup_file(filename):
         return redirect(url_for('admin.manage_backup_restore'))
 
     return send_file(target_path, as_attachment=True, download_name=os.path.basename(target_path))
+
+
+@blueprint.route('/backup/files/<path:filename>/delete', methods=['POST'])
+def delete_backup_file(filename):
+    """
+    Mô tả: Cho phép xóa một file sao lưu.
+    """
+    backup_folder = get_backup_folder()
+    target_path = safe_join(backup_folder, filename)
+
+    if not target_path or not os.path.isfile(target_path):
+        flash('File sao lưu không tồn tại.', 'danger')
+        return redirect(url_for('admin.manage_backup_restore'))
+
+    try:
+        os.remove(target_path)
+        flash('Đã xóa file sao lưu thành công.', 'success')
+    except Exception as e:
+        flash(f'Lỗi khi xóa file: {str(e)}', 'danger')
+
+    return redirect(url_for('admin.manage_backup_restore'))
 
 
 def _build_dataset_export_response(dataset_key):
@@ -161,3 +228,76 @@ def export_dataset_from_form():
 @blueprint.route('/backup/export/<string:dataset_key>')
 def export_dataset(dataset_key):
     return _build_dataset_export_response(dataset_key)
+
+
+@blueprint.route('/backup/restore/dataset', methods=['POST'])
+def restore_dataset():
+    """
+    Restore dataset from uploaded file.
+    """
+    file = request.files.get('dataset_file')
+    if not file or not file.filename:
+        flash('Vui lòng chọn file để khôi phục.', 'warning')
+        return redirect(url_for('admin.manage_backup_restore'))
+
+    try:
+        if not (file.filename.endswith('.json') or file.filename.endswith('.zip')):
+            flash('Định dạng file không hợp lệ. Vui lòng chọn file .json hoặc .zip.', 'warning')
+            return redirect(url_for('admin.manage_backup_restore'))
+
+        file_bytes = file.read()
+        file_name = file.filename
+        
+        # Use existing service function
+        result = restore_from_uploaded_bytes(file_bytes, file_name)
+        
+        if result.get('success'):
+             flash(f"Khôi phục dữ liệu thành công: {result.get('message')}", 'success')
+        else:
+             flash(f"Lỗi khôi phục: {result.get('error')}", 'danger')
+
+    except Exception as e:
+        current_app.logger.error(f"Restore error: {e}")
+        flash(f"Đã xảy ra lỗi khi khôi phục: {str(e)}", 'danger')
+
+    return redirect(url_for('admin.manage_backup_restore'))
+
+
+@blueprint.route('/backup/restore', methods=['POST'])
+def restore_backup():
+    """
+    Restore from existing backup file on server.
+    """
+    filename = request.form.get('filename')
+    restore_database = request.form.get('restore_database') == 'on'
+    restore_uploads = request.form.get('restore_uploads') == 'on'
+    
+    if not filename:
+        flash('Không xác định được file sao lưu.', 'danger')
+        return redirect(url_for('admin.manage_backup_restore'))
+        
+    backup_folder = get_backup_folder()
+    file_path = safe_join(backup_folder, filename)
+    
+    if not file_path or not os.path.exists(file_path):
+        flash('File sao lưu không tồn tại.', 'danger')
+        return redirect(url_for('admin.manage_backup_restore'))
+
+    try:
+        # Read file bytes from server
+        with open(file_path, 'rb') as f:
+            file_bytes = f.read()
+            
+        # Use existing service function to handle restoration
+        result = restore_from_uploaded_bytes(file_bytes, filename)
+        
+        if result.get('success'):
+             flash(f"Khôi phục thành công: {result.get('message')}", 'success')
+        else:
+             flash(f"Lỗi khôi phục: {result.get('error')}", 'danger')
+
+    except Exception as e:
+        current_app.logger.error(f"Restore from server error: {e}")
+        flash(f"Lỗi khi khôi phục: {str(e)}", 'danger')
+
+    return redirect(url_for('admin.manage_backup_restore'))

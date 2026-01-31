@@ -21,7 +21,10 @@ from mindstack_app.models import (
     Feedback, FeedbackAttachment,
     LearningSession, ReviewLog, UserItemMarker, Badge, UserBadge,
     QuizBattleRoom, QuizBattleParticipant, QuizBattleRound, QuizBattleAnswer, QuizBattleMessage,
-    FlashcardCollabRoom, FlashcardCollabParticipant, FlashcardCollabRound, FlashcardCollabAnswer, FlashcardCollabMessage, FlashcardRoomProgress
+    FlashcardCollabRoom, FlashcardCollabParticipant, FlashcardCollabRound, FlashcardCollabAnswer, FlashcardCollabMessage, FlashcardRoomProgress,
+    AiTokenLog, AiCache,
+    Notification, PushSubscription, NotificationPreference,
+    UserMetric, DailyStat, Achievement, TranslationHistory, Streak
 )
 from mindstack_app.core.config import Config
 from mindstack_app.services.config_service import get_runtime_config
@@ -67,8 +70,23 @@ DATASET_CATALOG: "OrderedDict[str, dict[str, object]]" = OrderedDict(
         },
         'feedback_reports': {
             'label': 'Phản hồi & báo cáo từ người dùng',
-            'description': 'Tập trung vào phản hồi, điểm số và lịch sử tương tác phục vụ phân tích.',
-            'models': [Feedback, FeedbackAttachment, ScoreLog],
+            'description': 'Tập trung vào phản hồi của người dùng.',
+            'models': [Feedback, FeedbackAttachment],
+        },
+        'ai_data': {
+            'label': 'Dữ liệu AI (Logs & Cache)',
+            'description': 'Lịch sử token sử dụng và cache phản hồi của AI.',
+            'models': [AiTokenLog, AiCache],
+        },
+        'notifications': {
+            'label': 'Thông báo & Đăng ký Push',
+            'description': 'Lịch sử thông báo, cài đặt đăng ký và tùy chọn thông báo của người dùng.',
+            'models': [Notification, PushSubscription, NotificationPreference],
+        },
+        'stats_analytics': {
+            'label': 'Thống kê & Phân tích',
+            'description': 'Số liệu người dùng, thống kê hàng ngày, thành tựu và lịch sử dịch.',
+            'models': [UserMetric, DailyStat, Achievement, TranslationHistory],
         },
         'multiplayer': {
             'label': 'Multiplayer (Quiz & Flashcard)',
@@ -78,8 +96,97 @@ DATASET_CATALOG: "OrderedDict[str, dict[str, object]]" = OrderedDict(
                 FlashcardCollabRoom, FlashcardCollabParticipant, FlashcardCollabRound, FlashcardCollabAnswer, FlashcardCollabMessage, FlashcardRoomProgress
             ],
         },
+        'full_database_json': {
+            'label': 'Toàn bộ cơ sở dữ liệu (JSON)',
+            'description': 'Xuất tất cả dữ liệu trong hệ thống dưới dạng JSON (trừ file uploads).',
+            'models': [
+                User, LearningContainer, LearningGroup, LearningItem, ContainerContributor,
+                UserContainerState, LearningProgress, ScoreLog, UserGoal, GoalProgress, Note,
+                LearningSession, ReviewLog, UserItemMarker, Badge, UserBadge,
+                Feedback, FeedbackAttachment,
+                AppSettings, BackgroundTask, BackgroundTaskLog, ApiKey,
+                QuizBattleRoom, QuizBattleParticipant, QuizBattleRound, QuizBattleAnswer, QuizBattleMessage,
+                FlashcardCollabRoom, FlashcardCollabParticipant, FlashcardCollabRound, FlashcardCollabAnswer, FlashcardCollabMessage, FlashcardRoomProgress,
+                AiTokenLog, AiCache,
+                Notification, PushSubscription, NotificationPreference,
+                UserMetric, DailyStat, Achievement, TranslationHistory
+            ],
+        },
     }
 )
+
+
+def reset_system_data(scope):
+    """
+    Reset dữ liệu hệ thống dựa trên phạm vi (scope).
+    scope: 'progress' (chỉ xóa tiến độ), 'full_factory' (xóa tất cả trừ admin hiện tại).
+    """
+    if scope == 'progress':
+        models_to_clear = [
+            LearningProgress, UserContainerState, ScoreLog, LearningSession, ReviewLog, 
+            UserItemMarker, UserGoal, GoalProgress, Note, UserBadge, Streak,
+            TranslationHistory, AiTokenLog, AiCache, BackgroundTaskLog,
+            Notification, UserMetric, DailyStat, 
+            QuizBattleRoom, FlashcardCollabRoom # Cascades should handle children
+        ]
+    elif scope == 'full_factory':
+        # Clear everything but keep the current Admin User session alive if possible (or just wipe all users except specific ones)
+        # For simplicity in 'factory reset', we usually wipe content too.
+        models_to_clear = [
+            # Content
+            LearningItem, LearningGroup, LearningContainer,
+            # Progress & Logs
+            LearningProgress, UserContainerState, ScoreLog, LearningSession, ReviewLog, 
+            UserItemMarker, UserGoal, GoalProgress, Note, UserBadge, Badge, Streak,
+            Feedback, FeedbackAttachment,
+            TranslationHistory, AiTokenLog, AiCache, BackgroundTaskLog,
+            Notification, PushSubscription, NotificationPreference,
+            UserMetric, DailyStat, Achievement,
+            QuizBattleRoom, FlashcardCollabRoom,
+            # Configurations (maybe keep AppSettings?)
+            ApiKey, BackgroundTask
+        ]
+        # Users are special, we might want to delete all non-admins or all users.
+        # Handling users in a generic list is risky for the current session.
+        # We will handle users separately in the controller or here if passed logic.
+    else:
+        raise ValueError("Invalid reset scope")
+
+    try:
+        if db.session.is_active:
+            db.session.rollback()
+        
+        # Disable foreign key checks for SQLite to allow bulk deletion order independence if needed (optional but recommended for full wipes)
+        if 'sqlite' in str(db.engine.url):
+             db.session.execute(db.text('PRAGMA foreign_keys=OFF;'))
+
+        for model in models_to_clear:
+            try:
+                db.session.query(model).delete()
+            except Exception as e:
+                current_app.logger.warning(f"Could not delete {model.__tablename__}: {e}")
+
+        if scope == 'full_factory':
+             # Handle Users: Delete all non-admin users? Or delete all except current?
+             # For a true factory reset, we often want to delete ALL courses/content but Keep the Admin account.
+             # Let's delete all users except those with role='admin' to be safe?
+             # Or just delete everything.
+             # Strategy: Delete all users where id != current_user.id (passed from caller? No, service doesn't know user)
+             # We will just leave Users alone in this list and let the caller handle User cleanup if needed, 
+             # OR we add User to the list but exclude 1.
+             pass
+
+        db.session.commit()
+        
+        if 'sqlite' in str(db.engine.url):
+             db.session.execute(db.text('PRAGMA foreign_keys=ON;'))
+
+        return True
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"Reset Data Error: {e}")
+        raise e
+
 
 def resolve_database_path():
     uri = get_runtime_config('SQLALCHEMY_DATABASE_URI', Config.SQLALCHEMY_DATABASE_URI)

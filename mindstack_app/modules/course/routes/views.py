@@ -8,7 +8,7 @@ from mindstack_app.utils.template_helpers import render_dynamic_template
 from flask_login import login_required, current_user
 from sqlalchemy.sql import func
 
-from .algorithms import get_filtered_course_sets, get_lessons_for_course
+from ..logics.algorithms import get_filtered_course_sets, get_lessons_for_course
 from mindstack_app.models import (
     ContainerContributor,
     LearningContainer,
@@ -22,7 +22,7 @@ from mindstack_app.models import (
 from mindstack_app.modules.learning.models import LearningProgress
 from mindstack_app.modules.gamification.services.scoring_service import ScoreService
 
-from . import blueprint
+from .. import blueprint
 
 @blueprint.route('/course_learning_dashboard')
 @login_required

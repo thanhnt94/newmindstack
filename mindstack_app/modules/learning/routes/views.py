@@ -15,7 +15,7 @@ from mindstack_app.modules.quiz import blueprint as quiz_bp
 from mindstack_app.modules.vocab_flashcard import blueprint as flashcard_bp
 from mindstack_app.modules.vocabulary import blueprint as vocabulary_bp
 
-from . import blueprint
+from .. import blueprint
 
 # Đăng ký các blueprint thực sự thuộc về 'learning' (nếu có)
 # Các module flashcard, quiz, vocabulary sẽ được Core load độc lập.
@@ -394,7 +394,7 @@ def api_active_sessions():
 @login_required
 def api_daily_stats():
     """Get daily learning statistics for the current user."""
-    from .services.daily_stats_service import DailyStatsService
+    from ..services.daily_stats_service import DailyStatsService
     from datetime import date
     
     # Optional date param (YYYY-MM-DD)
@@ -414,7 +414,7 @@ def api_daily_stats():
 @login_required
 def api_weekly_stats():
     """Get weekly learning statistics for the current user."""
-    from .services.daily_stats_service import DailyStatsService
+    from ..services.daily_stats_service import DailyStatsService
     
     stats = DailyStatsService.get_weekly_stats(current_user.user_id)
     return jsonify(stats)
@@ -424,7 +424,7 @@ def api_weekly_stats():
 @login_required
 def api_streak_stats():
     """Get learning streak information for the current user."""
-    from .services.daily_stats_service import DailyStatsService
+    from ..services.daily_stats_service import DailyStatsService
     
     streak = DailyStatsService.get_streak(current_user.user_id)
     return jsonify(streak)
@@ -434,7 +434,7 @@ def api_streak_stats():
 @login_required
 def api_stats_summary():
     """Get comprehensive stats summary (today, week, streak) for the current user."""
-    from .services.daily_stats_service import DailyStatsService
+    from ..services.daily_stats_service import DailyStatsService
     
     summary = DailyStatsService.get_summary(current_user.user_id)
     return jsonify(summary)

@@ -1,5 +1,6 @@
 # File: mindstack_app/modules/admin/routes/settings.py
-from flask import render_template, redirect, url_for, flash, request, current_app
+from flask import render_template, redirect, url_for, flash, request, current_app, jsonify
+from flask_login import login_required, current_user
 from sqlalchemy.orm.attributes import flag_modified
 from mindstack_app.models import (
     db, AppSettings, User, LearningContainer, UserContainerState, LearningProgress,
@@ -352,3 +353,96 @@ def reset_learning_progress():
 
     flash('Phạm vi không hợp lệ.', 'danger')
     return redirect(url_for('admin.manage_system_settings'))
+
+
+@blueprint.route('/settings/browse-directories', methods=['GET'])
+@login_required
+def browse_directories_api():
+    """
+    API to browse server directories.
+    Query Params:
+        path: current path to list (default: root)
+    """
+    import os
+    if current_user.user_role != User.ROLE_ADMIN:
+        return jsonify({'success': False, 'message': 'Permission denied'}), 403
+
+    current_path = request.args.get('path', 'C:\\')
+    
+    # Basic security check to prevent traversing up too far if needed (optional for admin)
+    # if '..' in current_path:
+    #     return jsonify({'success': False, 'message': 'Invalid path'}), 400
+
+    if not os.path.exists(current_path) or not os.path.isdir(current_path):
+        return jsonify({'success': False, 'message': 'Path not found'}), 404
+
+    try:
+        items = []
+        with os.scandir(current_path) as it:
+            for entry in it:
+                if entry.is_dir():
+                    items.append({
+                        'name': entry.name,
+                        'path': entry.path,
+                        'type': 'directory'
+                    })
+        
+        # Sort by name
+        items.sort(key=lambda x: x['name'].lower())
+        
+        # Add parent directory option if not at root
+        parent_path = os.path.dirname(current_path)
+        if parent_path and parent_path != current_path:
+             items.insert(0, {
+                'name': '..',
+                'path': parent_path,
+                'type': 'directory'
+            })
+
+        return jsonify({
+            'success': True,
+            'current_path': current_path,
+            'items': items
+        })
+
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@blueprint.route('/settings/create-directory', methods=['POST'])
+@login_required
+def create_directory_api():
+    """
+    API to create a new directory.
+    JSON Body:
+        parent_path: parent path
+        folder_name: new folder name
+    """
+    import os
+    if current_user.user_role != User.ROLE_ADMIN:
+        return jsonify({'success': False, 'message': 'Permission denied'}), 403
+
+    data = request.get_json()
+    if not data:
+         return jsonify({'success': False, 'message': 'No data provided'}), 400
+
+    parent_path = data.get('parent_path')
+    folder_name = data.get('folder_name')
+
+    if not parent_path or not folder_name:
+        return jsonify({'success': False, 'message': 'Missing path or name'}), 400
+
+    new_path = os.path.join(parent_path, folder_name)
+
+    if os.path.exists(new_path):
+        return jsonify({'success': False, 'message': 'Directory already exists'}), 400
+
+    try:
+        os.makedirs(new_path)
+        return jsonify({
+            'success': True,
+            'message': 'Directory created successfully',
+            'path': new_path
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
