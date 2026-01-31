@@ -41,6 +41,10 @@ def init_infrastructure(app: Flask):
     login_manager.init_app(app)
     csrf_protect.init_app(app)
     
+    # Initialize Dynamic Config Service (Database settings -> app.config)
+    from mindstack_app.services.config_service import init_config_service
+    init_config_service(app)
+    
     # Register media serving route
     from flask import send_from_directory
     @app.route('/media/<path:filename>')

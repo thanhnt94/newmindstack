@@ -92,6 +92,13 @@
             if (isBack) {
                 flipBtn.style.display = 'none';
                 ratingBtns.classList.add('show');
+
+                // [PROACTIVE] When user flips a card, it's the perfect time to prefetch 
+                // the NEXT items because the user will spend a few seconds reading the back.
+                if (window.prefetchAudioForUpcomingCards) {
+                    console.log('[FSRS Mobile] Card flipped - Triggering proactive prefetch for next 2 cards');
+                    window.prefetchAudioForUpcomingCards(2);
+                }
             } else {
                 flipBtn.style.display = 'flex';
                 ratingBtns.classList.remove('show');
@@ -708,20 +715,52 @@
     };
 
     // Promise-based Toast (Dynamic Wait)
-    window.showMobileToast = function (htmlContent, duration = 1500) {
+    // Promise-based Toast (Dynamic Wait)
+    window.showMobileToast = function (htmlContent, duration, position) {
+        // Fallback to config or defaults
+        const config = window.FlashcardConfig?.notifications || {};
+        const finalDuration = duration || config.score_duration || 1500;
+        const finalPosition = position || config.score_position || 'center';
+
         return new Promise((resolve) => {
             // Create or reuse toast element
             let toast = document.getElementById('mobile-smart-toast');
             if (!toast) {
                 toast = document.createElement('div');
                 toast.id = 'mobile-smart-toast';
-                toast.className = 'fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-[99999] pointer-events-none transition-all duration-300';
+                toast.className = 'fixed transform z-[99999] pointer-events-none transition-all duration-300';
                 document.body.appendChild(toast);
             }
 
-            // Reset state
+            // Apply Position Classes
+            toast.className = 'fixed transform z-[99999] pointer-events-none transition-all duration-300';
+            if (finalPosition === 'top-center') {
+                toast.style.left = '50%';
+                toast.style.top = '10%';
+                toast.style.bottom = 'auto';
+                toast.style.transform = 'translate(-50%, -40%) scale(0.9)';
+            } else if (finalPosition === 'top-right') {
+                toast.style.right = '1rem';
+                toast.style.left = 'auto';
+                toast.style.top = '10%';
+                toast.style.bottom = 'auto';
+                toast.style.transform = 'translate(0, -40%) scale(0.9)';
+            } else if (finalPosition === 'bottom-right') {
+                toast.style.right = '1rem';
+                toast.style.left = 'auto';
+                toast.style.bottom = '10%';
+                toast.style.top = 'auto';
+                toast.style.transform = 'translate(0, 40%) scale(0.9)';
+            } else {
+                // center
+                toast.style.left = '50%';
+                toast.style.top = '50%';
+                toast.style.bottom = 'auto';
+                toast.style.transform = 'translate(-50%, -40%) scale(0.9)';
+            }
+
+            // Reset state for animation
             toast.style.opacity = '0';
-            toast.style.transform = 'translate(-50%, -40%) scale(0.9)';
 
             // Set Content
             toast.innerHTML = `
@@ -733,40 +772,50 @@
             // Animate In
             requestAnimationFrame(() => {
                 toast.style.opacity = '1';
-                toast.style.transform = 'translate(-50%, -50%) scale(1)';
+                if (finalPosition === 'top-right' || finalPosition === 'bottom-right') {
+                    toast.style.transform = 'translate(0, 0) scale(1)';
+                } else {
+                    toast.style.transform = 'translate(-50%, -50%) scale(1)';
+                }
             });
 
             // Wait Duration
             setTimeout(() => {
                 // Animate Out
                 toast.style.opacity = '0';
-                toast.style.transform = 'translate(-50%, -40%) scale(0.95)';
+                if (finalPosition === 'top-right' || finalPosition === 'bottom-right') {
+                    toast.style.transform = 'translate(0, 20%) scale(0.95)';
+                } else {
+                    toast.style.transform = 'translate(-50%, -40%) scale(0.95)';
+                }
 
                 // Resolve after animation matches CSS duration (300ms)
                 setTimeout(() => {
                     document.dispatchEvent(new CustomEvent('notificationComplete'));
                     resolve();
                 }, 300);
-            }, duration);
+            }, finalDuration);
         });
     };
 
     // Alias for Score Toast
     window.showScoreToast = function (scoreChange) {
+        const config = window.FlashcardConfig?.notifications || {};
         const sign = scoreChange > 0 ? '+' : '';
         const color = scoreChange > 0 ? 'text-emerald-400' : 'text-rose-400';
         return window.showMobileToast(`
             <div class="text-3xl font-bold ${color}">${sign}${scoreChange}</div>
             <div class="text-xs text-slate-400 uppercase tracking-widest font-bold">Điểm kinh nghiệm</div>
-        `, 1200);
+        `, config.score_duration, config.score_position);
     };
 
     // Alias for Memory Power
     window.showMemoryPowerToast = function (powerDiff) {
+        const config = window.FlashcardConfig?.notifications || {};
         return window.showMobileToast(`
              <div class="text-2xl font-bold text-indigo-400">Memory Power</div>
              <div class="text-lg font-medium text-indigo-200">+${powerDiff}</div>
-        `, 1500);
+        `, config.score_duration, config.score_position);
     };
 
     // [UX-IMMEDIATE] Update specific card stats immediately after rating (before transition)

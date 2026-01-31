@@ -27,6 +27,42 @@ CORE_SETTING_FIELDS: list[dict[str, object]] = [
         "default": "UTC",
         "group": "system",
     },
+    {
+        "key": "NOTIF_SCORE_DURATION",
+        "label": "Thời gian hiện điểm (ms)",
+        "data_type": "int",
+        "placeholder": "1500",
+        "description": "Thời gian hiển thị thông báo điểm thưởng (XP) sau mỗi câu trả lời.",
+        "default": 1500,
+        "group": "notification",
+    },
+    {
+        "key": "NOTIF_SCORE_POSITION",
+        "label": "Vị trí hiện điểm",
+        "data_type": "string",
+        "placeholder": "center",
+        "description": "Vị trí thông báo điểm (center, top-center, top-right, bottom-right).",
+        "default": "center",
+        "group": "notification",
+    },
+    {
+        "key": "NOTIF_STREAK_DURATION",
+        "label": "Thời gian hiện Streak (ms)",
+        "data_type": "int",
+        "placeholder": "2000",
+        "description": "Thời gian hiển thị thông báo chuỗi câu trả lời đúng (Streak).",
+        "default": 2000,
+        "group": "notification",
+    },
+    {
+        "key": "NOTIF_ACHIEVEMENT_DURATION",
+        "label": "Thời gian hiện Thành tựu (ms)",
+        "data_type": "int",
+        "placeholder": "5000",
+        "description": "Thời gian hiển thị thông báo mở khóa thành tựu mới.",
+        "default": 5000,
+        "group": "notification",
+    },
 ]
 
 CORE_SETTING_GROUPS = {
@@ -35,12 +71,18 @@ CORE_SETTING_GROUPS = {
         "icon": "fas fa-cog",
         "description": "Các tham số vận hành cơ bản của hệ thống.",
     },
+    "notification": {
+        "label": "Thông báo & Hiệu ứng",
+        "icon": "fas fa-bell",
+        "description": "Điều chỉnh thời gian và vị trí hiển thị các thông báo UI.",
+    },
 }
 
 CORE_SETTING_KEYS = {field["key"] for field in CORE_SETTING_FIELDS}
 
 SETTING_CATEGORY_LABELS = {
     "paths": "Cấu hình đường dẫn",
+    "notification": "Thông báo UI",
     "flashcard": "Điểm flashcard",
     "quiz": "Điểm quiz",
     "course": "Điểm course",

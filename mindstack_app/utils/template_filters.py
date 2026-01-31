@@ -33,11 +33,12 @@ def user_timezone_filter(dt, format='%d/%m/%Y %H:%M:%S'):
         except Exception:
             return str(dt)
         
-    # Get user timezone from current_user, default to UTC
-    # current_user might be anonymous or not have timezone attribute
-    tz_name = 'UTC'
+    # Priority: 1. User Preference, 2. System Setting, 3. UTC
+    tz_name = current_app.config.get('SYSTEM_TIMEZONE', 'UTC')
     if current_user and current_user.is_authenticated:
-        tz_name = getattr(current_user, 'timezone', 'UTC') or 'UTC'
+        user_tz_setting = getattr(current_user, 'timezone', None)
+        if user_tz_setting:
+            tz_name = user_tz_setting
     
     try:
         user_tz = pytz.timezone(tz_name)

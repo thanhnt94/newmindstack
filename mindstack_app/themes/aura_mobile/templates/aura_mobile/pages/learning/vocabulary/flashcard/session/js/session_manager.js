@@ -12,6 +12,10 @@ let sessionAnswerHistory = [];
 let currentStreak = 0;
 let currentCardStartTime = 0;
 let isSubmitting = false; // [LOCK] Prevent double submissions
+let isFetchingBatch = false; // [LOCK] Prevent multiple background fetches
+let activeFetchPromise = null; // [PROMISE] Track the current batch fetch
+let isSessionEnding = false; // [STATE] Track if we reached the end
+
 
 
 // Local stats
@@ -120,195 +124,260 @@ window.updateStateBadge = function (customState) {
 
 // --- Batch Management ---
 
+// --- Smart Batch Management (Prefetching) ---
+
+async function ensureFlashcardBuffer(immediate = false) {
+    if (isSessionEnding) return null;
+    if (activeFetchPromise) {
+        console.log('[Batch] Already fetching, returning existing promise');
+        return activeFetchPromise;
+    }
+
+    // [SRS-DYNAMIC] Fetch smaller batches (3) more frequently to ensure 
+    // we always get the MOST DUE cards from the database at the current moment.
+    const remaining = currentFlashcardBatch.length - (currentFlashcardIndex + 1);
+    if (!immediate && remaining > 1) return null;
+
+    console.log('[Batch] Refilling buffer... (immediate:', immediate, 'remaining:', remaining, ')');
+    isFetchingBatch = true;
+
+    activeFetchPromise = (async () => {
+        try {
+            const config = window.FlashcardConfig;
+            if (!config || !config.getFlashcardBatchUrl) {
+                console.error('[Batch] FlashcardConfig.getFlashcardBatchUrl is missing.');
+                return null;
+            }
+            const getFlashcardBatchUrl = config.getFlashcardBatchUrl;
+            const urlWithBatch = `${getFlashcardBatchUrl}${getFlashcardBatchUrl.includes('?') ? '&' : '?'}batch_size=3`;
+
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 8000); // 8s timeout for smaller batch
+
+            console.log('[Batch] Fetching from:', urlWithBatch);
+            const res = await fetch(urlWithBatch, {
+                headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                signal: controller.signal
+            });
+            clearTimeout(timeoutId);
+            console.log('[Batch] Fetch status:', res.status);
+
+            if (!res.ok) {
+                if (res.status === 404) {
+                    isSessionEnding = true;
+                    // Attempt to parse JSON error message, fallback to status text
+                    let endMessage = "Hết thẻ.";
+                    try {
+                        const end = await res.json();
+                        endMessage = end.message || endMessage;
+                    } catch (e) { }
+
+                    console.log('[Batch] No more cards available.');
+                    if (immediate && remaining <= 0) {
+                        handleSessionEnd(endMessage);
+                    }
+                    return;
+                }
+                throw new Error('HTTP ' + res.status);
+            }
+
+            const batch = await res.json();
+            console.log('[Batch] Data received items count:', batch.items ? batch.items.length : 0);
+            const newItems = batch.items || [];
+
+            if (newItems.length === 0) {
+                isSessionEnding = true;
+                if (immediate && remaining <= 0) {
+                    handleSessionEnd("Hết thẻ trong phiên này!");
+                }
+                return;
+            }
+
+            // Update session stats
+            sessionStatsLocal.total = batch.total_items_in_session || sessionStatsLocal.total;
+            if (batch.session_points !== undefined) sessionScore = batch.session_points;
+
+            // [FIX] Deduplicate items (Backend sends dispatched items first for reload safety,
+            // but for prefetch we might already have them).
+            const existingIds = new Set(currentFlashcardBatch.map(i => i.item_id));
+            const uniqueNewItems = newItems.filter(i => !existingIds.has(i.item_id));
+
+            if (uniqueNewItems.length > 0) {
+                currentFlashcardBatch.push(...uniqueNewItems);
+                console.log('[Batch] Buffer updated. Added:', uniqueNewItems.length, 'New size:', currentFlashcardBatch.length);
+            } else {
+                console.log('[Batch] No new unique items received (all duplicates).');
+            }
+
+            if (batch.container_name && batch.container_name !== 'Bộ thẻ') {
+                document.querySelectorAll('.js-fc-title').forEach(el => { el.textContent = batch.container_name; });
+            }
+
+            // Trigger audio prefetch for the newly added items
+            if (window.prefetchAudioForUpcomingCards) {
+                console.log('[Batch] Triggering audio pre-generation for the new batch');
+                window.prefetchAudioForUpcomingCards(3);
+            }
+
+        } catch (e) {
+            console.error('[Batch] Failed to fetch batch:', e);
+            if (immediate && remaining <= 0) {
+                window.setFlashcardContent(`<p class='text-red-500 text-center'>Không thể tải thẻ. Vui lòng thử lại.</p>`);
+            }
+        } finally {
+            isFetchingBatch = false;
+            activeFetchPromise = null;
+        }
+    })();
+
+    return activeFetchPromise;
+}
+
+function handleSessionEnd(message) {
+    if (window.FlashcardConfig.isAutoplaySession) {
+        window.cancelAutoplaySequence();
+    }
+    const dashboardUrl = window.FlashcardConfig.vocabDashboardUrl || '/';
+    window.setFlashcardContent(`
+        <div class="text-center py-12 text-gray-600">
+            <i class="fas fa-check-circle text-5xl text-green-500 mb-4"></i>
+            <h3 class="text-xl font-semibold text-gray-700 mb-2">Hoàn thành phiên học!</h3>
+            <p class="text-gray-500">${window.formatTextForHtml(message)}</p>
+            <button id="return-to-dashboard-btn" class="mt-6 px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 shadow-sm">
+                <i class="fas fa-home mr-2"></i> Quay lại Dashboard
+            </button>
+        </div>
+    `);
+
+    document.getElementById('return-to-dashboard-btn')?.addEventListener('click', () => {
+        window.location.href = dashboardUrl;
+    });
+}
+
+/**
+ * Loads and displays the next card in the buffer.
+ * If buffer is empty, it waits for a fetch.
+ */
 async function getNextFlashcardBatch() {
-    window.isSubmitLock = false; // [UNLOCK] Allow tooltips again
+    // If the card at current index is already in buffer, just show it
+    // Note: index might have been incremented by submitFlashcardAnswer
+    if (currentFlashcardIndex < currentFlashcardBatch.length) {
+        displayCurrentCard();
+        // Background check for refill
+        ensureFlashcardBuffer();
+        return;
+    }
+
+    // Buffer empty or at the end
+    if (isSessionEnding) {
+        handleSessionEnd("Bạn đã hoàn thành tất cả các thẻ!");
+        return;
+    }
+
+    // Must fetch immediate
+    window.isSubmitLock = false;
     window.stopAllFlashcardAudio();
     window.setFlashcardContent(`<div class="flex flex-col items-center justify-center h-full text-blue-500 min-h-[300px]"><i class="fas fa-spinner fa-spin text-4xl mb-3"></i><p>Đang tải thẻ...</p></div>`);
 
-    const getFlashcardBatchUrl = window.FlashcardConfig.getFlashcardBatchUrl;
+    await ensureFlashcardBuffer(true);
 
-    try {
-        const res = await fetch(getFlashcardBatchUrl, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
-        if (!res.ok) {
-            if (res.status === 404) {
-                const end = await res.json();
-                if (window.FlashcardConfig.isAutoplaySession) {
-                    window.cancelAutoplaySequence();
-                }
-                window.setFlashcardContent(`<div class="text-center py-12 text-gray-600"><i class="fas fa-check-circle text-5xl text-green-500 mb-4"></i><h3 class="text-xl font-semibold text-gray-700 mb-2">Hoàn thành phiên học!</h3><p class="text-gray-500">${window.formatTextForHtml(end.message)}</p><button id="return-to-dashboard-btn" class="mt-6 px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 shadow-sm"><i class="fas fa-home mr-2"></i> Quay lại Dashboard</button></div>`);
-                const dashboardUrl = window.FlashcardConfig.vocabDashboardUrl;
-                document.getElementById('return-to-dashboard-btn').addEventListener('click', () => { window.location.href = dashboardUrl; });
-                return;
-            }
-            throw new Error('HTTP ' + res.status);
+    if (currentFlashcardBatch.length > currentFlashcardIndex) {
+        displayCurrentCard();
+    } else {
+        console.warn('[Session] No cards in buffer after fetch attempt.');
+        if (!isSessionEnding) {
+            window.setFlashcardContent(`<p class='text-red-500 text-center py-12'>Không thể tải thêm thẻ. Hãy thử tải lại trang.</p>`);
         }
-        const batch = await res.json();
-        currentFlashcardBatch = batch.items;
-        currentFlashcardIndex = 0;
-        const currentCardData = currentFlashcardBatch[currentFlashcardIndex];
-
-        // Stats Rendering
-        const currentCardStatsContainer = document.getElementById('current-card-stats');
-        // renderCardStatsHtml should be available globally from ui_manager but it was internal?
-        // Ah, in previous file I forgot to export `renderCardStatsHtml`. 
-        // I should have checked. It was `renderCardStatsHtml`.
-        // Actually, `renderCardStatsHtml` was defined inside renderCard scope in the original file???
-        // No, it was global in original.
-        // I define it in `ui_manager.js`? Wait, I think I MISSED adding `renderCardStatsHtml` / `renderMobileCardStatsHtml` into `ui_manager.js`
-        // I need to add them. They were quite long functions.
-        // Let's assume for a moment I DID add them (or I will fix ui_manager in next step).
-        // Actually looking at my previous tool call output... I DID NOT include `renderCardStatsHtml` in `ui_manager.js`.
-        // I included `renderCard` and smaller functions.
-        // I MUST fix `ui_manager.js` or define them here. They belong in UI Manager.
-
-        // I will finish creating `session_manager.js` assuming they exist, and then I will APPENT/FIX `ui_manager.js`.
-
-        // const initialStatsHtml = window.renderCardStatsHtml(currentCardData.initial_stats, 0, currentCardData.content, true);
-        // window.displayCardStats(currentCardStatsContainer, initialStatsHtml);
-
-        // const mobileCurrent = document.getElementById('current-card-stats-mobile');
-        // if (mobileCurrent) {
-        //     const mobileHtml = window.renderMobileCardStatsHtml(currentCardData.initial_stats, 0, currentCardData.content, true);
-        //     mobileCurrent.innerHTML = mobileHtml;
-        // }
-
-        // Actually if I fix ui_manager, I can export a function `renderCurrentBatchStats` to encapsulation this.
-        // But for now let's call the render functions.
-        if (window.renderCardStatsHtml && currentCardStatsContainer) {
-            const html = window.renderCardStatsHtml(currentCardData.initial_stats, 0, currentCardData.content, true);
-            window.displayCardStats(currentCardStatsContainer, html);
-        }
-
-        const mobileCurrent = document.getElementById('current-card-stats-mobile');
-        if (mobileCurrent && window.renderMobileCardStatsHtml) {
-            const html = window.renderMobileCardStatsHtml(currentCardData.initial_stats, 0, currentCardData.content, true);
-            mobileCurrent.innerHTML = html;
-        }
-
-        // [UX-RESET] Reset the Info Bar stats for the new card
-        if (window.updateFlashcardStats && currentCardData.initial_stats) {
-            // Create a wrapper object that matches structure expected by updateFlashcardStats
-            // The API returns 'statistics' and 'memory_power' separate, but initial_stats is flat?
-            // Need to check core.py/get_item_statistics structure.
-            // core.py returns flat dict with keys: stability, retrievability, current_streak, etc.
-            // updateFlashcardStats expects { statistics: {...}, memory_power: {...} } OR it checks data.statistics / data.memory_power properties.
-
-            // Let's adapt the call to match updateFlashcardStats structure:
-            const statsWrapper = {
-                statistics: currentCardData.initial_stats,
-                memory_power: {
-                    stability: currentCardData.initial_stats.stability, // might be 'memory_power' or 'stability'? core.py says 'stability' isn't in flat dict?
-                    // core.py get_item_statistics returns: 'memory_power' (percentage), and 'mastery' (stability-like?).
-                    // Wait, let's re-read core.py output for get_item_statistics key names.
-                    // It returns: 'memory_power' (retrievability), 'easiness_factor', 'current_streak', 'times_reviewed'.
-                    // It does NOT seem to return explicit 'stability' in days in the flat dict?
-                    // core.py line 202: 'mastery': round((stability or 0)/21.0, ...). 
-                    // It doesn't seem to pass raw stability days in initial_stats?
-                    // But wait, the previous code for 'renderCardStatsHtml' uses `stats.stability`.
-
-                    // Let's assume initial_stats HAS the keys if they exist.
-                    // If not, we might display 0, which is fine for "new card".
-                    // Ideally we pass the full object.
-
-                    retrievability: currentCardData.initial_stats.memory_power, // In initial_stats this is %?
-                    stability: currentCardData.initial_stats.stability
-                }
-            };
-            // Actually, let's look at updateFlashcardStats again.
-            // It checks data.statistics.times_reviewed, data.memory_power.stability.
-
-            // core.py 'get_item_statistics' returns:
-            // - 'times_reviewed'
-            // - 'current_streak'
-            // - 'memory_power' (FLOAT 0-100) -> This maps to retrievability in UI?
-            // - 'stability'? core.py line 198: 'easiness_factor'. 
-            // - It seems 'stability' days acts as 'interval' in some contexts? logic check needed.
-            // Looking at session_manager.js line 273 (previous update), the API returns 'memory_power' object with 'stability'.
-
-            // BUT for initial_stats (get_item_statistics), does it have 'stability'?
-            // core.py line 281 returns stats.
-            // line 197: 'next_review'
-            // line 200: 'interval' (current interval days) -> This is essentially stability for display?
-            // line 202: 'mastery'
-
-            // If 'stability' key is missing in initial_stats, we might need to use 'interval'.
-
-            const statsForReset = {
-                statistics: {
-                    times_reviewed: currentCardData.initial_stats.times_reviewed,
-                    current_streak: currentCardData.initial_stats.current_streak,
-                    easiness_factor: currentCardData.initial_stats.easiness_factor // [NEW]
-                },
-                memory_power: {
-                    stability: currentCardData.initial_stats.interval || 0, // Fallback to interval
-                    retrievability: currentCardData.initial_stats.memory_power // This is % in initial_stats
-                },
-                new_progress_status: currentCardData.initial_stats.status // For badge
-            };
-
-            window.updateFlashcardStats(statsForReset);
-        }
-
-        window.renderCard(currentCardData);
-
-        // [NEW] Update card state badge (NEW/LEARNED/HARD/MASTER)
-        const customState = currentCardData.initial_stats?.custom_state || 'new';
-        window.updateStateBadge(customState);
-
-        // [UX] Show mobile bottom bar again after card is loaded
-        const mobileBottomBar = document.querySelector('.fc-bottom-bar');
-        if (mobileBottomBar) {
-            mobileBottomBar.style.display = ''; // Clear inline display:none to let CSS handle it
-        }
-
-        currentCardStartTime = Date.now(); // [NEW] Start timer
-        window.updateSessionSummary();
-
-        // Update local session stats from batch
-        sessionStatsLocal.processed = batch.session_processed_count || 1;
-        sessionStatsLocal.total = batch.session_total_items || batch.total_items_in_session || 0;
-        sessionStatsLocal.correct = batch.session_correct_answers || sessionStatsLocal.correct || 0;
-        sessionStatsLocal.incorrect = batch.session_incorrect_answers || sessionStatsLocal.incorrect || 0;
-        sessionStatsLocal.vague = batch.session_vague_answers || sessionStatsLocal.vague || 0;
-
-        // [NEW] Restore session score from backend on page load
-        if (batch.session_points !== undefined && batch.session_points > 0) {
-            sessionScore = batch.session_points;
-            console.log('[Session] Restored session_points from backend:', sessionScore);
-        }
-
-        // Update container name from batch
-        if (batch.container_name) {
-            document.querySelectorAll('.js-fc-title').forEach(el => {
-                el.textContent = batch.container_name;
-            });
-        }
-
-        // Expose stats to window for mobile view
-        window.flashcardSessionStats = {
-            progress: sessionStatsLocal.processed + '/' + sessionStatsLocal.total,
-            processed: sessionStatsLocal.processed,
-            total: sessionStatsLocal.total,
-            correct: sessionStatsLocal.correct,
-            incorrect: sessionStatsLocal.incorrect,
-            vague: sessionStatsLocal.vague,
-            session_score: sessionScore,
-            // Stats for Box B (Current Card)
-            retrievability: currentCardData.initial_stats ? (currentCardData.initial_stats.retrievability || currentCardData.initial_stats.memory_power || 0) : 0,
-            current_card_mem_percent: currentCardData.initial_stats ? currentCardData.initial_stats.memory_power : 0,
-            current_card_history_right: currentCardData.initial_stats ? currentCardData.initial_stats.correct_count : 0,
-            current_card_history_wrong: currentCardData.initial_stats ? (currentCardData.initial_stats.incorrect_count + (currentCardData.initial_stats.vague_count || 0)) : 0,
-            // [NEW] Add Item Streak
-            current_streak: currentCardData.initial_stats ? (currentCardData.initial_stats.current_streak || 0) : 0
-        };
-        // Dispatch custom event for mobile stats update
-        document.dispatchEvent(new CustomEvent('flashcardStatsUpdated', { detail: window.flashcardSessionStats }));
-
-    } catch (e) {
-        console.error('Lỗi khi tải nhóm thẻ:', e);
-        window.setFlashcardContent(`<p class='text-red-500 text-center'>Không thể tải thẻ. Vui lòng thử lại.</p>`);
     }
 }
+
+function displayCurrentCard() {
+    console.log(`[Display] Attempting to display card at index: ${currentFlashcardIndex}, Buffer size: ${currentFlashcardBatch.length}`);
+
+    // [UX-DEFER] If a notification is active, wait until it finishes
+    if (window.isNotificationActive) {
+        console.warn('[Display] Deferring: Notification is currently ACTIVE');
+        window.pendingCardDisplay = true;
+        return;
+    }
+
+    const currentCardData = currentFlashcardBatch[currentFlashcardIndex];
+    if (!currentCardData) {
+        console.error('[Display] FAILED: No card data found at index', currentFlashcardIndex);
+        return;
+    }
+
+    console.log('[Display] Rendering card ID:', currentCardData.item_id);
+
+    window.isSubmitLock = false;
+    window.stopAllFlashcardAudio();
+
+    // Stats Rendering
+    const currentCardStatsContainer = document.getElementById('current-card-stats');
+    if (window.renderCardStatsHtml && currentCardStatsContainer) {
+        const html = window.renderCardStatsHtml(currentCardData.initial_stats, 0, currentCardData.content, true);
+        window.displayCardStats(currentCardStatsContainer, html);
+    }
+
+    const mobileCurrent = document.getElementById('current-card-stats-mobile');
+    if (mobileCurrent && window.renderMobileCardStatsHtml) {
+        const html = window.renderMobileCardStatsHtml(currentCardData.initial_stats, 0, currentCardData.content, true);
+        mobileCurrent.innerHTML = html;
+    }
+
+    // [UX-RESET] Info Bar stats
+    if (window.updateFlashcardStats && currentCardData.initial_stats) {
+        const statsForReset = {
+            statistics: {
+                times_reviewed: currentCardData.initial_stats.times_reviewed,
+                current_streak: currentCardData.initial_stats.current_streak,
+                easiness_factor: currentCardData.initial_stats.easiness_factor
+            },
+            memory_power: {
+                stability: currentCardData.initial_stats.interval || currentCardData.initial_stats.stability || 0,
+                retrievability: currentCardData.initial_stats.memory_power || currentCardData.initial_stats.retrievability || 0
+            },
+            new_progress_status: currentCardData.initial_stats.status || currentCardData.initial_stats.custom_state || 'new'
+        };
+        window.updateFlashcardStats(statsForReset);
+    }
+
+    window.renderCard(currentCardData);
+
+    // Card state badge
+    const customState = currentCardData.initial_stats?.custom_state || 'new';
+    window.updateStateBadge(customState);
+
+    // Mobile UI
+    const mobileBottomBar = document.querySelector('.fc-bottom-bar');
+    if (mobileBottomBar) mobileBottomBar.style.display = '';
+
+    currentCardStartTime = Date.now();
+    window.updateSessionSummary();
+
+    // Trigger audio prefetch for upcoming cards to stay ahead
+    if (window.prefetchAudioForUpcomingCards) {
+        window.prefetchAudioForUpcomingCards(3);
+    }
+
+    // Session Stats Update
+    sessionStatsLocal.processed = (window.sessionAnswerHistory ? window.sessionAnswerHistory.length : 0) + 1;
+    // sessionStatsLocal.total is updated from batch fetch
+
+    window.flashcardSessionStats = {
+        progress: sessionStatsLocal.processed + '/' + sessionStatsLocal.total,
+        processed: sessionStatsLocal.processed,
+        total: sessionStatsLocal.total,
+        correct: sessionStatsLocal.correct,
+        incorrect: sessionStatsLocal.incorrect,
+        vague: sessionStatsLocal.vague,
+        session_score: sessionScore,
+        retrievability: currentCardData.initial_stats ? (currentCardData.initial_stats.retrievability || currentCardData.initial_stats.memory_power || 0) : 0,
+        current_streak: currentCardData.initial_stats ? (currentCardData.initial_stats.current_streak || 0) : 0
+    };
+    document.dispatchEvent(new CustomEvent('flashcardStatsUpdated', { detail: window.flashcardSessionStats }));
+}
+
 
 
 // ... (inside renderNewBatchItems or wherever card is shown)
@@ -353,17 +422,9 @@ async function submitFlashcardAnswer(itemId, answer) {
         // [SMART TRANSITION] 2. Notification & Dynamic Wait
         let notificationPromise = Promise.resolve();
 
-        // Dispatch event to hide card content (optional, maybe keep it visible now?)
-        // User requested: "Keep current card visible"
-        // So we might NOT want 'notificationStart' to hide content anymore?
-        // Let's keep 'notificationStart' but ensure it doesn't hide the card text if that's what it did.
-        // Checking previous code: notificationStart added class 'notification-active' which might hide content.
-        // User said: "Giữ nguyên thẻ hiện tại trên màn hình." implied visible?
-        // Let's Comment out the hiding dispatch if it hides content.
-        document.dispatchEvent(new CustomEvent('notificationStart'));
-
         if (data.score_change > 0 && window.showScoreToast) {
-            // We await this!
+            // ONLY dispatch start if we are actually showing a toast
+            document.dispatchEvent(new CustomEvent('notificationStart'));
             notificationPromise = window.showScoreToast(data.score_change);
         }
 
@@ -457,30 +518,36 @@ async function submitFlashcardAnswer(itemId, answer) {
 
         document.dispatchEvent(new CustomEvent('flashcardStatsUpdated', { detail: window.flashcardSessionStats }));
 
+        // [SMART TRANSITION] 3. Wait for Notification to Finish (Dynamic Wait)
+        // We increment the index and THEN wait for the notification to trigger displayCurrentCard
         currentFlashcardIndex++;
 
-        // [SMART TRANSITION] 3. Wait for Notification to Finish (Dynamic Wait)
-        // This is the barrier. The code will pause here until the toast animation is FULLY done.
-        await notificationPromise;
+        // If we are out of cards in buffer, we MUST fetch more
+        if (currentFlashcardIndex >= currentFlashcardBatch.length) {
+            await notificationPromise;
+            if (!isSessionEnding) {
+                await getNextFlashcardBatch();
+            }
+        } else {
+            // Still have cards in buffer? Just trigger attempt to display
+            // Notification handler will catch it if one is active
+            displayCurrentCard();
+        }
 
-        // [SMART TRANSITION] 4. Load Next Card (Only after wait)
-        await getNextFlashcardBatch();
-
-        // 5. Show buttons again (after card loaded)
         if (window.showRatingButtons) window.showRatingButtons();
 
+        isSubmitting = false;
     } catch (e) {
         window.isSubmitLock = false; // [UNLOCK] on error
         console.error('Lỗi khi gửi đáp án:', e);
         if (window.showCustomAlert) window.showCustomAlert('Có lỗi khi gửi đáp án. Vui lòng thử lại.');
-
-        // Unlock on error so user can retry
         if (window.showRatingButtons) window.showRatingButtons();
         isSubmitting = false;
     } finally {
         isSubmitting = false;
     }
 }
+
 
 async function updateFlashcardCard(itemId, setId) {
     const numericItemId = Number(itemId);
@@ -556,37 +623,32 @@ async function updateFlashcardCard(itemId, setId) {
     }
 }
 
-// Export 
-window.syncSettingsToServer = syncSettingsToServer;
+// --- Exports ---
+window.currentFlashcardBatch = currentFlashcardBatch;
+Object.defineProperty(window, 'currentFlashcardIndex', {
+    get: () => currentFlashcardIndex,
+    set: (v) => { currentFlashcardIndex = v; },
+    configurable: true
+});
+
+Object.defineProperty(window, 'sessionScore', {
+    get: () => sessionScore,
+    set: (v) => { sessionScore = v; },
+    configurable: true
+});
+
+Object.defineProperty(window, 'currentUserTotalScore', {
+    get: () => currentUserTotalScore,
+    set: (v) => { currentUserTotalScore = v; },
+    configurable: true
+});
+
+window.previousCardStats = previousCardStats;
+window.sessionAnswerHistory = sessionAnswerHistory;
 window.getNextFlashcardBatch = getNextFlashcardBatch;
 window.submitFlashcardAnswer = submitFlashcardAnswer;
 window.updateFlashcardCard = updateFlashcardCard;
+window.displayCurrentCard = displayCurrentCard;
+window.ensureFlashcardBuffer = ensureFlashcardBuffer;
+window.syncSettingsToServer = syncSettingsToServer;
 
-// Global State Getters
-// Global State Getters
-Object.defineProperty(window, 'currentFlashcardBatch', {
-    get: () => currentFlashcardBatch,
-    configurable: true
-});
-Object.defineProperty(window, 'currentFlashcardIndex', {
-    get: () => currentFlashcardIndex,
-    configurable: true
-});
-Object.defineProperty(window, 'sessionScore', {
-    get: () => sessionScore,
-    set: (v) => sessionScore = v,
-    configurable: true
-});
-Object.defineProperty(window, 'currentUserTotalScore', {
-    get: () => currentUserTotalScore,
-    set: (v) => currentUserTotalScore = v,
-    configurable: true
-});
-Object.defineProperty(window, 'previousCardStats', {
-    get: () => previousCardStats,
-    configurable: true
-});
-Object.defineProperty(window, 'sessionAnswerHistory', { // Expose for mobile stats
-    get: () => sessionAnswerHistory,
-    configurable: true
-});

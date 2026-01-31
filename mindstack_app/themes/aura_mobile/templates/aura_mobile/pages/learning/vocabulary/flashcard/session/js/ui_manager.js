@@ -1814,12 +1814,16 @@ document.addEventListener('flashcardStatsUpdated', function (e) {
 // [UX-FIX] Notification Lifecycle Handlers
 // =========================================
 
+// Track notification lifecycle
+window.isNotificationActive = false;
 // Track if we should defer audio playback
-let pendingAudioAutoplay = false;
+window.pendingAudioAutoplay = false;
+window.pendingCardDisplay = false;
 
 // When notification starts: hide card content and bottom bar
 document.addEventListener('notificationStart', function () {
-    console.log('[Notification] Start - hiding card content');
+    console.log('[Notification] START event received');
+    window.isNotificationActive = true;
     const mobileView = document.querySelector('.flashcard-mobile-view');
     if (mobileView) {
         mobileView.classList.add('notification-active');
@@ -1830,12 +1834,21 @@ document.addEventListener('notificationStart', function () {
         bottomBar.style.display = 'none';
     }
     // Set flag so renderCard knows to defer audio
-    pendingAudioAutoplay = true;
+    window.pendingAudioAutoplay = true;
+
+    // [SAFETY] Force notificationComplete if it gets stuck for more than 3 seconds
+    setTimeout(() => {
+        if (window.isNotificationActive) {
+            console.warn('[Notification] SAFETY RELEASE: notificationComplete was not received in 3s. Forcing release...');
+            document.dispatchEvent(new CustomEvent('notificationComplete'));
+        }
+    }, 3000);
 });
 
 // When notification completes: show card content and play audio
 document.addEventListener('notificationComplete', function () {
-    console.log('[Notification] Complete - showing card content');
+    console.log('[Notification] COMPLETE event received');
+    window.isNotificationActive = false;
     const mobileView = document.querySelector('.flashcard-mobile-view');
     if (mobileView) {
         mobileView.classList.remove('notification-active');
@@ -1858,8 +1871,17 @@ document.addEventListener('notificationComplete', function () {
 
     // Now trigger audio autoplay if enabled
     setTimeout(() => {
-        if (pendingAudioAutoplay) {
-            pendingAudioAutoplay = false;
+        // If there's a pending card display, trigger it now
+        if (window.pendingCardDisplay) {
+            console.log('[Notification] Found pendingCardDisplay, triggering displayCurrentCard now');
+            window.pendingCardDisplay = false;
+            if (window.displayCurrentCard) window.displayCurrentCard();
+            return; // displayCurrentCard will trigger its own audio
+        }
+
+        if (window.pendingAudioAutoplay) {
+            console.log('[Notification] Triggering deferred autoplay');
+            window.pendingAudioAutoplay = false;
             const isAutoplaySession = window.FlashcardConfig && window.FlashcardConfig.isAutoplaySession;
             if (isAutoplaySession) {
                 if (window.startAutoplaySequence) window.startAutoplaySequence();
@@ -1868,12 +1890,5 @@ document.addEventListener('notificationComplete', function () {
             }
         }
     }, 100); // Small delay to let card fully render
-});
-
-// Export for external access using getter/setter for live value
-Object.defineProperty(window, 'pendingAudioAutoplay', {
-    get: () => pendingAudioAutoplay,
-    set: (val) => { pendingAudioAutoplay = val; },
-    configurable: true
 });
 

@@ -1,4 +1,5 @@
 from flask import render_template, request, redirect, url_for, flash, abort, jsonify
+from mindstack_app.utils.template_helpers import render_dynamic_template
 from flask_login import login_required, current_user
 from mindstack_app.models import db, LearningContainer, LearningItem
 from mindstack_app.services.content_kernel_service import ContentKernelService
@@ -25,8 +26,11 @@ def add_flashcard_item(set_id):
                     'front_img': form.front_img.data,
                     'back_img': form.back_img.data,
                     'front_audio_content': form.front_audio_content.data,
-                    'back_audio_content': form.back_audio_content.data
+                    'front_audio_url': form.front_audio_url.data,
+                    'back_audio_content': form.back_audio_content.data,
+                    'back_audio_url': form.back_audio_url.data
                 },
+                order=form.order_in_container.data or 0,
                 ai_explanation=form.ai_explanation.data
             )
             flash('Đã thêm thẻ mới!', 'success')
@@ -35,7 +39,7 @@ def add_flashcard_item(set_id):
             db.session.rollback()
             flash(f'Lỗi khi thêm: {str(e)}', 'danger')
             
-    return render_template('pages/content_management/flashcards/items/add_edit.html', 
+    return render_dynamic_template('pages/content_management/flashcards/items/add_edit_flashcard_item.html', 
                            form=form, 
                            container=container,
                            title="Thêm thẻ mới")
@@ -66,8 +70,11 @@ def edit_flashcard_item(set_id, item_id):
         'front_img': item.content.get('front_img'),
         'back_img': item.content.get('back_img'),
         'front_audio_content': item.content.get('front_audio_content'),
+        'front_audio_url': item.content.get('front_audio_url'),
         'back_audio_content': item.content.get('back_audio_content'),
-        'ai_explanation': item.ai_explanation
+        'back_audio_url': item.content.get('back_audio_url'),
+        'ai_explanation': item.ai_explanation,
+        'order_in_container': item.order_in_container
     })
     
     if form.validate_on_submit():
@@ -80,8 +87,11 @@ def edit_flashcard_item(set_id, item_id):
                     'front_img': form.front_img.data,
                     'back_img': form.back_img.data,
                     'front_audio_content': form.front_audio_content.data,
-                    'back_audio_content': form.back_audio_content.data
+                    'front_audio_url': form.front_audio_url.data,
+                    'back_audio_content': form.back_audio_content.data,
+                    'back_audio_url': form.back_audio_url.data
                 },
+                order=form.order_in_container.data,
                 ai_explanation=form.ai_explanation.data
             )
             flash('Đã cập nhật thẻ!', 'success')
@@ -90,7 +100,7 @@ def edit_flashcard_item(set_id, item_id):
             db.session.rollback()
             flash(f'Lỗi khi cập nhật: {str(e)}', 'danger')
 
-    return render_template('pages/content_management/flashcards/items/add_edit.html', 
+    return render_dynamic_template('pages/content_management/flashcards/items/add_edit_flashcard_item.html', 
                            form=form, 
                            container=item.container,
                            item=item,

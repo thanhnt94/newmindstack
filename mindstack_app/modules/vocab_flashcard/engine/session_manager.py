@@ -39,6 +39,8 @@ import random
 import datetime
 import os
 import asyncio
+import threading
+from mindstack_app.modules.vocab_flashcard.services import AudioService
 
 # [NEW] Imports for Preview Simulation
 from mindstack_app.modules.learning.logics.scoring_engine import ScoringEngine
@@ -70,12 +72,13 @@ class FlashcardSessionManager:
     def __init__(self, user_id, set_id, mode,
                  total_items_in_session, processed_item_ids,
                  correct_answers, incorrect_answers, vague_answers, start_time,
-                 session_points=0, db_session_id=None):
+                 session_points=0, db_session_id=None, dispatched_item_ids=None):
         self.user_id = user_id
         self.set_id = set_id
         self.mode = mode
         self.total_items_in_session = total_items_in_session
         self.processed_item_ids = processed_item_ids
+        self.dispatched_item_ids = dispatched_item_ids or [] # Track items sent but not answered
         self.correct_answers = correct_answers
         self.incorrect_answers = incorrect_answers
         self.vague_answers = vague_answers
@@ -98,7 +101,8 @@ class FlashcardSessionManager:
             vague_answers=session_dict['vague_answers'],
             start_time=session_dict['start_time'],
             session_points=session_dict.get('session_points', 0),
-            db_session_id=session_dict.get('db_session_id')
+            db_session_id=session_dict.get('db_session_id'),
+            dispatched_item_ids=session_dict.get('dispatched_item_ids', [])
         )
         instance._media_folders_cache = None
         instance._edit_permission_cache = {}
@@ -111,6 +115,7 @@ class FlashcardSessionManager:
             'mode': self.mode,
             'total_items_in_session': self.total_items_in_session,
             'processed_item_ids': self.processed_item_ids,
+            'dispatched_item_ids': self.dispatched_item_ids,
             'current_batch_start_index': len(self.processed_item_ids),
             'correct_answers': self.correct_answers,
             'incorrect_answers': self.incorrect_answers,
@@ -153,19 +158,10 @@ class FlashcardSessionManager:
             return False, "Chế độ học không hợp lệ.", None
 
         algorithm_func = {
-            'new_only': get_new_only_items,
-            'due_only': get_due_items,
-            'hard_only': get_hard_items,
-            'mixed_srs': get_mixed_items,
-            'sequential': get_sequential_items,      # [FIXED] Skip learned items
-            'random': get_all_items_for_autoplay,      # Fetch everything
+            'sequential': get_sequential_items,
             'all_review': get_all_review_items,
-            'pronunciation_practice': get_pronunciation_items,
-            'writing_practice': get_writing_items,
-            'quiz_practice': get_quiz_items,
-            'essay_practice': get_essay_items,
-            'listening_practice': get_listening_items,
-            'speaking_practice': get_speaking_items,
+            'new_only': get_new_only_items,
+            'hard_only': get_hard_items,
             'autoplay_all': get_all_items_for_autoplay,
             'autoplay_learned': get_all_review_items,
         }.get(mode)
@@ -320,255 +316,291 @@ class FlashcardSessionManager:
             self._edit_permission_cache[container_id] = False
             return False
 
-    def get_next_batch(self):
-        next_item = None
-        exclusion_condition = None
-        if self.processed_item_ids:
-            exclusion_condition = LearningItem.item_id.notin_(self.processed_item_ids)
+    def get_next_batch(self, batch_size: int = 5):
+        # 1. Cleanup dispatched items (remove those already processed)
+        self.dispatched_item_ids = [iid for iid in self.dispatched_item_ids if iid not in self.processed_item_ids]
+        
+        # 2. Start building the next batch
+        next_items = []
+        
+        # Priority: Items already in the "active hand" but not yet answered
+        if self.dispatched_item_ids:
+             from sqlalchemy import case
+             # Fetch specifically these items in their original order
+             id_list = self.dispatched_item_ids
+             # Create a mapping to preserve order
+             items_query = LearningItem.query.filter(LearningItem.item_id.in_(id_list))
+             found_items = {itm.item_id: itm for itm in items_query.all()}
+             next_items = [found_items[iid] for iid in id_list if iid in found_items]
+             
+             # If we have enough in dispatched, we can potentially stop early if it meets batch_size
+             if len(next_items) >= batch_size:
+                  # This happens if user reloads and the old batch was large
+                  next_items = next_items[:batch_size]
+                  # We don't need to fetch more
+        
+        # 3. If we don't have enough pending items, fetch new ones
+        if len(next_items) < batch_size:
+            needed = batch_size - len(next_items)
+            
+            # Use exclusion covering both processed AND currently dispatched
+            exclusion_all = set(self.processed_item_ids) | set(self.dispatched_item_ids)
+            exclusion_condition = None
+            if exclusion_all:
+                exclusion_condition = LearningItem.item_id.notin_(exclusion_all)
 
-        # [NEW] Exclude items marked as 'ignored' by this user
-        ignored_subquery = db.session.query(UserItemMarker.item_id).filter(
-            UserItemMarker.user_id == self.user_id,
-            UserItemMarker.marker_type == 'ignored'
-        )
+            # [NEW] Exclude items marked as 'ignored' by this user
+            ignored_subquery = db.session.query(UserItemMarker.item_id).filter(
+                UserItemMarker.user_id == self.user_id,
+                UserItemMarker.marker_type == 'ignored'
+            )
 
-        def apply_exclusion(query):
-            # 1. Exclude processed
-            if exclusion_condition is not None:
-                query = query.filter(exclusion_condition)
-            # 2. Exclude ignored
-            query = query.filter(LearningItem.item_id.notin_(ignored_subquery))
-            return query
+            def apply_exclusion(query):
+                # 1. Exclude processed
+                if exclusion_condition is not None:
+                    query = query.filter(exclusion_condition)
+                # 2. Exclude ignored
+                query = query.filter(LearningItem.item_id.notin_(ignored_subquery))
+                return query
 
-        if self.mode == 'new_only':
-            query = apply_exclusion(
-                get_new_only_items(self.user_id, self.set_id, None)
-            ).order_by(LearningItem.order_in_container.asc())
-            next_item = query.first()
-        elif self.mode == 'due_only':
-            query = apply_exclusion(
-                get_due_items(self.user_id, self.set_id, None)
-            ).order_by(LearningProgress.fsrs_due.asc())
-            next_item = query.first()
-        elif self.mode == 'hard_only':
-            query = apply_exclusion(
-                get_hard_items(self.user_id, self.set_id, None)
-            ).order_by(LearningProgress.fsrs_due.asc(), LearningItem.item_id.asc())
-            next_item = query.first()
-        elif self.mode == 'all_review':
-            query = apply_exclusion(
-                get_all_review_items(self.user_id, self.set_id, None)
-            ).order_by(LearningProgress.fsrs_due.asc(), LearningItem.item_id.asc())
-            next_item = query.first()
-        elif self.mode == 'autoplay_learned':
-            query = apply_exclusion(
-                get_all_review_items(self.user_id, self.set_id, None)
-            ).order_by(LearningItem.order_in_container.asc(), LearningItem.item_id.asc())
-            next_item = query.first()
-        elif self.mode == 'autoplay_all':
-            query = apply_exclusion(
-                get_all_items_for_autoplay(self.user_id, self.set_id, None)
-            ).order_by(LearningItem.order_in_container.asc(), LearningItem.item_id.asc())
-            next_item = query.first()
-        elif self.mode == 'pronunciation_practice':
-            query = apply_exclusion(
-                get_pronunciation_items(self.user_id, self.set_id, None)
-            ).order_by(LearningItem.order_in_container.asc(), LearningItem.item_id.asc())
-            next_item = query.first()
-        elif self.mode == 'writing_practice':
-            query = apply_exclusion(
-                get_writing_items(self.user_id, self.set_id, None)
-            ).order_by(LearningItem.order_in_container.asc(), LearningItem.item_id.asc())
-            next_item = query.first()
-        elif self.mode == 'quiz_practice':
-            query = apply_exclusion(
-                get_quiz_items(self.user_id, self.set_id, None)
-            ).order_by(LearningItem.order_in_container.asc(), LearningItem.item_id.asc())
-            next_item = query.first()
-        elif self.mode == 'sequential':
-            # TRUE SEQUENTIAL: Strictly follow order_in_container (Due/New only)
-            query = apply_exclusion(
-                get_sequential_items(self.user_id, self.set_id, None)
-            ).order_by(LearningItem.order_in_container.asc(), LearningItem.item_id.asc())
-            next_item = query.first()
-        elif self.mode == 'random':
-            # TRUE RANDOM: Shuffle everything matching criteria
-            query = apply_exclusion(
-                get_all_items_for_autoplay(self.user_id, self.set_id, None)
-            ).order_by(func.random())
-            next_item = query.first()
-        else:
-            due_query = apply_exclusion(
-                get_due_items(self.user_id, self.set_id, None)
-            ).order_by(LearningProgress.fsrs_due.asc())
-            next_item = due_query.first()
-            if not next_item:
-                new_query = apply_exclusion(
-                    get_new_only_items(self.user_id, self.set_id, None)
-                ).order_by(LearningItem.order_in_container.asc())
-                next_item = new_query.first()
+            if self.mode == 'new_only':
+                query = apply_exclusion(get_new_only_items(self.user_id, self.set_id, None))
+                query = query.order_by(LearningItem.order_in_container.asc(), LearningItem.item_id.asc())
+                next_items.extend(query.limit(needed).all())
+            elif self.mode == 'all_review' or self.mode == 'autoplay_learned':
+                query = apply_exclusion(get_all_review_items(self.user_id, self.set_id, None))
+                query = query.order_by(func.random())
+                next_items.extend(query.limit(needed).all())
+            elif self.mode == 'hard_only':
+                query = apply_exclusion(get_hard_items(self.user_id, self.set_id, None))
+                query = query.order_by(func.random())
+                next_items.extend(query.limit(needed).all())
+            elif self.mode == 'autoplay_all':
+                query = apply_exclusion(get_all_items_for_autoplay(self.user_id, self.set_id, None))
+                query = query.order_by(LearningItem.order_in_container.asc(), LearningItem.item_id.asc())
+                next_items.extend(query.limit(needed).all())
+            elif self.mode == 'sequential':
+                due_query = apply_exclusion(get_due_items(self.user_id, self.set_id, None))
+                due_items = due_query.limit(needed).all()
+                next_items.extend(due_items)
+                
+                if len(next_items) < batch_size:
+                    fill_needed = batch_size - len(next_items)
+                    new_query = apply_exclusion(get_new_only_items(self.user_id, self.set_id, None))
+                    new_query = new_query.order_by(LearningItem.order_in_container.asc(), LearningItem.item_id.asc())
+                    next_items.extend(new_query.limit(fill_needed).all())
+            elif self.mode == 'random':
+                query = apply_exclusion(get_all_items_for_autoplay(self.user_id, self.set_id, None))
+                query = query.order_by(func.random())
+                next_items.extend(query.limit(needed).all())
+            else:
+                # DEFAULT / MIXED SRS
+                due_query = apply_exclusion(get_due_items(self.user_id, self.set_id, None))
+                due_items = due_query.limit(needed).all()
+                next_items.extend(due_items)
+                
+                if len(next_items) < batch_size:
+                    fill_needed = batch_size - len(next_items)
+                    new_query = apply_exclusion(get_new_only_items(self.user_id, self.set_id, None))
+                    new_query = new_query.order_by(LearningItem.order_in_container.asc())
+                    next_items.extend(new_query.limit(fill_needed).all())
 
-        if not next_item:
+        # Sync registry
+        for itm in next_items:
+            if itm.item_id not in self.dispatched_item_ids:
+                self.dispatched_item_ids.append(itm.item_id)
+
+        if not next_items:
             return None
 
-        # ĐÃ THÊM: Lấy thống kê ban đầu cho thẻ sắp hiển thị
-        initial_stats = FlashcardEngine.get_item_statistics(self.user_id, next_item.item_id)
+        batch_items_data = []
+        for next_item in next_items:
+            # ĐÃ THÊM: Lấy thống kê ban đầu cho thẻ sắp hiển thị
+            initial_stats = FlashcardEngine.get_item_statistics(self.user_id, next_item.item_id)
 
-        container_capabilities = set()
-        container_title = ""
-        try:
-            container = LearningContainer.query.get(next_item.container_id)
-            if container:
-                container_title = container.title or ""
-                if hasattr(container, 'capability_flags'):
-                    container_capabilities = container.capability_flags()
-                else:
-                    settings_payload = container.ai_settings if hasattr(container, 'ai_settings') else None
-                    if isinstance(settings_payload, dict):
-                        container_capabilities = _normalize_capability_flags(
-                            settings_payload.get('capabilities')
-                        )
-        except Exception:
             container_capabilities = set()
             container_title = ""
+            try:
+                container = LearningContainer.query.get(next_item.container_id)
+                if container:
+                    container_title = container.title or ""
+                    if hasattr(container, 'capability_flags'):
+                        container_capabilities = container.capability_flags()
+                    else:
+                        settings_payload = container.ai_settings if hasattr(container, 'ai_settings') else None
+                        if isinstance(settings_payload, dict):
+                            container_capabilities = _normalize_capability_flags(
+                                settings_payload.get('capabilities')
+                            )
+            except Exception:
+                container_capabilities = set()
+                container_title = ""
 
-        try:
-            markers = db.session.query(UserItemMarker.marker_type).filter_by(
-                user_id=self.user_id,
-                item_id=next_item.item_id
-            ).all()
-            marker_list = [m[0] for m in markers]
-        except Exception:
-            marker_list = []
+            try:
+                markers = db.session.query(UserItemMarker.marker_type).filter_by(
+                    user_id=self.user_id,
+                    item_id=next_item.item_id
+                ).all()
+                marker_list = [m[0] for m in markers]
+            except Exception:
+                marker_list = []
 
-        except Exception:
-            marker_list = []
-
-        # [NEW] Calculate Preview Data (Simulation) using FSRS-5
-        preview_data = {}
-        try:
-            # Import FSRS engine
-            from mindstack_app.modules.learning.logics.hybrid_fsrs import HybridFSRSEngine, CardState, Rating
-            from mindstack_app.modules.learning.logics.scoring_engine import ScoringEngine
-            
-            # 1. Fetch current progress state
-            progress = LearningProgress.query.filter_by(
-                user_id=self.user_id, item_id=next_item.item_id, learning_mode='flashcard'
-            ).first()
-            
-            # Build CardState from progress
-            if progress:
-                # === USE NATIVE FSRS COLUMNS ===
-                fsrs_stability = float(progress.fsrs_stability or 0.0)
-                fsrs_difficulty = float(progress.fsrs_difficulty or 5.0)
-                last_reviewed = progress.fsrs_last_review or progress.last_reviewed
+            # [NEW] Calculate Preview Data (Simulation) using FSRS-5
+            preview_data = {}
+            try:
+                # Import FSRS engine
+                from mindstack_app.modules.learning.logics.hybrid_fsrs import HybridFSRSEngine, CardState, Rating
+                from mindstack_app.modules.learning.logics.scoring_engine import ScoringEngine
                 
-                card_state = CardState(
-                    stability=fsrs_stability,
-                    difficulty=fsrs_difficulty,
-                    reps=progress.repetitions or 0,
-                    lapses=progress.lapses or 0,
-                    state=int(progress.fsrs_state) if progress.fsrs_state is not None else 0,
-                    last_review=last_reviewed
-                )
-            else:
-                card_state = CardState()  # New card
-            
-            # 2. Use HybridFSRSEngine to preview states for rating 1-4
-            from mindstack_app.modules.learning.services.memory_power_config_service import MemoryPowerConfigService
-            desired_retention = MemoryPowerConfigService.get('FSRS_DESIRED_RETENTION', 0.9)
-            engine = HybridFSRSEngine(desired_retention=desired_retention)
-            now_utc = datetime.datetime.now(datetime.timezone.utc)
-            simulated_states = engine.preview_states(card_state, now_utc)
-            
-            # 3. Build preview data for each rating (1-4)
-            # [FIX] Check if this is first time for this card (for bonus calculation)
-            is_first_time_card = (progress is None or progress.fsrs_state == LearningProgress.STATE_NEW)
-            
-            for rating in [Rating.Again, Rating.Hard, Rating.Good, Rating.Easy]:
-                sim_state = simulated_states.get(rating, {})
-                interval_days = sim_state.get('interval', 0.0)
-                interval_minutes = int(interval_days * 1440)  # Convert to minutes
+                # 1. Fetch current progress state
+                progress = LearningProgress.query.filter_by(
+                    user_id=self.user_id, item_id=next_item.item_id, learning_mode='flashcard'
+                ).first()
                 
-                # Calculate points preview (include first-time bonus and scaling)
-                points = ScoringEngine.calculate_answer_points(
-                    mode='flashcard', 
-                    quality=int(rating), 
-                    is_correct=(rating >= Rating.Good),
-                    is_first_time=is_first_time_card, 
-                    correct_streak=(progress.correct_streak or 0) if progress else 0,
-                    stability=card_state.stability,
-                    difficulty=card_state.difficulty
-                ).total_points
+                # Build CardState from progress
+                if progress:
+                    # === USE NATIVE FSRS COLUMNS ===
+                    fsrs_stability = float(progress.fsrs_stability or 0.0)
+                    fsrs_difficulty = float(progress.fsrs_difficulty or 5.0)
+                    last_reviewed = progress.fsrs_last_review or progress.last_reviewed
+                    
+                    card_state = CardState(
+                        stability=fsrs_stability,
+                        difficulty=fsrs_difficulty,
+                        reps=progress.repetitions or 0,
+                        lapses=progress.lapses or 0,
+                        state=int(progress.fsrs_state) if progress.fsrs_state is not None else 0,
+                        last_review=last_reviewed
+                    )
+                else:
+                    card_state = CardState()  # New card
                 
-                # FSRS metrics for frontend
-                is_correct = (rating >= Rating.Good)
-                new_stability = sim_state.get('stability', 0.0)
-                new_difficulty = sim_state.get('difficulty', 5.0)
-                current_retrievability = engine.get_realtime_retention(card_state, now_utc) * 100.0
+                # 2. Use HybridFSRSEngine to preview states for rating 1-4
+                from mindstack_app.modules.learning.services.memory_power_config_service import MemoryPowerConfigService
+                desired_retention = MemoryPowerConfigService.get('FSRS_DESIRED_RETENTION', 0.9)
+                engine = HybridFSRSEngine(desired_retention=desired_retention)
+                now_utc = datetime.datetime.now(datetime.timezone.utc)
+                simulated_states = engine.preview_states(card_state, now_utc)
                 
-                preview_data[str(rating)] = {
-                    'interval': interval_minutes,
-                    'stability': round(float(new_stability), 2),  # Days
-                    'difficulty': round(float(new_difficulty), 2),  # [NEW] FSRS D
-                    'retrievability': round(current_retrievability, 1),  # %
-                    'points': points,
-                    'status': 'review' if is_correct else 'learning'
-                }
-        except Exception as e:
-            current_app.logger.warning(f"Preview simulation failed for item {next_item.item_id}: {e}")
-            pass
+                # 3. Build preview data for each rating (1-4)
+                # [FIX] Check if this is first time for this card (for bonus calculation)
+                is_first_time_card = (progress is None or progress.fsrs_state == LearningProgress.STATE_NEW)
+                
+                for rating in [Rating.Again, Rating.Hard, Rating.Good, Rating.Easy]:
+                    sim_state = simulated_states.get(rating, {})
+                    interval_days = sim_state.get('interval', 0.0)
+                    interval_minutes = int(interval_days * 1440)  # Convert to minutes
+                    
+                    # Calculate points preview (include first-time bonus and scaling)
+                    points = ScoringEngine.calculate_answer_points(
+                        mode='flashcard', 
+                        quality=int(rating), 
+                        is_correct=(rating >= Rating.Good),
+                        is_first_time=is_first_time_card, 
+                        correct_streak=(progress.correct_streak or 0) if progress else 0,
+                        stability=card_state.stability,
+                        difficulty=card_state.difficulty
+                    ).total_points
+                    
+                    # FSRS metrics for frontend
+                    is_correct = (rating >= Rating.Good)
+                    new_stability = sim_state.get('stability', 0.0)
+                    new_difficulty = sim_state.get('difficulty', 5.0)
+                    current_retrievability = engine.get_realtime_retention(card_state, now_utc) * 100.0
+                    
+                    preview_data[str(rating)] = {
+                        'interval': interval_minutes,
+                        'stability': round(float(new_stability), 2),  # Days
+                        'difficulty': round(float(new_difficulty), 2),  # [NEW] FSRS D
+                        'retrievability': round(current_retrievability, 1),  # %
+                        'points': points,
+                        'status': 'review' if is_correct else 'learning'
+                    }
+            except Exception as e:
+                current_app.logger.warning(f"Preview simulation failed for item {next_item.item_id}: {e}")
+                pass
 
-        item_dict = {
+            item_dict = {
+                'item_id': next_item.item_id,
+                'container_id': next_item.container_id,
+                'content': {
+                    'front': render_text_field(next_item.content.get('front', '')),
+                    'back': render_text_field(next_item.content.get('back', '')),
+                    'front_audio_content': render_text_field(next_item.content.get('front_audio_content', '')),
+                    'front_audio_url': self._get_media_absolute_url(next_item.content.get('front_audio_url'), 'audio'),
+                    'back_audio_content': render_text_field(next_item.content.get('back_audio_content', '')),
+                    'back_audio_url': self._get_media_absolute_url(next_item.content.get('back_audio_url'), 'audio'),
+                    'front_img': self._get_media_absolute_url(next_item.content.get('front_img'), 'image'),
+                    'back_img': self._get_media_absolute_url(next_item.content.get('back_img'), 'image'),
+                    'supports_pronunciation': bool(next_item.content.get('supports_pronunciation')) or (
+                        'supports_pronunciation' in container_capabilities
+                    ),
+                    'supports_writing': bool(next_item.content.get('supports_writing')) or (
+                        'supports_writing' in container_capabilities
+                    ),
+                    'supports_quiz': bool(next_item.content.get('supports_quiz')) or (
+                        'supports_quiz' in container_capabilities
+                    ),
+                    'supports_essay': bool(next_item.content.get('supports_essay')) or (
+                        'supports_essay' in container_capabilities
+                    ),
+                    'supports_listening': bool(next_item.content.get('supports_listening')) or (
+                        'supports_listening' in container_capabilities
+                    ),
+                    'supports_speaking': bool(next_item.content.get('supports_speaking')) or (
+                        'supports_speaking' in container_capabilities
+                    ),
+                },
+                'ai_explanation': render_text_field(next_item.ai_explanation),
+                'initial_stats': initial_stats,
+                'can_edit': self._can_edit_container(next_item.container_id),
+                'container_title': container_title,
+                'markers': marker_list,
+                'preview': preview_data
+            }
+            batch_items_data.append(item_dict)
 
-            'item_id': next_item.item_id,
-            'container_id': next_item.container_id,
-            'content': {
-                # BBCode rendering applied to text fields
-                'front': render_text_field(next_item.content.get('front', '')),
-                'back': render_text_field(next_item.content.get('back', '')),
-                'front_audio_content': render_text_field(next_item.content.get('front_audio_content', '')),
-                'front_audio_url': self._get_media_absolute_url(next_item.content.get('front_audio_url'), 'audio'),
-                'back_audio_content': render_text_field(next_item.content.get('back_audio_content', '')),
-                'back_audio_url': self._get_media_absolute_url(next_item.content.get('back_audio_url'), 'audio'),
-                'front_img': self._get_media_absolute_url(next_item.content.get('front_img'), 'image'),
-                'back_img': self._get_media_absolute_url(next_item.content.get('back_img'), 'image'),
-                'supports_pronunciation': bool(next_item.content.get('supports_pronunciation')) or (
-                    'supports_pronunciation' in container_capabilities
-                ),
-                'supports_writing': bool(next_item.content.get('supports_writing')) or (
-                    'supports_writing' in container_capabilities
-                ),
-                'supports_quiz': bool(next_item.content.get('supports_quiz')) or (
-                    'supports_quiz' in container_capabilities
-                ),
-                'supports_essay': bool(next_item.content.get('supports_essay')) or (
-                    'supports_essay' in container_capabilities
-                ),
-                'supports_listening': bool(next_item.content.get('supports_listening')) or (
-                    'supports_listening' in container_capabilities
-                ),
-                'supports_speaking': bool(next_item.content.get('supports_speaking')) or (
-                    'supports_speaking' in container_capabilities
-                ),
-            },
-            'ai_explanation': render_text_field(next_item.ai_explanation),
-            'initial_stats': initial_stats,  # Gửi kèm thống kê
-            'can_edit': self._can_edit_container(next_item.container_id),
-            'container_title': container_title, # [NEW] Correct set name for this card
-            'markers': marker_list, # [NEW] List of markers e.g. ['difficult', 'favorite']
-            'preview': preview_data # [NEW] Simulation data
-        }
-        
-        # REMOVED: self.processed_item_ids.append(next_item.item_id) - Move to process_flashcard_answer
-        # to prevents skipping items on page reload.
         session[self.SESSION_KEY] = self.to_dict()
         session.modified = True
 
+        # [PROACTIVE AUDIO] Safe Background Generation
+        def generate_audio_batch_safe(app_obj, item_data_list):
+            with app_obj.app_context():
+                # We use localized imports for thread safety
+                from mindstack_app.models import LearningItem
+                from mindstack_app.modules.vocab_flashcard.services import AudioService
+                
+                app_obj.logger.info(f"[PROACTIVE AUDIO] Background worker starting for {len(item_data_list)} items")
+                
+                for item_id in item_data_list:
+                    try:
+                        # Find the item in this thread's session
+                        item = LearningItem.query.get(item_id)
+                        if not item:
+                            continue
+                            
+                        # AudioService.ensure_audio_for_item now handles internal DB saving
+                        # for both existing files with missing links AND fresh generation.
+                        AudioService.ensure_audio_for_item(item, side='front', auto_save_to_db=True)
+                        AudioService.ensure_audio_for_item(item, side='back', auto_save_to_db=True)
+                        
+                    except Exception as e:
+                         app_obj.logger.error(f"[PROACTIVE AUDIO] Error for item {item_id}: {e}")
+
+        # Prepare simple data list to avoid ORM/Lazy-loading issues in thread
+        item_data_list = [itm.item_id for itm in next_items]
+
+        # Pass actual Flask app object to the thread
+        app_to_pass = current_app._get_current_object()
+        thread = threading.Thread(target=generate_audio_batch_safe, args=(app_to_pass, item_data_list), daemon=True)
+        thread.start()
+        current_app.logger.info(f"[PROACTIVE AUDIO] Spawned thread to pre-generate {len(item_data_list)} items")
+        
+
         return {
-            'items': [item_dict],
-            'start_index': len(self.processed_item_ids) - 1,
+            'items': batch_items_data,
             'total_items_in_session': self.total_items_in_session,
+            'container_name': container_title or "Bộ thẻ",
             'session_correct_answers': self.correct_answers,
             'session_incorrect_answers': self.incorrect_answers,
             'session_vague_answers': self.vague_answers,

@@ -73,6 +73,91 @@ def api_get_active_sessions():
         return jsonify([]), 500
 
 
+@blueprint.route('/api/check_active_vocab_session/<int:set_id>', methods=['GET'])
+@login_required
+def check_active_vocab_session(set_id):
+    """
+    Check if there is ANY active vocabulary session for this set.
+    Returns details of the active session if found.
+    """
+    active_session = LearningSessionService.get_any_active_vocabulary_session(current_user.user_id, set_id)
+    
+    if active_session:
+        # Determine URL to resume
+        resume_url = '#'
+        mode = active_session.learning_mode
+        if mode == 'flashcard':
+            resume_url = url_for('vocab_flashcard.flashcard_learning.flashcard_session', session_id=active_session.session_id)
+        elif mode == 'mcq':
+             # MCQ Session requires set_id
+             resume_url = url_for('vocab_mcq.mcq_session', set_id=set_id)
+        elif mode == 'typing':
+             resume_url = url_for('vocab_typing.typing_session_page')
+        elif mode == 'listening':
+             resume_url = url_for('vocab_listening.listening_session_page')
+        elif mode == 'matching':
+             resume_url = url_for('vocab_matching.matching_session_page', set_id=set_id)
+        elif mode == 'speed':
+             resume_url = url_for('vocab_speed.speed_session_page', set_id=set_id)
+             
+        # Map nice names
+        mode_names = {
+            'flashcard': 'Flashcard',
+            'mcq': 'Trắc nghiệm (MCQ)',
+            'typing': 'Gõ từ (Typing)',
+            'listening': 'Luyện nghe',
+            'matching': 'Nối từ',
+            'speed': 'Ôn nhanh (Speed)'
+        }
+        
+        return jsonify({
+            'has_active': True,
+            'active_mode': mode,
+            'active_mode_display': mode_names.get(mode, mode),
+            'resume_url': resume_url
+        })
+    
+    return jsonify({'has_active': False})
+
+
+@blueprint.route('/api/learning/sessions/active', methods=['GET'])
+@login_required
+def get_active_learning_session():
+    """Check if there is an active learning session for the current user."""
+    mode = request.args.get('mode', 'flashcard')
+    active_session = LearningSessionService.get_active_session(current_user.user_id, learning_mode=mode)
+    
+    if active_session:
+        data = active_session.to_dict()
+        
+        # [NEW] Add set title for UI display
+        try:
+            from mindstack_app.models import LearningContainer
+            set_id = active_session.set_id_data
+            if isinstance(set_id, int):
+                container = LearningContainer.query.get(set_id)
+                if container:
+                    data['set_title'] = container.title
+            elif isinstance(set_id, list):
+                if len(set_id) == 1:
+                    container = LearningContainer.query.get(set_id[0])
+                    if container:
+                        data['set_title'] = container.title
+                else:
+                    data['set_title'] = f"{len(set_id)} bộ thẻ"
+            elif set_id == 'all':
+                data['set_title'] = "Tất cả bộ thẻ"
+        except Exception as e:
+            current_app.logger.warning(f"Error getting set title for active session: {e}")
+            
+        return jsonify({
+            'has_active': True,
+            'session': data
+        })
+    
+    return jsonify({'has_active': False})
+
+
 @blueprint.route('/')
 @login_required
 def learning_dashboard():

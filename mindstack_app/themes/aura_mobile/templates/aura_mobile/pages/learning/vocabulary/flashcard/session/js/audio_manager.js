@@ -390,71 +390,22 @@ async function prefetchAudioForUpcomingCards(count = 3) {
     const upcomingItems = queue.slice(currentIndex + 1, currentIndex + 1 + count);
 
     for (const item of upcomingItems) {
-        if (!item || !item.item_id) continue;
+        if (!item || !item.item_id || !item.content) continue;
 
-        const frontContent = item.front_display || item.kanji || item.term || '';
-        const backContent = item.back_display || item.reading || item.definition || '';
-        const frontAudioUrl = item.audio_url || item.front_audio_url;
-        const backAudioUrl = item.back_audio_url;
+        const frontAudioUrl = item.content.front_audio_url;
+        const backAudioUrl = item.content.back_audio_url;
 
-        // Check front audio
-        if (frontContent && frontAudioUrl) {
-            try {
-                const checkResponse = await fetch(frontAudioUrl, { method: 'HEAD' });
-                if (!checkResponse.ok) {
-                    console.log(`[AudioPrefetch] Item ${item.item_id} front audio missing, regenerating...`);
-                    await fetch(regenerateAudioUrl, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json', ...csrfHeaders },
-                        body: JSON.stringify({ item_id: item.item_id, side: 'front', content_to_read: frontContent })
-                    });
-                    console.log(`[AudioPrefetch] Item ${item.item_id} front audio regenerated ✅`);
-                }
-            } catch (err) {
-                console.log(`[AudioPrefetch] Item ${item.item_id} front audio check failed, regenerating...`);
-                try {
-                    await fetch(regenerateAudioUrl, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json', ...csrfHeaders },
-                        body: JSON.stringify({ item_id: item.item_id, side: 'front', content_to_read: frontContent })
-                    });
-                    console.log(`[AudioPrefetch] Item ${item.item_id} front audio regenerated ✅`);
-                } catch (e) {
-                    console.warn(`[AudioPrefetch] Failed to regenerate front audio for item ${item.item_id}:`, e);
-                }
-            }
+        // Trigger browser preloading for both sides
+        // We TRUST the backend has ensured these exist or is processing them
+        if (frontAudioUrl) {
+            new Audio(frontAudioUrl).load();
         }
-
-        // Check back audio
-        if (backContent && backAudioUrl) {
-            try {
-                const checkResponse = await fetch(backAudioUrl, { method: 'HEAD' });
-                if (!checkResponse.ok) {
-                    console.log(`[AudioPrefetch] Item ${item.item_id} back audio missing, regenerating...`);
-                    await fetch(regenerateAudioUrl, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json', ...csrfHeaders },
-                        body: JSON.stringify({ item_id: item.item_id, side: 'back', content_to_read: backContent })
-                    });
-                    console.log(`[AudioPrefetch] Item ${item.item_id} back audio regenerated ✅`);
-                }
-            } catch (err) {
-                console.log(`[AudioPrefetch] Item ${item.item_id} back audio check failed, regenerating...`);
-                try {
-                    await fetch(regenerateAudioUrl, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json', ...csrfHeaders },
-                        body: JSON.stringify({ item_id: item.item_id, side: 'back', content_to_read: backContent })
-                    });
-                    console.log(`[AudioPrefetch] Item ${item.item_id} back audio regenerated ✅`);
-                } catch (e) {
-                    console.warn(`[AudioPrefetch] Failed to regenerate back audio for item ${item.item_id}:`, e);
-                }
-            }
+        if (backAudioUrl) {
+            new Audio(backAudioUrl).load();
         }
     }
 
-    console.log(`[AudioPrefetch] Prefetch complete for ${upcomingItems.length} items`);
+    console.log(`[AudioPrefetch] Browser cache trigger complete for ${upcomingItems.length} items`);
 }
 
 function setupAudioErrorHandler(itemId, frontContent, backContent) {

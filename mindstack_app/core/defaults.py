@@ -69,5 +69,13 @@ DEFAULT_APP_CONFIGS = {
         'en-m': 'edge:en-US-ChristopherNeural',
         'ja-f': 'edge:ja-JP-NanamiNeural',
         'ja-m': 'edge:ja-JP-KeitaNeural',
-    }
+    },
+    
+    # --- Notification UI Settings ---
+    'NOTIF_SCORE_DURATION': 1500,
+    'NOTIF_SCORE_POSITION': 'center', # center, top-center, bottom-right, etc.
+    'NOTIF_STREAK_DURATION': 2000,
+    'NOTIF_STREAK_POSITION': 'top-center',
+    'NOTIF_ACHIEVEMENT_DURATION': 5000,
+    'NOTIF_ACHIEVEMENT_POSITION': 'top-center',
 }

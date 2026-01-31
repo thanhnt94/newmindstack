@@ -226,6 +226,12 @@ def init_config_service(app, ttl_seconds: int = 30) -> ConfigService:
                 "data_type": "string",
                 "description": "Thời điểm kết thúc bảo trì (ISO 8601, ví dụ: 2026-12-31T23:59:59).",
             },
+            {
+                "key": "SYSTEM_TIMEZONE",
+                "value": "UTC",
+                "data_type": "string",
+                "description": "Múi giờ mặc định cho toàn bộ hệ thống.",
+            },
             # --- Audio Defaults ---
             {
                 "key": "AUDIO_DEFAULT_ENGINE",

@@ -158,16 +158,21 @@ class AudioService:
             logger.critical(f"{log_prefix} {error_message}", exc_info=True)
             return None, False, error_message
 
-    async def get_or_generate_audio_for_item(self, item, side, force_refresh=False):
+    async def get_or_generate_audio_for_item(self, item, side, force_refresh=False, auto_save_to_db=True):
         """
         Mô tả: Lấy hoặc tạo audio cho một LearningItem cụ thể.
         Naming convention: {side}_{item_id}.mp3
         Storage: container's media_audio_folder if set, else cache.
+        [UPDATED] Now also ensures DB consistency if file exists but link is missing.
         """
         log_prefix = f"[ITEM_AUDIO|{item.item_id}|{side}]"
-        
+        from sqlalchemy.orm.attributes import flag_modified
+        from mindstack_app.utils.db_session import safe_commit
+
         # 1. Determine content to read
         content_to_read = ""
+        url_field = f"{side}_audio_url"
+        
         if side == 'front':
             content_to_read = item.content.get('front_audio_content') or item.content.get('front')
         elif side == 'back':
@@ -184,26 +189,35 @@ class AudioService:
         filename = f"{side}_{item.item_id}.mp3"
         
         if audio_folder:
-            # Absolute path for FS operations
-            # Fix: User uploads should go to UPLOAD_FOLDER, not static_folder
             target_dir = os.path.join(current_app.config['UPLOAD_FOLDER'], audio_folder)
             os.makedirs(target_dir, exist_ok=True)
             target_path = os.path.join(target_dir, filename)
-            # [STAKE] Store ONLY filename in DB if folder is set
             stored_value = filename
             full_relative_path = f"{audio_folder}/{filename}"
         else:
-            # Fallback to general cache
             target_dir = self._ensure_cache_dir()
             target_path = os.path.join(target_dir, filename)
-            # Store full relative path for generic cache
             stored_value = f"flashcard/audio/cache/{filename}"
             full_relative_path = stored_value
 
-        # 3. Lookup: check physically if exists
-        if not force_refresh and os.path.exists(target_path):
-            logger.info(f"{log_prefix} Found existing file: {target_path}")
-            return stored_value, full_relative_path, True, "Đã tìm thấy file."
+        # 3. DB & Physical Sync Check
+        physical_exists = os.path.exists(target_path)
+        db_value = item.content.get(url_field)
+        
+        # If file exists and NOT forcing refresh
+        if not force_refresh and physical_exists:
+            # Check if DB needs update
+            if db_value != stored_value:
+                logger.info(f"{log_prefix} Physical file exists but DB link mismatch ({db_value} vs {stored_value}). Updating DB...")
+                if auto_save_to_db:
+                    try:
+                        item.content[url_field] = stored_value
+                        flag_modified(item, 'content')
+                        safe_commit(db.session)
+                    except Exception as db_exc:
+                        logger.warning(f"{log_prefix} Failed to auto-sync DB: {db_exc}")
+            
+            return stored_value, full_relative_path, True, "Đã tìm thấy file và đồng bộ DB."
 
         # 4. Generate fresh audio
         logger.info(f"{log_prefix} Generating fresh audio to: {target_path}")
@@ -212,9 +226,21 @@ class AudioService:
         if success and temp_path:
             try:
                 if os.path.exists(target_path):
-                    os.remove(target_path)
+                    self._safe_remove(target_path) # Use safe remove for Windows
                 shutil.move(temp_path, target_path)
-                logger.info(f"{log_prefix} Successfully created: {target_path}")
+                
+                # Update DB after successful generation
+                if auto_save_to_db and item.content.get(url_field) != stored_value:
+                    try:
+                        item.content[url_field] = stored_value
+                        flag_modified(item, 'content')
+                        safe_commit(db.session)
+                        logger.info(f"{log_prefix} Successfully created and saved to DB: {target_path}")
+                    except Exception as db_exc:
+                        logger.warning(f"{log_prefix} File created but DB update failed: {db_exc}")
+                else:
+                    logger.info(f"{log_prefix} Successfully created: {target_path}")
+                
                 return stored_value, full_relative_path, True, "Tạo thành công."
             except Exception as move_exc:
                 logger.error(f"{log_prefix} Lỗi di chuyển file: {move_exc}", exc_info=True)
@@ -478,3 +504,25 @@ class AudioService:
             error_message = f"Lỗi nghiêm trọng khi tái tạo audio: {e}"
             logger.error(f"{log_prefix} {error_message}", exc_info=True)
             return False, error_message
+
+    @staticmethod
+    def ensure_audio_for_item(item, side='front', auto_save_to_db=True):
+        """
+        Static helper to trigger audio generation synchronously (handles its own loop).
+        Useful for background threads.
+        """
+        service = AudioService()
+        try:
+            # asyncio.run is the modern way to run a coroutine in a new loop
+            return asyncio.run(service.get_or_generate_audio_for_item(item, side, auto_save_to_db=auto_save_to_db))
+        except RuntimeError:
+            # Fails if a loop is already running in this thread
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            try:
+                return loop.run_until_complete(service.get_or_generate_audio_for_item(item, side, auto_save_to_db=auto_save_to_db))
+            finally:
+                loop.close()
+        except Exception as e:
+            logger.error(f"[AudioService] Static ensure failed: {e}")
+            return None, None, False, str(e)
