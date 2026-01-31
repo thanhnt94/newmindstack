@@ -4,7 +4,7 @@
 
 from datetime import datetime
 from sqlalchemy import func
-from mindstack_app.models import LearningItem, ReviewLog, User, ContainerContributor, LearningContainer
+from mindstack_app.models import LearningItem, ReviewLog, User, ContainerContributor, LearningContainer, UserItemMarker
 from mindstack_app.modules.learning.models import LearningProgress
 from mindstack_app.utils.content_renderer import render_text_field
 from flask import url_for
@@ -163,13 +163,12 @@ class VocabularyItemStats:
                     can_edit = True
         
         if can_edit:
-            edit_url = url_for('content_management.content_management_flashcards.edit_flashcard_item', 
+            edit_url = url_for('content_management.edit_flashcard_item', 
                                set_id=item.container_id, 
                                item_id=item_id,
                                is_modal='true')
 
         # [NEW] Get User Item Markers
-        from mindstack_app.models.user import UserItemMarker
         markers = UserItemMarker.query.filter_by(
             user_id=user_id,
             item_id=item_id
