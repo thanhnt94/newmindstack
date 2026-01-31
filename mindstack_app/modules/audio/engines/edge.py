@@ -18,7 +18,7 @@ class EdgeEngine(AudioEngine):
                 os.makedirs(directory, exist_ok=True)
 
             # Default voice if None
-            selected_voice = voice if voice else "en-US-ChristopherNeural"
+            selected_voice = voice if voice else "vi-VN-HoaiMyNeural"
 
             print(f"[EdgeEngine] Generating... Text Start: {text[:100]!r}")
             # Check for SSML

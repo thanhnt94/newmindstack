@@ -18,7 +18,7 @@ class GTTSEngine(AudioEngine):
 
             # Map 'voice' to gTTS 'lang' (simplified)
             # User might pass 'en-US' or just 'en'
-            lang = 'en'
+            lang = 'vi'
             if voice:
                 # Simple heuristic: take first two chars if it looks like a locale
                 # e.g. 'en-US' -> 'en', 'vi-VN' -> 'vi'

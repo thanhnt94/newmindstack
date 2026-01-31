@@ -2,6 +2,7 @@ import os
 import asyncio
 from flask import current_app
 
+from mindstack_app.models import AppSettings
 from ..engines.edge import EdgeEngine
 from ..engines.gtts_engine import GTTSEngine
 from ..logics.audio_logic import generate_hash_name, get_storage_path
@@ -36,13 +37,13 @@ class AudioService:
         else:
             # Apply Defaults
             if not engine:
-                engine = current_app.config.get('AUDIO_DEFAULT_ENGINE', 'edge')
+                engine = AppSettings.get('AUDIO_DEFAULT_ENGINE', 'edge')
             
             if not voice and not auto_voice_parsing:
                 if engine == 'edge':
-                    voice = current_app.config.get('AUDIO_DEFAULT_VOICE_EDGE', 'vi-VN-HoaiMyNeural')
+                    voice = AppSettings.get('AUDIO_DEFAULT_VOICE_EDGE', 'vi-VN-HoaiMyNeural')
                 elif engine == 'gtts':
-                    voice = current_app.config.get('AUDIO_DEFAULT_VOICE_GTTS', 'vi')
+                    voice = AppSettings.get('AUDIO_DEFAULT_VOICE_GTTS', 'vi')
                 else:
                     voice = 'default'
 
@@ -109,14 +110,14 @@ class AudioService:
             return False
             
         temp_files = []
-        mapping = current_app.config.get('AUDIO_VOICE_MAPPING_GLOBAL', {})
+        mapping = AppSettings.get('AUDIO_VOICE_MAPPING_GLOBAL', {})
         if isinstance(mapping, str):
             import json
             try:
                 mapping = json.loads(mapping)
             except:
                 mapping = {}
-        default_voice_edge = current_app.config.get('AUDIO_DEFAULT_VOICE_EDGE', 'en-US-AriaNeural')
+        default_voice_edge = AppSettings.get('AUDIO_DEFAULT_VOICE_EDGE', 'vi-VN-HoaiMyNeural')
         
         try:
             # 1. Generate Parts
