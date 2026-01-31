@@ -7,9 +7,9 @@ from flask import render_template, request, jsonify, abort
 from mindstack_app.utils.template_helpers import render_dynamic_template
 from flask_login import login_required, current_user
 
-from . import blueprint
+from .. import blueprint
 from mindstack_app.models import LearningContainer, LearningItem, UserContainerState
-from ..logics.mcq_logic import get_mcq_eligible_items, generate_mcq_question, check_mcq_answer, get_available_content_keys
+from mindstack_app.modules.vocab_mcq.logics.mcq_logic import get_mcq_eligible_items, generate_mcq_question, check_mcq_answer, get_available_content_keys
 from mindstack_app.utils.db_session import safe_commit
 
 @blueprint.route('/speed/setup/<int:set_id>')
@@ -35,7 +35,7 @@ def speed_setup(set_id):
     except:
         pass
     
-    return render_dynamic_template('pages/learning/vocabulary/speed/setup/index.html',
+    return render_dynamic_template('pages/learning/vocab_speed/setup/index.html',
         container=container,
         total_items=len(items),
         available_keys=available_keys,
@@ -91,7 +91,7 @@ def speed_session_page(set_id):
     except:
         pass
     
-    return render_dynamic_template('pages/learning/vocabulary/speed/session/index.html',
+    return render_dynamic_template('pages/learning/vocab_speed/session/index.html',
         container=container,
         count=count,
         time_limit=time_limit,

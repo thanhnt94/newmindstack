@@ -5,7 +5,7 @@ from flask import render_template, request, jsonify, abort, session
 from mindstack_app.utils.template_helpers import render_dynamic_template
 from flask_login import login_required, current_user
 
-from . import blueprint
+from .. import blueprint
 from ..logics.matching_logic import generate_matching_game
 from mindstack_app.models import LearningContainer, db
 from mindstack_app.utils.db_session import safe_commit
@@ -24,7 +24,7 @@ def matching_session_page(set_id):
     if not game_data:
         abort(400, description="Cần ít nhất 4 thẻ để chơi ghép đôi")
     
-    from mindstack_app.modules.flashcard.services.session_service import LearningSessionService
+    from mindstack_app.modules.vocab_flashcard.services.session_service import LearningSessionService
     db_session_id = None
     try:
         db_session = LearningSessionService.create_session(
@@ -45,7 +45,7 @@ def matching_session_page(set_id):
         'db_session_id': db_session_id
     }
     
-    return render_dynamic_template('pages/learning/vocabulary/matching/session/index.html',
+    return render_dynamic_template('pages/learning/vocab_matching/session/index.html',
         container=container,
         game=game_data
     )
@@ -62,7 +62,7 @@ def matching_api_new_game(set_id):
     if not game_data:
         return jsonify({'success': False, 'message': 'Not enough items'}), 400
     
-    from mindstack_app.modules.flashcard.services.session_service import LearningSessionService
+    from mindstack_app.modules.vocab_flashcard.services.session_service import LearningSessionService
     db_session_id = None
     try:
         db_session = LearningSessionService.create_session(
@@ -97,7 +97,7 @@ def matching_api_new_game(set_id):
 @login_required
 def matching_api_check_match():
     """API to check if a match is correct."""
-    from mindstack_app.modules.flashcard.services.session_service import LearningSessionService
+    from mindstack_app.modules.vocab_flashcard.services.session_service import LearningSessionService
 
     data = request.get_json()
     left_item_id = data.get('left_item_id')
@@ -157,7 +157,7 @@ def matching_api_check_match():
 @login_required
 def matching_end_session():
     """End the matching session."""
-    from mindstack_app.modules.flashcard.services.session_service import LearningSessionService
+    from mindstack_app.modules.vocab_flashcard.services.session_service import LearningSessionService
     
     try:
         session_data = session.get('matching_game', {})

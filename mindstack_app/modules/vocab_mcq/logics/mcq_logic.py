@@ -74,7 +74,7 @@ def get_mcq_mode_counts(user_id: int, container_id: int) -> dict:
     Get learning statistics for MCQ setup page.
     Delegated to VocabularyStatsService for centralized stats logic.
     """
-    from mindstack_app.modules.vocabulary.stats import VocabularyStatsService
+    from mindstack_app.modules.vocabulary.services.stats_container import VocabularyStatsService
     return VocabularyStatsService.get_mode_counts(user_id, container_id)
 
 

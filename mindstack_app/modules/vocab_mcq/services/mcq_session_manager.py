@@ -4,7 +4,7 @@
 import json
 import random
 from flask import session, current_app
-from .logic import get_mcq_eligible_items, generate_mcq_question
+from ..logics.mcq_logic import get_mcq_eligible_items, generate_mcq_question
 
 class MCQSessionManager:
     """
@@ -132,7 +132,7 @@ class MCQSessionManager:
         
         # [NEW] Create DB Session via Service
         try:
-            from mindstack_app.modules.flashcard.services.session_service import LearningSessionService
+            from mindstack_app.modules.vocab_flashcard.services.session_service import LearningSessionService
             db_session = LearningSessionService.create_session(
                 user_id=self.user_id,
                 learning_mode='mcq',
@@ -181,7 +181,7 @@ class MCQSessionManager:
         # [NEW] Update DB Session Progress
         if self.db_session_id:
             try:
-                from mindstack_app.modules.flashcard.services.session_service import LearningSessionService
+                from mindstack_app.modules.vocab_flashcard.services.session_service import LearningSessionService
                 
                 # Assume item_id is stored in the question object. 
                 # If not, we might need to adjust generate_mcq_question, 

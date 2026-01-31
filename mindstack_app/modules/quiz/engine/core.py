@@ -3,7 +3,7 @@
 
 import random
 from mindstack_app.models import LearningItem, db
-from ...vocabulary.logics.mcq_logic import get_available_content_keys, generate_mcq_question
+from mindstack_app.modules.vocab_mcq.logics.mcq_logic import get_available_content_keys, generate_mcq_question
 from ..logics.quiz_logic import process_quiz_answer
 
 class QuizEngine:

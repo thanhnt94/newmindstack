@@ -5,9 +5,9 @@ from flask import render_template, request, jsonify, abort, url_for, session, re
 from mindstack_app.utils.template_helpers import render_dynamic_template
 from flask_login import login_required, current_user
 
-from . import blueprint
+from .. import blueprint
 from ..logics.typing_logic import get_typing_eligible_items, check_typing_answer
-from ..logics.mcq_logic import get_available_content_keys
+from mindstack_app.modules.vocab_mcq.logics.mcq_logic import get_available_content_keys
 from mindstack_app.models import LearningContainer, UserContainerState, LearningSession, LearningItem, LearningProgress, db
 from mindstack_app.utils.db_session import safe_commit
 from sqlalchemy.orm.attributes import flag_modified
@@ -53,7 +53,7 @@ def typing_setup(set_id):
     except Exception as e:
         pass
 
-    return render_dynamic_template('pages/learning/vocabulary/typing/setup/index.html',
+    return render_dynamic_template('pages/learning/vocab_typing/setup/index.html',
         container=container,
         counts={
             'new': count_new,
@@ -74,7 +74,7 @@ def typing_setup(set_id):
 def typing_start_session():
     """Start a typing session: Save settings and redirect."""
     try:
-        from mindstack_app.modules.flashcard.services.session_service import LearningSessionService
+        from mindstack_app.modules.vocab_flashcard.services.session_service import LearningSessionService
         
         data = request.get_json()
         
@@ -134,7 +134,7 @@ def typing_start_session():
             
         return jsonify({
             'success': True, 
-            'redirect_url': url_for('vocabulary.typing_session_page') 
+            'redirect_url': url_for('vocab_typing.typing_session_page') 
         })
     except Exception as outer_e:
         import traceback
@@ -150,7 +150,7 @@ def typing_session_page():
     set_id = session_data.get('set_id')
     
     if not set_id:
-        return redirect(url_for('vocabulary.dashboard.dashboard_home')) # Assuming dashboard route
+        return redirect(url_for('vocabulary.dashboard_home')) # Assuming dashboard route
         
     container = LearningContainer.query.get_or_404(set_id)
     
@@ -160,7 +160,7 @@ def typing_session_page():
     custom_pairs = session_data.get('custom_pairs')
     count = session_data.get('count', 10)
     
-    return render_dynamic_template('pages/learning/vocabulary/typing/session/index.html',
+    return render_dynamic_template('pages/learning/vocab_typing/session/index.html',
         container=container,
         custom_pairs=custom_pairs,
         count=count
@@ -228,7 +228,7 @@ def typing_api_get_items(set_id):
 @login_required
 def typing_api_check_answer():
     """API to check typed answer."""
-    from mindstack_app.modules.flashcard.services.session_service import LearningSessionService
+    from mindstack_app.modules.vocab_flashcard.services.session_service import LearningSessionService
 
     data = request.get_json()
     correct_answer = data.get('correct_answer', '')
@@ -281,7 +281,7 @@ def typing_api_check_answer():
 @login_required
 def typing_end_session():
     """End the typing session."""
-    from mindstack_app.modules.flashcard.services.session_service import LearningSessionService
+    from mindstack_app.modules.vocab_flashcard.services.session_service import LearningSessionService
     
     try:
         session_data = session.get('typing_session', {})

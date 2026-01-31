@@ -304,7 +304,7 @@
             {# Flashcard #}
             {% set flashcard_enabled = show_all or 'supports_flashcard' in caps %}
             <div {% if flashcard_enabled
-                %}onclick="checkSession('flashcard', '{{ url_for('flashcard.flashcard_learning.setup', set_id=container.container_id) }}')"
+                %}onclick="checkSession('flashcard', '{{ url_for('vocab_flashcard.flashcard_learning.setup', set_id=container.container_id) }}')"
                 {% endif %} class="mode-card mode-flashcard {% if not flashcard_enabled %}mode-disabled{% endif %}">
                 <div class="mode-icon-box"><i class="fas fa-clone"></i></div>
                 <div class="mode-info">
@@ -318,7 +318,7 @@
             {# MCQ #}
             {% set mcq_enabled = show_all or 'supports_quiz' in caps %}
             <div {% if mcq_enabled
-                %}onclick="checkSession('mcq', '{{ url_for('vocabulary.set_mcq_page', set_id=container.container_id) }}')"
+                %}onclick="checkSession('mcq', '{{ url_for('vocab_mcq.mcq_setup', set_id=container.container_id) }}')"
                 {% endif %} class="mode-card mode-mcq {% if not mcq_enabled %}mode-disabled{% endif %}">
                 <div class="mode-icon-box"><i class="fas fa-list-ul"></i></div>
                 <div class="mode-info">
@@ -332,7 +332,7 @@
             {# Typing #}
             {% set typing_enabled = show_all or 'supports_writing' in caps %}
             <div {% if typing_enabled
-                %}onclick="checkSession('typing', '{{ url_for('vocabulary.typing.setup', set_id=container.container_id) }}')"
+                %}onclick="checkSession('typing', '{{ url_for('vocab_typing.typing_setup', set_id=container.container_id) }}')"
                 {% endif %} class="mode-card mode-typing {% if not typing_enabled %}mode-disabled{% endif %}">
                 <div class="mode-icon-box"><i class="fas fa-keyboard"></i></div>
                 <div class="mode-info">
@@ -346,7 +346,7 @@
             {# Listening #}
             {% set listening_enabled = show_all or 'supports_listening' in caps %}
             <div {% if listening_enabled
-                %}onclick="checkSession('listening', '{{ url_for('vocabulary.listening.setup', set_id=container.container_id) }}')"
+                %}onclick="checkSession('listening', '{{ url_for('vocab_listening.listening_setup', set_id=container.container_id) }}')"
                 {% endif %} class="mode-card mode-listening {% if not listening_enabled %}mode-disabled{% endif %}">
                 <div class="mode-icon-box"><i class="fas fa-headphones"></i></div>
                 <div class="mode-info">
@@ -355,6 +355,31 @@
                 </div>
                 <div class="mode-arrow"><i class="fas fa-arrow-right"></i></div>
                 {% if not listening_enabled %}<div class="mode-lock-badge"><i class="fas fa-lock"></i></div>{% endif %}
+            </div>
+
+            {# Matching #}
+            <div onclick='checkSession("matching", "{{ url_for("vocab_matching.matching_session_page", set_id=container.container_id) }}")'
+                class="mode-card mode-matching">
+                <div class="mode-icon-box"
+                    style="background: linear-gradient(135deg, #ec4899, #f472b6); box-shadow: 0 8px 20px -4px rgba(236, 72, 153, 0.4);">
+                    <i class="fas fa-puzzle-piece"></i>
+                </div>
+                <div class="mode-info">
+                    <span class="mode-name">Nối từ</span>
+                    <span class="mode-desc">Ghép các cặp từ tương ứng nhanh nhất có thể.</span>
+                </div>
+                <div class="mode-arrow"><i class="fas fa-arrow-right"></i></div>
+            </div>
+
+            {# Speed #}
+            <div onclick='checkSession("speed", "{{ url_for("vocab_speed.speed_setup", set_id=container.container_id) }}")'
+                class="mode-card mode-speed">
+                <div class="mode-icon-box"><i class="fas fa-bolt"></i></div>
+                <div class="mode-info">
+                    <span class="mode-name">Ôn nhanh</span>
+                    <span class="mode-desc">Phản ứng cực nhanh với các câu hỏi trắc nghiệm.</span>
+                </div>
+                <div class="mode-arrow"><i class="fas fa-arrow-right"></i></div>
             </div>
 
         </div>

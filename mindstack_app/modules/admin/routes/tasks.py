@@ -118,7 +118,7 @@ def start_task(task_id):
     task.message = f"Đang khởi chạy cho {scope_label}..."
     db.session.commit()
 
-    from mindstack_app.modules.flashcard.services import AudioService, ImageService
+    from mindstack_app.modules.vocab_flashcard.services import AudioService, ImageService
     from mindstack_app.modules.quiz.individual.services.audio_service import QuizAudioService
     
     audio_service = AudioService()

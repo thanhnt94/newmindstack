@@ -1,4 +1,4 @@
-# File: mindstack_app/modules/learning/flashcard/individual/routes.py
+# File: mindstack_app/modules/vocab_flashcard/individual/routes.py
 # Phiên bản: 4.0 (Engine refactor)
 # MỤC ĐÍCH: Entry point routes cho chế độ học flashcard cá nhân.
 # Routes này sử dụng engine module như dependency.
@@ -128,7 +128,7 @@ def setup(set_id):
     
     # Check access
     if not container.is_public and container.creator_user_id != current_user.user_id:
-        from mindstack_app.modules.flashcard.individual.routes import _user_can_edit_flashcard
+        from mindstack_app.modules.vocab_flashcard.individual.routes import _user_can_edit_flashcard
         if not _user_can_edit_flashcard(set_id):
              abort(403)
         
@@ -226,7 +226,7 @@ def start_flashcard_session_all(mode):
 
     success, message, session_id = FlashcardSessionManager.start_new_flashcard_session(set_ids, mode)
     if success:
-        return redirect(url_for('flashcard.flashcard_learning.flashcard_session', session_id=session_id))
+        return redirect(url_for('vocab_flashcard.flashcard_learning.flashcard_session', session_id=session_id))
     else:
         flash(message, 'warning')
         return redirect(url_for('vocabulary.dashboard'))
@@ -252,7 +252,7 @@ def start_flashcard_session_multi(mode):
 
     success, message, session_id = FlashcardSessionManager.start_new_flashcard_session(set_ids, mode)
     if success:
-        return redirect(url_for('flashcard.flashcard_learning.flashcard_session', session_id=session_id))
+        return redirect(url_for('vocab_flashcard.flashcard_learning.flashcard_session', session_id=session_id))
     else:
         flash(message, 'warning')
         return redirect(url_for('vocabulary.dashboard'))
@@ -275,7 +275,7 @@ def start_flashcard_session_by_id(set_id, mode):
         
     success, message, session_id = FlashcardSessionManager.start_new_flashcard_session(set_id, mode)
     if success:
-        return redirect(url_for('flashcard.flashcard_learning.flashcard_session', session_id=session_id))
+        return redirect(url_for('vocab_flashcard.flashcard_learning.flashcard_session', session_id=session_id))
     else:
         flash(message, 'warning')
         return redirect(url_for('vocabulary.dashboard'))
@@ -287,7 +287,7 @@ def flashcard_session_legacy():
     # Attempt to find active session and redirect
     active_db_session = LearningSessionService.get_active_session(current_user.user_id, learning_mode='flashcard')
     if active_db_session:
-        return redirect(url_for('flashcard.flashcard_learning.flashcard_session', session_id=active_db_session.session_id))
+        return redirect(url_for('vocab_flashcard.flashcard_learning.flashcard_session', session_id=active_db_session.session_id))
         
     flash('Không có phiên học Flashcard nào đang hoạt động. Vui lòng chọn bộ thẻ để bắt đầu.', 'info')
     return redirect(url_for('vocabulary.dashboard'))
@@ -732,19 +732,18 @@ def check_active_vocab_session(set_id):
         resume_url = '#'
         mode = active_session.learning_mode
         if mode == 'flashcard':
-            resume_url = url_for('flashcard.flashcard_learning.flashcard_session', session_id=active_session.session_id)
+            resume_url = url_for('vocab_flashcard.flashcard_learning.flashcard_session', session_id=active_session.session_id)
         elif mode == 'mcq':
              # MCQ Session requires set_id
-             resume_url = url_for('vocabulary.mcq.session', set_id=set_id)
+             resume_url = url_for('vocab_mcq.mcq_session', set_id=set_id)
         elif mode == 'typing':
-             resume_url = url_for('vocabulary.typing.session_page')
+             resume_url = url_for('vocab_typing.typing_session_page')
         elif mode == 'listening':
-             # Listening Session requires set_id
-             resume_url = url_for('vocabulary.listening.session', set_id=set_id)
+             resume_url = url_for('vocab_listening.listening_session_page')
         elif mode == 'matching':
-             resume_url = url_for('vocabulary.matching.session', set_id=set_id)
+             resume_url = url_for('vocab_matching.matching_session_page', set_id=set_id)
         elif mode == 'speed':
-             resume_url = url_for('vocabulary.speed.session_page', set_id=set_id)
+             resume_url = url_for('vocab_speed.speed_session_page', set_id=set_id)
              
         # Map nice names
         mode_names = {
@@ -1034,7 +1033,7 @@ def generate_image_from_content():
         return jsonify({'success': False, 'message': 'Không có nội dung để tìm ảnh minh họa.'}), 400
 
     # BREAK CIRCULAR IMPORT
-    from mindstack_app.modules.flashcard.services import ImageService
+    from mindstack_app.modules.vocab_flashcard.services import ImageService
     image_service = ImageService()
 
     try:
@@ -1112,7 +1111,7 @@ def regenerate_audio_from_content():
         return jsonify({'success': False, 'message': 'Không tìm thấy thẻ hoặc loại thẻ không đúng.'}), 404
 
     # BREAK CIRCULAR IMPORT
-    from mindstack_app.modules.flashcard.services import AudioService
+    from mindstack_app.modules.vocab_flashcard.services import AudioService
     audio_service = AudioService()
 
     loop = asyncio.new_event_loop()

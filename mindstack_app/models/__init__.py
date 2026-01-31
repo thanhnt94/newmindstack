@@ -15,7 +15,7 @@ from mindstack_app.modules.learning.models import (
     ReviewLog,
     UserItemMarker
 )
-from mindstack_app.modules.flashcard.models import (
+from mindstack_app.modules.vocab_flashcard.models import (
     FlashcardSet,
     Flashcard,
     FlashcardCollabAnswer,

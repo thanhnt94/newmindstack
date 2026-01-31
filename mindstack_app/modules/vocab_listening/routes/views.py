@@ -5,9 +5,9 @@ from flask import render_template, request, jsonify, abort, url_for, session, re
 from mindstack_app.utils.template_helpers import render_dynamic_template
 from flask_login import login_required, current_user
 
-from . import blueprint
+from .. import blueprint
 from ..logics.listening_logic import get_listening_eligible_items, check_listening_answer
-from ..logics.mcq_logic import get_available_content_keys
+from mindstack_app.modules.vocab_mcq.logics.mcq_logic import get_available_content_keys
 from mindstack_app.models import LearningContainer, UserContainerState, LearningItem, LearningProgress, db
 from mindstack_app.core.extensions import csrf_protect
 from mindstack_app.utils.db_session import safe_commit
@@ -55,7 +55,7 @@ def listening_setup(set_id):
     except Exception as e:
         pass
 
-    return render_dynamic_template('pages/learning/vocabulary/listening/setup/index.html',
+    return render_dynamic_template('pages/learning/vocab_listening/setup/index.html',
         container=container,
         counts={
             'new': count_new,
@@ -77,7 +77,7 @@ def listening_setup(set_id):
 def listening_start_session():
     """Start a listening session: Save settings and redirect."""
     try:
-        from mindstack_app.modules.flashcard.services.session_service import LearningSessionService
+        from mindstack_app.modules.vocab_flashcard.services.session_service import LearningSessionService
 
         data = request.get_json()
         
@@ -137,7 +137,7 @@ def listening_start_session():
             
         return jsonify({
             'success': True, 
-            'redirect_url': url_for('vocabulary.listening_session_page')
+            'redirect_url': url_for('vocab_listening.listening_session_page')
         })
     except Exception as outer_e:
         import traceback
@@ -163,7 +163,7 @@ def listening_session_page():
     custom_pairs = session_data.get('custom_pairs')
     count = session_data.get('count', 10)
     
-    return render_dynamic_template('pages/learning/vocabulary/listening/session/index.html',
+    return render_dynamic_template('pages/learning/vocab_listening/session/index.html',
         container=container,
         custom_pairs=custom_pairs,
         count=count
@@ -205,7 +205,7 @@ def listening_session(set_id):
     except Exception as e:
         pass
 
-    return render_dynamic_template('pages/learning/vocabulary/listening/session/index.html',
+    return render_dynamic_template('pages/learning/vocab_listening/session/index.html',
         container=container,
         total_items=len(items)
     )
@@ -308,7 +308,7 @@ def listening_api_get_items(set_id):
         'success': True,
         'items': final_items,
         'total': len(final_items),
-        'tts_url': url_for('vocabulary.listening.api_tts', _external=True)
+        'tts_url': url_for('vocab_listening.listening_api_tts', _external=True)
     })
 
 
@@ -317,7 +317,7 @@ def listening_api_get_items(set_id):
 @csrf_protect.exempt
 def listening_api_check_answer():
     """API to check typed answer."""
-    from mindstack_app.modules.flashcard.services.session_service import LearningSessionService
+    from mindstack_app.modules.vocab_flashcard.services.session_service import LearningSessionService
 
     data = request.get_json()
     correct_answer = data.get('correct_answer', '')
@@ -389,7 +389,7 @@ def listening_api_tts():
     if not re.match(r'^[a-z]{2,3}:', text.lower()):
         text = f"en: {text}"
         
-    from mindstack_app.modules.flashcard.services.audio_service import AudioService
+    from mindstack_app.modules.vocab_flashcard.services.audio_service import AudioService
     audio_service = AudioService()
     
     loop = asyncio.new_event_loop()
@@ -429,7 +429,7 @@ def listening_api_tts():
 def listening_end_session():
     """End the listening session."""
     from flask import session
-    from mindstack_app.modules.flashcard.services.session_service import LearningSessionService
+    from mindstack_app.modules.vocab_flashcard.services.session_service import LearningSessionService
 
     try:
         session_data = session.get('listening_session', {})

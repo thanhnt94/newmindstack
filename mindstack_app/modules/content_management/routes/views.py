@@ -9,7 +9,7 @@ from mindstack_app.utils.pagination import get_pagination_data
 from mindstack_app.utils.search import apply_search_filter
 from mindstack_app.services.config_service import get_runtime_config
 from mindstack_app.core.config import Config
-from mindstack_app.modules.flashcard.services.flashcard_config_service import FlashcardConfigService
+from mindstack_app.modules.vocab_flashcard.services.flashcard_config_service import FlashcardConfigService
 from mindstack_app.modules.quiz.services.quiz_config_service import QuizConfigService
 
 from .. import blueprint

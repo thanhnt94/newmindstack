@@ -581,7 +581,7 @@
         nextBtn.disabled = true;
         nextBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang khởi tạo...';
 
-        fetch("{{ url_for('flashcard.flashcard_learning.save_flashcard_settings') }}", {
+        fetch("{{ url_for('vocab_flashcard.flashcard_learning.save_flashcard_settings') }}", {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -592,7 +592,7 @@
             .then(r => r.json())
             .then(data => {
                 if (data.success) {
-                    let url = `{{ url_for('flashcard.flashcard_learning.start_flashcard_session_by_id', set_id=set_id, mode='placeholder') }}`.replace('placeholder', selectedMode);
+                    let url = `{{ url_for('vocab_flashcard.flashcard_learning.start_flashcard_session_by_id', set_id=set_id, mode='placeholder') }}`.replace('placeholder', selectedMode);
 
                     // Pass settings as URL params to ensure resolve_flashcard_session_config picks them up
                     const params = new URLSearchParams();

@@ -879,7 +879,7 @@
             window.location.href = `/learn/session/${dbSessionId}/summary`;
         } else {
             // Fallback if session ID missing
-            location.href = "{{ url_for('vocabulary.mcq.setup', set_id=container.container_id) }}";
+            location.href = "{{ url_for('vocab_mcq.mcq_setup', set_id=container.container_id) }}";
         }
     };
 

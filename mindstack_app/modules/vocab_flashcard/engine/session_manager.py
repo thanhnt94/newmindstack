@@ -122,7 +122,7 @@ class FlashcardSessionManager:
 
     @classmethod
     def start_new_flashcard_session(cls, set_id, mode):
-        from mindstack_app.modules.flashcard.services.session_service import LearningSessionService
+        from mindstack_app.modules.vocab_flashcard.services.session_service import LearningSessionService
         user_id = current_user.user_id
         
         # [UPDATED] Smart Session Cleanup
@@ -576,7 +576,7 @@ class FlashcardSessionManager:
         }
 
     def process_flashcard_answer(self, item_id, user_answer_quality, duration_ms=0, user_answer_text=None):
-        from mindstack_app.modules.flashcard.services.session_service import LearningSessionService
+        from mindstack_app.modules.vocab_flashcard.services.session_service import LearningSessionService
         try:
             current_user_obj = User.query.get(self.user_id)
             current_user_total_score = current_user_obj.total_score if current_user_obj else 0
@@ -643,7 +643,7 @@ class FlashcardSessionManager:
 
     @classmethod
     def end_flashcard_session(cls):
-        from mindstack_app.modules.flashcard.services.session_service import LearningSessionService
+        from mindstack_app.modules.vocab_flashcard.services.session_service import LearningSessionService
         if cls.SESSION_KEY in session:
             session_data = session.get(cls.SESSION_KEY)
             db_session_id = session_data.get('db_session_id') if session_data else None

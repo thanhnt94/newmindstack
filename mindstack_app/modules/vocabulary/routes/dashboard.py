@@ -68,14 +68,14 @@ def modes_selection_page(set_id):
 @login_required
 def set_flashcard_page(set_id):
     """Step 3: Flashcard options page."""
-    return redirect(url_for('flashcard.flashcard_learning.setup', set_id=set_id))
+    return redirect(url_for('vocab_flashcard.flashcard_learning.setup', set_id=set_id))
 
 
 @blueprint.route('/set/<int:set_id>/mcq')
 @login_required
 def set_mcq_page(set_id):
     """Step 3: MCQ options page - Redirect to new setup wizard."""
-    return redirect(url_for('vocabulary.mcq.setup', set_id=set_id))
+    return redirect(url_for('vocab_mcq.mcq_setup', set_id=set_id))
 
 
 @blueprint.route('/item/<int:item_id>/stats')

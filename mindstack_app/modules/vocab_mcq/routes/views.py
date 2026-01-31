@@ -6,7 +6,7 @@ from flask import render_template, request, jsonify, abort, session
 from mindstack_app.utils.template_helpers import render_dynamic_template
 from flask_login import login_required, current_user
 
-from . import blueprint
+from .. import blueprint
 from ..logics.mcq_logic import get_mcq_eligible_items, get_available_content_keys, get_mcq_mode_counts
 from mindstack_app.models import LearningContainer, UserContainerState, db
 from mindstack_app.utils.db_session import safe_commit
@@ -42,7 +42,7 @@ def mcq_setup(set_id):
     except Exception as e:
         pass
     
-    return render_dynamic_template('pages/learning/vocabulary/mcq/setup/index.html',
+    return render_dynamic_template('pages/learning/vocab_mcq/setup/index.html',
         container=container,
         total_items=len(items),
         available_keys=available_keys,
@@ -125,7 +125,7 @@ def mcq_session(set_id):
         import traceback
         traceback.print_exc()
     
-    return render_dynamic_template('pages/learning/vocabulary/mcq/session/index.html',
+    return render_dynamic_template('pages/learning/vocab_mcq/session/index.html',
         container=container,
         total_items=len(items),
         mode=mode,
@@ -312,7 +312,7 @@ def mcq_end_session():
 
         manager = MCQSessionManager.load_from_db(current_user.user_id, set_id)
         if manager:
-            from mindstack_app.modules.flashcard.services.session_service import LearningSessionService
+            from mindstack_app.modules.vocab_flashcard.services.session_service import LearningSessionService
             if manager.db_session_id:
                 LearningSessionService.complete_session(manager.db_session_id)
                 return jsonify({'success': True, 'session_id': manager.db_session_id})

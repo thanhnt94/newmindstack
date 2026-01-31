@@ -7,12 +7,12 @@ from flask_login import login_required, current_user
 from . import blueprint as practice_bp
 
 # Import từ flashcard engine
-from ..flashcard.engine.session_manager import FlashcardSessionManager
-from ..flashcard.engine.algorithms import (
+from ..vocab_flashcard.engine.session_manager import FlashcardSessionManager
+from ..vocab_flashcard.engine.algorithms import (
     get_filtered_flashcard_sets,
     get_flashcard_mode_counts,
 )
-from ..flashcard.engine.config import FlashcardLearningConfig
+from ..vocab_flashcard.engine.config import FlashcardLearningConfig
 
 
 @practice_bp.route('/')
@@ -96,7 +96,7 @@ def flashcard_start():
     # Bắt đầu session sử dụng flashcard engine
     success, message, session_id = FlashcardSessionManager.start_new_flashcard_session(set_ids, mode)
     if success:
-        return redirect(url_for('flashcard.flashcard_session', session_id=session_id))
+        return redirect(url_for('vocab_flashcard.flashcard_session', session_id=session_id))
     else:
         flash(message, 'warning')
         return redirect(url_for('practice.flashcard_dashboard'))
@@ -106,10 +106,10 @@ def flashcard_start():
 @login_required
 def flashcard_session():
     """Hiển thị giao diện luyện tập flashcard."""
-    from mindstack_app.modules.flashcard.services.session_service import LearningSessionService
+    from mindstack_app.modules.vocab_flashcard.services.session_service import LearningSessionService
     active_db_session = LearningSessionService.get_active_session(current_user.user_id, learning_mode='flashcard')
     if active_db_session:
-        return redirect(url_for('flashcard.flashcard_session', session_id=active_db_session.session_id))
+        return redirect(url_for('vocab_flashcard.flashcard_session', session_id=active_db_session.session_id))
     else:
         flash('Không có phiên luyện tập flashcard nào đang hoạt động.', 'info')
         return redirect(url_for('practice.flashcard_dashboard'))

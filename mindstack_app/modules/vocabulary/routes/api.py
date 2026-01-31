@@ -13,7 +13,7 @@ from mindstack_app.models import (
 )
 
 # Import flashcard engine for session management
-from ...flashcard.engine.algorithms import get_flashcard_mode_counts
+from ...vocab_flashcard.engine.algorithms import get_flashcard_mode_counts
 from mindstack_app.modules.AI.interface import generate_content
 from mindstack_app.modules.AI.logics.prompts import get_formatted_prompt
 

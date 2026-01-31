@@ -20,12 +20,12 @@ using the .flashcard-session-active class on the body #}
 
 {# Flashcard Session CSS - External Files stored in template directory #}
 {# ... imports ... #}
-<link rel="stylesheet" href="{{ url_for('flashcard.flashcard_learning.serve_session_asset', filename='css/core.css') }}">
+<link rel="stylesheet" href="{{ url_for('vocab_flashcard.flashcard_learning.serve_session_asset', filename='css/core.css') }}">
 <link rel="stylesheet"
-    href="{{ url_for('flashcard.flashcard_learning.serve_session_asset', filename='css/session.css') }}">
-<link rel="stylesheet" href="{{ url_for('flashcard.flashcard_learning.serve_session_asset', filename='css/card.css') }}">
+    href="{{ url_for('vocab_flashcard.flashcard_learning.serve_session_asset', filename='css/session.css') }}">
+<link rel="stylesheet" href="{{ url_for('vocab_flashcard.flashcard_learning.serve_session_asset', filename='css/card.css') }}">
 <link rel="stylesheet"
-    href="{{ url_for('flashcard.flashcard_learning.serve_session_asset', filename='css/components.css') }}">
+    href="{{ url_for('vocab_flashcard.flashcard_learning.serve_session_asset', filename='css/components.css') }}">
 
 {% include _v ~ '/includes/assets/_markdown_assets.html' %}
 {% endblock %}
@@ -109,10 +109,10 @@ using the .flashcard-session-active class on the body #}
 {% include _v ~ '/pages/learning/vocabulary/stats/_modal_stats.html' %}
 
 
-<script src="{{ url_for('flashcard.flashcard_learning.serve_session_asset', filename='js/audio_manager.js') }}"></script>
-<script src="{{ url_for('flashcard.flashcard_learning.serve_session_asset', filename='js/render_card.js') }}"></script>
-<script src="{{ url_for('flashcard.flashcard_learning.serve_session_asset', filename='js/ui_manager.js') }}"></script>
-<script src="{{ url_for('flashcard.flashcard_learning.serve_session_asset', filename='js/session_ui.js') }}"></script>
+<script src="{{ url_for('vocab_flashcard.flashcard_learning.serve_session_asset', filename='js/audio_manager.js') }}"></script>
+<script src="{{ url_for('vocab_flashcard.flashcard_learning.serve_session_asset', filename='js/render_card.js') }}"></script>
+<script src="{{ url_for('vocab_flashcard.flashcard_learning.serve_session_asset', filename='js/ui_manager.js') }}"></script>
+<script src="{{ url_for('vocab_flashcard.flashcard_learning.serve_session_asset', filename='js/session_ui.js') }}"></script>
 {#
 File: _stats_mobile.html
 MỤC ĐÍCH: Giao diện thống kê phiên học tối ưu cho Mobile (App-like design)
@@ -220,7 +220,7 @@ MỤC ĐÍCH: Giao diện thống kê phiên học tối ưu cho Mobile (App-lik
         {# ... #}
 
 
-        <script src="{{ url_for('flashcard.flashcard_learning.serve_session_asset', filename='js/utils.js') }}"></script>
+        <script src="{{ url_for('vocab_flashcard.flashcard_learning.serve_session_asset', filename='js/utils.js') }}"></script>
 
         {% endblock %}
 
@@ -241,12 +241,12 @@ MỤC ĐÍCH: Giao diện thống kê phiên học tối ưu cho Mobile (App-lik
             const _scoreEasy = {{ config.SCORE_FSRS_EASY | default (15) }};
 
             window.FlashcardConfig = {
-                getFlashcardBatchUrl: "{{ url_for('flashcard.flashcard_learning.get_flashcard_batch') }}",
-                flashcardItemApiUrlTemplate: "{{ url_for('flashcard.flashcard_learning.get_flashcard_item_api', item_id=0) }}",
-                submitAnswerUrl: "{{ url_for('flashcard.flashcard_learning.submit_flashcard_answer') }}",
-                endSessionUrl: "{{ url_for('flashcard.flashcard_learning.end_session_flashcard') }}",
-                regenerateAudioUrl: "{{ url_for('flashcard.flashcard_learning.regenerate_audio_from_content') }}",
-                saveSettingsUrl: "{{ url_for('flashcard.flashcard_learning.save_flashcard_settings') }}",
+                getFlashcardBatchUrl: "{{ url_for('vocab_flashcard.flashcard_learning.get_flashcard_batch') }}",
+                flashcardItemApiUrlTemplate: "{{ url_for('vocab_flashcard.flashcard_learning.get_flashcard_item_api', item_id=0) }}",
+                submitAnswerUrl: "{{ url_for('vocab_flashcard.flashcard_learning.submit_flashcard_answer') }}",
+                endSessionUrl: "{{ url_for('vocab_flashcard.flashcard_learning.end_session_flashcard') }}",
+                regenerateAudioUrl: "{{ url_for('vocab_flashcard.flashcard_learning.regenerate_audio_from_content') }}",
+                saveSettingsUrl: "{{ url_for('vocab_flashcard.flashcard_learning.save_flashcard_settings') }}",
                 vocabDashboardUrl: "{{ url_for('vocabulary.dashboard') }}",
                 getNoteUrl: "{{ url_for('notes.get_note', reference_type='item', reference_id=0) }}",
                 saveNoteUrl: "{{ url_for('notes.save_note', reference_type='item', reference_id=0) }}",
@@ -329,8 +329,8 @@ MỤC ĐÍCH: Giao diện thống kê phiên học tối ưu cho Mobile (App-lik
         </script>
 
         <script
-            src="{{ url_for('flashcard.flashcard_learning.serve_session_asset', filename='js/session_manager.js') }}"></script>
-        <script src="{{ url_for('flashcard.flashcard_learning.serve_session_asset', filename='js/index.js') }}"></script>
+            src="{{ url_for('vocab_flashcard.flashcard_learning.serve_session_asset', filename='js/session_manager.js') }}"></script>
+        <script src="{{ url_for('vocab_flashcard.flashcard_learning.serve_session_asset', filename='js/index.js') }}"></script>
         <script
-            src="{{ url_for('flashcard.flashcard_learning.serve_session_asset', filename='js/flashcard_viewport.js') }}"></script>
+            src="{{ url_for('vocab_flashcard.flashcard_learning.serve_session_asset', filename='js/flashcard_viewport.js') }}"></script>
         {% endblock %}

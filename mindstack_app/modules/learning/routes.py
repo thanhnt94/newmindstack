@@ -7,12 +7,12 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash,
 from mindstack_app.utils.template_helpers import render_dynamic_template
 from flask_login import login_required, current_user
 from mindstack_app.models import LearningContainer
-from mindstack_app.modules.flashcard.services.session_service import LearningSessionService
+from mindstack_app.modules.vocab_flashcard.services.session_service import LearningSessionService
 
 # Import các blueprint con (Nếu cần thiết để link URL, nhưng không đăng ký ở đây)
 # Các module này giờ đã là top-level
 from mindstack_app.modules.quiz import blueprint as quiz_bp
-from mindstack_app.modules.flashcard import blueprint as flashcard_bp
+from mindstack_app.modules.vocab_flashcard import blueprint as flashcard_bp
 from mindstack_app.modules.vocabulary import blueprint as vocabulary_bp
 
 from . import blueprint
@@ -45,15 +45,15 @@ def api_get_active_sessions():
             if s.learning_mode == 'quiz':
                 resume_url = url_for('quiz.quiz_session', session_id=s.session_id)
             elif s.learning_mode == 'typing':
-                resume_url = url_for('vocabulary.typing_session_page')
+                resume_url = url_for('vocab_typing.typing_session_page')
             elif s.learning_mode == 'listening':
                 resume_url = url_for('vocabulary.listening_session_page')
             elif s.learning_mode == 'matching':
-                resume_url = url_for('vocabulary.matching_session_page', set_id=s.set_id_data)
+                resume_url = url_for('vocab_matching.matching_session_page', set_id=s.set_id_data)
             elif s.learning_mode == 'mcq':
-                resume_url = url_for('vocabulary.mcq_session', set_id=s.set_id_data)
+                resume_url = url_for('vocab_mcq.mcq_session', set_id=s.set_id_data)
             else:
-                resume_url = url_for('flashcard.flashcard_learning.flashcard_session', session_id=s.session_id)
+                resume_url = url_for('vocab_flashcard.flashcard_learning.flashcard_session', session_id=s.session_id)
 
             results.append({
                 'session_id': s.session_id,
@@ -188,15 +188,15 @@ def manage_sessions():
         if s.learning_mode == 'quiz':
             resume_url = url_for('quiz.quiz_session', session_id=s.session_id)
         elif s.learning_mode == 'typing':
-            resume_url = url_for('vocabulary.typing_session_page')
+            resume_url = url_for('vocab_typing.typing_session_page')
         elif s.learning_mode == 'listening':
             resume_url = url_for('vocabulary.listening_session_page')
         elif s.learning_mode == 'matching':
-            resume_url = url_for('vocabulary.matching_session_page', set_id=s.set_id_data)
+            resume_url = url_for('vocab_matching.matching_session_page', set_id=s.set_id_data)
         elif s.learning_mode == 'mcq':
-            resume_url = url_for('vocabulary.mcq_session', set_id=s.set_id_data)
+            resume_url = url_for('vocab_mcq.mcq_session', set_id=s.set_id_data)
         else:
-            resume_url = url_for('flashcard.flashcard_learning.flashcard_session', session_id=s.session_id)
+            resume_url = url_for('vocab_flashcard.flashcard_learning.flashcard_session', session_id=s.session_id)
 
         session_list.append({
             'session_id': s.session_id,
@@ -367,15 +367,15 @@ def api_active_sessions():
         if s.learning_mode == 'quiz':
             resume_url = url_for('quiz.quiz_session')
         elif s.learning_mode == 'typing':
-            resume_url = url_for('vocabulary.typing_session_page')
+            resume_url = url_for('vocab_typing.typing_session_page')
         elif s.learning_mode == 'listening':
             resume_url = url_for('vocabulary.listening_session_page')
         elif s.learning_mode == 'matching':
-            resume_url = url_for('vocabulary.matching_session_page', set_id=s.set_id_data)
+            resume_url = url_for('vocab_matching.matching_session_page', set_id=s.set_id_data)
         elif s.learning_mode == 'mcq':
-            resume_url = url_for('vocabulary.mcq_session', set_id=s.set_id_data)
+            resume_url = url_for('vocab_mcq.mcq_session', set_id=s.set_id_data)
         else:
-            resume_url = url_for('flashcard.flashcard_learning.flashcard_session')
+            resume_url = url_for('vocab_flashcard.flashcard_learning.flashcard_session')
 
         result.append({
             'session_id': s.session_id,

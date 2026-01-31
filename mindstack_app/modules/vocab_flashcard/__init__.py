@@ -2,15 +2,15 @@
 
 from flask import Blueprint
 
-blueprint = Blueprint('flashcard', __name__)
+blueprint = Blueprint('vocab_flashcard', __name__)
 
 # Module Metadata for Admin Panel
 module_metadata = {
     'name': 'Flashcards',
     'icon': 'clone',
     'category': 'Learning',
-    'url_prefix': '/learn/flashcard',
-    'admin_route': 'flashcard.dashboard.dashboard_home',
+    'url_prefix': '/learn/vocab-flashcard',
+    'admin_route': 'vocab_flashcard.dashboard.dashboard_home',
     'enabled': True
 }
 
