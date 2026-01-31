@@ -3,9 +3,10 @@ Badge Service
 Logic kiểm tra và cấp phát huy hiệu (Achievements).
 """
 from datetime import datetime
-from mindstack_app.models import db, User, ScoreLog
+from mindstack_app.models import User
+from mindstack_app.core.extensions import db
 from flask import current_app
-from mindstack_app.models import Badge, UserBadge
+from ..models import Badge, UserBadge, ScoreLog
 
 
 class BadgeService:

@@ -15,7 +15,7 @@ from mindstack_app.models import (
     LearningContainer,
     UserContainerState,
 )
-from mindstack_app.models.learning_progress import LearningProgress
+from mindstack_app.modules.learning.models import LearningProgress
 from .permission_service import FlashcardPermissionService
 
 

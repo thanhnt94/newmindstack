@@ -1,5 +1,3 @@
-# File: mindstack_app/modules/learning/practice/routes.py
-# Practice Module Routes
 # Entry point for flashcard practice - delegates to flashcard engine.
 
 from flask import render_template, request, redirect, url_for, flash, jsonify
@@ -12,7 +10,7 @@ from . import blueprint as practice_bp
 from ..flashcard.engine.session_manager import FlashcardSessionManager
 from ..flashcard.engine.algorithms import (
     get_filtered_flashcard_sets,
-    get_accessible_flashcard_set_ids,
+    get_flashcard_mode_counts,
 )
 from ..flashcard.engine.config import FlashcardLearningConfig
 
@@ -96,9 +94,9 @@ def flashcard_start():
         return redirect(url_for('practice.flashcard_dashboard'))
     
     # Bắt đầu session sử dụng flashcard engine
-    success, message = FlashcardSessionManager.start_new_flashcard_session(set_ids, mode)
+    success, message, session_id = FlashcardSessionManager.start_new_flashcard_session(set_ids, mode)
     if success:
-        return redirect(url_for('practice.flashcard_session'))
+        return redirect(url_for('flashcard.flashcard_session', session_id=session_id))
     else:
         flash(message, 'warning')
         return redirect(url_for('practice.flashcard_dashboard'))
@@ -108,36 +106,13 @@ def flashcard_start():
 @login_required
 def flashcard_session():
     """Hiển thị giao diện luyện tập flashcard."""
-    from flask import session
-    
-    if 'flashcard_session' not in session:
-        flash('Không có phiên luyện tập nào đang hoạt động.', 'info')
+    from mindstack_app.modules.flashcard.services.session_service import LearningSessionService
+    active_db_session = LearningSessionService.get_active_session(current_user.user_id, learning_mode='flashcard')
+    if active_db_session:
+        return redirect(url_for('flashcard.flashcard_session', session_id=active_db_session.session_id))
+    else:
+        flash('Không có phiên luyện tập flashcard nào đang hoạt động.', 'info')
         return redirect(url_for('practice.flashcard_dashboard'))
-
-    user_button_count = 3
-    if current_user.session_state:
-        user_button_count = current_user.session_state.flashcard_button_count
-
-    session_data = session.get('flashcard_session', {})
-    session_mode = session_data.get('mode')
-    is_autoplay_session = session_mode in ('autoplay_all', 'autoplay_learned')
-    autoplay_mode = session_mode if is_autoplay_session else ''
-    
-    # Get active version
-    from mindstack_app.services.template_service import TemplateService
-    version = TemplateService.get_active_version()
-    template_base_path = f'{version}/pages/learning/flashcard/session'
-
-    # Sử dụng template từ flashcard engine (shared)
-    return render_dynamic_template('pages/learning/flashcard/session/index.html',
-        user_button_count=user_button_count,
-        is_autoplay_session=is_autoplay_session,
-        autoplay_mode=autoplay_mode,
-        # Context để biết đang ở practice mode
-        practice_mode=True,
-        # Template base path for includes
-        template_base_path=template_base_path,
-    )
 
 
 @practice_bp.route('/flashcard/api/sets')
@@ -220,7 +195,7 @@ def quiz_dashboard():
 @login_required
 def quiz_start():
     """Bắt đầu phiên luyện tập Quiz đa bộ."""
-    from ..quiz.individual.logics.session_logic import QuizSessionManager
+    from ..quiz.logics.session_logic import QuizSessionManager
     
     data = request.values or {}
     
@@ -242,8 +217,9 @@ def quiz_start():
         return redirect(url_for('practice.quiz_dashboard'))
     
     # Bắt đầu session sử dụng quiz engine
-    if QuizSessionManager.start_new_quiz_session(set_ids, mode, batch_size):
-        return redirect(url_for('quiz.quiz_learning.quiz_session'))
+    success, message, session_id = QuizSessionManager.start_new_quiz_session(set_ids, mode, batch_size)
+    if success:
+        return redirect(url_for('quiz.quiz_session', session_id=session_id))
     else:
         flash('Không có câu hỏi nào khả dụng để bắt đầu phiên học.', 'warning')
         return redirect(url_for('practice.quiz_dashboard'))
@@ -253,7 +229,7 @@ def quiz_start():
 @login_required
 def api_get_quiz_sets():
     """API lấy danh sách bộ Quiz cho practice."""
-    from ..quiz.individual.logics.algorithms import get_filtered_quiz_sets
+    from ..quiz.logics.algorithms import get_filtered_quiz_sets
     
     page = request.args.get('page', 1, type=int)
     search = request.args.get('q', '', type=str)
@@ -296,7 +272,7 @@ def api_get_quiz_sets():
 @login_required
 def api_get_quiz_modes(set_identifier):
     """API lấy các chế độ học Quiz với số lượng câu hỏi."""
-    from ..quiz.individual.logics.algorithms import get_quiz_mode_counts
+    from ..quiz.logics.algorithms import get_quiz_mode_counts
     
     try:
         if set_identifier == 'all':
@@ -319,7 +295,7 @@ def api_get_quiz_modes(set_identifier):
 @login_required
 def api_check_quiz_session():
     """API kiểm tra xem có phiên Quiz đang hoạt động không."""
-    from ..quiz.individual.logics.session_logic import QuizSessionManager
+    from ..quiz.logics.session_logic import QuizSessionManager
     
     session_data = QuizSessionManager.get_session_status()
     if session_data:
@@ -341,7 +317,7 @@ def api_check_quiz_session():
 @login_required
 def api_clear_quiz_session():
     """API xóa phiên Quiz hiện tại."""
-    from ..quiz.individual.logics.session_logic import QuizSessionManager
+    from ..quiz.logics.session_logic import QuizSessionManager
     
     QuizSessionManager.end_quiz_session()
     return jsonify({'success': True, 'message': 'Đã xóa phiên học cũ.'})

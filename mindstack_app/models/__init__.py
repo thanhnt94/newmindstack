@@ -2,11 +2,22 @@
 
 from mindstack_app.core.extensions import db
 
-from .learning import LearningContainer, LearningGroup, LearningItem
-from .course import Course, Lesson
-from .flashcard import FlashcardSet, Flashcard
-from .quiz import QuizSet, QuizMCQ
-from .flashcard_collab import (
+# Modules-based models
+from mindstack_app.modules.auth.models import User, UserSession
+from mindstack_app.modules.learning.models import (
+    LearningContainer, 
+    LearningGroup, 
+    LearningItem, 
+    LearningProgress, 
+    LearningSession,
+    UserContainerState,
+    ContainerContributor,
+    ReviewLog,
+    UserItemMarker
+)
+from mindstack_app.modules.flashcard.models import (
+    FlashcardSet,
+    Flashcard,
     FlashcardCollabAnswer,
     FlashcardCollabMessage,
     FlashcardCollabParticipant,
@@ -14,83 +25,67 @@ from .flashcard_collab import (
     FlashcardCollabRound,
     FlashcardRoomProgress,
 )
-from .quiz_battle import (
+from mindstack_app.modules.quiz.models import (
+    QuizSet, 
+    QuizMCQ,
     QuizBattleAnswer,
     QuizBattleMessage,
     QuizBattleParticipant,
     QuizBattleRoom,
     QuizBattleRound,
 )
-from .user import (
-    User,
-    UserContainerState,
-    UserSession,
+from mindstack_app.modules.AI.models import ApiKey, AiTokenLog, AiCache
+from mindstack_app.modules.goals.models import Goal, UserGoal, GoalProgress
+from mindstack_app.modules.gamification.models import Badge, UserBadge, ScoreLog, Streak
+from mindstack_app.modules.translator.models import TranslationHistory
+from mindstack_app.modules.stats.models import UserMetric, DailyStat, Achievement
+from mindstack_app.modules.notification.models import Notification, PushSubscription, NotificationPreference
+from mindstack_app.modules.feedback.models import Feedback, FeedbackAttachment
+from mindstack_app.modules.notes.models import Note
 
-
-
-    ContainerContributor,
-    ReviewLog,
-    UserItemMarker,
-)
+# Core models (Legacy or shared)
+from .course import Course, Lesson
 from .system import BackgroundTask, BackgroundTaskLog
-from .ai import ApiKey, AiTokenLog, AiCache
-from .app_settings import AppSettings  # unified settings (replaces SiteSettings + SystemSetting)
-from .learning_progress import LearningProgress  # NEW: Unified progress model
-from .learning_session import LearningSession  # NEW: Database-backed sessions
-from .goals import Goal, UserGoal, GoalProgress  # NEW: Centralized Goal System
-from .gamification import Badge, UserBadge, ScoreLog, Streak
-from .translator import TranslationHistory
-from .stats import UserMetric, DailyStat, Achievement  # NEW: Stats Module Models
-from .notification import Notification, PushSubscription, NotificationPreference # NEW: Notification Models
-from .feedback import Feedback, FeedbackAttachment # NEW: Feedback Models
-from .note import Note # NEW: Unified Note Model
+from .app_settings import AppSettings
 
 __all__ = [
     'db',
+    'User',
+    'UserSession',
     'LearningContainer',
     'LearningGroup',
     'LearningItem',
-    'Course',
-    'Lesson',
+    'LearningProgress',
+    'LearningSession',
+    'UserContainerState',
+    'ContainerContributor',
+    'ReviewLog',
+    'UserItemMarker',
     'FlashcardSet',
     'Flashcard',
-    'QuizSet',
-    'QuizMCQ',
-    'LearningProgress',  # NEW
-    'LearningSession',  # NEW
     'FlashcardCollabAnswer',
     'FlashcardCollabMessage',
     'FlashcardCollabParticipant',
     'FlashcardCollabRoom',
     'FlashcardCollabRound',
     'FlashcardRoomProgress',
+    'QuizSet',
+    'QuizMCQ',
     'QuizBattleAnswer',
     'QuizBattleMessage',
     'QuizBattleParticipant',
     'QuizBattleRoom',
     'QuizBattleRound',
-    'User',
-    'UserContainerState',
-    'UserSession',
-    'ScoreLog',
-    'Goal',            # NEW
-    'UserGoal',        # NEW
-    'GoalProgress',    # NEW
-    'GoalProgress',    # NEW
-    'ContainerContributor',
-    'ContainerContributor',
-    'ReviewLog',
-    'UserItemMarker',
-    'BackgroundTask',
-    'BackgroundTaskLog',
     'ApiKey',
     'AiTokenLog',
     'AiCache',
+    'Goal',
+    'UserGoal',
+    'GoalProgress',
     'Badge',
     'UserBadge',
     'ScoreLog',
     'Streak',
-    'AppSettings',
     'TranslationHistory',
     'UserMetric',
     'DailyStat',
@@ -101,4 +96,9 @@ __all__ = [
     'Feedback',
     'FeedbackAttachment',
     'Note',
+    'Course',
+    'Lesson',
+    'BackgroundTask',
+    'BackgroundTaskLog',
+    'AppSettings',
 ]

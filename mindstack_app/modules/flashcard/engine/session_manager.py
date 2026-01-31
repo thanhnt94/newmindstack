@@ -14,7 +14,7 @@ from mindstack_app.models import (
     ContainerContributor,
     UserItemMarker,
 )
-from mindstack_app.models.learning_progress import LearningProgress
+from mindstack_app.modules.learning.models import LearningProgress
 from .algorithms import (
     get_new_only_items,
     get_due_items,

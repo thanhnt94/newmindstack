@@ -13,7 +13,7 @@ from dataclasses import dataclass
 from flask import current_app
 from sqlalchemy import func
 from mindstack_app.models import db, LearningItem, ReviewLog, User
-from mindstack_app.models.learning_progress import LearningProgress
+from ..models import LearningProgress
 
 from ..logics.scoring_engine import ScoringEngine
 from ..logics.hybrid_fsrs import HybridFSRSEngine, CardState, Rating

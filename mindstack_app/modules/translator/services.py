@@ -1,6 +1,7 @@
 import logging
 from deep_translator import GoogleTranslator
-from mindstack_app.models import db, TranslationHistory
+from mindstack_app.core.extensions import db
+from .models import TranslationHistory
 
 logger = logging.getLogger(__name__)
 

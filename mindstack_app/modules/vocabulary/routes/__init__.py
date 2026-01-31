@@ -1,13 +1,5 @@
-# File: vocabulary/routes/__init__.py
-# Vocabulary Module - Routes Package (following quiz/individual/routes pattern)
-
 from flask import Blueprint
 
-# Create blueprint
-blueprint = Blueprint(
-    'vocabulary',
-    __name__
-)
+blueprint = Blueprint('vocabulary', __name__)
 
-# Import route handlers (this registers the routes with the blueprint)
-from . import dashboard, api, flashcard_session  # noqa: E402,F401
+from . import api, dashboard, flashcard_session, mcq, typing, matching, listening, speed

@@ -1,8 +1,8 @@
 import logging
 import threading
 from mindstack_app.models import AppSettings
-from ..logics.engines.gemini_client import GeminiClient
-from ..logics.engines.hybrid_client import HybridAIClient
+from ..engines.gemini_client import GeminiClient
+from ..engines.hybrid_client import HybridAIClient
 
 logger = logging.getLogger(__name__)
 

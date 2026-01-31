@@ -84,7 +84,7 @@ def item_stats_page(item_id):
     """
     [NEW] Detailed statistics page for a single vocabulary item.
     """
-    from ..stats.item_stats import VocabularyItemStats
+    from ..services.stats_item import VocabularyItemStats
     
     stats = VocabularyItemStats.get_item_stats(current_user.user_id, item_id)
     

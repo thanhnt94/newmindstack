@@ -1,0 +1,2 @@
+class DashboardModuleDefaultConfig:
+    pass

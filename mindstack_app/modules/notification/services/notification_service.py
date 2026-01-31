@@ -6,7 +6,7 @@ except ImportError:
     webpush = None
 
 from mindstack_app.core.extensions import db
-from mindstack_app.models import Notification, PushSubscription
+from ..models import Notification, PushSubscription
 
 class NotificationService:
     @staticmethod

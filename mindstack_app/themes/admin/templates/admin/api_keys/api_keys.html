@@ -40,7 +40,7 @@ endblock %}
             <span class="text-xs font-medium px-2 py-1 bg-slate-100 text-slate-600 rounded">Global Settings</span>
         </div>
         <div class="p-6">
-            <form action="{{ url_for('api_key_management.update_ai_settings') }}" method="POST">
+            <form action="{{ url_for('ai_admin.update_settings') }}" method="POST">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -128,7 +128,7 @@ endblock %}
                 <h2 class="text-xl font-semibold text-slate-900">Kho API Keys</h2>
                 <p class="text-sm text-slate-500">Quản lý các khóa truy cập ("Nhiên liệu" cho AI).</p>
             </div>
-            <a href="{{ url_for('api_key_management.add_api_key') }}"
+            <a href="{{ url_for('ai_admin.add_key') }}"
                 class="inline-flex items-center gap-2 bg-blue-600 text-white px-5 py-2.5 rounded-md shadow hover:bg-blue-500 transition">
                 <i class="fas fa-plus-circle"></i> Thêm Key Mới
             </a>
@@ -182,10 +182,10 @@ endblock %}
                         </td>
                         <td class="px-5 py-4">
                             <div class="flex items-center gap-2">
-                                <a href="{{ url_for('api_key_management.edit_api_key', key_id=key.key_id) }}"
+                                <a href="{{ url_for('ai_admin.edit_key', key_id=key.key_id) }}"
                                     class="text-slate-400 hover:text-blue-600 transition"><i
                                         class="fas fa-edit"></i></a>
-                                <form action="{{ url_for('api_key_management.delete_api_key', key_id=key.key_id) }}"
+                                <form action="{{ url_for('ai_admin.delete_key', key_id=key.key_id) }}"
                                     method="post" onsubmit="return confirm('Xóa key này?');" class="inline">
                                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                     <button type="submit" class="text-slate-400 hover:text-rose-600 transition"><i
@@ -390,7 +390,7 @@ endblock %}
                             {% if log.item_info and '#' in log.item_info %}
                             {% set parts = log.item_info.split('#') %}
                             {% if parts|length > 1 %}
-                            <a href="{{ url_for('api_key_management.redirect_to_item_context', item_id=parts[1]|int) }}"
+                            <a href="{{ url_for('ai_admin.redirect_to_item_context', item_id=parts[1]|int) }}"
                                 target="_blank" class="text-blue-500 hover:text-blue-700 ml-1 inline-block"
                                 title="Xem chi tiết nội dung">
                                 <i class="fas fa-external-link-alt text-[10px]"></i>
@@ -432,11 +432,11 @@ endblock %}
             <span class="text-xs text-slate-500">Trang {{ pagination.page }} / {{ pagination.pages }}</span>
             <div class="flex space-x-2">
                 {% if pagination.has_prev %}
-                <a href="{{ url_for('api_key_management.list_api_keys', page=pagination.prev_num) }}#view-logs"
+                <a href="{{ url_for('ai_admin.dashboard', page=pagination.prev_num) }}#view-logs"
                     class="px-3 py-1 rounded border border-slate-300 text-slate-600 text-xs hover:bg-slate-50">Trước</a>
                 {% endif %}
                 {% if pagination.has_next %}
-                <a href="{{ url_for('api_key_management.list_api_keys', page=pagination.next_num) }}#view-logs"
+                <a href="{{ url_for('ai_admin.dashboard', page=pagination.next_num) }}#view-logs"
                     class="px-3 py-1 rounded border border-slate-300 text-slate-600 text-xs hover:bg-slate-50">Sau</a>
                 {% endif %}
             </div>
@@ -784,7 +784,7 @@ endblock %}
         resultArea.classList.add('hidden');
 
         try {
-            const response = await fetch("{{ url_for('api_key_management.test_hop_chat') }}", {
+            const response = await fetch("{{ url_for('ai_admin.test_hop_chat') }}", {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -863,5 +863,5 @@ endblock %}
 </script>
 
 <!-- Auto-Generate JavaScript -->
-<script src="{{ url_for('api_key_management.static', filename='js/autogen.js') }}"></script>
+<script src="{{ url_for('admin_theme.static', filename='ai/js/autogen.js') }}"></script>
 {% endblock %}

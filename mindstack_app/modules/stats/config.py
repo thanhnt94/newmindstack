@@ -1,0 +1,4 @@
+class StatsModuleDefaultConfig:
+    DEFAULT_TIMEFRAME = '30d'
+    LEADERBOARD_LIMIT = 50
+    STREAK_GRACE_PERIOD_HOURS = 24

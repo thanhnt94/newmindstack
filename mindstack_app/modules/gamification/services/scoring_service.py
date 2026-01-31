@@ -3,7 +3,9 @@ Score Service
 Logic quản lý điểm số và leaderboard.
 """
 from datetime import datetime, timedelta
-from mindstack_app.models import db, User, ScoreLog
+from mindstack_app.core.extensions import db
+from mindstack_app.models import User
+from ..models import ScoreLog
 from flask import current_app
 from sqlalchemy import func
 

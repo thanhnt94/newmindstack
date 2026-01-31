@@ -3,7 +3,7 @@
 
 from datetime import datetime, timezone
 from mindstack_app.models import db, User, LearningItem
-from mindstack_app.models.learning_progress import LearningProgress
+from mindstack_app.modules.learning.models import LearningProgress
 from mindstack_app.core.signals import card_reviewed
 from mindstack_app.utils.db_session import safe_commit
 from mindstack_app.modules.learning.services.fsrs_service import FsrsService

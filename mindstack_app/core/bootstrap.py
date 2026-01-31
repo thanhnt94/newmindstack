@@ -48,7 +48,7 @@ def init_infrastructure(app: Flask):
         return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
     
     # Register user_loader for Flask-Login
-    from mindstack_app.models.user import User
+    from mindstack_app.models import User
     @login_manager.user_loader
     def load_user(user_id):
         return User.query.get(int(user_id))

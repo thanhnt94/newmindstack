@@ -14,7 +14,7 @@ from mindstack_app.models import (
 
 # Import flashcard engine for session management
 from ...flashcard.engine.algorithms import get_flashcard_mode_counts
-from mindstack_app.modules.AI.services.ai_manager import get_ai_service
+from mindstack_app.modules.AI.interface import generate_content
 from mindstack_app.modules.AI.logics.prompts import get_formatted_prompt
 
 
@@ -46,7 +46,7 @@ class SimplePagination:
 @login_required
 def api_get_dashboard_stats():
     """API to get global vocabulary dashboard statistics."""
-    from ..stats.container_stats import VocabularyContainerStats
+    from ..services.stats_container import VocabularyContainerStats
     try:
         stats = VocabularyContainerStats.get_global_stats(current_user.user_id)
         return jsonify({
@@ -299,7 +299,7 @@ def api_get_container_stats(container_id):
     API endpoint for comprehensive container statistics.
     Used by the container stats modal on the vocabulary dashboard.
     """
-    from ..stats.container_stats import VocabularyContainerStats
+    from ..services.stats_container import VocabularyContainerStats
     
     try:
         # Get basic stats
@@ -376,21 +376,21 @@ def api_generate_ai_explanation(item_id):
     
     try:
         current_app.logger.info(f"Generating AI explanation for item {item_id}")
-        ai_client = get_ai_service()
-        if not ai_client:
-            return jsonify({'success': False, 'message': 'Chưa cấu hình dịch vụ AI.'}), 503
             
         prompt = get_formatted_prompt(item, purpose="explanation")
         if not prompt:
             return jsonify({'success': False, 'message': 'Không thể tạo prompt cho học liệu này.'}), 400
             
         item_info = f"{item.item_type} ID {item.item_id}"
-        success, ai_response = ai_client.generate_content(prompt, item_info)
         
-        if not success:
-            current_app.logger.error(f"AI Service error for item {item_id}: {ai_response}")
-            return jsonify({'success': False, 'message': f'Lỗi từ AI: {ai_response}'}), 500
+        # Use Interface
+        response = generate_content(prompt, feature="explanation", context_ref=item_info)
+        
+        if not response.success:
+            current_app.logger.error(f"AI Service error for item {item_id}: {response.error}")
+            return jsonify({'success': False, 'message': f'Lỗi từ AI: {response.error}'}), 500
             
+        ai_response = response.content
         item.ai_explanation = ai_response
         db.session.commit()
         

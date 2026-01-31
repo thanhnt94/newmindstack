@@ -11,7 +11,7 @@ from mindstack_app.models import (
     UserContainerState,
     User,
 )
-from mindstack_app.models.learning_progress import LearningProgress
+from mindstack_app.modules.learning.models import LearningProgress
 from flask_login import current_user
 from sqlalchemy import func, and_, not_, or_
 from flask import current_app

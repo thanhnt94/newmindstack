@@ -133,7 +133,7 @@ def setup(set_id):
              abort(403)
         
     # Get Stats via Service
-    from mindstack_app.modules.vocabulary.stats import VocabularyStatsService
+    from mindstack_app.modules.vocabulary.services.stats_container import VocabularyStatsService
     try:
         mode_counts = VocabularyStatsService.get_mode_counts(current_user.user_id, set_id)
     except Exception:

@@ -1,0 +1,2 @@
+class UserProfileModuleDefaultConfig:
+    pass

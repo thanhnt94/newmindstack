@@ -19,7 +19,7 @@ from mindstack_app.models import (
     Note,
     db,
 )
-from mindstack_app.models.learning_progress import LearningProgress
+from mindstack_app.modules.learning.models import LearningProgress
 from mindstack_app.modules.gamification.services.scoring_service import ScoreService
 
 from . import blueprint

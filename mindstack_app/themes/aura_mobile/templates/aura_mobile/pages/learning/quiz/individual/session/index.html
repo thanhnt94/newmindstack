@@ -5,7 +5,7 @@
 
 {% block head %}
 {{ super() }}
-<link rel="stylesheet" href="{{ url_for('quiz.quiz_learning.static', filename='css/session_batch.css') }}">
+<link rel="stylesheet" href="{{ url_for('aura_mobile.static', filename='quiz/css/session_batch.css') }}">
 <style>
     /* Mobile-specific overrides if needed */
     .hidden {
@@ -416,13 +416,13 @@
     const SESSION_KEY = 'quiz_session_batch_state';
 
     // URLs
-    const getQuestionBatchUrl = "{{ url_for('quiz.quiz_learning.get_question_batch') }}";
-    const submitAnswerBatchUrl = "{{ url_for('quiz.quiz_learning.submit_answer_batch') }}";
-    const endSessionUrl = "{{ url_for('quiz.quiz_learning.end_session') }}";
+    const getQuestionBatchUrl = "{{ url_for('quiz.get_question_batch') }}";
+    const submitAnswerBatchUrl = "{{ url_for('quiz.submit_answer_batch') }}";
+    const endSessionUrl = "{{ url_for('quiz.end_session') }}";
     const getAiResponseUrl = "{{ url_for('AI.get_ai_response') }}";
     const saveNoteUrlTemplate = "{{ url_for('notes.save_note', reference_type='item', reference_id=0) }}";
-    const transcriptUrlTemplate = "{{ url_for('quiz.quiz_learning.get_quiz_transcript', item_id=0) }}";
-    const quizDashboardUrl = "{{ url_for('quiz.quiz_learning.dashboard') }}";
+    const transcriptUrlTemplate = "{{ url_for('quiz.get_quiz_transcript', item_id=0) }}";
+    const quizDashboardUrl = "{{ url_for('quiz.dashboard') }}";
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
     const csrfHeaders = csrfToken ? { 'X-CSRFToken': csrfToken } : {};
 

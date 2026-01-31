@@ -13,7 +13,7 @@ from typing import List, Dict, Optional
 from sqlalchemy import func, and_, extract
 
 from mindstack_app.models import db, LearningSession
-from mindstack_app.models.learning_progress import LearningProgress
+from ..models import LearningProgress
 
 
 class DailyStatsService:

@@ -309,7 +309,7 @@
 {% block content %}
 <div class="wizard-container">
     {% call render_dashboard_header(title=container.title, subtitle='CẤU HÌNH',
-    back_url=url_for('quiz.quiz_learning.dashboard')) %}
+    back_url=url_for('quiz.dashboard')) %}
     {% endcall %}
 
     <div class="wizard-content">
@@ -423,7 +423,7 @@
     (function () {
         var setId = {{ container.container_id| int
     }};
-    var dashboardUrl = "{{ url_for('quiz.quiz_learning.dashboard') }}";
+    var dashboardUrl = "{{ url_for('quiz.dashboard') }}";
     var savedBatchSize = {{ user_default_batch_size|default (10) | int }};
     var savedTurnSize = 1; // Default to 1 for Quiz
 
@@ -522,7 +522,7 @@
         }
         startBtn.disabled = true;
         startBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang khởi tạo...';
-        var sessionUrl = "{{ url_for('quiz.quiz_learning.start_quiz_session_by_id', set_id=container.container_id, mode='MODE_PLACEHOLDER') }}";
+        var sessionUrl = "{{ url_for('quiz.start_quiz_session_by_id', set_id=container.container_id, mode='MODE_PLACEHOLDER') }}";
         sessionUrl = sessionUrl.replace('MODE_PLACEHOLDER', selectedMode);
         window.location.href = sessionUrl + '?session_size=' + selectedCount + '&turn_size=' + selectedTurnSize;
     });

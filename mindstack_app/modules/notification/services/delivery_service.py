@@ -58,7 +58,8 @@ class DeliveryService:
         This actually accesses the model directly, so it's a bit of a hybrid.
         Usually 'Services' call 'Repositories/Kernels' for DB access.
         """
-        from mindstack_app.models import db, Notification
+        from mindstack_app.core.extensions import db
+        from ..models import Notification
         
         notif = Notification(
             user_id=user_id,

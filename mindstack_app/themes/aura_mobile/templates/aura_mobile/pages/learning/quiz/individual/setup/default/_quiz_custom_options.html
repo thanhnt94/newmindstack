@@ -479,7 +479,7 @@
         var count = document.getElementById('mcq-question-count').value || 10;
 
         // Use updated route
-        var url = "{{ url_for('quiz.quiz_learning.start_quiz_session_by_id', set_id=container.container_id, mode='custom') }}";
+        var url = "{{ url_for('quiz.start_quiz_session_by_id', set_id=container.container_id, mode='custom') }}";
         url += "?batch_size=" + count + "&custom_pairs=" + encodeURIComponent(JSON.stringify(pairs));
 
         window.location.href = url;

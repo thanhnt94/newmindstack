@@ -18,3 +18,5 @@ def setup_module(app):
     
     # Register routes and events
     from . import routes, events
+    from .routes.admin import admin_bp
+    app.register_blueprint(admin_bp)

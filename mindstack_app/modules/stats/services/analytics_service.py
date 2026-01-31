@@ -10,7 +10,7 @@ from typing import Dict, Any, Optional
 from flask import current_app
 
 from mindstack_app.models import db
-from mindstack_app.models.learning_progress import LearningProgress
+from mindstack_app.modules.learning.models import LearningProgress
 
 from .metrics import (
     get_user_container_options,

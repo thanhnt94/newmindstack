@@ -1,1 +1,0 @@
-"""Interactive quiz battle module."""

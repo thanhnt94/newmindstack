@@ -8,7 +8,7 @@ from sqlalchemy import func, case, distinct, desc
 from mindstack_app.models import (
     db, User, ScoreLog, LearningContainer, LearningItem
 )
-from mindstack_app.models.learning_progress import LearningProgress
+from ..models import LearningProgress
 
 
 class LearningMetricsService:

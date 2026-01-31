@@ -707,7 +707,7 @@
         <div class="flex items-center gap-2 text-sm text-slate-500">
             <a href="/" class="hover:text-blue-600"><i class="fa-solid fa-house"></i></a>
             <span class="text-slate-300">/</span>
-            <a href="{{ url_for('quiz.quiz_battle.quiz_battle_dashboard') }}"
+            <a href="{{ url_for('quiz.quiz_battle_dashboard') }}"
                 class="hover:text-blue-600 font-medium">Quiz
                 Battle</a>
             <span class="text-slate-300">/</span>
@@ -1157,15 +1157,15 @@
     const currentUserId = {{ current_user_id | tojson }};
     const participantId = {{ participant_id | tojson }};
     const isHost = {{ is_host | tojson }};
-    const fetchRoomUrl = {{ url_for('quiz.quiz_battle.get_room', room_code = room_code) | tojson }};
-    const leaveRoomUrl = {{ url_for('quiz.quiz_battle.leave_room', room_code = room_code) | tojson }};
-    const startRoomUrl = {{ url_for('quiz.quiz_battle.start_room', room_code = room_code) | tojson }};
-    const endRoomUrl = {{ url_for('quiz.quiz_battle.end_room', room_code = room_code) | tojson }};
-    const nextRoundUrl = {{ url_for('quiz.quiz_battle.start_next_round', room_code = room_code) | tojson }};
+    const fetchRoomUrl = {{ url_for('quiz.get_room', room_code = room_code) | tojson }};
+    const leaveRoomUrl = {{ url_for('quiz.leave_room', room_code = room_code) | tojson }};
+    const startRoomUrl = {{ url_for('quiz.start_room', room_code = room_code) | tojson }};
+    const endRoomUrl = {{ url_for('quiz.end_room', room_code = room_code) | tojson }};
+    const nextRoundUrl = {{ url_for('quiz.start_next_round', room_code = room_code) | tojson }};
     const getAiResponseUrl = {{ url_for('AI.get_ai_response') | tojson }};
     const messagesUrl = {{ url_for('chat.list_chat_messages', room_type = 'quiz-battle', room_code = room_code) | tojson }};
     const postMessageUrl = {{ url_for('chat.post_chat_message', room_type = 'quiz-battle', room_code = room_code) | tojson }};
-    const answerUrlTemplate = {{ url_for('quiz.quiz_battle.submit_round_answer', room_code = room_code, sequence_number = 0) | tojson }};
+    const answerUrlTemplate = {{ url_for('quiz.submit_round_answer', room_code = room_code, sequence_number = 0) | tojson }};
     const noteSaveUrlTemplate = {{ url_for('notes.save_note', reference_type = 'item', reference_id = 0) | tojson }};
     const feedbackSubmitUrl = {{ url_for('feedback.submit_feedback') | tojson }};
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
@@ -2011,7 +2011,7 @@
         if (!confirm('Rời phòng?')) return;
         try {
             await postJson(leaveRoomUrl);
-            window.location.href = "{{ url_for('quiz.quiz_learning.dashboard') }}";
+            window.location.href = "{{ url_for('quiz.dashboard') }}";
         } catch (e) { setAlert(e.message, 'error'); }
     });
 

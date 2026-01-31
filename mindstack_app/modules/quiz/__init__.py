@@ -14,9 +14,5 @@ module_metadata = {
 }
 
 def setup_module(app):
-    """Register sub-blueprints for the quiz module."""
-    from .individual import quiz_learning_bp
-    from .battle.routes import quiz_battle_bp
-    
-    blueprint.register_blueprint(quiz_learning_bp)
-    blueprint.register_blueprint(quiz_battle_bp)
+    """Register routes for the quiz module."""
+    from . import routes

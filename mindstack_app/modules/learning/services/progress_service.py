@@ -14,7 +14,7 @@ from typing import Optional, List, Dict, Any
 from sqlalchemy.sql import func
 
 from mindstack_app.models import db
-from mindstack_app.models.learning_progress import LearningProgress
+from ..models import LearningProgress
 
 
 class ProgressService:

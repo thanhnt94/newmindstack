@@ -59,14 +59,19 @@ def register_modules(app: Flask, modules: Sequence[ModuleDefinition]) -> None:
         
         # Optional: Call setup_module(app) if it exists in the module's package
         try:
-            # e.g., if import_path is 'mindstack_app.modules.AI.routes',
-            # look for 'mindstack_app.modules.AI.setup_module'
-            package_path = ".".join(module.import_path.split(".")[:-1])
-            pkg = import_string(package_path, silent=True)
+            # First try the import_path itself (if it's a package)
+            pkg = import_string(module.import_path, silent=True)
             setup_func = getattr(pkg, "setup_module", None)
+            
+            # If not found or not callable, try the parent package
+            if not setup_func or not callable(setup_func):
+                package_path = ".".join(module.import_path.split(".")[:-1])
+                pkg = import_string(package_path, silent=True)
+                setup_func = getattr(pkg, "setup_module", None)
+                
             if setup_func and callable(setup_func):
                 setup_func(app)
-                app.logger.debug("Called setup_module for %s", package_path)
+                app.logger.debug("Called setup_module for %s", module.import_path)
         except Exception as e:
             app.logger.error("Error during setup_module for %s: %s", module.import_path, e)
 
@@ -90,40 +95,35 @@ def register_default_modules(app: Flask) -> None:
 
 
 DEFAULT_MODULES: Iterable[ModuleDefinition] = (
-    ModuleDefinition("mindstack_app.modules.auth.routes", "auth_bp", url_prefix="/auth", display_name="Xác thực"),
-    ModuleDefinition("mindstack_app.modules.landing.routes", "landing_bp", display_name="Trang chủ"),
-    ModuleDefinition("mindstack_app.modules.dashboard.routes", "dashboard_bp", display_name="Bảng điều khiển người dùng"),
-    ModuleDefinition("mindstack_app.modules.stats", "stats_bp", url_prefix="/stats", display_name="Thống kê & Bảng xếp hạng"),
-    ModuleDefinition("mindstack_app.modules.gamification", "gamification_bp", url_prefix="/admin/gamification", display_name="Game hóa (Badges/Scores)"),
+    ModuleDefinition("mindstack_app.modules.auth", "blueprint", url_prefix="/auth", display_name="Xác thực"),
+    ModuleDefinition("mindstack_app.modules.landing", "blueprint", display_name="Trang chủ"),
+    ModuleDefinition("mindstack_app.modules.dashboard", "blueprint", display_name="Bảng điều khiển người dùng"),
+    ModuleDefinition("mindstack_app.modules.stats", "blueprint", url_prefix="/stats", display_name="Thống kê & Bảng xếp hạng"),
+    ModuleDefinition("mindstack_app.modules.gamification", "blueprint", url_prefix="/admin/gamification", display_name="Game hóa (Badges/Scores)"),
     ModuleDefinition("mindstack_app.modules.admin", "admin_bp", url_prefix="/admin", display_name="Quản trị hệ thống"),
     ModuleDefinition(
-        "mindstack_app.modules.admin.user_management.user_routes",
+        "mindstack_app.modules.user_management.user_routes",
         "user_management_bp",
         url_prefix="/admin/users",
         display_name="Quản lý người dùng",
     ),
+    ModuleDefinition("mindstack_app.modules.user_profile", "blueprint", url_prefix="/profile", display_name="Hồ sơ cá nhân"),
     ModuleDefinition(
-        "mindstack_app.modules.admin.api_key_management.routes",
-        "api_key_management_bp",
-        url_prefix="/admin/api-keys",
-        display_name="Quản lý API Key (AI)",
-    ),
-    ModuleDefinition("mindstack_app.modules.user_profile", "user_profile_bp", url_prefix="/profile", display_name="Hồ sơ cá nhân"),
-    ModuleDefinition(
-        "mindstack_app.modules.content_management.routes",
-        "content_management_bp",
+        "mindstack_app.modules.content_management",
+        "blueprint",
         url_prefix="/content",
         display_name="Quản lý nội dung (CMS)",
     ),
     ModuleDefinition("mindstack_app.modules.learning.routes", "learning_bp", url_prefix="/learn", display_name="Hệ thống học tập"),
     ModuleDefinition("mindstack_app.modules.learning.api.markers", "markers_bp", display_name="API Markers học tập"),
-    ModuleDefinition("mindstack_app.modules.goals.routes", "goals_bp", url_prefix="/goals", display_name="Mục tiêu học tập"),
-    ModuleDefinition("mindstack_app.modules.AI.routes", "ai_bp", display_name="Tính năng AI Coach"),
-    ModuleDefinition("mindstack_app.modules.notes.routes", "notes_bp", display_name="Ghi chú cá nhân"),
-    ModuleDefinition("mindstack_app.modules.chat", "chat_bp", url_prefix="/chat", display_name="Trò chuyện (Chat)"),
-    ModuleDefinition("mindstack_app.modules.feedback", "feedback_bp", url_prefix="/feedback", display_name="Phản hồi hệ thống"),
-    ModuleDefinition("mindstack_app.modules.telegram_bot", "telegram_bot_bp", url_prefix="/telegram", display_name="Telegram Bot"),
-    ModuleDefinition("mindstack_app.modules.notification", "notification_bp", url_prefix="/notifications", display_name="Thông báo (Web Push)"),
-    ModuleDefinition("mindstack_app.modules.translator", "translator_bp", url_prefix="/translator", display_name="Dịch thuật & Từ điển"),
-    ModuleDefinition("mindstack_app.modules.audio.routes", "audio_bp", display_name="Xử lý Audio (Studio)"),
+    ModuleDefinition("mindstack_app.modules.goals", "blueprint", url_prefix="/goals", display_name="Mục tiêu học tập"),
+    ModuleDefinition("mindstack_app.modules.quiz", "blueprint", display_name="Hệ thống Quiz"),
+    ModuleDefinition("mindstack_app.modules.AI", "blueprint", display_name="Tính năng AI Coach"),
+    ModuleDefinition("mindstack_app.modules.notes", "blueprint", display_name="Ghi chú cá nhân"),
+    ModuleDefinition("mindstack_app.modules.chat", "blueprint", url_prefix="/chat", display_name="Trò chuyện (Chat)"),
+    ModuleDefinition("mindstack_app.modules.feedback", "blueprint", url_prefix="/feedback", display_name="Phản hồi hệ thống"),
+    ModuleDefinition("mindstack_app.modules.telegram_bot", "blueprint", url_prefix="/telegram", display_name="Telegram Bot"),
+    ModuleDefinition("mindstack_app.modules.notification", "blueprint", url_prefix="/notifications", display_name="Thông báo (Web Push)"),
+    ModuleDefinition("mindstack_app.modules.translator", "blueprint", url_prefix="/translator", display_name="Dịch thuật & Từ điển"),
+    ModuleDefinition("mindstack_app.modules.audio", "blueprint", display_name="Xử lý Audio (Studio)"),
 )

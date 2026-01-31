@@ -14,7 +14,7 @@ from mindstack_app.models import (
     LearningContainer,
     LearningItem,
 )
-from mindstack_app.models.learning_progress import LearningProgress
+from mindstack_app.modules.learning.models import LearningProgress
 
 # Import pure logic from chart_utils
 from ..logics.chart_utils import (

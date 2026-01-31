@@ -23,7 +23,7 @@ from mindstack_app.models import (
     UserContainerState,
     User,
 )
-from mindstack_app.models.learning_progress import LearningProgress
+from mindstack_app.modules.learning.models import LearningProgress
 from mindstack_app.utils.pagination import get_pagination_data
 from mindstack_app.utils.search import apply_search_filter
 from flask_login import current_user

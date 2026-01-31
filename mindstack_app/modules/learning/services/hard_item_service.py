@@ -17,7 +17,7 @@ from typing import List, Optional, TYPE_CHECKING
 from sqlalchemy import or_, and_
 
 from mindstack_app.models import db, LearningItem
-from mindstack_app.models.learning_progress import LearningProgress
+from ..models import LearningProgress
 from mindstack_app.models.user import UserItemMarker
 from mindstack_app.modules.learning.services.memory_power_config_service import MemoryPowerConfigService
 

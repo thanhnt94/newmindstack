@@ -1,7 +1,7 @@
 # File: newmindstack/mindstack_app/modules/learning/routes.py
-# Phiên bản: 1.2
+# Phiên bản: 1.3
 # Mục đích: Đăng ký blueprint cho module học Course.
-# ĐÃ THÊM: Import và đăng ký course_learning_bp.
+# SỬA LỖI: Cập nhật URL endpoints cho Vocabulary sau khi refactor.
 
 from flask import Blueprint, render_template, request, redirect, url_for, flash, abort, jsonify, current_app
 from mindstack_app.utils.template_helpers import render_dynamic_template
@@ -43,15 +43,15 @@ def api_get_active_sessions():
 
             # Determine Resume URL
             if s.learning_mode == 'quiz':
-                resume_url = url_for('quiz.quiz_learning.quiz_session', session_id=s.session_id)
+                resume_url = url_for('quiz.quiz_session', session_id=s.session_id)
             elif s.learning_mode == 'typing':
-                resume_url = url_for('vocabulary.typing.session_page')
+                resume_url = url_for('vocabulary.typing_session_page')
             elif s.learning_mode == 'listening':
-                resume_url = url_for('vocabulary.listening.session_page')
+                resume_url = url_for('vocabulary.listening_session_page')
             elif s.learning_mode == 'matching':
-                resume_url = url_for('vocabulary.matching.session_page', set_id=s.set_id_data)
+                resume_url = url_for('vocabulary.matching_session_page', set_id=s.set_id_data)
             elif s.learning_mode == 'mcq':
-                resume_url = url_for('vocabulary.mcq.session', set_id=s.set_id_data)
+                resume_url = url_for('vocabulary.mcq_session', set_id=s.set_id_data)
             else:
                 resume_url = url_for('flashcard.flashcard_learning.flashcard_session', session_id=s.session_id)
 
@@ -186,16 +186,15 @@ def manage_sessions():
         
         # Determine Resume URL
         if s.learning_mode == 'quiz':
-            resume_url = url_for('quiz.quiz_learning.quiz_session', session_id=s.session_id)
+            resume_url = url_for('quiz.quiz_session', session_id=s.session_id)
         elif s.learning_mode == 'typing':
-            resume_url = url_for('vocabulary.typing.session_page')
+            resume_url = url_for('vocabulary.typing_session_page')
         elif s.learning_mode == 'listening':
-            resume_url = url_for('vocabulary.listening.session_page')
+            resume_url = url_for('vocabulary.listening_session_page')
         elif s.learning_mode == 'matching':
-            # Matching sessions are usually short-lived games, but if we support resume:
-            resume_url = url_for('vocabulary.matching.session_page', set_id=s.set_id_data)
+            resume_url = url_for('vocabulary.matching_session_page', set_id=s.set_id_data)
         elif s.learning_mode == 'mcq':
-            resume_url = url_for('vocabulary.mcq.session', set_id=s.set_id_data)
+            resume_url = url_for('vocabulary.mcq_session', set_id=s.set_id_data)
         else:
             resume_url = url_for('flashcard.flashcard_learning.flashcard_session', session_id=s.session_id)
 
@@ -366,15 +365,15 @@ def api_active_sessions():
 
         # Determine Resume URL
         if s.learning_mode == 'quiz':
-            resume_url = url_for('quiz.quiz_learning.quiz_session')
+            resume_url = url_for('quiz.quiz_session')
         elif s.learning_mode == 'typing':
-            resume_url = url_for('vocabulary.typing.session_page')
+            resume_url = url_for('vocabulary.typing_session_page')
         elif s.learning_mode == 'listening':
-            resume_url = url_for('vocabulary.listening.session_page')
+            resume_url = url_for('vocabulary.listening_session_page')
         elif s.learning_mode == 'matching':
-            resume_url = url_for('vocabulary.matching.session_page', set_id=s.set_id_data)
+            resume_url = url_for('vocabulary.matching_session_page', set_id=s.set_id_data)
         elif s.learning_mode == 'mcq':
-            resume_url = url_for('vocabulary.mcq.session', set_id=s.set_id_data)
+            resume_url = url_for('vocabulary.mcq_session', set_id=s.set_id_data)
         else:
             resume_url = url_for('flashcard.flashcard_learning.flashcard_session')
 
@@ -439,4 +438,3 @@ def api_stats_summary():
     
     summary = DailyStatsService.get_summary(current_user.user_id)
     return jsonify(summary)
-
