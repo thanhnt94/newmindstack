@@ -10,30 +10,22 @@ from mindstack_app.modules.learning.services.fsrs_service import FsrsService
 def get_course_overview_stats(user_id: int, container_id: int, page: int = 1, per_page: int = 12) -> dict:
     """
     Get paginated course overview statistics (vocabulary list with progress).
-    
-    Args:
-        user_id: The user's ID
-        container_id: The vocabulary container ID
-        page: Current page number
-        per_page: Items per page
-        
-    Returns:
-        dict containing 'items' list and 'pagination' info
     """
+    from flask import current_app
+    current_app.logger.debug(f"get_course_overview_stats: user={user_id}, container={container_id}, page={page}")
     # 1. Get all items in the container (FLASHCARD or VOCABULARY type)
     base_query = LearningItem.query.filter(
         LearningItem.container_id == container_id,
         LearningItem.item_type.in_(['FLASHCARD', 'VOCABULARY'])
     )
-    
     total_items = base_query.count()
-    
+    current_app.logger.debug(f"get_course_overview_stats: total_items={total_items}")
     # 2. Get paginated items (order by position in container, then by ID)
     pagination = base_query.order_by(LearningItem.order_in_container.asc(), LearningItem.item_id.asc()).paginate(
         page=page, per_page=per_page, error_out=False
     )
-    
     if not pagination.items:
+        current_app.logger.debug("get_course_overview_stats: no items found for this page")
         return {
             'items': [],
             'pagination': {
@@ -43,78 +35,64 @@ def get_course_overview_stats(user_id: int, container_id: int, page: int = 1, pe
                 'pages': pagination.pages
             }
         }
-    
     item_ids = [item.item_id for item in pagination.items]
-    
+    current_app.logger.debug(f"get_course_overview_stats: processing {len(item_ids)} items")
     # 3. Get progress for these items
     progress_records = LearningProgress.query.filter(
         LearningProgress.user_id == user_id,
         LearningProgress.learning_mode == LearningProgress.MODE_FLASHCARD,
         LearningProgress.item_id.in_(item_ids)
     ).all()
-    
     progress_map = {p.item_id: p for p in progress_records}
     now = datetime.utcnow()
-    
     # 4. Map items to response structure
     result_items = []
-    
     for item in pagination.items:
-        progress = progress_map.get(item.item_id)
-        
-        # Parse content safely - Flashcards use 'front'/'back', vocabulary might use 'term'/'definition'
-        content = item.content or {}
-        raw_term = content.get('front', '') or content.get('term', '') or content.get('recto', '') or ''
-        raw_definition = content.get('back', '') or content.get('definition', '') or content.get('verso', '') or ''
-        
-        # [NEW] Apply BBCode rendering using centralized utility
-        term = render_text_field(raw_term)
-        definition = render_text_field(raw_definition)
-        
-        if progress:
-            retrievability = FsrsService.get_retrievability(progress)
-            mastery = int(retrievability * 100)  # Proxy for UI
-            stability = progress.fsrs_stability or 0.0
-            
-            # Map status
-            state = progress.fsrs_state
-            if state == 0:
-                status = 'new'
-            elif state in [1, 3]: # Learning/Relearning
-                status = 'learning'
-            elif stability >= 21.0:
-                status = 'mastered'
+        try:
+            progress = progress_map.get(item.item_id)
+            content = item.content or {}
+            raw_term = content.get('front', '') or content.get('term', '') or content.get('recto', '') or ''
+            raw_definition = content.get('back', '') or content.get('definition', '') or content.get('verso', '') or ''
+            term = render_text_field(raw_term)
+            definition = render_text_field(raw_definition)
+            if progress:
+                retrievability = FsrsService.get_retrievability(progress)
+                import math
+                if math.isnan(retrievability) or math.isinf(retrievability):
+                    retrievability = 0.0
+                mastery = int(retrievability * 100)  # Proxy for UI
+                stability = progress.fsrs_stability or 0.0
+                state = progress.fsrs_state
+                if state == 0:
+                    status = 'new'
+                elif state in [1, 3]: # Learning/Relearning
+                    status = 'learning'
+                elif stability >= 21.0:
+                    status = 'mastered'
+                else:
+                    status = 'reviewing' # Review state (2)
+                is_due = progress.fsrs_due and progress.fsrs_due <= now
+                memory_level = progress.memory_level if hasattr(progress, 'memory_level') else 0
             else:
-                status = 'reviewing' # Review state (2)
-
-            is_due = progress.fsrs_due and progress.fsrs_due <= now
-            
-            # Additional detail from mode_data if needed
-            memory_level = progress.memory_level if hasattr(progress, 'memory_level') else 0
-        else:
-            mastery = 0
-            retrievability = 0 # New items have 0 retrievability for visualization (or 1?) - let's say 0 means 'unknown/new' in this context
-            status = 'new'
-            is_due = False
-            memory_level = 0
-            
-        result_items.append({
-            'item_id': item.item_id,
-            'term': term,
-            'definition': definition,
-            'mastery': mastery,
-            'retrievability': retrievability,
-            'status': status,
-            'is_due': is_due,
-            'memory_level': memory_level
-        })
-    
-    # 5. Sort items (Client-side sorting logic was: Low mastery first, New last)
-    # But since we paginate, we can only sort fairly within the page unless we sort the SQL query by progress.
-    # For now, we return in creation order (default) or let the frontend sort visual elements.
-    # To match legacy behavior, we could join with Progress in the main query, but that's complex for a quick fix.
-    # The frontend code does: `sortedItems = [...stats.items].sort(...)` so it re-sorts the current page.
-    
+                mastery = 0
+                retrievability = 0
+                status = 'new'
+                is_due = False
+                memory_level = 0
+            result_items.append({
+                'item_id': item.item_id,
+                'term': term,
+                'definition': definition,
+                'mastery': mastery,
+                'retrievability': retrievability,
+                'status': status,
+                'is_due': is_due,
+                'memory_level': memory_level
+            })
+        except Exception as e:
+            current_app.logger.warning(f"Error processing item {item.item_id}: {e}")
+            continue
+    current_app.logger.debug(f"get_course_overview_stats: returning {len(result_items)} mapped items")
     return {
         'items': result_items,
         'pagination': {

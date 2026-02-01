@@ -2808,8 +2808,7 @@
             // Filter modes based on container capabilities
             (function () {
                 {% if container_capabilities is defined %}
-                const capabilities = {{ container_capabilities| tojson | safe
-            }};
+                const capabilities = {{ container_capabilities| tojson | safe }};
             const modeCards = document.querySelectorAll('.mode-select-card[data-capability]');
 
             modeCards.forEach(card => {
@@ -2819,7 +2818,7 @@
                 }
             });
             {% endif %}
-    }) ();
+    })();
         </script>
 
         {# Bottom Action Bar #}
@@ -3327,8 +3326,7 @@
                 let currentActiveStep = 'browser';
 
                 // Check for active set ID and step from server template
-                const activeSetId = {{ active_set_id|default ('null')
-            }};
+                const activeSetId = {{ active_set_id|default('null') }};
 
         const activeStep = '{{ active_step|default("browser") }}';
 
@@ -5386,7 +5384,7 @@
 
 
 
-    }) ();
+    })();
 
 });
 
@@ -5806,8 +5804,8 @@
 
                 // Update close button to use function
                 document.querySelector('.edit-modal-close').onclick = closeModal;
-            })();
-    });
+            }
+        });
     </script>
 
     {% endblock %}

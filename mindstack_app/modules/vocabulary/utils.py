@@ -4,7 +4,7 @@ def get_cover_url(path):
     """Helper to convert database path to accessible URL."""
     if not path:
         return None
-    path = path.replace('\', '/')
+    path = path.replace('\\', '/')
     if path.startswith('http') or path.startswith('/'):
         return path
     
