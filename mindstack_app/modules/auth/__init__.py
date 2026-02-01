@@ -1,7 +1,7 @@
-﻿# File: mindstack_app/modules/auth/__init__.py
+# File: mindstack_app/modules/auth/__init__.py
 from flask import Blueprint
 
-blueprint = Blueprint('auth', __name__)
+auth_bp = Blueprint('auth', __name__)
 
 module_metadata = {
     'name': 'Xác thực',

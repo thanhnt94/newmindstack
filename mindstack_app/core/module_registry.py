@@ -95,7 +95,7 @@ def register_default_modules(app: Flask) -> None:
 
 
 DEFAULT_MODULES: Iterable[ModuleDefinition] = (
-    ModuleDefinition("mindstack_app.modules.auth", "blueprint", url_prefix="/auth", display_name="Xác thực"),
+    ModuleDefinition("mindstack_app.modules.auth", "auth_bp", url_prefix="/auth", display_name="Xác thực"),
     ModuleDefinition("mindstack_app.modules.landing", "blueprint", display_name="Trang chủ"),
     ModuleDefinition("mindstack_app.modules.dashboard", "blueprint", display_name="Bảng điều khiển người dùng"),
     ModuleDefinition("mindstack_app.modules.stats", "blueprint", url_prefix="/stats", display_name="Thống kê & Bảng xếp hạng"),

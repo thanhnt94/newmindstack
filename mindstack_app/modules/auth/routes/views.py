@@ -1,10 +1,10 @@
-﻿from flask import render_template, flash, redirect, url_for, request
+﻿from flask import render_template, flash, redirect, url_for, request, current_app
 from mindstack_app.utils.template_helpers import render_dynamic_template
 from flask_login import login_user, logout_user, login_required, current_user
 from urllib.parse import urlparse
 from datetime import datetime, timezone
 from mindstack_app.core.extensions import db
-from .. import blueprint
+from .. import auth_bp as blueprint
 from ..models import User, UserSession
 from ..forms import LoginForm, RegistrationForm
 from ..services.auth_service import AuthService
@@ -27,6 +27,10 @@ def update_last_seen():
 
 @blueprint.route('/login', methods=['GET', 'POST'])
 def login():
+    if AuthService.get_config('AUTH_LOGIN_DISABLED', False):
+        flash('Chức năng đăng nhập hiện đang tạm khóa.', 'info')
+        return redirect(url_for('landing.index'))
+
     if current_user.is_authenticated:
         return redirect(url_for('dashboard.dashboard'))
     

@@ -13,6 +13,11 @@ DEFAULT_APP_CONFIGS = {
     'MAINTENANCE_MODE': False,
     'MAINTENANCE_END_TIME': '',
     
+    # --- Auth & Security ---
+    'AUTH_LOGIN_DISABLED': False,
+    'AUTH_SESSION_LIFETIME_DAYS': 30,
+    'AUTH_MIN_PASSWORD_LENGTH': 8,
+    
     # --- Gamification: FSRS (Fixed Point Model) ---
     'SCORE_FSRS_AGAIN': 1,
     'SCORE_FSRS_HARD': 5,
