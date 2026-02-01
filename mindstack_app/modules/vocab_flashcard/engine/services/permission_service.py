@@ -31,28 +31,21 @@ class FlashcardPermissionService:
     def get_accessible_set_ids(user_id: int) -> Set[int]:
         """
         Return IDs of flashcard sets accessible to the user.
-        
-        Access rules:
-        - ADMIN: All flashcard sets
-        - FREE: Only sets created by the user
-        - Others: Own sets + public sets + contributed sets
-        
-        Args:
-            user_id: The user ID to check permissions for
-            
-        Returns:
-            Set of accessible container IDs
         """
+        user_obj = User.query.get(user_id)
+        if not user_obj:
+            return set()
+
         base_query = LearningContainer.query.filter(
             LearningContainer.container_type == 'FLASHCARD_SET'
         )
 
         # Admin sees everything
-        if current_user.user_role == User.ROLE_ADMIN:
+        if user_obj.user_role == User.ROLE_ADMIN:
             return {c.container_id for c in base_query.all()}
 
         # Free users only see their own sets
-        if current_user.user_role == User.ROLE_FREE:
+        if user_obj.user_role == User.ROLE_FREE:
             return {
                 c.container_id
                 for c in base_query.filter(

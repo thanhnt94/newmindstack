@@ -306,6 +306,7 @@ def get_flashcard_mode_counts(user_id, set_identifier):
         'due_only': get_due_items,
         'all_review': get_all_review_items,
         'hard_only': get_hard_items,
+        'sequential': get_sequential_items,
         'pronunciation_practice': get_pronunciation_items,
         'writing_practice': get_writing_items,
         'quiz_practice': get_quiz_items,
