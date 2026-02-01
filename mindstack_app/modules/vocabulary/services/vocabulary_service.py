@@ -9,12 +9,26 @@ import math
 
 class SimplePagination:
     def __init__(self, page, per_page, total_count):
-        self.page = page
-        self.per_page = per_page
-        self.total = total_count
-        self.pages = int(math.ceil(total_count / float(per_page)))
-        self.has_prev = page > 1
-        self.has_next = page < self.pages
+        self.page = int(page)
+        self.per_page = int(per_page)
+        self.total = int(total_count)
+        self.pages = int(math.ceil(self.total / float(self.per_page)))
+        self.has_prev = self.page > 1
+        self.has_next = self.page < self.pages
+        self.prev_num = self.page - 1
+        self.next_num = self.page + 1
+
+    def iter_pages(self, left_edge=2, left_current=2, right_current=5, right_edge=2):
+        last = 0
+        for num in range(1, self.pages + 1):
+            if num <= left_edge or \
+               (num > self.page - left_current - 1 and \
+                num < self.page + right_current) or \
+               num > self.pages - right_edge:
+                if last + 1 != num:
+                    yield None
+                yield num
+                last = num
 
 from ..utils import get_cover_url
 
@@ -89,10 +103,9 @@ class VocabularyService:
             container_id=container.container_id, item_type='FLASHCARD'
         ).count()
         creator = User.query.get(container.creator_user_id)
-        # Get Course Stats via Logic Layer
         from ..logics.stats_logic import get_course_overview_stats
         course_stats = get_course_overview_stats(user_id, set_id, page=page, per_page=12)
-        current_app.logger.debug("get_set_detail: course_stats fetched")
+        current_app.logger.debug(f"get_set_detail: course_stats fetched, total_items={course_stats.get('pagination', {}).get('total')}")
         # Render Pagination HTML (Server-side component)
         pagination_html = ""
         if course_stats and 'pagination' in course_stats:
@@ -102,17 +115,18 @@ class VocabularyService:
             version = TemplateService.get_active_version()
             try:
                 pagination_template_path = f"{version}/components/pagination/_pagination_mobile.html"
+                base_url = f"/learn/vocabulary/api/set/{set_id}"
                 tmpl = """
-                {% from path import render_pagination_mobile %}
-                {{ render_pagination_mobile(pagination, set_id=set_id) }}
+                {% from path import render_pagination_mobile with context %}
+                {{ render_pagination_mobile(pagination, set_id=set_id, base_url=base_url) }}
                 """
-                pagination_html = render_template_string(tmpl, pagination=pag_obj, set_id=set_id, path=pagination_template_path)
+                pagination_html = render_template_string(tmpl, pagination=pag_obj, set_id=set_id, path=pagination_template_path, base_url=base_url)
                 current_app.logger.debug("get_set_detail: pagination rendered")
             except Exception as e:
                 current_app.logger.error(f"Error rendering pagination template: {e}")
-                import traceback
-                current_app.logger.error(traceback.format_exc())
-                pagination_html = "<!-- Error rendering pagination -->"
+                # Fallback to ultra-simple pagination if template fails
+                pagination_html = f'<div class="flex justify-center gap-4 p-4 bg-yellow-50"><span class="text-sm text-yellow-700">Trang {page} / {pag_obj.pages} (Fallback)</span></div>'
+                current_app.logger.debug("get_set_detail: fallback pagination used")
         user_obj = User.query.get(user_id)
         user_role = user_obj.user_role if user_obj else 'user'
         return {

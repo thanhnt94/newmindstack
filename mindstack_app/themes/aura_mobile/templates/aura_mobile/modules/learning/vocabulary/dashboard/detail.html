@@ -3,6 +3,8 @@
 {% set _v = template_version or 'aura_mobile' %}
 {% extends _v ~ '/layouts/base.html' %}
 
+{% from _v ~ '/components/components/dashboard_header.html' import render_dashboard_header, mobile_footer, render_unified_header with context %}
+
 {% block title %}Chi tiết bộ thẻ - MindStack{% endblock %}
 
 {% block head %}
@@ -52,11 +54,44 @@
         z-index: 100;
         background: #f8fafc;
         flex-direction: column;
-        overflow-y: auto;
+        overflow: hidden;
+        /* Changed from overflow-y: auto to fix header/footer */
     }
 
     .vocab-step.active {
         display: flex;
+    }
+
+    /* Scrollable middle area */
+    .vocab-scroll {
+        flex: 1;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        width: 100%;
+    }
+
+    /* Fixed bottom elements styling */
+    /* Fixed bottom elements styling */
+    .vocab-pagination-bar {
+        flex-shrink: 0;
+        background: white;
+        border-top: 1px solid #f1f5f9;
+        z-index: 50; /* Increased */
+        display: none;
+        align-items: center;
+        justify-content: center;
+        padding: 0.75rem;
+    }
+
+    /* Override 'visible' class if it was doing display: flex */
+    .vocab-pagination-bar.visible {
+        display: flex !important;
+    }
+
+    .vocab-footer {
+        flex-shrink: 0;
+        z-index: 10;
+        background: white;
     }
 
 
@@ -66,11 +101,23 @@
         display: none;
     }
 
-    /* Word List Grid - Override Tailwind */
+    /* Word List Grid - Responsive Override */
     .js-word-list {
         display: grid !important;
-        grid-template-columns: 1fr !important;
         gap: 1rem !important;
+        grid-template-columns: 1fr !important;
+    }
+
+    @media (min-width: 768px) {
+        .js-word-list {
+            grid-template-columns: repeat(2, 1fr) !important;
+        }
+    }
+
+    @media (min-width: 1200px) {
+        .js-word-list {
+            grid-template-columns: repeat(3, 1fr) !important;
+        }
     }
 
 
@@ -81,8 +128,7 @@
     }
 </style>
 <link rel="stylesheet" href="{{ url_for('vocabulary.serve_dashboard_asset', filename='css/dashboard.css') }}">
-<link rel="stylesheet"
-    href="{{ url_for('vocabulary.serve_dashboard_asset', filename='css/dashboard_detail.css') }}">
+<link rel="stylesheet" href="{{ url_for('vocabulary.serve_dashboard_asset', filename='css/dashboard_detail.css') }}">
 {% endblock %}
 
 
@@ -94,30 +140,15 @@
     <!-- Detail View - Unified -->
     <div id="detail-view-wrapper" class="js-detail-view-wrapper">
         <div id="step-detail" class="vocab-step active">
-            <div class="step-header-left">
-                <a href="/learn/vocabulary/" class="step-back-btn">
-                    <i class="fas fa-arrow-left"></i>
-                </a>
-                <div class="step-header-info" style="opacity: 0; transition: opacity 0.3s;">
-                    <div class="step-header-title-compact js-header-title">Tên bộ thẻ</div>
-                    <div class="step-header-meta">
-                        <span class="js-header-card-count">1258</span> thẻ
-                        <span class="meta-separator">•</span>
-                        <span class="js-header-progress-percent">3%</span>
-                    </div>
-                </div>
-                <a href="javascript:void(0)" class="step-edit-btn js-edit-set-btn open-modal-btn" title="Sửa bộ thẻ"
+            {% call render_unified_header(title='Tên bộ thẻ', score_overview=score_overview, back_url='/learn/vocabulary/') %}
+                <a href="javascript:void(0)" class="w-8 h-8 flex items-center justify-center rounded-full bg-white text-slate-500 border border-slate-100 shadow-sm js-edit-set-btn open-modal-btn" title="Sửa bộ thẻ"
                     style="display: none;">
-                    <i class="fas fa-edit"></i>
+                    <i class="fas fa-edit text-xs"></i>
                 </a>
-                <!-- Settings Button -->
-                <button type="button" class="step-edit-btn js-open-flashcard-settings" title="Cài đặt học tập">
-                    <i class="fas fa-cog"></i>
+                <button type="button" class="w-8 h-8 flex items-center justify-center rounded-full bg-white text-slate-500 border border-slate-100 shadow-sm js-open-flashcard-settings" title="Cài đặt học tập">
+                    <i class="fas fa-cog text-xs"></i>
                 </button>
-                <a href="{{ url_for('stats.dashboard') }}" class="step-home-btn">
-                    <i class="fas fa-home"></i>
-                </a>
-            </div>
+            {% endcall %}
 
             <div class="vocab-scroll">
                 <div class="vocab-detail-hero js-detail-cover">

@@ -56,6 +56,7 @@ document.addEventListener('DOMContentLoaded', function () {
             return fetch('/learn/vocabulary/api/set/' + setId + '?page=1')
                 .then(r => r.json())
                 .then(data => {
+                    console.log('API Response for set detail:', data);
                     if (data.success) {
                         selectedSetData = data.set;
                         renderSetDetail(data.set, data.course_stats, false, data.pagination_html);
@@ -82,6 +83,10 @@ document.addEventListener('DOMContentLoaded', function () {
                 document.querySelectorAll('.js-detail-desc').forEach(el => el.textContent = s.description || 'Không có mô tả');
                 document.querySelectorAll('.js-card-count').forEach(el => el.textContent = s.card_count);
                 document.querySelectorAll('.js-detail-title').forEach(el => el.textContent = s.title);
+                
+                // New header selectors from render_unified_header
+                document.querySelectorAll('h1.text-base.font-bold.text-slate-800').forEach(el => el.textContent = s.title);
+                
                 document.querySelectorAll('.js-header-title').forEach(el => el.textContent = s.title);
                 document.querySelectorAll('.js-header-card-count').forEach(el => el.textContent = s.card_count);
 
@@ -216,11 +221,15 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
             }
 
-            const paginationBars = document.querySelectorAll('.vocab-pagination-bar, .js-detail-pagination-bar-desktop');
-            if (paginationBars.length > 0 && paginationHtml) {
+            // Render Pagination
+            const paginationBars = document.querySelectorAll('#detail-pagination-bar, .js-detail-pagination-bar-desktop');
+            console.log('Pagination bars found:', paginationBars.length, 'HTML length:', paginationHtml ? paginationHtml.length : 0);
+            
+            if (paginationBars.length > 0 && paginationHtml && paginationHtml.trim().length > 0) {
                 paginationBars.forEach(bar => {
                     bar.innerHTML = paginationHtml;
                     bar.classList.add('visible');
+                    console.log('Pagination bar updated and shown:', bar.id);
                     bar.querySelectorAll('a').forEach(link => {
                         link.onclick = (e) => {
                             e.preventDefault();

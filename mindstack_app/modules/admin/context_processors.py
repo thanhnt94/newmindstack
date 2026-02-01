@@ -54,7 +54,8 @@ def build_admin_sidebar_metrics() -> dict[str, Any]:
     Returns:
         dict: Dữ liệu thống kê.
     """
-    if not current_user.is_authenticated or current_user.user_role != User.ROLE_ADMIN:
+    # Fix: Ensure current_user is valid and has attributes needed
+    if not current_user or not hasattr(current_user, 'is_authenticated') or not current_user.is_authenticated or current_user.user_role != User.ROLE_ADMIN:
         return {}
 
     seven_days_ago = datetime.utcnow() - timedelta(days=7)

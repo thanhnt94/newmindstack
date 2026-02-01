@@ -14,7 +14,16 @@ from mindstack_app.models import LearningContainer, User
 @login_required
 def dashboard():
     """Main vocabulary learning hub dashboard."""
-    return render_dynamic_template('modules/learning/vocabulary/dashboard/index.html')
+    from mindstack_app.modules.learning.services.learning_metrics_service import LearningMetricsService
+    score_data = LearningMetricsService.get_score_breakdown(current_user.user_id)
+    weekly_active_days = LearningMetricsService.get_weekly_active_days_count(current_user.user_id)
+    score_overview = {
+        'today': score_data['today'],
+        'week': score_data['week'],
+        'total': score_data['total'],
+        'active_days': weekly_active_days
+    }
+    return render_dynamic_template('modules/learning/vocabulary/dashboard/index.html', score_overview=score_overview)
 
 
 @blueprint.route('/set/<int:set_id>')
@@ -25,10 +34,21 @@ def set_detail_page(set_id):
     can_edit_set = (current_user.user_role == User.ROLE_ADMIN or 
                     container.creator_user_id == current_user.user_id)
     
+    from mindstack_app.modules.learning.services.learning_metrics_service import LearningMetricsService
+    score_data = LearningMetricsService.get_score_breakdown(current_user.user_id)
+    weekly_active_days = LearningMetricsService.get_weekly_active_days_count(current_user.user_id)
+    score_overview = {
+        'today': score_data['today'],
+        'week': score_data['week'],
+        'total': score_data['total'],
+        'active_days': weekly_active_days
+    }
+    
     return render_dynamic_template('modules/learning/vocabulary/dashboard/detail.html', 
                           active_set_id=set_id, 
                           can_edit_set=can_edit_set,
-                          set_id=set_id)
+                          set_id=set_id,
+                          score_overview=score_overview)
 
 
 @blueprint.route('/set/<int:set_id>/modes')

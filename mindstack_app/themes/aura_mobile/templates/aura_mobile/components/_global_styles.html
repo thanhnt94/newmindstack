@@ -67,22 +67,55 @@
         color: #64748b;
     }
 
+    /* Standardized Mobile Header Button Style */
+    .mobile-nav-btn {
+        width: 36px;
+        height: 36px;
+        border-radius: 0.75rem;
+        background: #f8fafc;
+        border: 1px solid #f1f5f9;
+        display: flex !important;
+        align-items: center;
+        justify-content: center;
+        color: #94a3b8;
+        cursor: pointer;
+        transition: all 0.2s;
+        text-decoration: none;
+    }
+
+    .mobile-nav-btn:hover {
+        background: #f1f5f9;
+        color: #64748b;
+    }
+
     .mobile-nav-btn:active {
         opacity: 0.7;
         transform: scale(0.95);
     }
 
-    /* Unified Modal System for Aura Mobile */
+    /* Unified Modal System Variables - MindStack V4 */
+    :root {
+        --aura-modal-padding: 20px;
+        --aura-modal-radius: 20px;
+        --aura-modal-max-width: 500px;
+        --aura-modal-margin: 10px;
+        --aura-modal-z-index: 100000;
+        --aura-modal-bg: #ffffff;
+        --aura-modal-backdrop: rgba(15, 23, 42, 0.6);
+    }
+
     .aura-modal-overlay {
         position: fixed;
         inset: 0;
-        background: rgba(0, 0, 0, 0.5);
+        z-index: var(--aura-modal-z-index);
+        background: var(--aura-modal-backdrop);
         backdrop-filter: blur(8px);
-        z-index: 100000;
+        -webkit-backdrop-filter: blur(8px);
         display: none;
         align-items: center;
         justify-content: center;
-        padding: 1.25rem; /* Standard margin from all 4 edges */
+        padding: var(--aura-modal-margin);
+        /* Margin 10px từ mép màn hình */
         opacity: 0;
         transition: opacity 0.3s ease;
         pointer-events: none;
@@ -93,19 +126,20 @@
         display: flex !important;
         opacity: 1 !important;
         pointer-events: auto !important;
-        visibility: visible !important;
     }
 
     .aura-modal-container {
-        background: white;
+        background: var(--aura-modal-bg);
         width: 100%;
-        height: 100%; 
-        max-width: 500px; /* Optimal reading width */
-        border-radius: 1.5rem;
+        max-width: var(--aura-modal-max-width);
+        min-height: 200px;
+        max-height: 85vh;
+        /* Requirement: 85vh height */
+        border-radius: var(--aura-modal-radius);
         display: flex;
         flex-direction: column;
         overflow: hidden;
-        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
         transform: translateY(20px);
         transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
     }
@@ -116,19 +150,27 @@
     }
 
     .aura-modal-header {
-        padding: 1.25rem 1.5rem;
+        padding: 20px;
         border-bottom: 1px solid #f1f5f9;
         display: flex;
         align-items: center;
         justify-content: space-between;
         flex-shrink: 0;
+        background: white;
     }
 
     .aura-modal-body {
         flex: 1;
         overflow-y: auto;
-        padding: 1.5rem;
+        padding: var(--aura-modal-padding);
         -webkit-overflow-scrolling: touch;
+    }
+
+    .aura-modal-footer {
+        padding: 1.25rem var(--aura-modal-padding);
+        border-top: 1px solid #f1f5f9;
+        background: #f8fafc;
+        flex-shrink: 0;
     }
 
     .aura-modal-close {
@@ -143,5 +185,10 @@
         color: #64748b;
         cursor: pointer;
         transition: all 0.2s;
+    }
+
+    .aura-modal-close:hover {
+        background: #e2e8f0;
+        color: #ef4444;
     }
 </style>

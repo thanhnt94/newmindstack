@@ -116,7 +116,7 @@
             {{ form.settings }}
 
             <!-- Top Navbar (Fixed Actions) -->
-            <div class="flex-none flex items-center justify-between py-3 px-4 border-b border-gray-100 bg-white z-20">
+            <div class="flex-none flex items-center justify-between p-[20px] border-b border-gray-100 bg-white z-20">
                 <div class="flex items-center gap-4">
                     <h2 class="text-lg font-bold text-gray-800">Thông tin bộ thẻ</h2>
                     {% if template_url %}
@@ -141,7 +141,7 @@
             </div>
 
             <!-- Scrollable Content Area -->
-            <div class="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-6">
+            <div class="flex-1 overflow-y-auto custom-scrollbar p-[20px] space-y-6">
 
                 <!-- Global Excel Upload Section -->
                 <div class="flex-none mb-6 space-y-3">
@@ -599,13 +599,13 @@
         const rawSettings = settingsInput.value || '{}';
         console.log("Raw settings from input:", rawSettings);
         currentSettings = JSON.parse(rawSettings);
-        
+
         // Final safety check: if JSON.parse results in null or non-object
         if (!currentSettings || typeof currentSettings !== 'object') {
             currentSettings = {};
         }
-    } catch (e) { 
-        console.error("Error parsing settings JSON:", e); 
+    } catch (e) {
+        console.error("Error parsing settings JSON:", e);
         currentSettings = {};
     }
 
@@ -1506,7 +1506,7 @@
     renderSelectableColumns();
     ['mcq', 'typing', 'listening'].forEach(mode => renderPairs(mode));
     saveToInput();
-    
+
     // Auto-trigger first internal config tab if available
     const firstTab = wrapper.querySelector('button[data-tab]');
     if (firstTab) firstTab.click();

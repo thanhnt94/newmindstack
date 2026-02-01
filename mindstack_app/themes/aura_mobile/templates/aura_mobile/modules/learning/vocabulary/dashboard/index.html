@@ -3,7 +3,7 @@
 {% set _v = template_version or 'aura_mobile' %}
 {% extends _v ~ '/layouts/base.html' %}
 
-{% from _v ~ '/components/components/dashboard_header.html' import render_dashboard_header, mobile_footer %}
+{% from _v ~ '/components/components/dashboard_header.html' import render_dashboard_header, mobile_footer, render_unified_header with context %}
 
 {% block title %}Học từ vựng - MindStack{% endblock %}
 
@@ -2492,7 +2492,10 @@
     {# Mobile View - Step Browser only - Hidden on lg+ #}
     <div id="step-browser" class="vocab-step active">
 
-        {% call render_dashboard_header(title='Học từ vựng', back_url=url_for('dashboard.dashboard')) %}
+        {% call render_unified_header(title='Học từ vựng', score_overview=score_overview) %}
+            <a href="{{ url_for('dashboard.dashboard') }}" class="w-8 h-8 flex items-center justify-center rounded-full bg-white text-slate-500 border border-slate-100 shadow-sm" title="Trang chủ">
+                <i class="fas fa-home text-xs"></i>
+            </a>
         {% endcall %}
 
 

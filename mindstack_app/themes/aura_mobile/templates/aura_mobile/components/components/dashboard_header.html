@@ -49,6 +49,61 @@ back_icon='fa-chevron-left')
 <div class="h-[60px] w-full shrink-0"></div>
 {% endmacro %}
 
+{% macro render_unified_header(title, score_overview=None, back_url=None, back_func=None, back_icon='fa-arrow-left') %}
+<div class="px-4 pt-5 pb-3 flex items-center justify-between sticky top-0 z-[100] bg-slate-50/80 backdrop-blur-md w-full gap-3">
+    <div class="flex items-center gap-3 min-w-0">
+        {# Back Button #}
+        {% if back_url %}
+        <a href="{{ back_url }}" class="w-9 h-9 flex-shrink-0 rounded-full bg-white text-slate-500 flex items-center justify-center border border-slate-100 shadow-sm active:scale-95 transition-all">
+            <i class="fas {{ back_icon }} text-sm"></i>
+        </a>
+        {% elif back_func %}
+        <button onclick="{{ back_func }}" class="w-9 h-9 flex-shrink-0 rounded-full bg-white text-slate-500 flex items-center justify-center border border-slate-100 shadow-sm active:scale-95 transition-all">
+            <i class="fas {{ back_icon }} text-sm"></i>
+        </button>
+        {% else %}
+        <div class="w-11 h-11 rounded-full flex-shrink-0 flex items-center justify-center border-2 border-white shadow-sm overflow-hidden">
+            {% if current_user.avatar_url %}
+            <img src="{{ current_user.get_avatar_url() }}" class="w-full h-full object-cover">
+            {% else %}
+            <div class="w-full h-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold text-lg">
+                {{ current_user.username[0] | upper }}
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
+        
+        <div class="min-w-0">
+            <h1 class="text-base font-bold text-slate-800 leading-none truncate">{{ title }}</h1>
+            <p class="text-[10px] text-slate-500 font-medium mt-1 line-clamp-1">Hi, {{ current_user.username }}!</p>
+        </div>
+    </div>
+
+    <div class="flex items-center gap-2 flex-shrink-0">
+        {{ caller() if caller else '' }}
+
+        {% if score_overview %}
+        <div class="hidden sm:flex items-center gap-1.5 bg-white px-2.5 py-1.5 rounded-full border border-slate-100 shadow-sm">
+            <i class="fa-solid fa-star text-amber-500 text-[10px]"></i>
+            <span class="text-[10px] font-bold text-slate-700">{{ "{:,}".format(score_overview.total|int) }}</span>
+        </div>
+
+        <div class="flex items-center gap-1.5 bg-white px-2.5 py-1.5 rounded-full border border-slate-100 shadow-sm">
+            <i class="fa-solid fa-fire text-orange-500 text-[10px]"></i>
+            <span class="text-[10px] font-bold text-slate-700">{{ score_overview.active_days }}</span>
+        </div>
+        {% endif %}
+        
+        <button onclick="toggleNotificationCenter()"
+            class="w-8 h-8 rounded-full bg-white border border-slate-100 flex items-center justify-center text-slate-500 hover:text-indigo-600 transition-colors shadow-sm relative active:scale-95">
+            <i class="fa-solid fa-bell"></i>
+            <span id="dashboard-noti-badge"
+                class="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full shadow-sm hidden">0</span>
+        </button>
+    </div>
+</div>
+{% endmacro %}
+
 {% macro mobile_footer(extra_classes='') %}
 <div
     class="mobile-footer fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-slate-200 p-4 shadow-[0_-4px_20px_-5px_rgba(0,0,0,0.05)] {{ extra_classes }}">

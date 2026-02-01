@@ -7,13 +7,17 @@
 
 {% block title %}{{ title }}{% endblock %}
 
+
+{% set is_modal = request.args.get('is_modal') == 'true' %}
+
 {% block content %}
-<div class="flex justify-center min-h-[600px] items-start pt-8 pb-20">
-    <div class="w-full max-w-4xl">
-        <div class="bg-white shadow-xl rounded-2xl overflow-hidden border border-slate-100 flex flex-col max-h-[90vh]">
+<div class="flex justify-center {{ 'min-h-[600px] items-start pt-8 pb-20' if not is_modal else 'h-full' }}">
+    <div class="w-full {{ 'max-w-4xl' if not is_modal else 'h-full' }}">
+        <div
+            class="bg-white overflow-hidden flex flex-col {{ 'shadow-xl rounded-2xl border border-slate-100 max-h-[90vh]' if not is_modal else 'h-full' }}">
 
             <!-- HEADER -->
-            <div class="bg-white border-b border-gray-100 px-8 py-5 flex justify-between items-center shrink-0">
+            <div class="bg-white border-b border-gray-100 p-4 flex justify-between items-center shrink-0">
                 <h2 class="text-xl font-bold text-slate-800 flex items-center gap-3">
                     <div class="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-600">
                         <i class="fas {{ 'fa-plus' if 'Thêm' in title else 'fa-pen' }}"></i>
@@ -21,10 +25,12 @@
                     {{ title }}
                 </h2>
                 <div class="flex gap-2">
+                    {% if not is_modal %}
                     <button type="button" onclick="window.history.back()"
                         class="px-4 py-2 rounded-lg text-slate-500 hover:bg-slate-50 hover:text-slate-700 transition font-medium text-sm">
                         Đóng
                     </button>
+                    {% endif %}
                     <!-- Form Submit Button (External Trigger) -->
                     <button type="button" onclick="document.getElementById('flashcardItemForm').requestSubmit()"
                         class="px-6 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 shadow-md shadow-blue-200 transition font-medium text-sm flex items-center gap-2">
@@ -37,7 +43,7 @@
             <div class="flex flex-col flex-1 overflow-hidden" x-data="{ activeTab: 'general' }">
 
                 <!-- TABS NAVIGATION -->
-                <div class="flex px-6 border-b border-gray-100 bg-slate-50/50 shrink-0 gap-6">
+                <div class="flex px-4 border-b border-gray-100 bg-slate-50/50 shrink-0 gap-6">
                     <button @click="activeTab = 'general'"
                         :class="activeTab === 'general' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'"
                         class="py-4 px-2 border-b-2 font-semibold text-sm transition-all duration-200 flex items-center gap-2">
@@ -56,7 +62,7 @@
                 </div>
 
                 <!-- MAIN SCROLLABLE AREA -->
-                <div class="overflow-y-auto flex-1 bg-white p-8 custom-scrollbar">
+                <div class="overflow-y-auto flex-1 bg-white p-[20px] custom-scrollbar">
                     <form id="flashcardItemForm" action="" method="post" class="space-y-6 max-w-3xl mx-auto"
                         data-image-search-url="{{ image_search_url }}" data-front-source-id="{{ form.front.id }}"
                         data-back-source-id="{{ form.back.id }}"

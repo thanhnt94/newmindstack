@@ -3,13 +3,14 @@
 
 <!-- Container Stats Modal -->
 <div id="containerStatsModal" class="aura-modal-overlay hidden">
-    <div class="aura-modal-container">
-        <div class="aura-modal-header" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none;">
-            <h3 style="margin: 0; font-size: 1.15rem; font-weight: 700;">📊 Thống kê: <span id="container-stats-title">Loading...</span></h3>
-            <button class="aura-modal-close" style="background: rgba(255,255,255,0.2); color: white;" onclick="closeContainerStatsModal()">&times;</button>
+    <div class="aura-modal-container" style="max-width: 900px; height: 90vh; display: flex; flex-direction: column;">
+        <div class="aura-modal-header" style="flex-shrink: 0;">
+            <h3 style="margin: 0; font-size: 1.15rem; font-weight: 700;">📊 Thống kê: <span
+                    id="container-stats-title">Loading...</span></h3>
+            <button class="aura-modal-close" onclick="closeContainerStatsModal()">&times;</button>
         </div>
 
-        <div class="aura-modal-body">
+        <div class="aura-modal-body" style="flex: 1; overflow-y: auto; padding: 1rem;">
             <!-- Summary Cards -->
             <div class="stats-summary-cards">
                 <div class="summary-card">
@@ -28,7 +29,9 @@
 
             <!-- Distribution Chart -->
             <div class="chart-section">
-                <h4 style="font-size: 1rem; font-weight: 700; color: #1e293b; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">📊 Phân bố</h4>
+                <h4
+                    style="font-size: 1rem; font-weight: 700; color: #1e293b; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
+                    📊 Phân bố</h4>
                 <div class="chart-container">
                     <canvas id="distributionChart"></canvas>
                 </div>
@@ -36,7 +39,9 @@
 
             <!-- Timeline Chart -->
             <div class="chart-section">
-                <h4 style="font-size: 1rem; font-weight: 700; color: #1e293b; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">📈 Tiến độ theo thời gian</h4>
+                <h4
+                    style="font-size: 1rem; font-weight: 700; color: #1e293b; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
+                    📈 Tiến độ theo thời gian</h4>
                 <div class="chart-container">
                     <canvas id="timelineChart"></canvas>
                 </div>
@@ -59,7 +64,7 @@
         padding: 1rem;
         border-radius: 1rem;
         text-align: center;
-        border: 1px solid rgba(0,0,0,0.05);
+        border: 1px solid rgba(0, 0, 0, 0.05);
     }
 
     .summary-label {
