@@ -1,4 +1,4 @@
-﻿"""
+"""
 Notification Manager Service.
 
 Acts as the "Notification Hub" that listens to system signals, format messages using templates/logic,

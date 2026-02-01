@@ -1,4 +1,4 @@
-﻿# mindstack_app/modules/learning/course/algorithms.py
+# mindstack_app/modules/learning/course/algorithms.py
 # Phiên bản: 2.2
 # MỤC ĐÍCH: Sửa lỗi logic hiển thị các khóa học ở tab 'Đang học' và 'Khám phá'.
 # ĐÃ SỬA: Thay đổi logic lọc để dựa vào sự tồn tại của UserContainerState để phân loại.

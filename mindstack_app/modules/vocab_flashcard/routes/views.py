@@ -1,4 +1,4 @@
-﻿# File: mindstack_app/modules/vocab_flashcard/individual/routes.py
+# File: mindstack_app/modules/vocab_flashcard/individual/routes.py
 # Phiên bản: 4.0 (Engine refactor)
 # MỤC ĐÍCH: Entry point routes cho chế độ học flashcard cá nhân.
 # Routes này sử dụng engine module như dependency.
@@ -11,10 +11,9 @@ import traceback
 import os
 
 # Define Blueprint here
-flashcard_learning_bp = Blueprint(
-    'flashcard_learning',
-    __name__
-)
+from .bp import flashcard_learning_bp
+
+print(f"DEBUG: LOADING VIEWS.PY - Name: {__name__}")
 
 # Import từ engine module
 from ..engine.session_manager import FlashcardSessionManager
@@ -57,7 +56,8 @@ from mindstack_app.utils.media_paths import (
     normalize_media_value_for_storage,
     build_relative_media_path,
 )
-from mindstack_app.modules.fsrs.logics.fsrs_engine import FSRSEngine, CardState
+from mindstack_app.modules.fsrs.logics.fsrs_engine import FSRSEngine
+from mindstack_app.modules.fsrs.schemas import CardStateDTO as CardState
 
 def _ensure_container_media_folder(container: LearningContainer, media_type: str) -> str:
     """Return the folder for the requested media type, creating a default if missing."""
@@ -510,7 +510,7 @@ def get_flashcard_batch():
 
 @flashcard_learning_bp.route('/flashcard_learning/api/items/<int:item_id>', methods=['GET'])
 @login_required
-def get_flashcard_item_api(item_id):
+def api_get_flashcard_item_details(item_id):
     """Trả về thông tin chi tiết của một thẻ trong phiên học hiện tại."""
 
     if 'flashcard_session' not in session:
@@ -1210,3 +1210,66 @@ def preview_fsrs():
         tb = traceback.format_exc()
         current_app.logger.error(f"Error calculating FSRS preview: {e}\n{tb}")
         return jsonify({'error': str(e), 'traceback': tb}), 500
+
+@flashcard_learning_bp.route('/setup')
+@login_required
+def setup():
+    """Trang thiết lập trước khi bắt đầu phiên luyện tập."""
+    set_ids = request.args.get('sets', '')
+    mode = request.args.get('mode', 'mixed_srs')
+    
+    user_button_count = 3
+    if current_user.session_state:
+        user_button_count = current_user.session_state.flashcard_button_count
+
+    # Parse set IDs
+    selected_sets = []
+    if set_ids:
+        try:
+            selected_sets = [int(s) for s in set_ids.split(',') if s]
+        except ValueError:
+            flash('Định dạng ID bộ thẻ không hợp lệ.', 'danger')
+            return redirect(url_for('vocabulary.dashboard'))
+
+    # Lấy các chế độ với số lượng thẻ
+    set_identifier = selected_sets[0] if len(selected_sets) == 1 else selected_sets if selected_sets else 'all'
+    modes = get_flashcard_mode_counts(current_user.user_id, set_identifier)
+
+    return render_dynamic_template('modules/learning/practice/setup.html',
+        selected_sets=selected_sets,
+        selected_mode=mode,
+        modes=modes,
+        user_button_count=user_button_count,
+        flashcard_modes=FlashcardLearningConfig.FLASHCARD_MODES,
+    )
+
+
+@flashcard_learning_bp.route('/start', methods=['GET', 'POST'])
+@login_required
+def start():
+    """Bắt đầu phiên luyện tập flashcard."""
+    data = request.values or {}
+    
+    set_ids_str = data.get('set_ids', '')
+    mode = data.get('mode', 'mixed_srs')
+    
+    # Parse set IDs
+    if set_ids_str == 'all':
+        set_ids = 'all'
+    elif set_ids_str:
+        try:
+            set_ids = [int(s) for s in set_ids_str.split(',') if s]
+        except ValueError:
+            flash('Định dạng ID bộ thẻ không hợp lệ.', 'danger')
+            return redirect(url_for('vocabulary.dashboard'))
+    else:
+        flash('Vui lòng chọn ít nhất một bộ thẻ.', 'warning')
+        return redirect(url_for('vocabulary.dashboard'))
+    
+    # Bắt đầu session sử dụng flashcard engine
+    success, message, session_id = FlashcardSessionManager.start_new_flashcard_session(set_ids, mode)
+    if success:
+        return redirect(url_for('.flashcard_session', session_id=session_id))
+    else:
+        flash(message, 'warning')
+        return redirect(url_for('vocabulary.dashboard'))

@@ -1,4 +1,4 @@
-﻿# File: mindstack_app/modules/fsrs/interface.py
+# File: mindstack_app/modules/fsrs/interface.py
 from typing import Optional, Tuple, List, Dict, Any
 import datetime
 from .engine.processor import FSRSProcessor

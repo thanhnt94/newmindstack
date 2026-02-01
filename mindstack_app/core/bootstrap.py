@@ -1,4 +1,4 @@
-﻿# File: mindstack_app/core/bootstrap.py
+# File: mindstack_app/core/bootstrap.py
 # Infrastructure Layer: System Bootstrapper (Discovery & Registry)
 
 import os

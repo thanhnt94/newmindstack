@@ -1,4 +1,4 @@
-﻿class ContentManagementModuleDefaultConfig:
+class ContentManagementModuleDefaultConfig:
     ALLOWED_RICH_TEXT_EXTENSIONS = {
         '.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg', '.bmp',
         '.mp3', '.wav', '.ogg', '.m4a', '.aac', '.flac',

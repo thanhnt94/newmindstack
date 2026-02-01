@@ -1,4 +1,4 @@
-﻿from datetime import datetime
+from datetime import datetime
 from sqlalchemy import func
 from flask_login import login_required, current_user
 from mindstack_app.utils.template_helpers import render_dynamic_template

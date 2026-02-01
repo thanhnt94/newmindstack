@@ -1,4 +1,4 @@
-﻿/* === JAPANESE FONT CONFIGURATION === */
+/* === JAPANESE FONT CONFIGURATION === */
 /* Apply Meiryo/Yu Gothic only to Japanese characters using unicode-range */
 @font-face {
     font-family: 'Japanese';

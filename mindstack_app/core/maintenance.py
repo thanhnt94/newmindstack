@@ -1,4 +1,4 @@
-﻿from flask import render_template, request, current_app
+from flask import render_template, request, current_app
 from flask_login import current_user
 
 def init_maintenance_mode(app):

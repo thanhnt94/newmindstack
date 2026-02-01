@@ -1,4 +1,4 @@
-﻿# File: mindstack_app/modules/fsrs/services/settings_service.py
+# File: mindstack_app/modules/fsrs/services/settings_service.py
 from __future__ import annotations
 from typing import Any, Dict, List, Optional
 from flask import current_app

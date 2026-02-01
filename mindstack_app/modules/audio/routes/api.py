@@ -1,4 +1,4 @@
-﻿# File: mindstack_app/modules/audio/routes/api.py
+# File: mindstack_app/modules/audio/routes/api.py
 import traceback
 import json
 from flask import request, jsonify, current_app

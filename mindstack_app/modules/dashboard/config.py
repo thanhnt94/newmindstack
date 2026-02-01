@@ -1,2 +1,2 @@
-﻿class DashboardModuleDefaultConfig:
+class DashboardModuleDefaultConfig:
     pass

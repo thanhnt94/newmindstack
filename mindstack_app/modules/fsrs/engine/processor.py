@@ -1,4 +1,4 @@
-﻿# File: mindstack_app/modules/fsrs/engine/processor.py
+# File: mindstack_app/modules/fsrs/engine/processor.py
 from __future__ import annotations
 import datetime
 import random

@@ -1,4 +1,4 @@
-﻿"""
+"""
 Auth Service - Core authentication logic.
 
 Handles user registration and authentication details.

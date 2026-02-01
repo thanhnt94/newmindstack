@@ -1,4 +1,4 @@
-﻿"""
+"""
 FlashcardItemService - Service for retrieving flashcard items
 
 Provides methods for fetching flashcard items based on various

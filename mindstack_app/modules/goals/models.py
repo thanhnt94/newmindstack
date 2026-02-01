@@ -1,4 +1,4 @@
-﻿"""Goal management models."""
+"""Goal management models."""
 
 from __future__ import annotations
 

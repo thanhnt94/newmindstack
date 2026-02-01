@@ -1,4 +1,4 @@
-﻿{# Matching Session Template #}
+{# Matching Session Template #}
 {% set _v = template_version or 'aura_mobile' %}
 {% extends _v ~ '/layouts/base.html' %}
 {% block title %}Ghép đôi - {{ container.title }}{% endblock %}
@@ -374,7 +374,7 @@
                 if (data.success && data.session_id) {
                     window.location.href = `/learn/session/${data.session_id}/summary`;
                 } else {
-                    window.location.href = "{{ url_for('learning.manage_sessions') }}";
+                    window.location.href = "{{ url_for('session.manage_sessions') }}";
                 }
             })
             .catch(err => {
@@ -398,4 +398,3 @@
 }) ();
 </script>
 {% endblock %}
-

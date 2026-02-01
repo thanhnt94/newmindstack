@@ -1,4 +1,4 @@
-﻿from typing import Optional
+from typing import Optional
 from .schemas import TranslationResponseDTO
 from .services import TranslatorService
 

@@ -1,4 +1,4 @@
-﻿"""
+"""
 Reward Manager Service.
 
 This service acts as the Event Listener for Gamification.

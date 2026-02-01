@@ -1,4 +1,4 @@
-﻿# File: vocabulary/typing/logic.py
+# File: vocabulary/typing/logic.py
 # Typing Learning Mode Logic
 
 from mindstack_app.models import LearningItem

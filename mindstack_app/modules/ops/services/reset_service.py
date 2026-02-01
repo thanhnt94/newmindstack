@@ -1,4 +1,4 @@
-﻿from mindstack_app.models import (
+from mindstack_app.models import (
     db, User, LearningProgress, ReviewLog, LearningItem, LearningContainer, 
     LearningSession, UserItemMarker, UserContainerState, ContainerContributor, LearningGroup
 )

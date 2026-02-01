@@ -1,4 +1,4 @@
-﻿"""Forms used by the learning goals module."""
+"""Forms used by the learning goals module."""
 
 from __future__ import annotations
 

@@ -1,4 +1,4 @@
-﻿# File: vocabulary/routes/typing.py
+# File: vocabulary/routes/typing.py
 # Typing Learning Mode Routes
 
 from flask import render_template, request, jsonify, abort, url_for, session, redirect

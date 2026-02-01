@@ -1,4 +1,4 @@
-﻿# File: mindstack_app/modules/audio/routes/views.py
+# File: mindstack_app/modules/audio/routes/views.py
 from flask import render_template, current_app, jsonify
 from flask_login import login_required, current_user
 from .. import audio_bp as blueprint

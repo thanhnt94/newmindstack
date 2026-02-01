@@ -1,4 +1,4 @@
-﻿"""
+"""
 Quick test script to verify autogen API endpoints
 Run this from the project root: python -m mindstack_app.modules.AI.tests.test_autogen
 """

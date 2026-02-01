@@ -1,4 +1,4 @@
-﻿{#
+{#
 File: mindstack_app/modules/shared/templates/components/_navbar.html
 Phiên bản: 3.4
 Mục đích: Clean minimal navbar - no heavy gradients, subtle colors.
@@ -29,7 +29,7 @@ Mục đích: Clean minimal navbar - no heavy gradients, subtle colors.
         <li>
             <a class="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors
                 {% if request.endpoint.startswith('learning.quiz') %}bg-indigo-50 text-indigo-600{% else %}text-slate-500 hover:text-slate-700 hover:bg-slate-50{% endif %}"
-                href="{{ url_for('practice.quiz_dashboard') }}">
+                href="{{ url_for('quiz.dashboard') }}">
                 <i class="fas fa-question-circle text-sm"></i>
                 <span>Quiz</span>
             </a>

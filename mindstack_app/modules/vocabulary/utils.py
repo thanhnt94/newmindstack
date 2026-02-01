@@ -1,4 +1,4 @@
-﻿# File: mindstack_app/modules/vocabulary/utils.py
+# File: mindstack_app/modules/vocabulary/utils.py
 
 def get_cover_url(path):
     """Helper to convert database path to accessible URL."""

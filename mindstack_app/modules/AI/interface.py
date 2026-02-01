@@ -1,4 +1,4 @@
-﻿from typing import Optional, Union
+from typing import Optional, Union
 from .schemas import AIRequestDTO, AIResponseDTO
 from .services.ai_manager import get_ai_service
 

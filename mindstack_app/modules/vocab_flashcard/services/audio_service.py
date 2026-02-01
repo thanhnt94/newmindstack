@@ -1,4 +1,4 @@
-﻿# File: newmindstack/mindstack_app/modules/learning/flashcard_learning/audio_service.py
+# File: newmindstack/mindstack_app/modules/learning/flashcard_learning/audio_service.py
 # Phiên bản: 1.1
 # Mục đích: Cung cấp dịch vụ tạo và cache file âm thanh từ văn bản (Text-to-Speech)
 #           cho các thẻ ghi nhớ (flashcards).

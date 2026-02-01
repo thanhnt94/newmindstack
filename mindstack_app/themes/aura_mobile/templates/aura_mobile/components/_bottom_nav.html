@@ -1,4 +1,5 @@
-﻿{# ================= MOBILE BOTTOM NAV ================= #}
+{# Forced reload comment #}
+{# ================= MOBILE BOTTOM NAV ================= #}
 <div class="global-bottom-nav fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 z-40 pb-safe">
     {# Pass active_page parameter to highlight current page, e.g. active_page='home' #}
 
@@ -24,7 +25,7 @@
 
                 <div class="grid grid-cols-2 gap-3 w-full">
                     <!-- Quiz (Left) -->
-                    <a href="{{ url_for('practice.quiz_dashboard') }}"
+                    <a href="{{ url_for('quiz.dashboard') }}"
                         class="flex flex-col items-center justify-center text-center gap-2 bg-gradient-to-br from-emerald-500 to-teal-500 text-white p-4 rounded-2xl shadow-lg hover:shadow-emerald-500/50 active:scale-95 transition-all arc-item border border-white/20">
                         <div
                             class="w-14 h-14 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center shadow-md">
@@ -37,7 +38,7 @@
                     </a>
 
                     <!-- Practice (Right) -->
-                    <a href="{{ url_for('practice.practice_hub') }}"
+                    <a href="{{ url_for('learning.practice_hub') }}"
                         class="flex flex-col items-center justify-center text-center gap-2 bg-gradient-to-br from-amber-500 to-orange-500 text-white p-4 rounded-2xl shadow-lg hover:shadow-amber-500/50 active:scale-95 transition-all arc-item border border-white/20">
                         <div
                             class="w-14 h-14 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center shadow-md">

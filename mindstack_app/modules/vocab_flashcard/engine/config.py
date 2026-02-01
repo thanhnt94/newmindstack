@@ -1,4 +1,4 @@
-﻿# File: mindstack_app/modules/learning/flashcard_learning/config.py
+# File: mindstack_app/modules/learning/flashcard_learning/config.py
 # Phiên bản: 1.2
 # Mục đích: Chứa các cấu hình riêng cho module học Flashcard.
 # ĐÃ THÊM: Chế độ học "Học và ôn tập (đan xen)" mới.

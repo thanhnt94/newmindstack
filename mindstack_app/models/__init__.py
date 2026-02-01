@@ -1,4 +1,4 @@
-﻿"""Database models package for Mindstack."""
+"""Database models package for Mindstack."""
 
 from mindstack_app.core.extensions import db
 

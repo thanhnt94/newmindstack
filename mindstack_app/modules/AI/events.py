@@ -1,4 +1,4 @@
-﻿from mindstack_app.core.signals import content_changed
+from mindstack_app.core.signals import content_changed
 from flask import current_app
 from mindstack_app.models import LearningItem, db
 import threading

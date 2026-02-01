@@ -1,4 +1,4 @@
-﻿"""
+"""
 Streak Logic - Pure functions for streak calculation.
 
 This module contains ONLY pure Python logic.

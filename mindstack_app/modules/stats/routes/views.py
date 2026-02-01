@@ -1,4 +1,4 @@
-﻿from flask import request
+from flask import request
 from flask_login import login_required, current_user
 from mindstack_app.utils.template_helpers import render_dynamic_template
 from mindstack_app.modules.learning.services.learning_metrics_service import LearningMetricsService

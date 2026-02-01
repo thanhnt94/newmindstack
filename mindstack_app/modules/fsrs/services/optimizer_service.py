@@ -1,4 +1,4 @@
-﻿# File: mindstack_app/modules/fsrs/services/optimizer_service.py
+# File: mindstack_app/modules/fsrs/services/optimizer_service.py
 from __future__ import annotations
 from typing import List, Optional, Dict, Any
 from datetime import datetime, timezone

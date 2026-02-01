@@ -1,4 +1,4 @@
-﻿"""
+"""
 Quiz Configuration Service
 
 Provides centralized configuration for Quiz system, analogous to FSRSSettingsService.

@@ -1,4 +1,4 @@
-﻿"""
+"""
 Stats Module Models
 Defines aggregate statistics and metrics for users.
 """

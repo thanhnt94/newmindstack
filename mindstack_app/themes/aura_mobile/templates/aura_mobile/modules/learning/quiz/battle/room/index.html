@@ -1,4 +1,4 @@
-﻿{# =============================== #}
+{# =============================== #}
 {# File: mindstack_app/modules/learning/quiz/templates/quiz_battle/room.html #}
 {# Phiên bản: 3.2 (Fix Start Error Handling & Leave Redirect) #}
 {# =============================== #}
@@ -2010,7 +2010,7 @@
         if (!confirm('Rời phòng?')) return;
         try {
             await postJson(leaveRoomUrl);
-            window.location.href = "{{ url_for('practice.quiz_dashboard') }}";
+            window.location.href = "{{ url_for('quiz.dashboard') }}";
         } catch (e) { setAlert(e.message, 'error'); }
     });
 

@@ -1,4 +1,4 @@
-﻿{% set _v = template_version or 'aura_mobile' %}
+{% set _v = template_version or 'aura_mobile' %}
 {% extends _v ~ '/layouts/base.html' %}
 {% block title %}Phòng học Flashcard chung - {{ room_payload.room_code }}{% endblock %}
 
@@ -1513,7 +1513,7 @@
         <div class="sidebar-header">
           <div class="room-title-row">
             <h2 class="room-title" title="{{ room_payload.title }}">{{ room_payload.title }}</h2>
-            <a href="{{ url_for('vocab_flashcard.flashcard_dashboard_internal.dashboard') }}"
+            <a href="{{ url_for('vocabulary.dashboard') }}"
               class="text-slate-400 hover:text-rose-500 transition-colors" title="Thoát phòng">
               <i class="fas fa-sign-out-alt"></i>
             </a>
@@ -2472,7 +2472,7 @@
       // Handle Kicked User (403)
       if (response.status === 403) {
         alert('Bạn đã bị mời ra khỏi phòng học này.');
-        window.location.href = "{{ url_for('vocab_flashcard.flashcard_dashboard_internal.dashboard') }}";
+        window.location.href = "{{ url_for('vocabulary.dashboard') }}";
         return;
       }
 

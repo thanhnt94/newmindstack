@@ -1,4 +1,4 @@
-﻿
+
 import logging
 import os
 from mindstack_app.core.extensions import db

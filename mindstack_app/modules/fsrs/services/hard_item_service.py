@@ -1,4 +1,4 @@
-﻿# File: mindstack_app/modules/fsrs/services/hard_item_service.py
+# File: mindstack_app/modules/fsrs/services/hard_item_service.py
 from __future__ import annotations
 from typing import List, Optional
 from sqlalchemy import or_, and_

@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 from collections.abc import Iterable, Mapping, MutableMapping
 from typing import Any, Dict, Optional
 from datetime import datetime, timezone

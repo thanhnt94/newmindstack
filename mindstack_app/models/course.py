@@ -1,4 +1,4 @@
-﻿"""Course and Lesson models."""
+"""Course and Lesson models."""
 from __future__ import annotations
 from mindstack_app.modules.learning.models import LearningContainer, LearningItem
 

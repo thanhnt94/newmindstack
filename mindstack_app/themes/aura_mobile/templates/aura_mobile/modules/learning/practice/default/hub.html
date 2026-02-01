@@ -1,4 +1,4 @@
-﻿{% set _v = template_version or 'aura_mobile' %}
+{% set _v = template_version or 'aura_mobile' %}
 {% extends _v ~ '/layouts/base.html' %}
 {% block title %}Luyện tập - MindStack{% endblock %}
 
@@ -187,7 +187,7 @@
     </div>
 
     <div class="practice-cards">
-        <a href="{{ url_for('practice.flashcard_dashboard') }}" class="practice-card">
+        <a href="{{ url_for('learning.flashcard_dashboard') }}" class="practice-card">
             <div class="practice-card-icon indigo">
                 <i class="fas fa-clone"></i>
             </div>
@@ -198,7 +198,7 @@
             <i class="fas fa-chevron-right practice-card-arrow"></i>
         </a>
 
-        <a href="{{ url_for('practice.quiz_dashboard') }}" class="practice-card">
+        <a href="{{ url_for('quiz.dashboard') }}" class="practice-card">
             <div class="practice-card-icon blue">
                 <i class="fas fa-circle-question"></i>
             </div>

@@ -1,4 +1,4 @@
-﻿"""Utilities for declaratively registering application modules.
+"""Utilities for declaratively registering application modules.
 
 The registry allows each blueprint/module to be described with metadata so that
 module discovery and registration can be automated. This makes the application
@@ -50,14 +50,12 @@ def register_modules(app: Flask, modules: Sequence[ModuleDefinition]) -> None:
     """Register all modules in the provided iterable with the Flask app."""
 
     for module in modules:
-        # Load blueprint
+        # Load blueprint object
         blueprint = module.load_blueprint()
-        app.register_blueprint(blueprint, url_prefix=module.url_prefix)
-        
-        # Store mapping for access control
-        _BLUEPRINT_TO_MODULE_KEY[blueprint.name] = module.config_key
         
         # Optional: Call setup_module(app) if it exists in the module's package
+        # IMPORTANT: This must happen BEFORE app.register_blueprint so that 
+        # any routes added to the blueprint during setup are correctly mapped.
         try:
             # First try the import_path itself (if it's a package)
             pkg = import_string(module.import_path, silent=True)
@@ -74,6 +72,12 @@ def register_modules(app: Flask, modules: Sequence[ModuleDefinition]) -> None:
                 app.logger.debug("Called setup_module for %s", module.import_path)
         except Exception as e:
             app.logger.error("Error during setup_module for %s: %s", module.import_path, e)
+
+        # Now register with the app
+        app.register_blueprint(blueprint, url_prefix=module.url_prefix)
+        
+        # Store mapping for access control
+        _BLUEPRINT_TO_MODULE_KEY[blueprint.name] = module.config_key
 
         app.logger.debug(
             "Registered module %s (version %s) at prefix %s",
@@ -108,17 +112,18 @@ DEFAULT_MODULES: Iterable[ModuleDefinition] = (
         display_name="Quản lý người dùng",
     ),
     ModuleDefinition("mindstack_app.modules.user_profile", "blueprint", url_prefix="/profile", display_name="Hồ sơ cá nhân"),
+    ModuleDefinition("mindstack_app.modules.vocabulary", "vocabulary_bp", url_prefix="/learn/vocabulary", display_name="Quản lý từ vựng"),
     ModuleDefinition(
         "mindstack_app.modules.content_management",
         "blueprint",
         url_prefix="/content",
         display_name="Quản lý nội dung (CMS)",
     ),
-    ModuleDefinition("mindstack_app.modules.learning", "blueprint", url_prefix="/learn", display_name="Hệ thống học tập"),
+    ModuleDefinition("mindstack_app.modules.learning", "learning_bp", url_prefix="/learn", display_name="Hệ thống học tập"),
     ModuleDefinition("mindstack_app.modules.learning.routes.api", "markers_bp", display_name="API Markers học tập"),
     ModuleDefinition("mindstack_app.modules.course", "blueprint", display_name="Khóa học tự học (Course)"),
     ModuleDefinition("mindstack_app.modules.goals", "blueprint", url_prefix="/goals", display_name="Mục tiêu học tập"),
-    ModuleDefinition("mindstack_app.modules.quiz", "blueprint", display_name="Hệ thống Quiz"),
+    ModuleDefinition("mindstack_app.modules.quiz", "quiz_bp", display_name="Hệ thống Quiz"),
     ModuleDefinition("mindstack_app.modules.AI", "blueprint", display_name="Tính năng AI Coach"),
     ModuleDefinition("mindstack_app.modules.notes", "blueprint", display_name="Ghi chú cá nhân"),
     ModuleDefinition("mindstack_app.modules.chat", "blueprint", url_prefix="/chat", display_name="Trò chuyện (Chat)"),

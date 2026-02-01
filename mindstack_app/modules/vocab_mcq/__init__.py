@@ -1,4 +1,4 @@
-﻿from flask import Blueprint
+from flask import Blueprint
 
 blueprint = Blueprint('vocab_mcq', __name__)
 

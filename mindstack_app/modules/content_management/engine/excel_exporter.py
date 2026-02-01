@@ -1,4 +1,4 @@
-﻿"""Engine for exporting LearningContainer data to various formats."""
+"""Engine for exporting LearningContainer data to various formats."""
 from __future__ import annotations
 import io
 import json

@@ -1,4 +1,4 @@
-﻿import requests
+import requests
 from mindstack_app.models import AppSettings, User, db
 
 def get_bot_token():

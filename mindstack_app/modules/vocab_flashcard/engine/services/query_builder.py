@@ -1,4 +1,4 @@
-﻿"""
+"""
 FlashcardQueryBuilder - Fluent Query Builder for Flashcard Items
 
 Provides a clean, chainable API for building SQLAlchemy queries

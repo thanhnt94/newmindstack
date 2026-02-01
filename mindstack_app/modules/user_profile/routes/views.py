@@ -1,4 +1,4 @@
-﻿# File: mindstack_app/modules/user_profile/routes/views.py
+# File: mindstack_app/modules/user_profile/routes/views.py
 from flask import render_template, redirect, url_for, flash, request
 from flask_login import login_required, current_user
 from mindstack_app.core.extensions import db

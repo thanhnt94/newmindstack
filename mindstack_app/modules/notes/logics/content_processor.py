@@ -1,4 +1,4 @@
-﻿# mindstack_app/modules/notes/logics/content_processor.py
+# mindstack_app/modules/notes/logics/content_processor.py
 from mindstack_app.utils.html_sanitizer import sanitize_rich_text
 import re
 

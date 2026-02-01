@@ -1,4 +1,4 @@
-﻿import hashlib
+import hashlib
 import os
 from pathlib import Path
 from flask import current_app

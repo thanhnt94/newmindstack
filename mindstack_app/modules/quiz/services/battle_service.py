@@ -1,4 +1,4 @@
-﻿"""Helper utilities that power the quiz battle module."""
+"""Helper utilities that power the quiz battle module."""
 
 from __future__ import annotations
 

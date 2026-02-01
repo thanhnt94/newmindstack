@@ -1,4 +1,4 @@
-﻿# File: mindstack_app/modules/auth/forms.py
+# File: mindstack_app/modules/auth/forms.py
 from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField, BooleanField, SubmitField, SelectField
 from wtforms.validators import DataRequired, EqualTo, ValidationError, Optional, Email

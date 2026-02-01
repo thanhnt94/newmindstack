@@ -1,4 +1,4 @@
-﻿"""
+"""
 Centralized Logging Configuration for MindStack
 
 Provides consistent logging setup across the application with:

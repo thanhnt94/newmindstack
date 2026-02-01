@@ -1,4 +1,4 @@
-﻿# modules/scoring/config.py
+# modules/scoring/config.py
 
 class ScoringDefaultConfig:
     """

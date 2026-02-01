@@ -1,6 +1,5 @@
-﻿from . import dashboard, views, collab
+from flask import Blueprint
 
-def register_to(blueprint):
-    # Already registered in __init__.py via sub-blueprints usually, 
-    # but if we want to consolidate:
-    pass
+api_bp = Blueprint('api', __name__)
+
+from . import api, collab, dashboard

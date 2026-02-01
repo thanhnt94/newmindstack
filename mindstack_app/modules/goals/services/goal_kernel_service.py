@@ -1,4 +1,4 @@
-﻿"""
+"""
 Goal Kernel Service
 Low-level CRUD operations for Goal Management System.
 Connects with 'goals', 'user_goals', 'goal_progress_logs' tables.

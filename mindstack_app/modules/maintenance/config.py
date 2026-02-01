@@ -1,4 +1,4 @@
-﻿# modules/maintenance/config.py
+# modules/maintenance/config.py
 
 class MaintenanceDefaultConfig:
     MAINTENANCE_MODE = False

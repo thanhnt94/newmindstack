@@ -1,4 +1,4 @@
-﻿"""System and administration related models."""
+"""System and administration related models."""
 
 from __future__ import annotations
 

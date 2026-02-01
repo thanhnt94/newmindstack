@@ -1,4 +1,4 @@
-﻿# File: vocabulary/matching/logic.py
+# File: vocabulary/matching/logic.py
 # Matching Learning Mode Logic
 
 import random

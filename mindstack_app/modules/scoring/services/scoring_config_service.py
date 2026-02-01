@@ -1,4 +1,4 @@
-﻿# modules/scoring/services/scoring_config_service.py
+# modules/scoring/services/scoring_config_service.py
 from typing import Dict, Any
 from mindstack_app.models import AppSettings, db
 from ..config import ScoringDefaultConfig

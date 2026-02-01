@@ -1,4 +1,4 @@
-﻿# File: mindstack_app/modules/quiz/config.py
+# File: mindstack_app/modules/quiz/config.py
 
 class QuizLearningConfig:
     """

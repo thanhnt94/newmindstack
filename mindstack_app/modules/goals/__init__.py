@@ -1,4 +1,4 @@
-﻿"""Blueprint registration for the goals module."""
+"""Blueprint registration for the goals module."""
 
 from flask import Blueprint
 

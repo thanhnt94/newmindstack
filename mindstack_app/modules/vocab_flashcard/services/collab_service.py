@@ -1,4 +1,4 @@
-﻿"""Service helpers for collaborative flashcard learning."""
+"""Service helpers for collaborative flashcard learning."""
 
 from __future__ import annotations
 

@@ -1,4 +1,4 @@
-﻿{% extends _v ~ '/layouts/base.html' %}
+{% extends _v ~ '/layouts/base.html' %}
 
 {% block title %}Luyện tập Flashcard{% endblock %}
 
@@ -12,7 +12,7 @@
         </div>
 
         <!-- Selection Form -->
-        <form action="{{ url_for('practice.flashcard_start') }}" method="POST" id="practiceForm">
+        <form action="{{ url_for('vocab_flashcard.flashcard_learning.start') }}" method="POST" id="practiceForm">
             <!-- Step 1: Chọn bộ thẻ -->
             <div class="bg-white rounded-xl shadow-sm p-6 mb-6">
                 <h2 class="text-xl font-semibold text-gray-800 mb-4">
@@ -98,7 +98,7 @@
         let selectedSets = new Set();
 
         // Load sets
-        fetch('{{ url_for("practice.api_get_sets") }}')
+        fetch('{{ url_for("quiz.api_get_sets") }}')
             .then(r => r.json())
             .then(data => {
                 if (data.success && data.sets.length > 0) {
@@ -139,7 +139,7 @@
 
             // Load modes count
             if (selectedSets.size > 0) {
-                fetch(`{{ url_for("practice.api_get_modes", set_identifier="__ID__") }}`.replace('__ID__', ids))
+                fetch(`{{ url_for("quiz.api_get_modes", set_identifier="__ID__") }}`.replace('__ID__', ids))
                     .then(r => r.json())
                     .then(data => {
                         if (data.success) {

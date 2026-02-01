@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 from datetime import datetime, timezone
 from flask import url_for
 from flask_login import UserMixin

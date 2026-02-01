@@ -1,8 +1,9 @@
-﻿# Learning Core - Logics Package (FSRS-5)
+# Learning Core - Logics Package (FSRS-5)
 # Pure business logic, no database access
 
 from .scoring_engine import ScoringEngine, ScoreResult, LearningMode
-from mindstack_app.modules.fsrs.logics.fsrs_engine import FSRSEngine, CardState, Rating
+from mindstack_app.modules.fsrs.logics.fsrs_engine import FSRSEngine
+from mindstack_app.modules.fsrs.schemas import Rating, CardStateDTO as CardState
 from .session_logic import (
     filter_due_items, 
     sort_by_priority, 

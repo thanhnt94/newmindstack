@@ -1,11 +1,11 @@
-﻿# File: vocabulary/routes/api.py
+# File: vocabulary/routes/api.py
 # Vocabulary Hub - API Endpoints
 
 from flask import request, jsonify, current_app
 from flask_login import login_required, current_user
 import traceback
 
-from . import blueprint
+from .. import vocabulary_bp as blueprint
 from mindstack_app.core.error_handlers import error_response
 from mindstack_app.models import (
     LearningContainer, LearningItem, UserContainerState, db
@@ -13,7 +13,8 @@ from mindstack_app.models import (
 
 # Import Services
 from ..services.vocabulary_service import VocabularyService
-from ..services.stats_container import VocabularyContainerStats
+# VocabularyContainerStats was removed, logic moved to stats module
+from mindstack_app.modules.stats.interface import StatsInterface as VocabularyContainerStats
 from ...vocab_flashcard.engine.algorithms import get_flashcard_mode_counts
 from mindstack_app.modules.AI.interface import generate_content
 from mindstack_app.modules.AI.logics.prompts import get_formatted_prompt

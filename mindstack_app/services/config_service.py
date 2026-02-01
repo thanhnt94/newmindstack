@@ -1,4 +1,4 @@
-﻿"""Dịch vụ nạp cấu hình động từ cơ sở dữ liệu."""
+"""Dịch vụ nạp cấu hình động từ cơ sở dữ liệu."""
 
 from __future__ import annotations
 

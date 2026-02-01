@@ -1,4 +1,4 @@
-﻿# File: mindstack_app/modules/fsrs/schemas.py
+# File: mindstack_app/modules/fsrs/schemas.py
 import datetime
 from dataclasses import dataclass, field
 from typing import Optional, Dict, Any, List

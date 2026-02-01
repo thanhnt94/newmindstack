@@ -1,4 +1,4 @@
-﻿# mindstack_app/modules/content_management/forms.py
+# mindstack_app/modules/content_management/forms.py
 # Phiên bản: 4.6
 # MỤC ĐÍCH: Bổ sung trường order_in_container vào LessonForm để hỗ trợ sắp xếp bài học.
 # ĐÃ SỬA: Thêm IntegerField cho order_in_container vào LessonForm.

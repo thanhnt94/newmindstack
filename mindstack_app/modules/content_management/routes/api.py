@@ -1,4 +1,4 @@
-﻿# File: mindstack_app/modules/content_management/routes/api.py
+# File: mindstack_app/modules/content_management/routes/api.py
 from flask import request, jsonify, abort
 from flask_login import login_required, current_user
 from mindstack_app.models import db, LearningContainer, LearningItem, User, ContainerContributor

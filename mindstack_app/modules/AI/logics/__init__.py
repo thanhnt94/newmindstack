@@ -1,1 +1,1 @@
-﻿"""AI Services Logic - Pure functions."""
+"""AI Services Logic - Pure functions."""

@@ -1,4 +1,4 @@
-﻿# File: mindstack_app/modules/learning/quiz_learning/quiz_stats_logic.py
+# File: mindstack_app/modules/learning/quiz_learning/quiz_stats_logic.py
 # Phiên bản: 3.0
 # MỤC ĐÍCH: Cập nhật để đọc từ ReviewLog table thay vì JSON review_history.
 

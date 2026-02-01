@@ -1,4 +1,4 @@
-﻿class StatsConfig:
+class StatsConfig:
     """Default hardcoded configuration for Stats Module."""
     LEADERBOARD_LIMIT = 10
     DEFAULT_TIMEFRAME = 'week'

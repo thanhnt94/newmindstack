@@ -1,4 +1,4 @@
-﻿{% set _v = template_version | default('aura_mobile') %}
+{% set _v = template_version | default('aura_mobile') %}
 {% from _v ~ '/components/pagination/_pagination_mobile.html' import render_pagination_mobile with context %}
 
 {% macro render_pagination(pagination, search_query=None, set_id=None, container_id=None, search_field=None, current_filter=None) %}

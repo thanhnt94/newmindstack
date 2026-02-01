@@ -1,4 +1,4 @@
-﻿# File: mindstack_app/modules/AI/routes/api.py
+# File: mindstack_app/modules/AI/routes/api.py
 import threading
 from flask import request, jsonify, current_app
 from flask_login import login_required, current_user

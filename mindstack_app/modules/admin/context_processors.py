@@ -1,4 +1,4 @@
-﻿# File: mindstack_app/modules/admin/context_processors.py
+# File: mindstack_app/modules/admin/context_processors.py
 # Phiên bản: 2.1
 # MỤC ĐÍCH: Cập nhật hàm _latest_backup_timestamp để CHỈ đọc đường dẫn từ config.py,
 #           loại bỏ code dự phòng (fallback) để đảm bảo đường dẫn luôn đúng.

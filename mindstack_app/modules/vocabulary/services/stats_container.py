@@ -1,4 +1,4 @@
-﻿# File: vocabulary/stats/container_stats.py
+# File: vocabulary/stats/container_stats.py
 # Vocabulary Container Statistics Service
 # Provides comprehensive learning statistics for vocabulary sets
 

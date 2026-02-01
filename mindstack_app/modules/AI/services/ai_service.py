@@ -1,4 +1,4 @@
-﻿"""
+"""
 AI Module Service (Features).
 Orchestrates AI tasks based on system signals.
 """

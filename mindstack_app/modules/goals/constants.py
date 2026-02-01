@@ -1,4 +1,4 @@
-﻿"""Shared configuration for learning goals."""
+"""Shared configuration for learning goals."""
 
 from __future__ import annotations
 
@@ -16,7 +16,7 @@ GOAL_TYPE_CONFIG: dict[str, dict[str, str]] = {
         'description': 'Luyện quiz để củng cố kiến thức.',
         'unit': 'câu',
         'icon': 'circle-question',
-        'endpoint': 'practice.quiz_dashboard',
+        'endpoint': 'quiz.dashboard',
         'color': 'indigo',
     },
     'lessons_completed': {

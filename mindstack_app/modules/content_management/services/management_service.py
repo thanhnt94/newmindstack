@@ -1,4 +1,4 @@
-﻿"""Management Service for orchestrating content operations."""
+"""Management Service for orchestrating content operations."""
 from __future__ import annotations
 import os
 import tempfile

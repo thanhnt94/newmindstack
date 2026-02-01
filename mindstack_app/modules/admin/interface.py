@@ -1,4 +1,4 @@
-﻿# File: mindstack_app/modules/admin/interface.py
+# File: mindstack_app/modules/admin/interface.py
 from mindstack_app.models import AppSettings
 
 class AdminInterface:

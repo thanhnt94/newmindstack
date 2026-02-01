@@ -1,4 +1,4 @@
-﻿from flask import render_template, request, redirect, url_for, flash, abort, jsonify
+from flask import render_template, request, redirect, url_for, flash, abort, jsonify
 from mindstack_app.utils.template_helpers import render_dynamic_template
 from flask_login import login_required, current_user
 from mindstack_app.models import db, LearningContainer, LearningItem

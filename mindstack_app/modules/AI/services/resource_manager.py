@@ -1,4 +1,4 @@
-﻿"""
+"""
 Centralized AI Resource Manager (Module Service).
 Handles API key rotation, usage logging, and caching.
 """

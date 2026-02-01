@@ -1,4 +1,4 @@
-﻿# File: mindstack_app/modules/stats/routes.py
+# File: mindstack_app/modules/stats/routes.py
 # Phiên bản: 2.1
 # Mục đích: Bổ sung logic để lấy dữ liệu thống kê cho Khoá học.
 

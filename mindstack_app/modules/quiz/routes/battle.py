@@ -1,4 +1,5 @@
-﻿# File: mindstack_app/modules/quiz/routes/battle.py
+# File: mindstack_app/modules/quiz/routes/battle.py
+# Forced reload battle routes
 from __future__ import annotations
 import os
 from flask import abort, jsonify, render_template, request, url_for, redirect
@@ -30,7 +31,7 @@ from ..services.battle_service import (
     serialize_room,
     start_round,
 )
-from .. import blueprint
+from .. import quiz_bp as blueprint
 
 @blueprint.route('/battle/')
 @login_required

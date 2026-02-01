@@ -1,4 +1,4 @@
-﻿import logging
+import logging
 from deep_translator import GoogleTranslator
 from mindstack_app.core.extensions import db
 from .models import TranslationHistory

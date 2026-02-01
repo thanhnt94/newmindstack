@@ -1,4 +1,4 @@
-﻿"""
+"""
 Custom Jinja2 template filters for MindStack.
 """
 import os

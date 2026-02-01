@@ -1,4 +1,4 @@
-﻿from flask import Blueprint
+from flask import Blueprint
 
 blueprint = Blueprint('maintenance', __name__, url_prefix='/admin/maintenance')
 

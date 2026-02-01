@@ -1,4 +1,4 @@
-﻿from flask import jsonify, request
+from flask import jsonify, request
 from flask_login import login_required, current_user
 from ..services.leaderboard_service import LeaderboardService
 from .. import blueprint as stats_bp

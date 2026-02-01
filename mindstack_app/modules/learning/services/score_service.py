@@ -1,4 +1,4 @@
-﻿"""
+"""
 Learning Score Service
 
 Service layer that connects ScoringEngine (pure logic) with 

@@ -1,4 +1,4 @@
-﻿# File: mindstack_app/modules/auth/interface.py
+# File: mindstack_app/modules/auth/interface.py
 from typing import Optional
 from .schemas import UserDTO, AuthResponseDTO
 from .services.auth_service import AuthService

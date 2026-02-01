@@ -1,9 +1,9 @@
-﻿# File: mindstack_app/modules/quiz/routes/individual_views.py
+# File: mindstack_app/modules/quiz/routes/individual_views.py
 from flask import render_template, request, redirect, url_for, flash, session, current_app
 from mindstack_app.utils.template_helpers import render_dynamic_template
 from flask_login import login_required, current_user
 from mindstack_app.models import LearningContainer, db, UserGoal
-from .. import blueprint
+from .. import quiz_bp as blueprint
 from ..logics.session_logic import QuizSessionManager
 from ..logics.algorithms import get_quiz_mode_counts, get_filtered_quiz_sets
 from ..config import QuizModuleDefaultConfig
@@ -162,7 +162,7 @@ def start_quiz_session_all(mode):
 
     if not session_size:
         flash('Lỗi: Thiếu kích thước phiên học.', 'danger')
-        return redirect(url_for('practice.quiz_dashboard'))
+        return redirect(url_for('quiz.dashboard'))
 
     success, message, session_id = QuizSessionManager.start_new_quiz_session(set_ids, mode, session_size, turn_size)
     
@@ -173,7 +173,7 @@ def start_quiz_session_all(mode):
             return redirect(url_for('quiz.quiz_session'))
     else:
         flash(message or 'Không có bộ quiz nào khả dụng để bắt đầu phiên học.', 'warning')
-        return redirect(url_for('practice.quiz_dashboard'))
+        return redirect(url_for('quiz.dashboard'))
 
 
 @blueprint.route('/start_quiz_session/multi/<string:mode>', methods=['GET'])
@@ -185,13 +185,13 @@ def start_quiz_session_multi(mode):
 
     if not set_ids_str or not session_size:
         flash('Lỗi: Thiếu thông tin bộ câu hỏi hoặc kích thước phiên.', 'danger')
-        return redirect(url_for('practice.quiz_dashboard'))
+        return redirect(url_for('quiz.dashboard'))
 
     try:
         set_ids = [int(s) for s in set_ids_str.split(',') if s]
     except ValueError:
         flash('Lỗi: Định dạng ID bộ quiz không hợp lệ.', 'danger')
-        return redirect(url_for('practice.quiz_dashboard'))
+        return redirect(url_for('quiz.dashboard'))
 
     success, message, session_id = QuizSessionManager.start_new_quiz_session(set_ids, mode, session_size, turn_size)
     
@@ -202,7 +202,7 @@ def start_quiz_session_multi(mode):
             return redirect(url_for('quiz.quiz_session'))
     else:
         flash(message or 'Không có bộ quiz nào khả dụng để bắt đầu phiên học.', 'warning')
-        return redirect(url_for('practice.quiz_dashboard'))
+        return redirect(url_for('quiz.dashboard'))
 
 
 @blueprint.route('/start_quiz_session/<int:set_id>/<string:mode>', methods=['GET'])
@@ -222,7 +222,7 @@ def start_quiz_session_by_id(set_id, mode):
 
     if not session_size:
         flash('Lỗi: Thiếu kích thước phiên học.', 'danger')
-        return redirect(url_for('practice.quiz_dashboard'))
+        return redirect(url_for('quiz.dashboard'))
 
     try:
         if current_user.last_preferences is None:
@@ -241,7 +241,7 @@ def start_quiz_session_by_id(set_id, mode):
              return redirect(url_for('quiz.quiz_session'))
     else:
         flash(message or 'Không có câu hỏi nào để bắt đầu phiên học với các lựa chọn này.', 'warning')
-        return redirect(url_for('practice.quiz_dashboard'))
+        return redirect(url_for('quiz.dashboard'))
 
 
 @blueprint.route('/session')
@@ -253,7 +253,7 @@ def quiz_active_session_redirect():
         return redirect(url_for('quiz.quiz_session', session_id=active_db_session.session_id))
     else:
         flash('Không có phiên học Quiz nào đang hoạt động. Vui lòng chọn bộ Quiz để bắt đầu.', 'info')
-        return redirect(url_for('practice.quiz_dashboard'))
+        return redirect(url_for('quiz.dashboard'))
 
 
 @blueprint.route('/session/<int:session_id>')
@@ -274,11 +274,11 @@ def quiz_session(session_id):
         
         if not db_session or db_session.user_id != current_user.user_id:
              flash('Phiên học không tồn tại hoặc bạn không có quyền truy cập.', 'danger')
-             return redirect(url_for('practice.quiz_dashboard'))
+             return redirect(url_for('quiz.dashboard'))
              
         if db_session.end_time:
              flash('Phiên học này đã kết thúc.', 'info')
-             return redirect(url_for('practice.quiz_dashboard'))
+             return redirect(url_for('quiz.dashboard'))
 
         session_manager = QuizSessionManager(
             user_id=db_session.user_id,
@@ -298,6 +298,40 @@ def quiz_session(session_id):
         
         session['quiz_session'] = session_manager.to_dict()
         session.modified = True
+
+@blueprint.route('/dashboard/multi')
+@login_required
+def quiz_dashboard_multi():
+    """Dashboard cho chế độ luyện tập Quiz đa bộ."""
+    return render_dynamic_template('modules/learning/practice/default/quiz_dashboard.html')
+
+@blueprint.route('/start_multi', methods=['GET', 'POST'])
+@login_required
+def quiz_start():
+    """Bắt đầu phiên luyện tập Quiz đa bộ."""
+    data = request.values or {}
+    set_ids_str = data.get('set_ids', '')
+    mode = data.get('mode', 'new_only')
+    batch_size = data.get('batch_size', 10, type=int)
+    
+    if set_ids_str == 'all':
+        set_ids = 'all'
+    elif set_ids_str:
+        try:
+            set_ids = [int(s) for s in set_ids_str.split(',') if s]
+        except ValueError:
+            flash('Định dạng ID bộ quiz không hợp lệ.', 'danger')
+            return redirect(url_for('.dashboard'))
+    else:
+        flash('Vui lòng chọn ít nhất một bộ quiz.', 'warning')
+        return redirect(url_for('.dashboard'))
+    
+    success, message, session_id = QuizSessionManager.start_new_quiz_session(set_ids, mode, batch_size)
+    if success:
+        return redirect(url_for('.quiz_session', session_id=session_id))
+    else:
+        flash('Không có câu hỏi nào khả dụng để bắt đầu phiên học.', 'warning')
+        return redirect(url_for('.dashboard'))
 
     try:
         session_manager = QuizSessionManager.from_dict(session['quiz_session'])

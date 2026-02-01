@@ -1,4 +1,4 @@
-﻿# Flashcard Engine Module
+# Flashcard Engine Module
 # Pure sub-module containing core flashcard learning logic.
 # This engine is designed to be called from multiple entry points:
 # - vocabulary (single set learning)

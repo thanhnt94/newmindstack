@@ -1,4 +1,4 @@
-﻿{# Practice Flashcard - Wizard-style Dashboard #}
+{# Practice Flashcard - Wizard-style Dashboard #}
 {% set _v = template_version or 'aura_mobile' %}
 {% extends _v ~ '/layouts/base.html' %}
 {% block title %}Luyện tập Flashcard - MindStack{% endblock %}
@@ -420,7 +420,7 @@
 <!-- STEP 1: Set Browser (Multi-Select) -->
 <div id="step-browser" class="practice-step active">
     <div class="practice-header">
-        <a href="{{ url_for('practice.practice_hub') }}" class="practice-back-btn">
+        <a href="{{ url_for('learning.practice_hub') }}" class="practice-back-btn">
             <i class="fas fa-arrow-left"></i>
         </a>
         <div class="practice-title">Chọn bộ thẻ</div>
@@ -513,9 +513,9 @@
         const selectAllBtn = document.querySelector('.js-select-all');
 
         // URLs
-        const apiSetsUrl = "{{ url_for('practice.api_get_sets') }}";
-        const apiModesUrl = "{{ url_for('practice.api_get_modes', set_identifier='__ID__') }}";
-        const startSessionUrl = "{{ url_for('practice.flashcard_start') }}";
+        const apiSetsUrl = "{{ url_for('vocab_flashcard.api.api_get_sets') }}";
+        const apiModesUrl = "{{ url_for('vocab_flashcard.api.api_get_modes', set_identifier='__ID__') }}";
+        const startSessionUrl = "{{ url_for('vocab_flashcard.flashcard_learning.start') }}";
 
         // Init
         loadSets();

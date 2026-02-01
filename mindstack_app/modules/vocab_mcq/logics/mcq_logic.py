@@ -1,4 +1,4 @@
-﻿# File: vocabulary/mcq/logic.py
+# File: vocabulary/mcq/logic.py
 # MCQ (Multiple Choice Quiz) Logic for Vocabulary Learning
 
 import random

@@ -1,4 +1,4 @@
-﻿# File: mindstack_app/modules/admin/services/media_service.py
+# File: mindstack_app/modules/admin/services/media_service.py
 import os
 from flask import url_for
 from datetime import datetime

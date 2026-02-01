@@ -1,4 +1,4 @@
-﻿from mindstack_app.models.gamification import Badge
+from mindstack_app.models.gamification import Badge
 from mindstack_app.core.extensions import db
 
 def seed_badges():

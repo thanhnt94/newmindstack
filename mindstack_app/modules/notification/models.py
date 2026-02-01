@@ -1,4 +1,4 @@
-﻿from datetime import datetime, timezone
+from datetime import datetime, timezone
 from mindstack_app.core.extensions import db
 from sqlalchemy.sql import func
 

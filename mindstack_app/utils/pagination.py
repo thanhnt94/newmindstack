@@ -1,4 +1,4 @@
-﻿# File: mindstack_app/modules/shared/utils/pagination.py
+# File: mindstack_app/modules/shared/utils/pagination.py
 # Version: 1.0
 # Mục đích: Cung cấp hàm tiện ích để xử lý phân trang cho các truy vấn SQLAlchemy.
 

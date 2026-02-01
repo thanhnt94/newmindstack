@@ -1,4 +1,4 @@
-﻿"""
+"""
 Centralized Default Configuration for MindStack.
 
 This file serves as the "Source of Truth" for all default application settings.
@@ -34,6 +34,13 @@ DEFAULT_APP_CONFIGS = {
     'VOCAB_LISTENING_CORRECT_BONUS': 12,
     'VOCAB_SPEED_CORRECT_BONUS': 20,
     'VOCAB_MCQ_CORRECT_BONUS': 10,
+    
+    # --- Vocabulary Module Defaults ---
+    'VOCAB_DEFAULT_MCQ_CHOICES': 4,
+    'VOCAB_DEFAULT_TYPING_COUNT': 10,
+    'VOCAB_DEFAULT_LISTENING_COUNT': 10,
+    'VOCAB_DEFAULT_MATCHING_COUNT': 6,
+    
     'DAILY_LOGIN_SCORE': 10,
     'DAILY_GOAL_SCORE': 50,
     

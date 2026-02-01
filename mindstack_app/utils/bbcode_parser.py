@@ -1,4 +1,4 @@
-﻿# mindstack_app/modules/shared/utils/bbcode_parser.py
+# mindstack_app/modules/shared/utils/bbcode_parser.py
 # Phiên bản: 2.2
 # Mục đích: Cung cấp hàm để chuyển đổi BBCode sang HTML an toàn.
 # THAY ĐỔI:

@@ -1,4 +1,4 @@
-﻿"""
+"""
 Analytics Listener
 Listens to system signals and updates statistical models (UserMetric, DailyStat).
 This is the 'Writer' component of the Analytics system.

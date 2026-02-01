@@ -1,4 +1,4 @@
-﻿"""
+"""
 Learning Settings Service
 =========================
 Centralizes management of user settings for different learning modules.

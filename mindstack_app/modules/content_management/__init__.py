@@ -1,4 +1,4 @@
-﻿# File: mindstack_app/modules/content_management/__init__.py
+# File: mindstack_app/modules/content_management/__init__.py
 from flask import Blueprint
 
 blueprint = Blueprint('content_management', __name__)

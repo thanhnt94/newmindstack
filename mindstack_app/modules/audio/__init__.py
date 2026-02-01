@@ -1,4 +1,4 @@
-﻿# File: mindstack_app/modules/audio/__init__.py
+# File: mindstack_app/modules/audio/__init__.py
 from flask import Blueprint
 
 audio_bp = Blueprint('audio', __name__)

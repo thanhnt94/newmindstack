@@ -1,4 +1,4 @@
-﻿# File: mindstack_app/modules/audio/schemas.py
+# File: mindstack_app/modules/audio/schemas.py
 from dataclasses import dataclass, field
 from typing import Optional, Dict, Any
 

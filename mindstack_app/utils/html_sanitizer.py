@@ -1,4 +1,4 @@
-﻿"""Lightweight HTML sanitizer tailored for the Mindstack rich text editor."""
+"""Lightweight HTML sanitizer tailored for the Mindstack rich text editor."""
 
 from __future__ import annotations
 

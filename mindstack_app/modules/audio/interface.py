@@ -1,4 +1,4 @@
-﻿# File: mindstack_app/modules/audio/interface.py
+# File: mindstack_app/modules/audio/interface.py
 from typing import Optional
 from .services.audio_service import AudioService
 from .schemas import AudioRequestDTO, AudioResponseDTO

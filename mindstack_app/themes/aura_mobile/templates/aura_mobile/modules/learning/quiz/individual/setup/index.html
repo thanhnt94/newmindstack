@@ -1,4 +1,4 @@
-﻿{# Quiz Setup Template - Wizard Style #}
+{# Quiz Setup Template - Wizard Style #}
 {% set _v = template_version or 'aura_mobile' %}
 {% extends _v ~ '/layouts/base.html' %}
 {% from _v ~ '/components/components/dashboard_header.html' import render_dashboard_header, mobile_footer %}
@@ -309,7 +309,7 @@
 {% block content %}
 <div class="wizard-container">
     {% call render_dashboard_header(title=container.title, subtitle='CẤU HÌNH',
-    back_url=url_for('practice.quiz_dashboard')) %}
+    back_url=url_for('quiz.dashboard')) %}
     {% endcall %}
 
     <div class="wizard-content">
@@ -423,7 +423,7 @@
     (function () {
         var setId = {{ container.container_id | int
     }};
-    var dashboardUrl = "{{ url_for('practice.quiz_dashboard') }}";
+    var dashboardUrl = "{{ url_for('quiz.dashboard') }}";
     var savedBatchSize = {{ user_default_batch_size | default (10) | int }};
     var savedTurnSize = 1; // Default to 1 for Quiz
 

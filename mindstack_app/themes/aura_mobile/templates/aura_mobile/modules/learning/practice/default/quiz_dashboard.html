@@ -1,4 +1,4 @@
-﻿{# Practice Quiz - Wizard-style Dashboard #}
+{# Practice Quiz - Wizard-style Dashboard #}
 {% set _v = template_version or 'aura_mobile' %}
 {% extends _v ~ '/layouts/base.html' %}
 {% block title %}Luyện tập Quiz - MindStack{% endblock %}
@@ -597,7 +597,7 @@
 <!-- STEP 1: Set Browser (Multi-Select) -->
 <div id="step-browser" class="quiz-step active">
     <div class="quiz-header">
-        <a href="{{ url_for('practice.practice_hub') }}" class="quiz-back-btn">
+        <a href="{{ url_for('learning.practice_hub') }}" class="quiz-back-btn">
             <i class="fas fa-arrow-left"></i>
         </a>
         <div class="quiz-title">Chọn bộ Quiz</div>
@@ -703,9 +703,9 @@
         const batchSizeSelect = document.getElementById('batch-size-select');
 
         // URLs
-        const apiSetsUrl = "{{ url_for('practice.api_get_quiz_sets') }}";
-        const apiModesUrl = "{{ url_for('practice.api_get_quiz_modes', set_identifier='__ID__') }}";
-        const startSessionUrl = "{{ url_for('practice.quiz_start') }}";
+        const apiSetsUrl = "{{ url_for('quiz.api_get_quiz_sets') }}";
+        const apiModesUrl = "{{ url_for('quiz.api_get_quiz_modes', set_identifier='__ID__') }}";
+        const startSessionUrl = "{{ url_for('quiz.quiz_start') }}";
 
         // Init - load sets directly (sessions are auto-cleared when starting new ones)
         loadSets();

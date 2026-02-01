@@ -1,3 +1,3 @@
-﻿class FeedbackModuleDefaultConfig:
+class FeedbackModuleDefaultConfig:
     MAX_ATTACHMENTS_PER_FEEDBACK = 3
     ALLOWED_FEEDBACK_TYPES = ['BUG', 'FEATURE', 'PRAISE', 'CONTENT_ERROR', 'OTHER']

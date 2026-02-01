@@ -1,4 +1,4 @@
-﻿from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any
 from .schemas import NotificationDTO
 from .services.notification_service import NotificationService
 

@@ -1,4 +1,4 @@
-﻿"""
+"""
 Analytics Service - Consolidated service for dashboard data.
 
 Provides a single entry point for all dashboard metrics,

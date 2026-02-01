@@ -1,1 +1,1 @@
-﻿from . import admin_views
+from . import admin_views

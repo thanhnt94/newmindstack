@@ -1,4 +1,4 @@
-﻿"""Core helpers for wiring application components together."""
+"""Core helpers for wiring application components together."""
 
 from .module_registry import (
     DEFAULT_MODULES,

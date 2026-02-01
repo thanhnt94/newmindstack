@@ -1,5 +1,4 @@
-﻿from flask import Blueprint
+# File: mindstack_app/modules/vocabulary/routes/__init__.py
+from .. import vocabulary_bp as blueprint
 
-blueprint = Blueprint('vocabulary', __name__)
-
-from . import api, dashboard
+from . import api, views

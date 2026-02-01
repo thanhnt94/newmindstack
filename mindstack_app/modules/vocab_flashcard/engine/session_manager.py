@@ -1,4 +1,4 @@
-﻿# File: mindstack_app/modules/learning/flashcard/engine/session_manager.py
+# File: mindstack_app/modules/learning/flashcard/engine/session_manager.py
 # Phiên bản: 4.0 (Engine refactor)
 # MỤC ĐÍCH: Core flashcard session management - pure engine module.
 # Engine này được gọi từ nhiều entry points: vocabulary, practice, collab.
@@ -449,7 +449,8 @@ class FlashcardSessionManager:
             preview_data = {}
             try:
                 # Import FSRS engine
-                from mindstack_app.modules.fsrs.logics.fsrs_engine import FSRSEngine, CardState, Rating
+                from mindstack_app.modules.fsrs.logics.fsrs_engine import FSRSEngine
+                from mindstack_app.modules.fsrs.schemas import Rating, CardStateDTO as CardState
                 from mindstack_app.modules.learning.logics.scoring_engine import ScoringEngine
                 
                 # 1. Fetch current progress state

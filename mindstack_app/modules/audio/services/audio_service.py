@@ -1,4 +1,4 @@
-﻿import os
+import os
 import asyncio
 from flask import current_app
 

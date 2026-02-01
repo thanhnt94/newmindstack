@@ -1,4 +1,4 @@
-﻿"""Kernel Service for low-level content operations."""
+"""Kernel Service for low-level content operations."""
 from __future__ import annotations
 from typing import Any, Optional, Dict, List
 from sqlalchemy.orm.attributes import flag_modified

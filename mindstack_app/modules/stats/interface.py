@@ -1,4 +1,4 @@
-﻿from datetime import date, datetime
+from datetime import date, datetime
 from typing import Optional, List, Dict, Any
 from .schemas import MetricDTO, DailyStatDTO, UserLearningSummaryDTO, LeaderboardEntryDTO
 from .services.metrics import get_score_trend_series, get_activity_breakdown
@@ -45,3 +45,46 @@ def get_leaderboard(
     
     # Convert to DTOs
     return raw_data
+
+class StatsInterface:
+    @staticmethod
+    def record_activity(user_id: int, activity_type: str, value: float = 1.0, timestamp: Optional[datetime] = None):
+        return record_activity(user_id, activity_type, value, timestamp)
+
+    @staticmethod
+    def get_user_summary(user_id: int) -> UserLearningSummaryDTO:
+        return get_user_summary(user_id)
+
+    @staticmethod
+    def get_leaderboard(timeframe: str = 'all_time', sort_by: str = 'total_score', limit: int = 50, viewer_user_id: Optional[int] = None):
+        return get_leaderboard(timeframe, sort_by, limit, viewer_user_id)
+
+    @staticmethod
+    def get_vocab_item_stats(user_id: int, item_id: int) -> dict:
+        """Get detailed statistics for a vocabulary item."""
+        from .services.vocabulary_stats_service import VocabularyStatsService
+        return VocabularyStatsService.get_item_stats(user_id, item_id)
+
+    @staticmethod
+    def get_vocab_set_overview_stats(user_id: int, set_id: int, page: int = 1, per_page: int = 12) -> dict:
+        """Get overview statistics for a vocabulary set."""
+        from .services.vocabulary_stats_service import VocabularyStatsService
+        return VocabularyStatsService.get_course_overview_stats(user_id, set_id, page, per_page)
+
+    @staticmethod
+    def get_global_stats(user_id: int) -> dict:
+        """Get global vocabulary statistics."""
+        from .services.vocabulary_stats_service import VocabularyStatsService
+        return VocabularyStatsService.get_global_stats(user_id)
+
+    @staticmethod
+    def get_full_stats(user_id: int, container_id: int) -> dict:
+        """Get full statistics for a container."""
+        from .services.vocabulary_stats_service import VocabularyStatsService
+        return VocabularyStatsService.get_full_stats(user_id, container_id)
+
+    @staticmethod
+    def get_chart_data(user_id: int, container_id: int) -> dict:
+        """Get chart data for a container."""
+        from .services.vocabulary_stats_service import VocabularyStatsService
+        return VocabularyStatsService.get_chart_data(user_id, container_id)

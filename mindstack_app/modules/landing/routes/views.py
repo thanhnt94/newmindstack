@@ -1,4 +1,4 @@
-﻿from flask import redirect, url_for
+from flask import redirect, url_for
 from mindstack_app.utils.template_helpers import render_dynamic_template
 from flask_login import current_user
 from .. import blueprint

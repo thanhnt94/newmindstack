@@ -1,4 +1,4 @@
-﻿import logging
+import logging
 import threading
 from mindstack_app.models import AppSettings
 from ..engines.gemini_client import GeminiClient

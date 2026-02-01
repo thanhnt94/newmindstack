@@ -1,4 +1,4 @@
-﻿# modules/scoring/interface.py
+# modules/scoring/interface.py
 from .services.scoring_config_service import ScoringConfigService
 
 class ScoringInterface:

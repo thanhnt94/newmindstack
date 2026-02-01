@@ -1,4 +1,4 @@
-﻿# File: Mindstack/web/mindstack_app/modules/admin/user_management/user_routes.py
+# File: Mindstack/web/mindstack_app/modules/admin/user_management/user_routes.py
 # Version: 1.1 - Đã thêm logic xử lý trường email vào các route add_user và edit_user.
 # Mục đích: Chứa các route và logic cho việc quản lý người dùng trong khu vực admin.
 

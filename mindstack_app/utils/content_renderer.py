@@ -1,4 +1,4 @@
-﻿# mindstack_app/utils/content_renderer.py
+# mindstack_app/utils/content_renderer.py
 # Phiên bản: 1.1
 # Mục đích: Centralized BBCode rendering for learning content fields.
 # Tự động render BBCode → HTML cho các text fields, skip IDs/URLs/metadata.

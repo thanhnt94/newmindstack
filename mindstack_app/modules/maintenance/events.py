@@ -1,4 +1,4 @@
-﻿# modules/maintenance/events.py
+# modules/maintenance/events.py
 from blinker import Namespace
 
 _signals = Namespace()

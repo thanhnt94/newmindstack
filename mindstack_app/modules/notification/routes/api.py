@@ -1,4 +1,4 @@
-﻿from flask import jsonify, request, current_app, send_from_directory
+from flask import jsonify, request, current_app, send_from_directory
 from flask_login import login_required, current_user
 import os
 from mindstack_app.core.extensions import db

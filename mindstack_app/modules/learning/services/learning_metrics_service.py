@@ -1,4 +1,4 @@
-﻿"""Service for calculating and retrieving learning metrics across the application."""
+"""Service for calculating and retrieving learning metrics across the application."""
 
 from collections import defaultdict
 from datetime import datetime, timedelta, date, timezone

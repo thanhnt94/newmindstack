@@ -1,4 +1,4 @@
-﻿# File: mindstack_app/modules/ai_services/prompts.py
+# File: mindstack_app/modules/ai_services/prompts.py
 # Phiên bản: 2.2
 # MỤC ĐÍCH: Triển khai logic phân cấp prompt.
 # ĐÃ SỬA: Bổ sung logic để lấy prompt từ LearningItem, sau đó đến LearningContainer,

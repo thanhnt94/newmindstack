@@ -1,4 +1,4 @@
-﻿{# MCQ Session Template - Refined UI #}
+{# MCQ Session Template - Refined UI #}
 {% set _v = template_version or 'aura_mobile' %}
 {% extends _v ~ '/layouts/base.html' %}
 {% block title %}Trắc nghiệm - {{ container.title }}{% endblock %}
@@ -806,7 +806,7 @@
 {# Explicit Notification Integration #}
 {% include _v ~ '/components/_score_toast.html' %}
 {% include _v ~ '/components/_memory_power.html' %}
-{% include _v ~ '/modules/learning/vocabulary/stats/_modal_stats.html' %}
+{% include _v ~ '/modules/vocabulary/stats/_modal_stats.html' %}
 
 <!-- Exit Confirmation Modal -->
 <div id="exit-confirm-modal"
@@ -934,7 +934,7 @@
             if (data.success && data.session_id) {
                 window.location.href = `/learn/session/${data.session_id}/summary`;
             } else {
-                window.location.href = "{{ url_for('learning.manage_sessions') }}";
+                window.location.href = "{{ url_for('session.manage_sessions') }}";
             }
         })
         .catch(err => {
@@ -1284,4 +1284,3 @@
 }) ();
 </script>
 {% endblock %}
-

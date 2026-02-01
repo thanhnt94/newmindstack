@@ -1,15 +1,18 @@
-﻿# File: mindstack_app/modules/learning/__init__.py
+# File: mindstack_app/modules/learning/__init__.py
+# Forced reload learning
 from flask import Blueprint
 
-blueprint = Blueprint('learning', __name__)
+learning_bp = Blueprint('learning', __name__)
 
 module_metadata = {
-    'name': 'Học tập',
+    'name': 'Quản lý Học tập',
     'icon': 'graduation-cap',
     'category': 'Learning',
     'url_prefix': '/learn',
+    'admin_route': 'session.manage_sessions',
     'enabled': True
 }
 
 def setup_module(app):
+    """Register routes for the learning module."""
     from . import routes

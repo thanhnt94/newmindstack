@@ -1,4 +1,4 @@
-﻿"""Utility functions shared between goal-aware views."""
+"""Utility functions shared between goal-aware views."""
 
 from __future__ import annotations
 
@@ -53,7 +53,7 @@ def build_goal_progress(user_goals: Iterable[UserGoal], metrics: dict[str, objec
         if definition.domain == 'flashcard':
             final_url = url_for('vocab_flashcard.flashcard_dashboard_internal.dashboard')
         elif definition.domain == 'quiz':
-            final_url = url_for('practice.quiz_dashboard')
+            final_url = url_for('quiz.dashboard')
         
         progress_list.append({
             'id': user_goal.user_goal_id,

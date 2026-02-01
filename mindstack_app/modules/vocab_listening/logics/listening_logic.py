@@ -1,4 +1,4 @@
-﻿# File: vocabulary/listening/logic.py
+# File: vocabulary/listening/logic.py
 # Listening Learning Mode Logic
 
 from mindstack_app.models import LearningItem, LearningProgress

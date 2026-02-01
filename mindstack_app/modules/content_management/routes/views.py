@@ -1,4 +1,4 @@
-﻿# File: mindstack_app/modules/content_management/routes/views.py
+# File: mindstack_app/modules/content_management/routes/views.py
 from flask import render_template, request, redirect, url_for, flash, abort, current_app, jsonify
 import json
 from mindstack_app.utils.template_helpers import render_dynamic_template

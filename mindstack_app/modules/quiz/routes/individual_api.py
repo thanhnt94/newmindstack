@@ -1,4 +1,4 @@
-﻿# File: mindstack_app/modules/quiz/routes/individual_api.py
+# File: mindstack_app/modules/quiz/routes/individual_api.py
 import os
 import copy
 from typing import Optional
@@ -8,7 +8,7 @@ from flask_login import login_required, current_user
 from sqlalchemy.sql import func
 from sqlalchemy.orm.attributes import flag_modified
 
-from .. import blueprint
+from .. import quiz_bp as blueprint
 from ..logics.session_logic import QuizSessionManager
 from ..logics.algorithms import get_accessible_quiz_set_ids
 from ..services.audio_service import QuizAudioService
@@ -568,4 +568,70 @@ def api_generate_quiz_ai_explanation(item_id):
         
     except Exception as e:
         db.session.rollback()
+        current_app.logger.error(f"Error generating AI explanation for item {item_id}: {e}")
+        return jsonify({'success': False, 'message': 'Đã xảy ra lỗi hệ thống.'}), 500
+
+@blueprint.route('/api/sets')
+@login_required
+def api_get_practice_quiz_sets():
+    """API lấy danh sách bộ Quiz cho practice."""
+    from ..logics.algorithms import get_filtered_quiz_sets
+    
+    page = request.args.get('page', 1, type=int)
+    search = request.args.get('q', '', type=str)
+    search_field = request.args.get('search_field', 'all', type=str)
+    current_filter = request.args.get('filter', 'doing', type=str)
+
+    try:
+        pagination = get_filtered_quiz_sets(
+            user_id=current_user.user_id,
+            search_query=search,
+            search_field=search_field,
+            current_filter=current_filter,
+            page=page,
+            per_page=12
+        )
+
+        sets = []
+        for item in pagination.items:
+            sets.append({
+                'id': item.container_id,
+                'title': item.title,
+                'description': item.description or '',
+                'cover_image': item.cover_image,
+                'question_count': getattr(item, 'question_count', 0),
+            })
+
+        return jsonify({
+            'success': True,
+            'sets': sets,
+            'has_next': pagination.has_next,
+            'has_prev': pagination.has_prev,
+            'page': page,
+            'total': pagination.total,
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@blueprint.route('/api/modes/<set_identifier>')
+@login_required
+def api_get_quiz_modes(set_identifier):
+    """API lấy các chế độ học Quiz với số lượng câu hỏi."""
+    from ..logics.algorithms import get_quiz_mode_counts
+    
+    try:
+        if set_identifier == 'all':
+            modes = get_quiz_mode_counts(current_user.user_id, 'all')
+        else:
+            set_ids = [int(s) for s in set_identifier.split(',') if s]
+            if len(set_ids) == 1:
+                modes = get_quiz_mode_counts(current_user.user_id, set_ids[0])
+            else:
+                modes = get_quiz_mode_counts(current_user.user_id, set_ids)
+        
+        return jsonify({'success': True, 'modes': modes})
+    except ValueError:
+        return jsonify({'success': False, 'message': 'ID bộ quiz không hợp lệ.'}), 400
+    except Exception as e:
         return jsonify({'success': False, 'message': str(e)}), 500

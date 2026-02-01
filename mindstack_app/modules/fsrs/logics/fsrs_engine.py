@@ -1,4 +1,4 @@
-﻿# File: mindstack_app/modules/fsrs/logics/fsrs_engine.py
+# File: mindstack_app/modules/fsrs/logics/fsrs_engine.py
 from __future__ import annotations
 import datetime
 from typing import Optional, Tuple, Dict, Any, List

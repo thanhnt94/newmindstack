@@ -1,4 +1,4 @@
-﻿from flask_login import login_required, current_user
+from flask_login import login_required, current_user
 from .. import blueprint
 from ..services.note_manager import NoteManager
 from mindstack_app.utils.template_helpers import render_dynamic_template

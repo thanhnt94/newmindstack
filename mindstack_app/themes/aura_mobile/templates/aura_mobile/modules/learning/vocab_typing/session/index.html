@@ -1,4 +1,4 @@
-﻿{# Typing Session Template - Refined UI (Pink Theme) #}
+{# Typing Session Template - Refined UI (Pink Theme) #}
 {% set _v = template_version or 'aura_mobile' %}
 {% extends _v ~ '/layouts/base.html' %}
 {% block title %}Gõ Từ - {{ container.title }}{% endblock %}
@@ -694,7 +694,7 @@
 {# Explicit Notification Integration #}
 {% include _v ~ '/components/_score_toast.html' %}
 {% include _v ~ '/components/_memory_power.html' %}
-{% include _v ~ '/modules/learning/vocabulary/stats/_modal_stats.html' %}
+{% include _v ~ '/modules/vocabulary/stats/_modal_stats.html' %}
 <!-- Exit Confirmation Modal -->
 <div id="exit-confirm-modal"
     class="fixed inset-0 bg-slate-900/40 z-[100] hidden items-center justify-center p-4 backdrop-blur-sm opacity-0 transition-opacity duration-300"
@@ -816,7 +816,7 @@
                     if (data.success && data.session_id) {
                         window.location.href = `/learn/session/${data.session_id}/summary`;
                     } else {
-                        window.location.href = "{{ url_for('learning.manage_sessions') }}";
+                        window.location.href = "{{ url_for('session.manage_sessions') }}";
                     }
                 })
                 .catch(err => {
@@ -1027,4 +1027,3 @@
     })();
 </script>
 {% endblock %}
-

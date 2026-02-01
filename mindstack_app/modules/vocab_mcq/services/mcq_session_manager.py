@@ -1,4 +1,4 @@
-﻿# File: vocabulary/mcq/mcq_session_manager.py
+# File: vocabulary/mcq/mcq_session_manager.py
 # MCQ Session Management - Handles state persistence for MCQ learning mode.
 
 import json

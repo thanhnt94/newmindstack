@@ -1,4 +1,4 @@
-﻿{% macro ai_explanation_btn(item_id, class="") %}
+{% macro ai_explanation_btn(item_id, class="") %}
 {% if is_module_active('AI') %}
 <button id="ai-explain-btn-{{ item_id }}" class="ai-btn {{ class }}"
     onclick="triggerAIAction('explanation', {{ item_id }})">

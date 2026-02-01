@@ -1,4 +1,4 @@
-﻿"""
+"""
 Utility function for dynamic template rendering.
 All routes should use this instead of direct render_template with hardcoded versions.
 """

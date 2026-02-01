@@ -1,4 +1,4 @@
-﻿# File: mindstack_app/modules/fsrs/__init__.py
+# File: mindstack_app/modules/fsrs/__init__.py
 from flask import Blueprint
 
 fsrs_bp = Blueprint('fsrs', __name__)

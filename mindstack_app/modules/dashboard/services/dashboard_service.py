@@ -1,4 +1,4 @@
-﻿from typing import Dict, Any, List
+from typing import Dict, Any, List
 from flask import url_for
 from mindstack_app.models import UserGoal
 from mindstack_app.modules.goals.view_helpers import build_goal_progress
@@ -84,14 +84,14 @@ class DashboardService:
                 'title': 'Ôn flashcard đến hạn',
                 'description': f"{flashcard_summary['due']} thẻ đang chờ bạn.",
                 'icon': 'bolt',
-                'url': url_for('vocab_flashcard.flashcard_dashboard_internal.dashboard'),
+                'url': url_for('vocabulary.dashboard'),
             })
         if quiz_summary['learning'] > 0:
                     actions.append({
                         'title': 'Tiếp tục luyện quiz',
                         'description': f"Bạn còn {quiz_summary['learning']} câu hỏi ở trạng thái đang học.",
                         'icon': 'circle-question',
-                        'url': url_for('practice.quiz_dashboard'),
+                        'url': url_for('quiz.dashboard'),
                     })
         
         if course_summary['in_progress_lessons'] > 0:
@@ -107,6 +107,6 @@ class DashboardService:
                 'title': 'Khởi động với Flashcard',
                 'description': 'Tạo đà học tập với vài thẻ đầu tiên.',
                 'icon': 'sparkles',
-                'url': url_for('vocab_flashcard.flashcard_dashboard_internal.dashboard'),
+                'url': url_for('vocabulary.dashboard'),
             })
         return actions

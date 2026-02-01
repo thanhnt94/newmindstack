@@ -1,4 +1,4 @@
-﻿# mindstack_app/modules/learning/course/routes.py
+# mindstack_app/modules/learning/course/routes.py
 # Phiên bản: 2.5
 # MỤC ĐÍCH: Lấy dữ liệu ghi chú của người dùng cho bài học hiện tại.
 # ĐÃ THÊM: Truy vấn model UserNote và truyền đối tượng 'note' ra template.

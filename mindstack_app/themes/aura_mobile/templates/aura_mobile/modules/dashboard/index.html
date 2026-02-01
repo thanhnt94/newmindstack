@@ -1,7 +1,8 @@
-﻿{#
+{#
 index.html - Dashboard V4 Mobile Only
 Extends pure mobile base.
 #}
+{# Forced reload dashboard #}
 {% set _v = template_version %}
 {% extends _v ~ '/layouts/base.html' %}
 
@@ -99,7 +100,7 @@ Extends pure mobile base.
                     <span class="text-red-500">🔥</span> Phiên học đang diễn ra <span id="active-sessions-count-mobile"
                         class="ml-1 text-slate-400 font-medium"></span>
                 </h3>
-                <a href="{{ url_for('learning.manage_sessions') }}"
+                <a href="{{ url_for('session.manage_sessions') }}"
                     class="text-[10px] font-bold text-indigo-500 hover:text-indigo-700 bg-indigo-50 px-2 py-1 rounded-lg">
                     Quản lý <i class="fa-solid fa-chevron-right ml-0.5 text-[8px]"></i>
                 </a>
@@ -228,7 +229,7 @@ Extends pure mobile base.
         {# 5. EXPLORE BANNERS #}
         <div class="space-y-4">
             <h3 class="text-sm font-bold text-slate-800 mb-2">Chế độ học</h3>
-            <a href="{{ url_for('vocab_flashcard.flashcard_dashboard_internal.dashboard') }}"
+            <a href="{{ url_for('vocabulary.dashboard') }}"
                 class="block relative overflow-hidden rounded-3xl h-32 active:scale-[0.98] transition-transform group">
                 <div
                     class="absolute inset-0 bg-gradient-to-r from-blue-600 to-cyan-500 group-hover:scale-105 transition-transform duration-500">
@@ -244,11 +245,12 @@ Extends pure mobile base.
                 </div>
             </a>
             <div class="grid grid-cols-2 gap-4">
-                <a href="{{ url_for('practice.quiz_dashboard') }}"
+                <a href="{{ url_for('quiz.dashboard') }}"
                     class="bg-white rounded-3xl p-5 border border-slate-100 shadow-sm active:scale-[0.98] transition-transform flex flex-col justify-between h-32 hover:border-emerald-200 group">
                     <div
                         class="w-10 h-10 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center group-hover:bg-emerald-100 transition-colors">
-                        <i class="fa-solid fa-circle-question text-lg"></i></div>
+                        <i class="fa-solid fa-circle-question text-lg"></i>
+                    </div>
                     <div>
                         <h4 class="font-bold text-slate-800 group-hover:text-emerald-700">Luyện Quiz</h4>
                         <p class="text-xs text-slate-400">Trắc nghiệm</p>
@@ -258,7 +260,8 @@ Extends pure mobile base.
                     class="bg-white rounded-3xl p-5 border border-slate-100 shadow-sm active:scale-[0.98] transition-transform flex flex-col justify-between h-32 hover:border-rose-200 group">
                     <div
                         class="w-10 h-10 rounded-full bg-rose-50 text-rose-600 flex items-center justify-center group-hover:bg-rose-100 transition-colors">
-                        <i class="fa-solid fa-bolt text-lg"></i></div>
+                        <i class="fa-solid fa-bolt text-lg"></i>
+                    </div>
                     <div>
                         <h4 class="font-bold text-slate-800 group-hover:text-rose-700">Đấu trường</h4>
                         <p class="text-xs text-slate-400">Thách đấu</p>
@@ -268,7 +271,8 @@ Extends pure mobile base.
                     class="bg-white rounded-3xl p-5 border border-slate-100 shadow-sm active:scale-[0.98] transition-transform flex flex-col justify-between h-32 hover:border-violet-200 group">
                     <div
                         class="w-10 h-10 rounded-full bg-violet-50 text-violet-600 flex items-center justify-center group-hover:bg-violet-100 transition-colors">
-                        <i class="fa-solid fa-layer-group text-lg"></i></div>
+                        <i class="fa-solid fa-layer-group text-lg"></i>
+                    </div>
                     <div>
                         <h4 class="font-bold text-slate-800 group-hover:text-violet-700">Kho tài liệu</h4>
                         <p class="text-xs text-slate-400">Quản lý nội dung</p>
@@ -296,7 +300,7 @@ Extends pure mobile base.
         const count = document.getElementById('active-sessions-count-mobile');
 
         try {
-            const res = await fetch('/learn/api/active');
+            const res = await fetch('/session/api/active');
             const sessions = await res.json();
 
             if (sessions && sessions.length > 0) {

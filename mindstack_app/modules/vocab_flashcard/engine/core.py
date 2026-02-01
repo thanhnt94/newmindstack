@@ -1,4 +1,4 @@
-﻿# File: flashcard/engine/core.py
+# File: flashcard/engine/core.py
 # FlashcardEngine - Core logic for flashcard learning
 
 from datetime import datetime, timezone

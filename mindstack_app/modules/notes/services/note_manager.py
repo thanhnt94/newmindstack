@@ -1,4 +1,4 @@
-﻿from typing import Optional, Dict, Any, List
+from typing import Optional, Dict, Any, List
 from flask import current_app
 from .note_kernel import NoteKernelService
 from mindstack_app.models import db, Note, LearningItem, LearningContainer

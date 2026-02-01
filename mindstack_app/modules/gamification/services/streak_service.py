@@ -1,4 +1,4 @@
-﻿from ..models import Streak
+from ..models import Streak
 
 class StreakService:
     @staticmethod

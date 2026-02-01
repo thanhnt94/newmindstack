@@ -1,4 +1,4 @@
-﻿"""AI-related database models."""
+"""AI-related database models."""
 
 from __future__ import annotations
 from sqlalchemy.sql import func

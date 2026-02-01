@@ -1,2 +1,2 @@
-﻿from .learning_metrics_service import LearningMetricsService
+from .learning_metrics_service import LearningMetricsService
 from mindstack_app.modules.fsrs.services.settings_service import FSRSSettingsService

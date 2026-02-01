@@ -1,4 +1,4 @@
-﻿"""
+"""
 Scoring Engine - Gamification Points Calculation
 
 Pure logic for calculating points from learning activities.

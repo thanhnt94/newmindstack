@@ -1,4 +1,4 @@
-﻿# File: mindstack_app/modules/AI/__init__.py
+# File: mindstack_app/modules/AI/__init__.py
 from flask import Blueprint
 
 blueprint = Blueprint('AI', __name__)

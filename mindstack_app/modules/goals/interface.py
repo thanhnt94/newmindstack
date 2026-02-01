@@ -1,4 +1,4 @@
-﻿from typing import List, Optional
+from typing import List, Optional
 from .schemas import GoalDTO
 from .services.goal_kernel_service import GoalKernelService
 

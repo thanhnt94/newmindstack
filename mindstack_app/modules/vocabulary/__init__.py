@@ -1,10 +1,11 @@
-﻿"""Vocabulary Learning Hub: Consolidated multiple learning modes."""
+# File: mindstack_app/modules/vocabulary/__init__.py
+from flask import Blueprint
 
-from .routes import blueprint
+vocabulary_bp = Blueprint('vocabulary', __name__)
 
 # Module Metadata
 module_metadata = {
-    'name': 'Vocabulary',
+    'name': 'Học từ vựng (Vocab Hub)',
     'icon': 'book-open',
     'category': 'Learning',
     'url_prefix': '/learn/vocabulary',
@@ -13,4 +14,5 @@ module_metadata = {
 
 def setup_module(app):
     """Register routes for the vocabulary module."""
+    # Deferred import to avoid circular dependencies
     from . import routes

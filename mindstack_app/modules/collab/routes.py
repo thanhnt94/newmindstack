@@ -1,4 +1,4 @@
-﻿# File: mindstack_app/modules/learning/collab/routes.py
+# File: mindstack_app/modules/learning/collab/routes.py
 # Collab Module Routes
 # Unified entry point for collaborative learning modes.
 

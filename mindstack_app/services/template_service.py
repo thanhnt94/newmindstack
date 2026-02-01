@@ -1,4 +1,4 @@
-﻿"""Template service for managing dynamic template loading based on admin settings."""
+"""Template service for managing dynamic template loading based on admin settings."""
 
 from __future__ import annotations
 

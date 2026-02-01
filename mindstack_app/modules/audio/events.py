@@ -1,4 +1,4 @@
-﻿from mindstack_app.core.signals import content_changed
+from mindstack_app.core.signals import content_changed
 from flask import current_app
 import asyncio
 from .services.audio_service import AudioService

@@ -1,4 +1,4 @@
-﻿# File: mindstack_app/modules/auth/config.py
+# File: mindstack_app/modules/auth/config.py
 
 class AuthModuleDefaultConfig:
     AUTH_LOGIN_DISABLED = False
