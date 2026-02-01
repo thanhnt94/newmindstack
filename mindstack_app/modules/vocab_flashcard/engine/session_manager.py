@@ -1,4 +1,4 @@
-# File: mindstack_app/modules/learning/flashcard/engine/session_manager.py
+﻿# File: mindstack_app/modules/learning/flashcard/engine/session_manager.py
 # Phiên bản: 4.0 (Engine refactor)
 # MỤC ĐÍCH: Core flashcard session management - pure engine module.
 # Engine này được gọi từ nhiều entry points: vocabulary, practice, collab.

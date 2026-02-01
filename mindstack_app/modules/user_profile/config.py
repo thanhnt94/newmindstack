@@ -1,2 +1,2 @@
-class UserProfileModuleDefaultConfig:
+﻿class UserProfileModuleDefaultConfig:
     pass

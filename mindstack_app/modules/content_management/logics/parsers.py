@@ -1,4 +1,4 @@
-"""
+﻿"""
 Content Parsers - Pure functions for file parsing and data transformation.
 
 This module contains ONLY pure Python logic.

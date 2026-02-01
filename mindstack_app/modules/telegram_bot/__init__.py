@@ -1,4 +1,4 @@
-# File: mindstack_app/modules/telegram_bot/__init__.py
+﻿# File: mindstack_app/modules/telegram_bot/__init__.py
 from flask import Blueprint
 
 blueprint = Blueprint('telegram_bot', __name__)

@@ -1,4 +1,4 @@
-# modules/fsrs/interface.py
+﻿# modules/fsrs/interface.py
 from .services.settings_service import FSRSSettingsService
 
 class FSRSInterface:

@@ -1,4 +1,4 @@
-"""Utility helpers for working with media folders and stored paths."""
+﻿"""Utility helpers for working with media folders and stored paths."""
 
 from __future__ import annotations
 

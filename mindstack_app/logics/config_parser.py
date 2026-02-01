@@ -1,4 +1,4 @@
-"""
+﻿"""
 Config Parser - Pure Logic for Configuration Type Inference and Parsing
 
 Pure functions for converting configuration values between types.

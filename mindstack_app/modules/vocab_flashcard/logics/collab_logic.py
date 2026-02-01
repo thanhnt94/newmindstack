@@ -1,4 +1,4 @@
-# File: mindstack_app/modules/learning/flashcard/collab/flashcard_collab_logic.py
+﻿# File: mindstack_app/modules/learning/flashcard/collab/flashcard_collab_logic.py
 # MỤC ĐÍCH: Xử lý logic trả lời flashcard riêng cho chế độ Collab (Học nhóm).
 # TÍNH NĂNG:
 # 1. Tính điểm dựa trên chất lượng câu trả lời.

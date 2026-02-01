@@ -1,4 +1,4 @@
-# modules/fsrs/config.py
+﻿# modules/fsrs/config.py
 
 try:
     from fsrs_rs_python import DEFAULT_PARAMETERS

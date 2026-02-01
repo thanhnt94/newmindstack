@@ -1,4 +1,4 @@
-"""
+﻿"""
 Flashcard Engine Services
 
 Modular services for flashcard functionality:

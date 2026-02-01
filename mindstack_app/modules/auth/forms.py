@@ -1,4 +1,4 @@
-# File: Mindstack/web/mindstack_app/modules/auth/forms.py
+﻿# File: Mindstack/web/mindstack_app/modules/auth/forms.py
 # Version: 1.5 - Bổ sung quản lý role bằng hằng số và cập nhật form đăng ký/ quản trị người dùng.
 # Mục đích: Định nghĩa các lớp form cho Đăng nhập, Đăng ký và quản lý Người dùng.
 

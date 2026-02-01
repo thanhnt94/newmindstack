@@ -1,4 +1,4 @@
-"""Business logic validators for Content Management."""
+﻿"""Business logic validators for Content Management."""
 from flask_login import current_user
 from mindstack_app.models import User, ContainerContributor, LearningContainer
 

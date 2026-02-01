@@ -1,4 +1,4 @@
-"""
+﻿"""
 Event Handlers for Notification Module.
 
 Listens to signals from other modules and creates notifications accordingly.

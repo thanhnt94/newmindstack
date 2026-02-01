@@ -1,4 +1,4 @@
-from mindstack_app.core.signals import content_changed
+﻿from mindstack_app.core.signals import content_changed
 from flask import current_app
 import asyncio
 from .services.audio_service import AudioService
@@ -44,10 +44,11 @@ def handle_audio_content_change(sender, **kwargs):
                 
                 # We use the generic logic to determine paths or just rely on AudioService
                 # to hash based on the new content.
+                from .schemas import AudioRequestDTO
                 if front_text:
-                    loop.run_until_complete(AudioService.get_audio(front_text, is_manual=True))
+                    loop.run_until_complete(AudioService.get_audio(AudioRequestDTO(text=front_text, is_manual=True)))
                 if back_text:
-                    loop.run_until_complete(AudioService.get_audio(back_text, is_manual=True))
+                    loop.run_until_complete(AudioService.get_audio(AudioRequestDTO(text=back_text, is_manual=True)))
                     
         thread = threading.Thread(target=run_regen, args=(current_app.app_context(),))
         thread.start()

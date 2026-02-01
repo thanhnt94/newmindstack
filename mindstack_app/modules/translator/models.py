@@ -1,4 +1,4 @@
-from datetime import datetime
+﻿from datetime import datetime
 from mindstack_app.core.extensions import db
 
 class TranslationHistory(db.Model):

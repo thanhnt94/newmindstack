@@ -1,15 +1,19 @@
+﻿# File: mindstack_app/modules/audio/routes/api.py
 import traceback
 import json
 from flask import request, jsonify, current_app
-from flask_login import login_required
-from mindstack_app.modules.audio import blueprint
-from mindstack_app.modules.audio.services.audio_service import AudioService
+from flask_login import login_required, current_user
+from .. import audio_bp as blueprint
+from ..services.audio_service import AudioService
 from mindstack_app.models import AppSettings, db, BackgroundTask
 
-@blueprint.route('/admin/audio/settings', methods=['POST'])
+@blueprint.route('/settings', methods=['POST'])
 @login_required
 def update_audio_settings():
     """Update default audio settings."""
+    if current_user.user_role != 'admin':
+        return jsonify({'success': False, 'message': 'Permission denied'}), 403
+        
     try:
         data = request.get_json()
         
@@ -21,17 +25,12 @@ def update_audio_settings():
         }
         
         for key, value in updates.items():
-            # Check if exists
             setting = AppSettings.query.filter_by(key=key).first()
             if setting:
                 setting.value = value
-                if key == 'AUDIO_VOICE_MAPPING_GLOBAL':
-                    setting.data_type = 'json'
-                else:
-                    setting.data_type = 'string'
+                setting.data_type = 'json' if key == 'AUDIO_VOICE_MAPPING_GLOBAL' else 'string'
                 db.session.add(setting)
             else:
-                 # Create new if missing
                  data_type = 'json' if key == 'AUDIO_VOICE_MAPPING_GLOBAL' else 'string'
                  setting = AppSettings(key=key, value=value, category='audio', data_type=data_type)
                  db.session.add(setting)
@@ -39,7 +38,6 @@ def update_audio_settings():
         db.session.commit()
         
         # Refresh runtime config
-        # IMPOTANT: We must parse JSON values back to objects before setting current_app.config
         for key, value in updates.items():
             if key == 'AUDIO_VOICE_MAPPING_GLOBAL' and isinstance(value, str):
                 try:
@@ -49,22 +47,23 @@ def update_audio_settings():
             else:
                  current_app.config[key] = value
             
-        return jsonify({'status': 'success'})
+        return jsonify({'success': True, 'message': 'Cài đặt đã được lưu.'})
 
     except Exception as e:
-        tb = traceback.format_exc()
-        current_app.logger.error(f"Settings Update Error: {tb}")
-        return jsonify({'status': 'error', 'message': str(e)}), 500
+        current_app.logger.error(f"Settings Update Error: {str(e)}")
+        return jsonify({'success': False, 'message': str(e)}), 500
 
-@blueprint.route('/admin/audio/tasks/start', methods=['POST'])
+@blueprint.route('/tasks/start', methods=['POST'])
 @login_required
 def start_audio_task():
     """Trigger background audio maintenance tasks."""
+    if current_user.user_role != 'admin':
+        return jsonify({'success': False, 'message': 'Permission denied'}), 403
+        
     try:
         data = request.get_json()
         task_name = data.get('task_name')
         
-        # Import relevant task services (Local import to avoid circular dependency)
         from mindstack_app.modules.vocab_flashcard.services import AudioService as FlashcardAudioService
         from mindstack_app.modules.quiz.individual.services.audio_service import QuizAudioService
         
@@ -81,12 +80,10 @@ def start_audio_task():
         task.message = 'Starting...'
         db.session.commit()
         
-        # Dispatch
         try:
             if task_name == 'generate_audio_cache':
-                # Use Flashcard service to generate cache
                 svc = FlashcardAudioService()
-                svc.generate_cache_for_all_cards(task) # This is synchronous in current impl
+                svc.generate_cache_for_all_cards(task)
             elif task_name == 'clean_audio_cache':
                 svc = FlashcardAudioService()
                 svc.clean_orphan_audio_cache(task)
@@ -106,23 +103,7 @@ def start_audio_task():
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)})
 
-@blueprint.route('/audio-debug-test', methods=['GET'])
-async def debug_audio():
-    """Temporary debug route - Open Access"""
-    try:
-        current_app.logger.info("Debug Route: Starting audio generation...")
-        result = await AudioService.get_audio(
-            text="Debug Audio System Check",
-            engine="edge",
-            voice="en-US-AriaNeural"
-        )
-        return jsonify(result)
-    except Exception as e:
-        tb = traceback.format_exc()
-        current_app.logger.error(f"Debug Route Error: {tb}")
-        return jsonify({'error': str(e), 'traceback': tb}), 500
-
-@blueprint.route('/admin/audio/process', methods=['POST'])
+@blueprint.route('/process', methods=['POST'])
 @login_required
 async def process_audio():
     """
@@ -135,20 +116,16 @@ async def process_audio():
     text = data.get('text')
     engine = data.get('engine', 'edge')
     voice = data.get('voice')
-    
-    # Manual Mode Data
     is_manual = data.get('is_manual', False)
     target_dir = data.get('target_dir') if is_manual else None
     custom_filename = data.get('custom_filename') if is_manual else None
-    
-    # Advanced: Auto Parse Voice Tags
     auto_voice_parsing = data.get('auto_voice_parsing', False)
     
     if not text:
         return jsonify({'error': 'Text is required'}), 400
         
-    # Call AudioService
-    result = await AudioService.get_audio(
+    from ..schemas import AudioRequestDTO
+    request_dto = AudioRequestDTO(
         text=text,
         engine=engine,
         voice=voice,
@@ -157,6 +134,8 @@ async def process_audio():
         is_manual=is_manual,
         auto_voice_parsing=auto_voice_parsing
     )
+    
+    result = await AudioService.get_audio(request_dto)
     
     if result.get('status') == 'error':
         return jsonify({'success': False, 'error': result.get('error')}), 500
@@ -170,13 +149,16 @@ async def process_audio():
         }
     })
 
-@blueprint.errorhandler(Exception)
-def handle_exception(e):
-    """Global exception handler for the Audio Blueprint."""
-    tb = traceback.format_exc()
-    current_app.logger.error(f"Audio Blueprint Error: {tb}")
-    return jsonify({
-        'success': False, 
-        'error': str(e), 
-        'traceback': tb
-    }), 500
+@blueprint.route('/debug-test', methods=['GET'])
+async def debug_audio():
+    """Temporary debug route"""
+    try:
+        from ..schemas import AudioRequestDTO
+        result = await AudioService.get_audio(AudioRequestDTO(
+            text="Debug Audio System Check",
+            engine="edge",
+            voice="en-US-AriaNeural"
+        ))
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500

@@ -1,4 +1,4 @@
-class VocabularyModuleDefaultConfig:
+﻿class VocabularyModuleDefaultConfig:
     DEFAULT_MCQ_CHOICES = 4
     DEFAULT_TYPING_COUNT = 10
     DEFAULT_LISTENING_COUNT = 10

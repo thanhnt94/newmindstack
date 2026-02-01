@@ -1,4 +1,4 @@
-# modules/maintenance/middleware.py
+﻿# modules/maintenance/middleware.py
 from flask import request, render_template, abort, current_app, url_for, redirect
 from flask_login import current_user
 from mindstack_app.models import AppSettings

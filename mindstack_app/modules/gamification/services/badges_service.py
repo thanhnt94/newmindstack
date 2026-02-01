@@ -1,4 +1,4 @@
-"""
+﻿"""
 Badge Service
 Logic kiểm tra và cấp phát huy hiệu (Achievements).
 """

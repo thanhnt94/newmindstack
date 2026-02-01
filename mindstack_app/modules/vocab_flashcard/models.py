@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 from datetime import datetime, timezone
 from sqlalchemy.sql import func
 from mindstack_app.core.extensions import db

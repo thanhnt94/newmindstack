@@ -1,4 +1,4 @@
-# File: vocabulary/routes/mcq.py
+﻿# File: vocabulary/routes/mcq.py
 # MCQ (Multiple Choice Quiz) Routes for Vocabulary Learning
 
 import json

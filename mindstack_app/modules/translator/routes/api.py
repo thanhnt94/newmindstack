@@ -1,4 +1,4 @@
-from flask import request
+﻿from flask import request
 from flask_login import login_required, current_user
 from mindstack_app.core.error_handlers import error_response, success_response
 from ..services import TranslatorService

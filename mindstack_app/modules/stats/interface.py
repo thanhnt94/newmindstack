@@ -1,4 +1,4 @@
-from datetime import date, datetime
+﻿from datetime import date, datetime
 from typing import Optional, List, Dict, Any
 from .schemas import MetricDTO, DailyStatDTO, UserLearningSummaryDTO, LeaderboardEntryDTO
 from .services.metrics import get_score_trend_series, get_activity_breakdown

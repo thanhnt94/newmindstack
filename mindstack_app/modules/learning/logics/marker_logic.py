@@ -1,4 +1,4 @@
-from mindstack_app.models import db, UserItemMarker
+﻿from mindstack_app.models import db, UserItemMarker
 from sqlalchemy.exc import IntegrityError
 
 def toggle_user_marker(user_id, item_id, marker_type):

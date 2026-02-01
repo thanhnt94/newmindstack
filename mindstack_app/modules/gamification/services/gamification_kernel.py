@@ -1,4 +1,4 @@
-"""
+﻿"""
 Gamification Kernel Service.
 
 Provides Low-Level CRUD operations for gamification elements.

@@ -1,4 +1,4 @@
-"""
+﻿"""
 Memory Power Configuration Service
 
 Provides centralized configuration for SRS/Memory Power system.

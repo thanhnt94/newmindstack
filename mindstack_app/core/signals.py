@@ -1,4 +1,4 @@
-"""
+﻿"""
 Central Signal Registry for Event-Driven Architecture.
 
 Uses Flask's built-in blinker integration to enable decoupled

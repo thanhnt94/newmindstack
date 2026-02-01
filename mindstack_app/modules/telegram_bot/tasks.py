@@ -1,4 +1,4 @@
-from .services import send_telegram_message
+﻿from .services import send_telegram_message
 from mindstack_app.models import User, db
 from datetime import datetime
 

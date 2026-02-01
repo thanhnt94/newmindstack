@@ -1,4 +1,4 @@
-# File: mindstack_app/modules/admin/__init__.py
+﻿# File: mindstack_app/modules/admin/__init__.py
 from flask import Blueprint, request, redirect, url_for, flash
 from flask_login import current_user
 from .context_processors import admin_context_processor

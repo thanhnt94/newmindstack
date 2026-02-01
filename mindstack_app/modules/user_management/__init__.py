@@ -1,4 +1,4 @@
-# File: mindstack_app/modules/user_management/__init__.py
+﻿# File: mindstack_app/modules/user_management/__init__.py
 from flask import Blueprint
 
 # Tên Blueprint PHẢI là 'user_management' để khớp với url_for('user_management.manage_users')

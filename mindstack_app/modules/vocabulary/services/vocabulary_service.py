@@ -1,4 +1,4 @@
-# File: mindstack_app/modules/vocabulary/services/vocabulary_service.py
+﻿# File: mindstack_app/modules/vocabulary/services/vocabulary_service.py
 from sqlalchemy import or_
 from flask import render_template_string, current_app
 from mindstack_app.models import (

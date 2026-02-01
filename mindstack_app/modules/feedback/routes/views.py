@@ -1,4 +1,4 @@
-from flask import render_template, request, flash, redirect, url_for, abort
+﻿from flask import render_template, request, flash, redirect, url_for, abort
 from flask_login import login_required, current_user
 from mindstack_app.utils.template_helpers import render_dynamic_template
 from mindstack_app.models import User

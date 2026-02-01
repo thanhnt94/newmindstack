@@ -1,4 +1,4 @@
-# File: mindstack_app/modules/learning/__init__.py
+﻿# File: mindstack_app/modules/learning/__init__.py
 from flask import Blueprint
 
 blueprint = Blueprint('learning', __name__)

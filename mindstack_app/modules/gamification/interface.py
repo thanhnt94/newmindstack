@@ -1,4 +1,4 @@
-from typing import List, Optional
+﻿from typing import List, Optional
 from .schemas import BadgeDTO, StreakDTO
 from .services.scoring_service import ScoreService
 from .services.badge_service import BadgeService

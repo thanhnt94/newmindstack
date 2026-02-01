@@ -1,4 +1,4 @@
-"""Endpoints for collaborative flashcard learning rooms."""
+﻿"""Endpoints for collaborative flashcard learning rooms."""
 
 from __future__ import annotations
 

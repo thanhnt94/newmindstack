@@ -1,4 +1,4 @@
-# File: vocabulary/routes/api.py
+﻿# File: vocabulary/routes/api.py
 # Vocabulary Hub - API Endpoints
 
 from flask import request, jsonify, current_app

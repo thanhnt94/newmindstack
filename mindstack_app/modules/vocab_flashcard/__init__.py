@@ -1,4 +1,4 @@
-"""Flashcard module: Core engine and SRS logic."""
+﻿"""Flashcard module: Core engine and SRS logic."""
 
 from flask import Blueprint
 

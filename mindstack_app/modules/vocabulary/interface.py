@@ -1,4 +1,4 @@
-from typing import List, Optional
+﻿from typing import List, Optional
 from .schemas import VocabItemDTO, VocabSetDTO
 from mindstack_app.models import LearningContainer, LearningItem
 

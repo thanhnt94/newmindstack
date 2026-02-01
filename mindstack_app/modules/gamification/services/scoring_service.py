@@ -1,4 +1,4 @@
-"""
+﻿"""
 Score Service
 Logic quản lý điểm số và leaderboard.
 """

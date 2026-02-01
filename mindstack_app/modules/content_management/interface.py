@@ -1,4 +1,4 @@
-from typing import List, Optional
+﻿from typing import List, Optional
 from .schemas import ContainerDTO, ItemDTO
 from .services.kernel_service import ContentKernelService
 

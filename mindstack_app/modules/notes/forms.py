@@ -1,4 +1,4 @@
-# File: mindstack_app/modules/notes/forms.py
+﻿# File: mindstack_app/modules/notes/forms.py
 # Phiên bản: 1.0
 # Mục đích: Định nghĩa form cho việc tạo và sửa ghi chú.
 

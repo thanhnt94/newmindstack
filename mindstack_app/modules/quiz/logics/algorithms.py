@@ -1,4 +1,4 @@
-# File: mindstack_app/modules/learning/quiz_learning/algorithms.py
+﻿# File: mindstack_app/modules/learning/quiz_learning/algorithms.py
 # Phiên bản: 2.1
 # MỤC ĐÍCH: Sửa lỗi logic hiển thị bộ quiz ở tab 'Đang học' và 'Khám phá'.
 # ĐÃ SỬA: Thay đổi logic lọc để dựa vào sự tồn tại của UserContainerState để phân loại.

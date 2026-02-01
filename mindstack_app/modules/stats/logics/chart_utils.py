@@ -1,4 +1,4 @@
-"""
+﻿"""
 Chart Utilities - Pure functions for date/time handling and chart data processing.
 
 This module contains ONLY pure Python logic.

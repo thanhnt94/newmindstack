@@ -1,11 +1,13 @@
-import os
+﻿import os
 import asyncio
 from flask import current_app
 
 from mindstack_app.models import AppSettings
+from ..config import AudioModuleDefaultConfig
 from ..engines.edge import EdgeEngine
 from ..engines.gtts_engine import GTTSEngine
 from ..logics.audio_logic import generate_hash_name, get_storage_path
+from ..schemas import AudioRequestDTO
 
 class AudioService:
     """
@@ -20,11 +22,18 @@ class AudioService:
     }
     
     @classmethod
-    async def get_audio(cls, text: str, engine: str = 'edge', voice: str = None, target_dir: str = None, custom_filename: str = None, is_manual: bool = False, auto_voice_parsing: bool = False) -> dict:
+    async def get_audio(cls, request_dto: AudioRequestDTO) -> dict:
         """
         Get audio for the given text. Returns existing file or generates new one.
         """
-        
+        text = request_dto.text
+        engine = request_dto.engine
+        voice = request_dto.voice
+        target_dir = request_dto.target_dir
+        custom_filename = request_dto.custom_filename
+        is_manual = request_dto.is_manual
+        auto_voice_parsing = request_dto.auto_voice_parsing
+
         # --- Pre-processing: Voice Parsing and Config ---
         final_text = text
         is_concatenation_needed = False
@@ -37,13 +46,19 @@ class AudioService:
         else:
             # Apply Defaults
             if not engine:
-                engine = AppSettings.get('AUDIO_DEFAULT_ENGINE', 'edge')
+                engine = AppSettings.get('AUDIO_DEFAULT_ENGINE', 
+                                        current_app.config.get('AUDIO_DEFAULT_ENGINE', 
+                                                              AudioModuleDefaultConfig.AUDIO_DEFAULT_ENGINE))
             
             if not voice and not auto_voice_parsing:
                 if engine == 'edge':
-                    voice = AppSettings.get('AUDIO_DEFAULT_VOICE_EDGE', 'vi-VN-HoaiMyNeural')
+                    voice = AppSettings.get('AUDIO_DEFAULT_VOICE_EDGE', 
+                                           current_app.config.get('AUDIO_DEFAULT_VOICE_EDGE', 
+                                                                 AudioModuleDefaultConfig.AUDIO_DEFAULT_VOICE_EDGE))
                 elif engine == 'gtts':
-                    voice = AppSettings.get('AUDIO_DEFAULT_VOICE_GTTS', 'vi')
+                    voice = AppSettings.get('AUDIO_DEFAULT_VOICE_GTTS', 
+                                           current_app.config.get('AUDIO_DEFAULT_VOICE_GTTS', 
+                                                                 AudioModuleDefaultConfig.AUDIO_DEFAULT_VOICE_GTTS))
                 else:
                     voice = 'default'
 
@@ -103,21 +118,26 @@ class AudioService:
         import tempfile
         import asyncio
         from ..logics.voice_parser import VoiceParser
-        from mindstack_app.logics.voice_engine import VoiceEngine # Reuse for pydub logic
+        from mindstack_app.modules.audio.logics.voice_engine import VoiceEngine # Reuse for pydub logic
         
         segments = VoiceParser.parse_segments(text)
         if not segments:
             return False
             
         temp_files = []
-        mapping = AppSettings.get('AUDIO_VOICE_MAPPING_GLOBAL', {})
+        mapping = AppSettings.get('AUDIO_VOICE_MAPPING_GLOBAL', 
+                                  current_app.config.get('AUDIO_VOICE_MAPPING_GLOBAL', 
+                                                        AudioModuleDefaultConfig.AUDIO_VOICE_MAPPING_GLOBAL))
         if isinstance(mapping, str):
             import json
             try:
                 mapping = json.loads(mapping)
             except:
                 mapping = {}
-        default_voice_edge = AppSettings.get('AUDIO_DEFAULT_VOICE_EDGE', 'vi-VN-HoaiMyNeural')
+        
+        default_voice_edge = AppSettings.get('AUDIO_DEFAULT_VOICE_EDGE', 
+                                            current_app.config.get('AUDIO_DEFAULT_VOICE_EDGE', 
+                                                                  AudioModuleDefaultConfig.AUDIO_DEFAULT_VOICE_EDGE))
         
         try:
             # 1. Generate Parts

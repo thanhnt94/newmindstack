@@ -1,4 +1,4 @@
-"""Helper utilities for working with Excel files in content management flows."""
+﻿"""Helper utilities for working with Excel files in content management flows."""
 from __future__ import annotations
 
 from typing import List, Tuple, Optional, Any

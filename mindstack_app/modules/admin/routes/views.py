@@ -1,4 +1,4 @@
-# File: mindstack_app/modules/admin/routes/views.py
+﻿# File: mindstack_app/modules/admin/routes/views.py
 from flask import render_template, redirect, url_for, flash, request, current_app, abort, jsonify
 from flask_login import current_user, login_user, logout_user
 from sqlalchemy import nullslast

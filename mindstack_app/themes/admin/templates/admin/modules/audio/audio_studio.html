@@ -629,7 +629,7 @@
             const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
 
             try {
-                const response = await fetch('/admin/audio/settings', {
+                const response = await fetch("{{ url_for('audio.update_audio_settings') }}", {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
                     body: JSON.stringify(payload)
@@ -679,7 +679,7 @@
             const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
 
             try {
-                const response = await fetch('/admin/audio/process', {
+                const response = await fetch("{{ url_for('audio.process_audio') }}", {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -724,5 +724,36 @@
             }
         });
     });
+
+    async function startTask(taskName) {
+        const statusEl = document.getElementById(`status-${taskName}`);
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+        
+        if (statusEl) statusEl.textContent = 'Running...';
+        
+        try {
+            const response = await fetch("{{ url_for('audio.start_audio_task') }}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken
+                },
+                body: JSON.stringify({ task_name: taskName })
+            });
+            const data = await response.json();
+            
+            if (data.success) {
+                if (statusEl) statusEl.textContent = 'Completed';
+                if (window.showFlashMessage) window.showFlashMessage(data.message || 'Task completed successfully.', 'success');
+            } else {
+                if (statusEl) statusEl.textContent = 'Error';
+                if (window.showFlashMessage) window.showFlashMessage('Error: ' + (data.message || 'Unknown error'), 'danger');
+            }
+        } catch (err) {
+            console.error(err);
+            if (statusEl) statusEl.textContent = 'Error';
+            if (window.showFlashMessage) window.showFlashMessage('Network error.', 'danger');
+        }
+    }
 </script>
 {% endblock %}

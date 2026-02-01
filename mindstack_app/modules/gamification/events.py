@@ -1,4 +1,4 @@
-"""
+﻿"""
 Event Handlers for Gamification Module.
 
 Listens to signals from other modules and triggers gamification logic.

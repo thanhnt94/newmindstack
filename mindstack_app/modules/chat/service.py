@@ -1,4 +1,4 @@
-"""Reusable chat helpers for collaborative rooms."""
+﻿"""Reusable chat helpers for collaborative rooms."""
 
 from __future__ import annotations
 

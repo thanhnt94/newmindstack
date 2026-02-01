@@ -1,4 +1,4 @@
-# File: vocabulary/routes/listening.py
+﻿# File: vocabulary/routes/listening.py
 # Listening Learning Mode Routes
 
 from flask import render_template, request, jsonify, abort, url_for, session, redirect

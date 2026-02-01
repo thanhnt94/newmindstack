@@ -1,4 +1,4 @@
-"""Quiz and Quiz Battle database models."""
+﻿"""Quiz and Quiz Battle database models."""
 
 from __future__ import annotations
 from sqlalchemy.sql import func

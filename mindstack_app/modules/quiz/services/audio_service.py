@@ -1,9 +1,9 @@
-
+﻿
 import logging
 import os
 from mindstack_app.core.extensions import db
 from mindstack_app.models import LearningContainer, LearningItem, BackgroundTask
-from mindstack_app.modules.audio.services.audio_service import AudioService
+from mindstack_app.modules.audio.interface import AudioInterface
 
 logger = logging.getLogger(__name__)
 
@@ -107,7 +107,7 @@ class QuizAudioService:
                     task.message = f"Transcribing item {item.item_id} ({task.progress + 1}/{task.total})..."
                     db.session.commit()
                     
-                    transcript = AudioService.speech_to_text(full_path, lang='vi-VN') # Defaulting to VN
+                    transcript = AudioInterface.speech_to_text(full_path, lang='vi-VN') # Defaulting to VN
                     
                     if transcript:
                         # Update Item Content

@@ -1,13 +1,14 @@
-# File: mindstack_app/modules/audio/__init__.py
+﻿# File: mindstack_app/modules/audio/__init__.py
 from flask import Blueprint
 
-blueprint = Blueprint('audio', __name__)
+audio_bp = Blueprint('audio', __name__)
 
 module_metadata = {
     'name': 'Audio Studio',
-    'icon': 'volume-up',
+    'icon': 'microphone-lines',
     'category': 'System',
     'url_prefix': '/admin/audio',
+    'admin_route': 'audio.admin_audio_studio',
     'enabled': True
 }
 

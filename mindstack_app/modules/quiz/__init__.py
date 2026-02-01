@@ -1,4 +1,4 @@
-"""Quiz module containing individual and battle modes."""
+﻿"""Quiz module containing individual and battle modes."""
 
 from flask import Blueprint
 

@@ -1,1 +1,1 @@
-from .profile_service import UserProfileService
+﻿from .profile_service import UserProfileService

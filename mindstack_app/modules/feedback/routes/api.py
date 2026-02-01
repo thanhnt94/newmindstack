@@ -1,4 +1,4 @@
-from flask import request, jsonify
+﻿from flask import request, jsonify
 from flask_login import login_required, current_user
 from mindstack_app.core.extensions import db
 from ..models import Feedback

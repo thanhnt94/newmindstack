@@ -1,4 +1,4 @@
-# File: mindstack_app/modules/shared/utils/search.py
+﻿# File: mindstack_app/modules/shared/utils/search.py
 # Version: 2.0
 # ĐÃ SỬA: Cập nhật hàm apply_search_filter để hỗ trợ tìm kiếm theo một trường cụ thể (search_field).
 

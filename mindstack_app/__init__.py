@@ -1,4 +1,4 @@
-# File: mindstack_app/__init__.py
+﻿# File: mindstack_app/__init__.py
 # Ultra-Clean Application Factory
 
 from flask import Flask

@@ -1,4 +1,4 @@
-"""
+﻿"""
 FSRS Optimizer Service
 
 Trains user-specific FSRS parameters from their ReviewLog history.

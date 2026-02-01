@@ -1,4 +1,4 @@
-# File: mindstack_app/modules/vocab_flashcard/individual/routes.py
+﻿# File: mindstack_app/modules/vocab_flashcard/individual/routes.py
 # Phiên bản: 4.0 (Engine refactor)
 # MỤC ĐÍCH: Entry point routes cho chế độ học flashcard cá nhân.
 # Routes này sử dụng engine module như dependency.

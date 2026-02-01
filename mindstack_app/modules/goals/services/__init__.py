@@ -1,1 +1,1 @@
-from .goal_kernel_service import GoalKernelService
+﻿from .goal_kernel_service import GoalKernelService

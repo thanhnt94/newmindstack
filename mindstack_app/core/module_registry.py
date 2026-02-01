@@ -1,4 +1,4 @@
-"""Utilities for declaratively registering application modules.
+﻿"""Utilities for declaratively registering application modules.
 
 The registry allows each blueprint/module to be described with metadata so that
 module discovery and registration can be automated. This makes the application
@@ -126,5 +126,5 @@ DEFAULT_MODULES: Iterable[ModuleDefinition] = (
     ModuleDefinition("mindstack_app.modules.telegram_bot", "blueprint", url_prefix="/telegram", display_name="Telegram Bot"),
     ModuleDefinition("mindstack_app.modules.notification", "blueprint", url_prefix="/notifications", display_name="Thông báo (Web Push)"),
     ModuleDefinition("mindstack_app.modules.translator", "blueprint", url_prefix="/translator", display_name="Dịch thuật & Từ điển"),
-    ModuleDefinition("mindstack_app.modules.audio", "blueprint", display_name="Xử lý Audio (Studio)"),
+    ModuleDefinition("mindstack_app.modules.audio", "audio_bp", url_prefix="/admin/audio", display_name="Xử lý Audio (Studio)"),
 )

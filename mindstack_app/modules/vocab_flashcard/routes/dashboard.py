@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, request
+﻿from flask import Blueprint, render_template, request
 from mindstack_app.utils.template_helpers import render_dynamic_template
 from flask_login import current_user, login_required
 from ..engine.config import FlashcardLearningConfig

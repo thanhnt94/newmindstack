@@ -1,4 +1,4 @@
-# File: mindstack_app/modules/content_management/routes/media.py
+﻿# File: mindstack_app/modules/content_management/routes/media.py
 import os
 from uuid import uuid4
 from flask import request, current_app, url_for

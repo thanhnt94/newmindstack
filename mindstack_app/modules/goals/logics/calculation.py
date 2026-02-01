@@ -1,4 +1,4 @@
-"""
+﻿"""
 Stateless calculation logic for Goal Progress.
 Pure functions, no database dependencies.
 """

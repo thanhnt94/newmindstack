@@ -1,4 +1,4 @@
-# File: vocabulary/routes/speed.py
+﻿# File: vocabulary/routes/speed.py
 # Speed Review Learning Mode Routes
 
 import json

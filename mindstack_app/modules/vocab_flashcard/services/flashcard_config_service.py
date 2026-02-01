@@ -1,4 +1,4 @@
-"""
+﻿"""
 Flashcard Configuration Service
 
 Provides centralized configuration for Flashcard (Vocabulary) system.

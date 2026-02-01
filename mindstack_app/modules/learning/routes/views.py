@@ -1,4 +1,4 @@
-# File: newmindstack/mindstack_app/modules/learning/routes.py
+﻿# File: newmindstack/mindstack_app/modules/learning/routes.py
 # Phiên bản: 1.3
 # Mục đích: Đăng ký blueprint cho module học Course.
 # SỬA LỖI: Cập nhật URL endpoints cho Vocabulary sau khi refactor.

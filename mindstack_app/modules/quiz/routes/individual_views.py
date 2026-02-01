@@ -1,4 +1,4 @@
-# File: mindstack_app/modules/quiz/routes/individual_views.py
+﻿# File: mindstack_app/modules/quiz/routes/individual_views.py
 from flask import render_template, request, redirect, url_for, flash, session, current_app
 from mindstack_app.utils.template_helpers import render_dynamic_template
 from flask_login import login_required, current_user

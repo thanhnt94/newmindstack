@@ -1,4 +1,4 @@
-from typing import List, Dict, Any, Optional
+﻿from typing import List, Dict, Any, Optional
 from sqlalchemy import func, desc
 
 from mindstack_app.models import db, User, ScoreLog

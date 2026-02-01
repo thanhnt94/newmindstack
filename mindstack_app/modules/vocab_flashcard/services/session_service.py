@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+﻿from datetime import datetime, timezone
 from flask import current_app
 from mindstack_app.models import db, LearningSession, User
 from mindstack_app.utils.db_session import safe_commit

@@ -1,4 +1,4 @@
-"""Unified application settings model for all configuration."""
+﻿"""Unified application settings model for all configuration."""
 
 from __future__ import annotations
 

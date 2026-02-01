@@ -1,4 +1,4 @@
-"""Utility helpers for working with the SQLAlchemy session.
+﻿"""Utility helpers for working with the SQLAlchemy session.
 
 These helpers focus on improving the resilience of commits when the
 application is backed by SQLite.  SQLite places a write lock on the

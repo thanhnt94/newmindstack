@@ -1,4 +1,4 @@
-# File: mindstack_app/modules/user_profile/routes/api.py
+﻿# File: mindstack_app/modules/user_profile/routes/api.py
 from flask import request
 from flask_login import current_user
 from mindstack_app.core.extensions import db

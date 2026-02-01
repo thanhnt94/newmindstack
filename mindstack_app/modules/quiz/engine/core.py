@@ -1,4 +1,4 @@
-# File: quiz/engine/core.py
+﻿# File: quiz/engine/core.py
 # QuizEngine - Logic for quiz question generation and answer processing
 
 import random

@@ -1,4 +1,4 @@
-# File: vocabulary/stats/item_stats.py
+﻿# File: vocabulary/stats/item_stats.py
 # Vocabulary Item Statistics Service
 # Provides detailed statistics for individual learning items
 

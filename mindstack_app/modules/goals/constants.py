@@ -1,4 +1,4 @@
-"""Shared configuration for learning goals."""
+﻿"""Shared configuration for learning goals."""
 
 from __future__ import annotations
 

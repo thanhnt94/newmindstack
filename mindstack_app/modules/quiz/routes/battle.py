@@ -1,4 +1,4 @@
-# File: mindstack_app/modules/quiz/routes/battle.py
+﻿# File: mindstack_app/modules/quiz/routes/battle.py
 from __future__ import annotations
 import os
 from flask import abort, jsonify, render_template, request, url_for, redirect

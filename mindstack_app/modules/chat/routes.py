@@ -1,4 +1,4 @@
-"""Generic chat endpoints shared across collaborative room types."""
+﻿"""Generic chat endpoints shared across collaborative room types."""
 
 from __future__ import annotations
 

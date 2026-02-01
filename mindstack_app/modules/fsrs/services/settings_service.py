@@ -1,4 +1,4 @@
-# modules/fsrs/services/settings_service.py
+﻿# modules/fsrs/services/settings_service.py
 from mindstack_app.models import AppSettings, db
 from ..config import FSRSDefaultConfig
 

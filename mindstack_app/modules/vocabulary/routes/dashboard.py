@@ -1,4 +1,4 @@
-# File: vocabulary/routes/dashboard.py
+﻿# File: vocabulary/routes/dashboard.py
 # Vocabulary Hub - Dashboard and HTML Page Routes
 
 from flask import render_template, request, abort, current_app, redirect, url_for

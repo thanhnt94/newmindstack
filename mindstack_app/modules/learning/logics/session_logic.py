@@ -1,4 +1,4 @@
-"""
+﻿"""
 Session Logic - Pure functions for session building.
 
 This module contains ONLY pure Python logic.

@@ -1,4 +1,4 @@
-from typing import Optional, List, Dict, Any
+﻿from typing import Optional, List, Dict, Any
 from .schemas import FeedbackDTO
 from .models import Feedback
 from mindstack_app.core.extensions import db

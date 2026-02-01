@@ -1,4 +1,4 @@
-# File: vocabulary/routes/matching.py
+﻿# File: vocabulary/routes/matching.py
 # Matching Learning Mode Routes
 
 from flask import render_template, request, jsonify, abort, session

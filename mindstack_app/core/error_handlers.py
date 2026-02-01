@@ -1,4 +1,4 @@
-"""
+﻿"""
 Error Handlers for MindStack
 
 Provides:

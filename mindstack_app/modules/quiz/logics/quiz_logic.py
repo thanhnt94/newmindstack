@@ -1,4 +1,4 @@
-# File: mindstack_app/modules/learning/quiz_learning/quiz_logic.py
+﻿# File: mindstack_app/modules/learning/quiz_learning/quiz_logic.py
 # Phiên bản: 3.0
 # MỤC ĐÍCH: Cập nhật logic để sử dụng model LearningProgress (unified).
 # ĐÃ SỬA: Thay thế import QuizProgress bằng LearningProgress.

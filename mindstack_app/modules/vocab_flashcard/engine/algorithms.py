@@ -1,4 +1,4 @@
-"""
+﻿"""
 Flashcard Algorithms - Backward Compatibility Facade
 
 This module re-exports functions from the new service classes

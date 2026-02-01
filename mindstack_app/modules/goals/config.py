@@ -1,4 +1,4 @@
-class GoalsModuleDefaultConfig:
+﻿class GoalsModuleDefaultConfig:
     MAX_GOALS_PER_USER = 10
     DEFAULT_DAILY_TARGET = 10
     DEFAULT_WEEKLY_TARGET = 50

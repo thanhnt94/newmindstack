@@ -1,4 +1,4 @@
-"""Utility functions shared between goal-aware views."""
+﻿"""Utility functions shared between goal-aware views."""
 
 from __future__ import annotations
 

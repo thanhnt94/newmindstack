@@ -1,4 +1,4 @@
-# File: mindstack_app/modules/admin/routes/api.py
+﻿# File: mindstack_app/modules/admin/routes/api.py
 import asyncio
 import os
 from flask import request, jsonify

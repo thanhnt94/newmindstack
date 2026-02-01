@@ -1,4 +1,4 @@
-# File: mindstack_app/modules/admin/services/settings_service.py
+﻿# File: mindstack_app/modules/admin/services/settings_service.py
 from flask import current_app
 from flask_login import current_user
 from mindstack_app.core.config import Config

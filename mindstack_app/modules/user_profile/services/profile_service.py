@@ -1,4 +1,4 @@
-"""
+﻿"""
 User Profile Service - Logic for profile management.
 
 Handles avatar uploads, profile updates, and password changes.

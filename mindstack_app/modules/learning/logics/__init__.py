@@ -1,4 +1,4 @@
-# Learning Core - Logics Package (FSRS-5)
+﻿# Learning Core - Logics Package (FSRS-5)
 # Pure business logic, no database access
 
 from .scoring_engine import ScoringEngine, ScoreResult, LearningMode

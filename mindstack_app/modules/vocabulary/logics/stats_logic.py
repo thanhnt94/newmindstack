@@ -1,4 +1,4 @@
-# File: vocabulary/logics/stats_logic.py
+﻿# File: vocabulary/logics/stats_logic.py
 # Logic for calculating course overview statistics (Vocabulary List)
 
 from datetime import datetime

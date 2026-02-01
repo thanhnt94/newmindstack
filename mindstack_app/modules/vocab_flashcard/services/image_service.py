@@ -1,4 +1,4 @@
-"""
+﻿"""
 Dịch vụ hỗ trợ tìm kiếm và tải ảnh minh họa cho flashcard mà không cần API khóa.
 """
 

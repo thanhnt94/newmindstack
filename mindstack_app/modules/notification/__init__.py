@@ -1,4 +1,4 @@
-# File: mindstack_app/modules/notification/__init__.py
+﻿# File: mindstack_app/modules/notification/__init__.py
 from flask import Blueprint
 
 blueprint = Blueprint('notification', __name__)

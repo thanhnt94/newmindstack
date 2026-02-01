@@ -1,4 +1,4 @@
-# File: mindstack_app/core/config.py
+﻿# File: mindstack_app/core/config.py
 # Refactored to Core Infrastructure Layer
 
 import os

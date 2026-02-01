@@ -1,4 +1,4 @@
-from flask import request
+﻿from flask import request
 from . import blueprint
 from .services import process_update, send_telegram_message
 from mindstack_app.models import User

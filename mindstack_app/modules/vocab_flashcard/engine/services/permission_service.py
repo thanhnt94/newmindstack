@@ -1,4 +1,4 @@
-"""
+﻿"""
 FlashcardPermissionService - Access Control for Flashcard Containers
 
 Handles permission checking and access control logic for flashcard sets.

@@ -1,1 +1,1 @@
-"""Gamification Logic - Pure functions."""
+﻿"""Gamification Logic - Pure functions."""

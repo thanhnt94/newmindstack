@@ -1,4 +1,4 @@
-# File: newmindstack/mindstack_app/modules/learning/flashcard_learning/audio_service.py
+﻿# File: newmindstack/mindstack_app/modules/learning/flashcard_learning/audio_service.py
 # Phiên bản: 1.1
 # Mục đích: Cung cấp dịch vụ tạo và cache file âm thanh từ văn bản (Text-to-Speech)
 #           cho các thẻ ghi nhớ (flashcards).
@@ -15,10 +15,11 @@ import random
 import time
 from flask import current_app
 
-from mindstack_app.logics.voice_engine import VoiceEngine
+from mindstack_app.modules.audio.logics.voice_engine import VoiceEngine
 
 from mindstack_app.core.extensions import db
 from mindstack_app.models import LearningContainer, LearningItem, User, BackgroundTask
+from mindstack_app.modules.audio.interface import AudioInterface
 from mindstack_app.core.config import Config
 logger = logging.getLogger(__name__)
 
@@ -56,48 +57,27 @@ class AudioService:
 
     async def _generate_concatenated_audio(self, audio_content_string, output_format="mp3", pause_ms=400):
         """
-        [DEPRECATED INTERNAL LOGIC]
-        Delegates to the Central AudioService to generate the file.
+        Delegates to the AudioInterface to generate the file.
         Returns: (physical_path, success, message)
         """
-        from mindstack_app.modules.audio.services.audio_service import AudioService as CentralAudioService
-        
-        # We use a temp filename, CentralService will return the path
-        # But CentralService.get_audio handles caching internally if we don't provide custom path,
-        # OR writes to custom path if provided.
-        # Here we want a temp file behavior or direct return?
-        # The caller of this method (get_cached_or_generate_audio) expects a temp path to then move.
-        # Actually, get_cached_or_generate_audio calls this.
-        
-        # Let's simplify: We can refactor get_cached_or_generate_audio to call Central directly
-        # and skip this intermediate temp file generation if possible.
-        # But to keep signature compatibility for now, let's implement this wrapper.
-        
         try:
             # We want a temp file
             import tempfile
             fd, temp_path = tempfile.mkstemp(suffix=f".{output_format}")
             os.close(fd)
-            # We don't want to keep it if generation fails, ensuring cleanup is important
             
-            # Call Central Service with auto_voice_parsing=True (enables the new logic)
-            # We pass custom_filename (absolute path) as the target so it writes there directly?
-            # CentralService.get_audio -> if custom_filename provided -> treats as filename in target_dir?
-            # Let's look at CentralService logic:
-            # if custom_filename: filename = custom_filename...
-            # paths = get_storage_path(target_dir, filename) -> joins target_dir + filename
+            # Call AudioInterface
+            response = await AudioInterface.generate_audio(
+                text=audio_content_string,
+                custom_filename=temp_path,
+                auto_voice_parsing=True,
+                is_manual=True
+            )
             
-            # So if we want to write to a specific TEMP path, it's tricky with CentralService's path resolution.
-            # CentralService expects to manage the directory structure generally.
-            
-            # ALTERNATIVE: Use the internal helper _generate_concatenated_audio from CentralService?
-            # Yes, that is exposed as a classmethod.
-            
-            success = await CentralAudioService._generate_concatenated_audio(audio_content_string, temp_path)
-            if success:
-                 return temp_path, True, "Generation success via Central Service"
+            if response.status != 'error':
+                 return temp_path, True, "Generation success via Interface"
             else:
-                 return None, False, "Generation failed via Central Service"
+                 return None, False, f"Generation failed: {response.error}"
                  
         except Exception as e:
             return None, False, str(e)

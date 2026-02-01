@@ -1,2 +1,2 @@
-class LandingModuleDefaultConfig:
+﻿class LandingModuleDefaultConfig:
     pass

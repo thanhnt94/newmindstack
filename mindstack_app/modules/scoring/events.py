@@ -1,4 +1,4 @@
-# modules/scoring/events.py
+﻿# modules/scoring/events.py
 from blinker import Namespace
 
 _signals = Namespace()

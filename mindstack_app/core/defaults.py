@@ -1,4 +1,4 @@
-"""
+﻿"""
 Centralized Default Configuration for MindStack.
 
 This file serves as the "Source of Truth" for all default application settings.

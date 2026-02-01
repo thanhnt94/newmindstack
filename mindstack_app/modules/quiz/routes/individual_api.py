@@ -1,4 +1,4 @@
-# File: mindstack_app/modules/quiz/routes/individual_api.py
+﻿# File: mindstack_app/modules/quiz/routes/individual_api.py
 import os
 import copy
 from typing import Optional

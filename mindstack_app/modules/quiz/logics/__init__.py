@@ -1,4 +1,4 @@
-# Quiz Individual Module - Logics Package
+﻿# Quiz Individual Module - Logics Package
 # Pure business logic
 
 from .algorithms import *  # SRS/filtering logic

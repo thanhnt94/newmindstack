@@ -1,4 +1,4 @@
-# File: mindstack_app/core/extensions.py
+﻿# File: mindstack_app/core/extensions.py
 # Infrastructure Layer: Flask Extensions initialization
 
 import sqlite3

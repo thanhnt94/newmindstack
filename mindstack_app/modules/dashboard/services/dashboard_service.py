@@ -1,4 +1,4 @@
-from typing import Dict, Any, List
+﻿from typing import Dict, Any, List
 from flask import url_for
 from mindstack_app.models import UserGoal
 from mindstack_app.modules.goals.view_helpers import build_goal_progress

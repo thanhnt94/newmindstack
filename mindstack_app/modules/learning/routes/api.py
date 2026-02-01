@@ -1,4 +1,4 @@
-from flask import Blueprint, jsonify, request
+﻿from flask import Blueprint, jsonify, request
 from flask_login import login_required, current_user
 from mindstack_app.modules.learning.logics.marker_logic import toggle_user_marker, get_user_markers_for_items
 

@@ -1,4 +1,4 @@
-# Entry point for flashcard practice - delegates to flashcard engine.
+﻿# Entry point for flashcard practice - delegates to flashcard engine.
 
 from flask import render_template, request, redirect, url_for, flash, jsonify
 from mindstack_app.utils.template_helpers import render_dynamic_template

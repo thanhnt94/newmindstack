@@ -1,4 +1,4 @@
-# File: vocabulary/stats/session_stats.py
+﻿# File: vocabulary/stats/session_stats.py
 # Vocabulary Session Statistics
 # Tracks statistics during an active learning session (MCQ, flashcard, etc.)
 

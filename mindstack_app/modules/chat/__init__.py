@@ -1,4 +1,4 @@
-# File: mindstack_app/modules/chat/__init__.py
+﻿# File: mindstack_app/modules/chat/__init__.py
 from flask import Blueprint
 
 blueprint = Blueprint('chat', __name__)

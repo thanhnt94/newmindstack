@@ -1,4 +1,4 @@
-"""
+﻿"""
 Metrics Kernel Service
 Low-level CRUD operations for statistical models (UserMetric, DailyStat).
 Provides the 'write' layer for the Analytics system.

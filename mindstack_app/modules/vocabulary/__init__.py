@@ -1,4 +1,4 @@
-"""Vocabulary Learning Hub: Consolidated multiple learning modes."""
+﻿"""Vocabulary Learning Hub: Consolidated multiple learning modes."""
 
 from .routes import blueprint
 

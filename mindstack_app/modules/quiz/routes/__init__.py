@@ -1,1 +1,1 @@
-from . import individual_views, individual_api, battle
+﻿from . import individual_views, individual_api, battle

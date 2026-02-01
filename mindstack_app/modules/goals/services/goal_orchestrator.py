@@ -1,4 +1,4 @@
-"""
+﻿"""
 Goal Orchestrator
 Listens to system events and updates goal progress.
 """
