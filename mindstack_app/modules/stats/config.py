@@ -1,4 +1,5 @@
-class StatsModuleDefaultConfig:
-    DEFAULT_TIMEFRAME = '30d'
-    LEADERBOARD_LIMIT = 50
-    STREAK_GRACE_PERIOD_HOURS = 24
+class StatsConfig:
+    """Default hardcoded configuration for Stats Module."""
+    LEADERBOARD_LIMIT = 10
+    DEFAULT_TIMEFRAME = 'week'
+    RECENT_ACTIVITY_LIMIT = 5

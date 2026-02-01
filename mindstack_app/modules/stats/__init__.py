@@ -13,5 +13,7 @@ module_metadata = {
 
 def setup_module(app):
     from . import routes
+    routes.register_routes(blueprint)
+    
     from .services.analytics_listener import init_analytics_listener
     init_analytics_listener()
