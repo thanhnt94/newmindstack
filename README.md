@@ -72,10 +72,12 @@ python -m pytest tests/ -v
 
 ```
 mindstack_app/
+├── core/         # System orchestration & bootstrap
+├── themes/       # UI Themes (aura_mobile, admin)
+├── modules/      # Feature modules (learning, quiz, AI)
 ├── models/       # Database models
-├── modules/      # Feature modules (learning, gamification, ...)
-├── services/     # Shared services
-└── templates/    # Jinja2 templates
+├── services/     # Shared system services
+└── utils/        # Shared utilities & filters
 ```
 
 Xem chi tiết tại [ARCHITECTURE.md](docs/ARCHITECTURE.md).

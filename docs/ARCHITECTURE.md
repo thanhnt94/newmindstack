@@ -1,128 +1,84 @@
-# MindStack Architecture Overview
+# MindStack Architecture Overview (v2.0)
 
 ## 📁 Project Structure
 
+The project follows a **Modular Monolith** architecture with a clear separation between Infrastructure, Business Logic, and Presentation layers.
+
 ```
 mindstack_app/
-├── __init__.py          # Flask app factory
-├── config.py            # Configuration settings
-├── db_instance.py       # SQLAlchemy instance
-├── extensions.py        # Flask extensions
-│
-├── core/                # Core infrastructure
-│   ├── logging_config.py
+├── core/                # Infrastructure & Orchestration
+│   ├── bootstrap.py     # System Heart: Discovery & Registry
+│   ├── config.py        # Settings & ENV management
+│   ├── extensions.py    # Flask Extensions (DB, Migrate, CSRF)
+│   ├── module_registry.py # Dynamic module tracking
 │   └── error_handlers.py
 │
-├── models/              # Database models
-│   ├── user.py          # User, UserSession, ScoreLog, LearningGoal
-│   ├── learning.py      # LearningContainer, LearningItem, LearningGroup
-│   ├── learning_progress.py  # Unified progress tracking
-│   ├── gamification.py  # Badge, UserBadge
+├── themes/              # Presentation Layer (Dynamic Themes)
+│   ├── aura_mobile/     # Primary Mobile-First Theme
+│   │   ├── static/      # Theme-specific CSS/JS/Images
+│   │   ├── templates/   # Namespaced Jinja2 templates
+│   │   └── __init__.py  # Blueprint definition
+│   └── admin/           # Administrative Interface
+│
+├── modules/             # Feature Modules (Domain Layer)
+│   ├── learning/        # Shared learning logic
+│   ├── vocabulary/      # Vocab specific features
+│   ├── quiz/            # Quiz & Question engines
+│   ├── vocab_flashcard/ # Flashcard specialized module
+│   ├── ai_services/     # LLM Integrations
+│   ├── gamification/    # Points & Badges
 │   └── ...
 │
-├── modules/             # Feature modules (Blueprints)
-│   ├── learning/        # Core learning features
-│   │   ├── logics/      # Pure calculation engines
-│   │   ├── services/    # DB layer + business logic
-│   │   └── sub_modules/ # Learning modes
-│   │       ├── flashcard/
-│   │       ├── quiz/
-│   │       └── vocabulary/
-│   ├── gamification/    # Points, badges, leaderboard
-│   ├── ai_services/     # AI integrations
-│   ├── stats/           # Statistics & analytics
-│   └── ...
-│
-├── services/            # Shared services
-│   ├── config_service.py
-│   ├── learning_metrics_service.py
-│   └── memory_power_config_service.py
-│
-└── templates/           # Jinja2 templates
-    ├── v3/              # Current UI version
-    └── admin/           # Admin panel
+├── models/              # Global Database Models
+├── services/            # Shared System Services (Config, Metrics)
+├── utils/               # Shared Utilities (Filters, Helpers)
+└── static/              # Global static assets (System-wide)
 ```
 
 ---
 
-## 🔄 Data Flow
+## 🚀 The Bootstrapping Process (`core/bootstrap.py`)
 
-```mermaid
-graph LR
-    A[User Action] --> B[Route/API]
-    B --> C[Service Layer]
-    C --> D[Logic Engine]
-    D --> C
-    C --> E[Database]
-    C --> F[Response]
-    F --> A
-```
+MindStack uses **Auto-Discovery** to load modules and themes:
 
-**Layer Responsibilities:**
-- **Routes**: HTTP handling, request validation
-- **Services**: DB operations, business orchestration
-- **Logic Engines**: Pure calculations (no DB access)
+1. **Init Infrastructure**: Initializes DB, Migrations, CSRF, and Scheduler.
+2. **Global Handlers**: Registers error handlers and Jinja2 filters.
+3. **Module Discovery**: Scans `modules/`, imports blueprints, and executes `setup_module()` if present.
+4. **Theme Activation**: Loads the active theme defined in `ACTIVE_THEME` config.
+5. **Model Registry**: Ensures all SQLAlchemy models are imported for visibility.
 
 ---
 
-## 📊 Key Models
+## 🎨 Presentation Layer: Themes
 
-| Model | Purpose |
-|-------|---------|
-| `User` | Account info, preferences, scores |
-| `LearningContainer` | Sets (flashcard/quiz collections) |
-| `LearningItem` | Individual cards/questions |
-| `LearningProgress` | Per-user item progress (unified for all modes) |
+MindStack supports multiple themes. The active theme is registered as a blueprint and its `templates/` folder is used for rendering.
 
----
-
-## 🧠 SRS System
-
-MindStack uses a **hybrid SRS approach**:
-
-1. **SM-2 Algorithm** (`srs_engine.py`)
-   - Traditional interval scheduling
-   - Easiness factor adjustments
-
-2. **Memory Power System** (`memory_engine.py`)
-   - Mastery × Retention = Memory Power
-   - Intuitive progress visualization
-
-3. **Unified SRS** (`unified_srs.py`)
-   - Combines both approaches
-   - SM-2 for scheduling, Memory Power for analytics
+- **Namespacing**: Templates are organized as `aura_mobile/modules/learning/...` to avoid conflicts.
+- **Dynamic Assets**: Supports co-located assets within template folders served via special routes (e.g., `serve_v3_asset`).
+- **Mutual Exclusivity**: Modern themes (like Aura Mobile) use hybrid rendering where complex views (Dashboard vs Detail) are mutually exclusive to optimize mobile performance.
 
 ---
 
-## 🎮 Gamification
+## 🧩 Module Structure
 
-```mermaid
-graph TD
-    A[Answer Question] --> B{Correct?}
-    B -->|Yes| C[+Base Points]
-    B -->|No| D[Minimal Points]
-    C --> E{Streak?}
-    E -->|Yes| F[+Streak Bonus]
-    F --> G[Update Score]
-    E -->|No| G
-    G --> H[Check Badges]
-```
+Each module in `modules/` typically contains:
+- `routes/`: Blueprint routes and views.
+- `services/`: Module-specific business logic.
+- `models.py`: Database models (if specific to module).
+- `logics/`: Pure logic (no DB) for algorithms.
 
-**Point Sources:**
-- Base points per learning mode
-- First-time learning bonus
-- Streak bonuses (correct streak, daily streak)
-- Session completion bonuses
+---
+
+## 🧠 Core Services
+
+- **TemplateService**: Manages active theme version and path resolution.
+- **LearningSessionService**: Unified service for managing all types of learning sessions (Flashcard, Quiz, etc.).
+- **ConfigService**: Syncs database-stored settings with `app.config`.
 
 ---
 
 ## 🤖 AI Integration
 
-- **GeminiClient**: Primary AI (with model fallback)
-- **HuggingFace**: Secondary/offline option
-- **ApiKeyManager**: Rotation and rate limiting
-
-Used for:
-- AI explanations for cards/questions
-- Content generation
-- Translation assistance
+- **Interface Layer**: `modules/AI/interface.py` provides a unified way to interact with LLMs.
+- **Features**: Supports explanations, content generation, and smart hints.
+- **Providers**: Primary support for Google Gemini with fallbacks.
