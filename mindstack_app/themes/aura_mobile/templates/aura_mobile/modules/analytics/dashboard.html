@@ -13,7 +13,11 @@
 
 
 <div class="fixed inset-0 z-[100] flex flex-col h-[100dvh] w-full safe-area-inset-bottom mobile-dashboard"
-    style="font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
+    style="font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;"
+    x-data="{ 
+        activeTab: new URLSearchParams(window.location.search).get('tab') || 'personal', 
+        timeframe: '{{ current_timeframe or 'week' }}' 
+    }">
 
     {# === CLEAN BACKGROUND === #}
     <div class="fixed inset-0 bg-gradient-to-b from-slate-50 to-slate-100 -z-10"></div>
@@ -21,205 +25,247 @@
     {# === TOP NAVBAR === #}
     {% include _v ~ '/components/_header.html' ignore missing %}
 
+    {# === TAB NAVIGATION === #}
+    <div class="px-5 pt-4">
+        <div class="flex p-1.5 bg-slate-200/50 backdrop-blur-sm rounded-2xl">
+            <button @click="activeTab = 'personal'" 
+                :class="activeTab === 'personal' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500'"
+                class="flex-1 py-2.5 text-sm font-bold rounded-xl transition-all duration-300">
+                Thống kê cá nhân
+            </button>
+            <button @click="activeTab = 'leaderboard'" 
+                :class="activeTab === 'leaderboard' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500'"
+                class="flex-1 py-2.5 text-sm font-bold rounded-xl transition-all duration-300">
+                Bảng xếp hạng
+            </button>
+        </div>
+    </div>
+
     {# === MAIN CONTENT === #}
     <div class="flex-grow overflow-y-auto overflow-x-hidden pb-24 relative">
 
-        {# Header #}
-        <div class="px-5 pt-5 pb-4">
-            <h1 class="text-2xl font-black text-slate-900 tracking-tight">Thống kê học tập</h1>
-            <p class="text-sm text-slate-600 mt-1">Tổng quan tiến độ và thành tích của bạn</p>
-        </div>
+        {# TAB 1: THỐNG KÊ CÁ NHÂN #}
+        <template x-if="activeTab === 'personal'">
+            <div class="animate-fadeIn">
+                {# Header #}
+                <div class="px-5 pt-5 pb-4">
+                    <h1 class="text-2xl font-black text-slate-900 tracking-tight">Thống kê cá nhân</h1>
+                    <p class="text-sm text-slate-600 mt-1">Tiến độ và thành tích học tập của bạn</p>
+                </div>
 
-        {# Key Metrics (Horizontal Scroll) #}
-        <div class="px-5 pb-4">
-            <div class="flex items-center justify-between mb-3">
-                <h2 class="text-base font-bold text-slate-800 flex items-center gap-2">
-                    <i class="fas fa-chart-pie text-indigo-500"></i>
-                    <span>Tổng quan</span>
-                </h2>
-                {# Manual Scroll Buttons #}
-                <div class="flex gap-2">
-                    <button
-                        onclick="document.getElementById('stats-overview-scroll').scrollBy({left: -180, behavior: 'smooth'})"
-                        class="w-8 h-8 rounded-full bg-white border border-slate-200 text-slate-400 hover:text-indigo-600 hover:border-indigo-200 flex items-center justify-center shadow-sm active:scale-95 transition-all">
-                        <i class="fa-solid fa-chevron-left text-xs"></i>
-                    </button>
-                    <button
-                        onclick="document.getElementById('stats-overview-scroll').scrollBy({left: 180, behavior: 'smooth'})"
-                        class="w-8 h-8 rounded-full bg-white border border-slate-200 text-slate-400 hover:text-indigo-600 hover:border-indigo-200 flex items-center justify-center shadow-sm active:scale-95 transition-all">
-                        <i class="fa-solid fa-chevron-right text-xs"></i>
-                    </button>
-                </div>
-            </div>
-            <div id="stats-overview-scroll"
-                class="flex overflow-x-auto gap-3 no-scrollbar snap-x scroll-pl-5 pb-2 scroll-smooth">
-                {# Card 1: Tổng điểm #}
-                <div
-                    class="snap-start flex-shrink-0 w-40 bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-3xl p-5 shadow-lg flex flex-col justify-between h-32 relative overflow-hidden">
-                    <div class="absolute right-0 top-0 p-3 opacity-20"><i class="fas fa-star text-6xl"></i></div>
-                    <span class="text-xs uppercase font-bold tracking-wide opacity-90">Tổng điểm</span>
-                    <div>
-                        <p class="text-3xl font-black leading-none">{{
-                            "{:,}".format(dashboard_data.total_score_all_time) }}</p>
-                        <p class="text-xs opacity-80 mt-1">All time</p>
-                    </div>
-                </div>
-                {# Card 2: Streak #}
-                <div
-                    class="snap-start flex-shrink-0 w-40 bg-gradient-to-br from-orange-400 to-orange-500 text-white rounded-3xl p-5 shadow-lg flex flex-col justify-between h-32 relative overflow-hidden">
-                    <div class="absolute right-0 top-0 p-3 opacity-20"><i class="fas fa-fire text-6xl"></i></div>
-                    <span class="text-xs uppercase font-bold tracking-wide opacity-90">Chuỗi</span>
-                    <div>
-                        <p class="text-3xl font-black leading-none">{{ dashboard_data.current_learning_streak }}</p>
-                        <p class="text-xs opacity-80 mt-1">Kỷ lục: {{ dashboard_data.longest_learning_streak }} ngày</p>
-                    </div>
-                </div>
-                {# Card 3: 30 Ngày #}
-                <div
-                    class="snap-start flex-shrink-0 w-40 bg-gradient-to-br from-emerald-400 to-emerald-500 text-white rounded-3xl p-5 shadow-lg flex flex-col justify-between h-32 relative overflow-hidden">
-                    <div class="absolute right-0 top-0 p-3 opacity-20"><i class="fas fa-chart-line text-6xl"></i></div>
-                    <span class="text-xs uppercase font-bold tracking-wide opacity-90">30 Ngày</span>
-                    <div>
-                        <p class="text-3xl font-black leading-none">{{
-                            "{:,}".format(dashboard_data.total_score_last_30_days) }}</p>
-                        <p class="text-xs opacity-80 mt-1">~{{
-                            "{:,.1f}".format(dashboard_data.average_daily_score_recent) }}/ngày</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        {# Chi tiết bộ môn #}
-        <div class="px-5 mt-2">
-            <h3 class="text-base font-bold text-slate-800 mb-4 flex items-center gap-2">
-                <i class="fas fa-layer-group text-indigo-500"></i>
-                <span>Chi tiết bộ môn</span>
-            </h3>
-            <div class="grid grid-cols-1 gap-3">
-                <!-- Flashcard -->
-                <div
-                    class="bg-white border border-slate-200 p-5 rounded-3xl shadow-sm flex items-center justify-between">
-                    <div class="flex items-center gap-4">
+                {# Key Metrics (Horizontal Scroll) #}
+                <div class="px-5 pb-4">
+                    <div id="stats-overview-scroll"
+                        class="flex overflow-x-auto gap-3 no-scrollbar snap-x scroll-smooth">
+                        {# Card 1: Tổng điểm #}
                         <div
-                            class="w-12 h-12 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-2xl flex items-center justify-center text-white">
-                            <i class="fas fa-clone text-xl"></i>
+                            class="snap-start flex-shrink-0 w-40 bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-3xl p-5 shadow-lg flex flex-col justify-between h-32 relative overflow-hidden">
+                            <div class="absolute right-0 top-0 p-3 opacity-20"><i class="fas fa-star text-6xl"></i></div>
+                            <span class="text-xs uppercase font-bold tracking-wide opacity-90">Tổng điểm</span>
+                            <div>
+                                <p class="text-3xl font-black leading-none">{{ "{:,}".format(dashboard_data.total_score_all_time) }}</p>
+                                <p class="text-xs opacity-80 mt-1">Tất cả thời gian</p>
+                            </div>
                         </div>
-                        <div>
-                            <p class="text-base font-bold text-slate-900">Flashcard</p>
-                            <p class="text-xs text-slate-500">Đã thuộc: {{ dashboard_data.flashcard_mastered_count }}
-                                thẻ</p>
-                        </div>
-                    </div>
-                    <div class="text-right">
-                        <p class="text-xl font-black text-indigo-600">{{ dashboard_data.flashcard_accuracy_percent }}%
-                        </p>
-                        <p class="text-xs text-slate-500">Chính xác</p>
-                    </div>
-                </div>
-                <!-- Quiz -->
-                <div
-                    class="bg-white border border-slate-200 p-5 rounded-3xl shadow-sm flex items-center justify-between">
-                    <div class="flex items-center gap-4">
+                        {# Card 2: Streak #}
                         <div
-                            class="w-12 h-12 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-2xl flex items-center justify-center text-white">
-                            <i class="fas fa-question-circle text-xl"></i>
+                            class="snap-start flex-shrink-0 w-40 bg-gradient-to-br from-orange-400 to-orange-500 text-white rounded-3xl p-5 shadow-lg flex flex-col justify-between h-32 relative overflow-hidden">
+                            <div class="absolute right-0 top-0 p-3 opacity-20"><i class="fas fa-fire text-6xl"></i></div>
+                            <span class="text-xs uppercase font-bold tracking-wide opacity-90">Chuỗi</span>
+                            <div>
+                                <p class="text-3xl font-black leading-none">{{ dashboard_data.current_learning_streak }}</p>
+                                <p class="text-xs opacity-80 mt-1">Kỷ lục: {{ dashboard_data.longest_learning_streak }} ngày</p>
+                            </div>
                         </div>
-                        <div>
-                            <p class="text-base font-bold text-slate-900">Trắc nghiệm</p>
-                            <p class="text-xs text-slate-500">Đã làm: {{ dashboard_data.quiz_sets_started_count }} bộ
-                            </p>
-                        </div>
-                    </div>
-                    <div class="text-right">
-                        <p class="text-xl font-black text-emerald-600">{{ dashboard_data.quiz_accuracy_percent }}%</p>
-                        <p class="text-xs text-slate-500">Chính xác</p>
-                    </div>
-                </div>
-                <!-- Course -->
-                <div
-                    class="bg-white border border-slate-200 p-5 rounded-3xl shadow-sm flex items-center justify-between">
-                    <div class="flex items-center gap-4">
+                        {# Card 3: 30 Ngày #}
                         <div
-                            class="w-12 h-12 bg-gradient-to-br from-amber-500 to-amber-600 rounded-2xl flex items-center justify-center text-white">
-                            <i class="fas fa-graduation-cap text-xl"></i>
-                        </div>
-                        <div>
-                            <p class="text-base font-bold text-slate-900">Khóa học</p>
-                            <p class="text-xs text-slate-500">Đang học: {{ dashboard_data.courses_in_progress_count }}
-                                khóa</p>
+                            class="snap-start flex-shrink-0 w-40 bg-gradient-to-br from-emerald-400 to-emerald-500 text-white rounded-3xl p-5 shadow-lg flex flex-col justify-between h-32 relative overflow-hidden">
+                            <div class="absolute right-0 top-0 p-3 opacity-20"><i class="fas fa-chart-line text-6xl"></i></div>
+                            <span class="text-xs uppercase font-bold tracking-wide opacity-90">30 Ngày</span>
+                            <div>
+                                <p class="text-3xl font-black leading-none">{{ "{:,}".format(dashboard_data.total_score_last_30_days) }}</p>
+                                <p class="text-xs opacity-80 mt-1">~{{ "{:,.1f}".format(dashboard_data.average_daily_score_recent) }}/ngày</p>
+                            </div>
                         </div>
                     </div>
-                    <div class="text-right">
-                        <p class="text-xl font-black text-amber-600">{{ dashboard_data.course_avg_completion_percent }}%
-                        </p>
-                        <p class="text-xs text-slate-500">Hoàn thành</p>
+                </div>
+
+                {# Chi tiết bộ môn #}
+                <div class="px-5 mt-2">
+                    <h3 class="text-base font-bold text-slate-800 mb-4 flex items-center gap-2">
+                        <i class="fas fa-layer-group text-indigo-500"></i>
+                        <span>Chi tiết bộ môn</span>
+                    </h3>
+                    <div class="grid grid-cols-1 gap-3">
+                        <!-- Flashcard -->
+                        <div class="bg-white border border-slate-200 p-5 rounded-3xl shadow-sm flex items-center justify-between">
+                            <div class="flex items-center gap-4">
+                                <div class="w-12 h-12 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-2xl flex items-center justify-center text-white">
+                                    <i class="fas fa-clone text-xl"></i>
+                                </div>
+                                <div>
+                                    <p class="text-base font-bold text-slate-900">Flashcard</p>
+                                    <p class="text-xs text-slate-500">Đã thuộc: {{ dashboard_data.flashcard_mastered_count }} thẻ</p>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <p class="text-xl font-black text-indigo-600">{{ dashboard_data.flashcard_accuracy_percent }}%</p>
+                                <p class="text-xs text-slate-500">Chính xác</p>
+                            </div>
+                        </div>
+                        <!-- Quiz -->
+                        <div class="bg-white border border-slate-200 p-5 rounded-3xl shadow-sm flex items-center justify-between">
+                            <div class="flex items-center gap-4">
+                                <div class="w-12 h-12 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-2xl flex items-center justify-center text-white">
+                                    <i class="fas fa-question-circle text-xl"></i>
+                                </div>
+                                <div>
+                                    <p class="text-base font-bold text-slate-900">Trắc nghiệm</p>
+                                    <p class="text-xs text-slate-500">Đã làm: {{ dashboard_data.quiz_sets_started_count }} bộ</p>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <p class="text-xl font-black text-emerald-600">{{ dashboard_data.quiz_accuracy_percent }}%</p>
+                                <p class="text-xs text-slate-500">Chính xác</p>
+                            </div>
+                        </div>
+                        <!-- Course -->
+                        <div class="bg-white border border-slate-200 p-5 rounded-3xl shadow-sm flex items-center justify-between">
+                            <div class="flex items-center gap-4">
+                                <div class="w-12 h-12 bg-gradient-to-br from-amber-500 to-amber-600 rounded-2xl flex items-center justify-center text-white">
+                                    <i class="fas fa-graduation-cap text-xl"></i>
+                                </div>
+                                <div>
+                                    <p class="text-base font-bold text-slate-900">Khóa học</p>
+                                    <p class="text-xs text-slate-500">Đang học: {{ dashboard_data.courses_in_progress_count }} khóa</p>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <p class="text-xl font-black text-amber-600">{{ dashboard_data.course_avg_completion_percent }}%</p>
+                                <p class="text-xs text-slate-500">Hoàn thành</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {# Hoạt động gần đây #}
+                <div class="px-5 mt-6 pb-6">
+                    <h3 class="text-base font-bold text-slate-800 mb-4">Hoạt động gần đây</h3>
+                    <div class="space-y-3">
+                        {% for entry in recent_activity[:5] %}
+                        <div class="flex items-start gap-4 bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+                            <div class="w-2 h-2 mt-2 rounded-full {% if entry.score_change > 0 %}bg-green-500{% else %}bg-slate-300{% endif %}"></div>
+                            <div class="flex-1">
+                                <p class="text-sm font-bold text-slate-900">{{ entry.reason }}</p>
+                                <p class="text-xs text-slate-500 mt-1">{{ entry.timestamp }}</p>
+                            </div>
+                            <span class="text-sm font-black {% if entry.score_change > 0 %}text-green-600{% else %}text-slate-400{% endif %}">
+                                {{ '+' if entry.score_change > 0 }}{{ entry.score_change }}
+                            </span>
+                        </div>
+                        {% else %}
+                        <p class="text-center text-sm text-slate-400 py-8">Chưa có hoạt động nào.</p>
+                        {% endfor %}
                     </div>
                 </div>
             </div>
-        </div>
+        </template>
 
-        {# Bảng xếp hạng #}
-        <div class="px-5 mt-6">
-            <div class="flex items-center justify-between mb-4">
-                <h3 class="text-base font-bold text-slate-800 flex items-center gap-2">
-                    <i class="fas fa-trophy text-yellow-500"></i>
-                    <span>Bảng xếp hạng</span>
-                </h3>
-                <span class="text-xs bg-slate-100 text-slate-600 px-3 py-1 rounded-full font-bold">
-                    {% if current_timeframe == 'week' %}Tuần này
-                    {% elif current_timeframe == 'month' %}Tháng này
-                    {% elif current_timeframe == 'day' %}Hôm nay
-                    {% else %}Tất cả{% endif %}
-                </span>
-            </div>
-
-            <div class="bg-white border border-slate-200 rounded-3xl shadow-sm overflow-hidden">
-                <ul class="divide-y divide-slate-100">
-                    {% for entry in leaderboard_data[:5] %}
-                    <li class="flex items-center p-4 {% if entry.is_current_user %}bg-indigo-50{% endif %}">
-                        <span class="w-8 text-center font-bold text-slate-400 text-base mr-4">
-                            {% if entry.rank == 1 %}<i class="fas fa-medal text-yellow-400 text-xl"></i>
-                            {% elif entry.rank == 2 %}<i class="fas fa-medal text-slate-400 text-xl"></i>
-                            {% elif entry.rank == 3 %}<i class="fas fa-medal text-amber-600 text-xl"></i>
-                            {% else %}{{ entry.rank }}{% endif %}
-                        </span>
-                        <div class="flex-1 min-w-0">
-                            <p class="text-base font-bold text-slate-900 truncate">{{ entry.username }}</p>
+        {# TAB 2: BẢNG XẾP HẠNG #}
+        <template x-if="activeTab === 'leaderboard'">
+            <div class="animate-fadeIn">
+                {# Header with Select #}
+                <div class="px-5 pt-5 pb-4 flex items-center justify-between">
+                    <div>
+                        <h1 class="text-2xl font-black text-slate-900 tracking-tight">Xếp hạng</h1>
+                        <p class="text-sm text-slate-600 mt-1">Cùng thi đua học tập</p>
+                    </div>
+                    
+                    <div class="relative">
+                        <select x-model="timeframe" 
+                            @change="window.location.href = '?timeframe=' + timeframe + '&tab=leaderboard'"
+                            class="appearance-none bg-white border border-slate-200 px-4 py-2 pr-10 rounded-2xl text-sm font-bold text-slate-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all">
+                            <option value="day">Hôm nay</option>
+                            <option value="week">Tuần này</option>
+                            <option value="month">Tháng này</option>
+                            <option value="all_time">Tất cả</option>
+                        </select>
+                        <div class="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                            <i class="fas fa-chevron-down text-xs"></i>
                         </div>
-                        <span class="text-sm font-black text-indigo-600 ml-3">{{
-                            "{:,}".format(entry.score|default(0)) }}</span>
-                    </li>
-                    {% else %}
-                    <li class="p-6 text-center text-sm text-slate-400">Chưa có dữ liệu xếp hạng tuần này.</li>
-                    {% endfor %}
-                </ul>
-            </div>
-        </div>
-
-        {# Hoạt động gần đây #}
-        <div class="px-5 mt-6 pb-6">
-            <h3 class="text-base font-bold text-slate-800 mb-4">Hoạt động gần đây</h3>
-            <div class="space-y-3">
-                {% for entry in recent_activity[:5] %}
-                <div class="flex items-start gap-4 bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
-                    <div
-                        class="w-2 h-2 mt-2 rounded-full {% if entry.score_change > 0 %}bg-green-500{% else %}bg-slate-300{% endif %}">
                     </div>
-                    <div class="flex-1">
-                        <p class="text-sm font-bold text-slate-900">{{ entry.reason }}</p>
-                        <p class="text-xs text-slate-500 mt-1">{{ entry.timestamp }}</p>
-                    </div>
-                    <span
-                        class="text-sm font-black {% if entry.score_change > 0 %}text-green-600{% else %}text-slate-400{% endif %}">
-                        {{ '+' if entry.score_change > 0 }}{{ entry.score_change }}
-                    </span>
                 </div>
-                {% else %}
-                <p class="text-center text-sm text-slate-400 py-8">Chưa có hoạt động nào.</p>
-                {% endfor %}
+
+                <div class="px-5">
+                    <div class="bg-white border border-slate-200 rounded-3xl shadow-sm overflow-hidden min-h-[400px]">
+                        <ul class="divide-y divide-slate-100">
+                            {% for entry in leaderboard_data %}
+                            <li class="flex items-center p-5 {% if entry.is_current_user %}bg-indigo-50/50{% endif %}">
+                                <span class="w-10 text-center font-bold text-slate-400 text-base mr-4">
+                                    {% if entry.rank == 1 %}<i class="fas fa-medal text-yellow-400 text-2xl"></i>
+                                    {% elif entry.rank == 2 %}<i class="fas fa-medal text-slate-400 text-2xl"></i>
+                                    {% elif entry.rank == 3 %}<i class="fas fa-medal text-amber-600 text-2xl"></i>
+                                    {% else %}{{ entry.rank }}{% endif %}
+                                </span>
+                                <div class="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 font-bold mr-3 border-2 border-white shadow-sm overflow-hidden">
+                                    {% if entry.avatar_url %}
+                                        <img src="{{ entry.avatar_url }}" class="w-full h-full object-cover">
+                                    {% else %}
+                                        {{ entry.username[0]|upper }}
+                                    {% endif %}
+                                </div>
+                                <div class="flex-1 min-w-0">
+                                    <p class="text-base font-bold text-slate-900 truncate">{{ entry.username }}</p>
+                                    {% if entry.is_current_user %}
+                                        <span class="text-[10px] text-indigo-600 font-black uppercase tracking-wider">Bạn</span>
+                                    {% endif %}
+                                </div>
+                                <div class="text-right">
+                                    <span class="text-lg font-black text-indigo-600">{{ "{:,}".format(entry.score|default(0)) }}</span>
+                                    <p class="text-[9px] text-slate-400 font-bold uppercase">Điểm</p>
+                                </div>
+                            </li>
+                            {% else %}
+                            <li class="p-12 text-center flex flex-col items-center gap-3">
+                                <i class="fas fa-users-slash text-4xl text-slate-200"></i>
+                                <p class="text-sm text-slate-400">Chưa có dữ liệu xếp hạng trong thời gian này.</p>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
             </div>
-        </div>
+        </template>
     </div>
+
+    {# === BOTTOM NAV === #}
+    {% set active_page = 'stats' %}
+    {% include _v ~ '/components/_bottom_nav.html' %}
+</div>
+
+<style>
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(5px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    .animate-fadeIn { animation: fadeIn 0.3s ease-out forwards; }
+</style>
+
+<script>
+    // Handle tab initialization from URL
+    document.addEventListener('alpine:init', () => {
+        const urlParams = new URLSearchParams(window.location.search);
+        const tabParam = urlParams.get('tab');
+        if (tabParam === 'leaderboard') {
+            // We need to wait for Alpine to initialize, but since we set it in x-data above, 
+            // we can just ensure the default matches or use a hook.
+            // Simplified: x-data init logic handles this.
+        }
+    });
+</script>
 
     {# === BOTTOM NAV === #}
     {% set active_page = 'stats' %}

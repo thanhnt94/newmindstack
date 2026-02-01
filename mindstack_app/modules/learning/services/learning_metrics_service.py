@@ -435,57 +435,6 @@ class LearningMetricsService:
         return current_streak, longest
 
     @classmethod
-    def get_leaderboard(cls, sort_by='total_score', timeframe='all_time', limit=10, viewer_user: Optional[User] = None) -> List[Dict[str, Any]]:
-        """Get leaderboard data."""
-        # Date filter
-        start_date = None
-        today = date.today()
-        if timeframe == 'day':
-            start_date = datetime.combine(today, datetime.min.time())
-        elif timeframe == 'week':
-            start_date = datetime.combine(today - timedelta(days=today.weekday()), datetime.min.time())
-        elif timeframe == 'month':
-            start_date = datetime.combine(today.replace(day=1), datetime.min.time())
-            
-        query = db.session.query(
-            User.user_id,
-            User.username,
-            User.user_role,
-            func.sum(ScoreLog.score_change).label('score_val')
-        ).join(ScoreLog, User.user_id == ScoreLog.user_id)
-        
-        if start_date:
-            query = query.filter(ScoreLog.timestamp >= start_date)
-            
-        results = (
-            query
-            .group_by(User.user_id, User.username, User.user_role)
-            .order_by(desc('score_val'))
-            .limit(limit)
-            .all()
-        )
-        
-        leaderboard = []
-        viewer_id = viewer_user.user_id if viewer_user else None
-        
-        for idx, row in enumerate(results, start=1):
-            is_anonymous = (row.user_role == 'anonymous') # Simplified check, adjust based on actual role constraints
-            # Logic for hiding name if needed
-            display_name = row.username
-            is_viewer = (row.user_id == viewer_id)
-            
-            leaderboard.append({
-                'rank': idx,
-                'user_id': row.user_id,
-                'username': display_name,
-                'avatar_url': None, # User model does not have avatar_url yet
-                'score': int(row.score_val or 0),
-                'is_current_user': is_viewer
-            })
-            
-        return leaderboard
-
-    @classmethod
     def get_recent_activity(cls, user_id: int, limit: int = 6) -> List[Dict[str, Any]]:
         """Get recent score logs."""
         logs = (

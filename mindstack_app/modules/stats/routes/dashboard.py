@@ -18,19 +18,18 @@ def dashboard():
     Route chính để hiển thị trang dashboard thống kê.
     """
     from mindstack_app.modules.learning.services.learning_metrics_service import LearningMetricsService
+    from ..services.leaderboard_service import LeaderboardService
 
     initial_sort_by = request.args.get('sort_by', 'total_score')
     initial_timeframe = request.args.get('timeframe', 'week')
 
-    # [REPLACE] Use service for leaderboard
-    leaderboard_data = LearningMetricsService.get_leaderboard(
-        sort_by=initial_sort_by, 
+    # Use specialized LeaderboardService
+    leaderboard_data = LeaderboardService.get_leaderboard(
         timeframe=initial_timeframe or 'all_time',
         viewer_user=current_user
     )
     
-    # [REPLACE] Use service for main summary
-    # Note: Service returns a comprehensive dict. We map it to 'dashboard_data' keys.
+    # Use service for main summary
     summary = LearningMetricsService.get_user_learning_summary(current_user.user_id)
     
     fc = summary['flashcard']
