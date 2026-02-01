@@ -2,7 +2,7 @@
 {# This modal shows aggregate statistics for the entire vocabulary set #}
 
 <!-- Container Stats Modal -->
-<div id="containerStatsModal" class="modal-overlay hidden">
+<div id="containerStatsModal" class="stats-modal-overlay hidden">
     <div class="modal-content-stats">
         <div class="modal-header-stats">
             <h3>📊 Thống kê: <span id="container-stats-title">Loading...</span></h3>
@@ -47,12 +47,12 @@
 
 <style>
     /* Container Stats Modal Overlay */
-    #containerStatsModal.modal-overlay {
+    #containerStatsModal.stats-modal-overlay {
         position: fixed;
         inset: 0;
         background: rgba(0, 0, 0, 0.5);
         backdrop-filter: blur(4px);
-        z-index: 9999;
+        z-index: 100000;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -63,13 +63,14 @@
     }
 
     /* Active State for Visibility */
-    #containerStatsModal.modal-overlay.active {
+    #containerStatsModal.stats-modal-overlay.active {
         opacity: 1;
         visibility: visible;
+        pointer-events: auto !important;
     }
 
     /* Hidden utility class removal if present, but active handles vis */
-    #containerStatsModal.modal-overlay.hidden {
+    #containerStatsModal.stats-modal-overlay.hidden {
         display: none !important;
     }
 
@@ -78,7 +79,7 @@
     /* Modal Content */
     .modal-content-stats {
         position: relative;
-        z-index: 10000;
+        z-index: 100001;
         background: white;
         border-radius: 1rem;
         max-width: 800px;

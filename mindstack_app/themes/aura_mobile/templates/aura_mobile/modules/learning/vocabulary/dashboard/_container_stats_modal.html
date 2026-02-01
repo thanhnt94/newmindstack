@@ -2,14 +2,14 @@
 {# This modal shows aggregate statistics for the entire vocabulary set #}
 
 <!-- Container Stats Modal -->
-<div id="containerStatsModal" class="modal-overlay hidden">
-    <div class="modal-content-stats">
-        <div class="modal-header-stats">
-            <h3>📊 Thống kê: <span id="container-stats-title">Loading...</span></h3>
-            <button class="modal-close-stats" onclick="closeContainerStatsModal()">&times;</button>
+<div id="containerStatsModal" class="aura-modal-overlay hidden">
+    <div class="aura-modal-container">
+        <div class="aura-modal-header" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none;">
+            <h3 style="margin: 0; font-size: 1.15rem; font-weight: 700;">📊 Thống kê: <span id="container-stats-title">Loading...</span></h3>
+            <button class="aura-modal-close" style="background: rgba(255,255,255,0.2); color: white;" onclick="closeContainerStatsModal()">&times;</button>
         </div>
 
-        <div class="modal-body-stats">
+        <div class="aura-modal-body">
             <!-- Summary Cards -->
             <div class="stats-summary-cards">
                 <div class="summary-card">
@@ -28,7 +28,7 @@
 
             <!-- Distribution Chart -->
             <div class="chart-section">
-                <h4>📊 Phân bố</h4>
+                <h4 style="font-size: 1rem; font-weight: 700; color: #1e293b; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">📊 Phân bố</h4>
                 <div class="chart-container">
                     <canvas id="distributionChart"></canvas>
                 </div>
@@ -36,7 +36,7 @@
 
             <!-- Timeline Chart -->
             <div class="chart-section">
-                <h4>📈 Tiến độ theo thời gian</h4>
+                <h4 style="font-size: 1rem; font-weight: 700; color: #1e293b; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">📈 Tiến độ theo thời gian</h4>
                 <div class="chart-container">
                     <canvas id="timelineChart"></canvas>
                 </div>
@@ -46,130 +46,33 @@
 </div>
 
 <style>
-    /* Container Stats Modal Overlay */
-    #containerStatsModal.modal-overlay {
-        position: fixed;
-        inset: 0;
-        background: rgba(0, 0, 0, 0.5);
-        backdrop-filter: blur(4px);
-        z-index: 9999;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 1rem;
-        opacity: 0;
-        visibility: hidden;
-        transition: opacity 0.3s ease, visibility 0.3s ease;
-    }
-
-    /* Active State for Visibility */
-    #containerStatsModal.modal-overlay.active {
-        opacity: 1;
-        visibility: visible;
-    }
-
-    /* Hidden utility class removal if present, but active handles vis */
-    #containerStatsModal.modal-overlay.hidden {
-        display: none !important;
-    }
-
-    /* ... keyframes removed as transition handles it ... */
-
-    /* Modal Content */
-    .modal-content-stats {
-        position: relative;
-        z-index: 10000;
-        background: white;
-        border-radius: 1rem;
-        max-width: 800px;
-        width: 100%;
-        max-height: 90vh;
-        display: flex;
-        flex-direction: column;
-        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-        transform: translateY(20px);
-        transition: transform 0.3s ease;
-    }
-
-    /* Modal Header */
-    .modal-header-stats {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding: 1.5rem;
-        border-bottom: 2px solid #e2e8f0;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        border-radius: 1rem 1rem 0 0;
-    }
-
-    .modal-header-stats h3 {
-        margin: 0;
-        font-size: 1.25rem;
-        font-weight: 700;
-    }
-
-    .modal-close-stats {
-        background: rgba(255, 255, 255, 0.2);
-        border: none;
-        color: white;
-        font-size: 1.5rem;
-        width: 36px;
-        height: 36px;
-        border-radius: 50%;
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        transition: all 0.2s;
-    }
-
-    .modal-close-stats:hover {
-        background: rgba(255, 255, 255, 0.3);
-        transform: rotate(90deg);
-    }
-
-    /* Modal Body */
-    .modal-body-stats {
-        padding: 1.5rem;
-        overflow-y: auto;
-        flex: 1;
-    }
-
     /* Summary Cards */
     .stats-summary-cards {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-        gap: 1rem;
-        margin-bottom: 2rem;
+        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+        gap: 0.75rem;
+        margin-bottom: 1.5rem;
     }
 
     .summary-card {
         background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
-        padding: 1.25rem;
-        border-radius: 0.75rem;
+        padding: 1rem;
+        border-radius: 1rem;
         text-align: center;
-        border: 2px solid transparent;
-        transition: all 0.3s;
-    }
-
-    .summary-card:hover {
-        border-color: #6366f1;
-        transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2);
+        border: 1px solid rgba(0,0,0,0.05);
     }
 
     .summary-label {
-        font-size: 0.75rem;
+        font-size: 0.65rem;
         color: #64748b;
-        font-weight: 600;
+        font-weight: 700;
         text-transform: uppercase;
         letter-spacing: 0.05em;
-        margin-bottom: 0.5rem;
+        margin-bottom: 0.25rem;
     }
 
     .summary-value {
-        font-size: 2rem;
+        font-size: 1.5rem;
         font-weight: 900;
         background: linear-gradient(135deg, #6366f1, #8b5cf6);
         -webkit-background-clip: text;
@@ -179,55 +82,20 @@
 
     /* Chart Sections */
     .chart-section {
-        margin-bottom: 2rem;
-    }
-
-    .chart-section h4 {
-        font-size: 1rem;
-        font-weight: 700;
-        color: #1e293b;
-        margin-bottom: 1rem;
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
+        margin-bottom: 1.5rem;
     }
 
     .chart-container {
         background: white;
-        padding: 1rem;
-        border-radius: 0.75rem;
-        border: 1px solid #e2e8f0;
+        padding: 0.75rem;
+        border-radius: 1rem;
+        border: 1px solid #f1f5f9;
         position: relative;
-        height: 300px;
+        height: 220px;
     }
 
     .chart-container canvas {
         max-height: 100%;
-    }
-
-    /* Mobile Adjustments */
-    @media (max-width: 640px) {
-        .modal-content-stats {
-            max-width: 100%;
-            max-height: 100vh;
-            border-radius: 0;
-        }
-
-        .modal-header-stats {
-            border-radius: 0;
-        }
-
-        .stats-summary-cards {
-            grid-template-columns: 1fr;
-        }
-
-        .chart-container {
-            height: 250px;
-        }
-    }
-
-    #containerStatsModal.modal-overlay.active .modal-content-stats {
-        transform: translateY(0);
     }
 </style>
 
@@ -251,9 +119,9 @@
             .then(response => response.json())
             .then(data => {
                 // Update summary cards
-                document.getElementById('container-mp').textContent = data.average_memory_power + '%';
-                document.getElementById('container-total').textContent = data.total_items;
-                document.getElementById('container-due').textContent = data.due_items;
+                document.getElementById('container-mp').textContent = (data.average_memory_power || 0) + '%';
+                document.getElementById('container-total').textContent = data.total_items || 0;
+                document.getElementById('container-due').textContent = data.due_items || 0;
 
                 // Render charts
                 renderDistributionChart(data.chart_data.distribution);
@@ -267,12 +135,18 @@
     }
 
     function closeContainerStatsModal() {
+        console.log("closeContainerStatsModal called");
         const modal = document.getElementById('containerStatsModal');
+        if (!modal) {
+            console.error("modal element not found");
+            return;
+        }
         modal.classList.remove('active');
 
         // Wait for transition to finish before hiding display
         setTimeout(() => {
             modal.classList.add('hidden');
+            console.log("modal hidden added");
         }, 300);
 
 
@@ -320,10 +194,10 @@
                         position: 'bottom',
                         labels: {
                             font: {
-                                size: 12,
+                                size: 10,
                                 family: 'Inter, sans-serif'
                             },
-                            padding: 15,
+                            padding: 10,
                             usePointStyle: true
                         }
                     },
@@ -398,7 +272,8 @@
                         ticks: {
                             callback: function (value) {
                                 return value + '%';
-                            }
+                            },
+                            font: { size: 9 }
                         },
                         grid: {
                             color: 'rgba(0, 0, 0, 0.05)'
@@ -410,7 +285,8 @@
                         },
                         ticks: {
                             maxRotation: 45,
-                            minRotation: 45
+                            minRotation: 45,
+                            font: { size: 9 }
                         }
                     }
                 },

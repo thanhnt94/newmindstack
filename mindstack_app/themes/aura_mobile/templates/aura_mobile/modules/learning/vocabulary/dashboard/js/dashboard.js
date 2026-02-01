@@ -969,7 +969,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 if (editBtn) {
                     if (s.can_edit) {
                         editBtn.style.display = 'flex';
-                        editBtn.href = '/content/flashcards/edit/' + s.id;
+                        editBtn.href = '/content/manage/edit/' + s.id;
                     } else {
                         editBtn.style.display = 'none';
                     }

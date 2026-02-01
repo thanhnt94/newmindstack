@@ -4213,7 +4213,7 @@
                 if (editBtn) {
                     if (s.can_edit) {
                         editBtn.style.display = 'flex';
-                        editBtn.href = '/content/flashcards/edit/' + s.id;
+                        editBtn.href = '/content/manage/edit/' + s.id;
                     } else {
                         editBtn.style.display = 'none';
                     }
@@ -5399,48 +5399,25 @@
     {% include _v ~ '/modules/learning/vocabulary/dashboard/_inject_stats_button.html' %}
 
     <!-- Edit Set Modal - Beautiful App-like Design -->
-    <div id="editSetModal" class="edit-modal-overlay">
-        <div class="edit-modal-container">
-            <div class="edit-modal-header">
-                <h3 class="edit-modal-title">
+    <div id="editSetModal" class="aura-modal-overlay">
+        <div class="aura-modal-container">
+            <div class="aura-modal-header" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+                <h3 class="aura-modal-title" style="margin: 0; font-size: 1.25rem; font-weight: 700; display: flex; align-items: center; gap: 0.75rem;">
                     <i class="fas fa-edit"></i>
                     Chỉnh sửa bộ thẻ
                 </h3>
-                <button class="edit-modal-close"
+                <button class="aura-modal-close" style="background: rgba(255,255,255,0.2); color: white;"
                     onclick="document.getElementById('editSetModal').classList.remove('active')">
                     <i class="fas fa-times"></i>
                 </button>
             </div>
-            <div class="edit-modal-body" id="editSetModalContent">
+            <div class="aura-modal-body" id="editSetModalContent" style="padding: 0;">
                 <!-- Content loaded here -->
             </div>
         </div>
     </div>
 
     <style>
-        .edit-modal-overlay {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.5);
-            backdrop-filter: blur(8px);
-            z-index: 10000;
-            /* Higher than any other element */
-            align-items: center;
-            justify-content: center;
-            opacity: 0;
-            transition: opacity 0.3s ease, display 0.3s ease;
-        }
-
-        .edit-modal-overlay.active {
-            display: flex;
-            opacity: 1;
-            animation: fadeIn 0.3s ease;
-        }
-
         @keyframes fadeIn {
             from {
                 opacity: 0;
@@ -5462,156 +5439,24 @@
                 transform: translateY(0) scale(1);
             }
         }
-
-        .edit-modal-container {
-            background: white;
-            border-radius: 1.25rem;
-            max-width: 900px;
-            width: 90%;
-            max-height: 90vh;
-            display: flex;
-            flex-direction: column;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-            overflow: hidden;
-            animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-        }
-
-        .edit-modal-header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 1.5rem 2rem;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .edit-modal-title {
-            margin: 0;
-            font-size: 1.5rem;
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-        }
-
-        .edit-modal-title i {
-            font-size: 1.25rem;
-            opacity: 0.9;
-        }
-
-        .edit-modal-close {
-            background: rgba(255, 255, 255, 0.2);
-            border: none;
-            color: white;
-            width: 36px;
-            height: 36px;
-            border-radius: 0.5rem;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.2s;
-            font-size: 1.25rem;
-        }
-
-        .edit-modal-close:hover {
-            background: rgba(255, 255, 255, 0.3);
-            transform: scale(1.1);
-        }
-
-        .edit-modal-close:active {
-            transform: scale(0.95);
-        }
-
-        .edit-modal-body {
-            overflow-y: auto;
-            padding: 2rem;
-            flex: 1;
-        }
-
-        /* Custom scrollbar for modal */
-        .edit-modal-body::-webkit-scrollbar {
-            width: 8px;
-        }
-
-        .edit-modal-body::-webkit-scrollbar-track {
-            background: #f1f1f1;
-            border-radius: 4px;
-        }
-
-        .edit-modal-body::-webkit-scrollbar-thumb {
-            background: #c1c1c1;
-            border-radius: 4px;
-        }
-
-        .edit-modal-body::-webkit-scrollbar-thumb:hover {
-            background: #a8a8a8;
-        }
-
-        /* Loading state */
-        .edit-modal-loading {
-            padding: 3rem;
-            text-align: center;
-        }
-
-        .edit-modal-loading i {
-            font-size: 2.5rem;
-            color: #667eea;
-            margin-bottom: 1rem;
-            animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin {
-            from {
-                transform: rotate(0deg);
-            }
-
-            to {
-                transform: rotate(360deg);
-            }
-        }
-
-        .edit-modal-loading p {
-            color: #666;
-            font-size: 1rem;
-            margin: 0;
-        }
-
-        /* Mobile responsive */
-        @media (max-width: 768px) {
-            .edit-modal-container {
-                width: 95%;
-                max-height: 95vh;
-                border-radius: 1rem;
-            }
-
-            .edit-modal-header {
-                padding: 1.25rem 1.5rem;
-            }
-
-            .edit-modal-title {
-                font-size: 1.25rem;
-            }
-
-            .edit-modal-body {
-                padding: 1.5rem;
-            }
-        }
     </style>
 
     <script>
         // Edit Set Modal Handler - Enhanced UX
         document.addEventListener('DOMContentLoaded', function () {
-            const editBtn = document.querySelector('.step-edit-btn');
+            const editBtn = document.querySelector('.js-edit-set-btn');
             const modal = document.getElementById('editSetModal');
             const modalContent = document.getElementById('editSetModalContent');
 
             if (editBtn && modal) {
                 editBtn.addEventListener('click', function (e) {
                     e.preventDefault();
-                    const editUrl = this.href;
-                    const loadUrl = editUrl + '?is_modal=true';
+                    const editUrl = this.dataset.modalUrl || this.href;
+                    if (!editUrl || editUrl === '#' || editUrl.includes('javascript:void(0)')) {
+                        console.error("Invalid edit URL:", editUrl);
+                        return;
+                    }
+                    const loadUrl = editUrl + (editUrl.includes('?') ? '&' : '?') + 'is_modal=true';
 
                     // Show modal with smooth animation
                     modal.classList.add('active');

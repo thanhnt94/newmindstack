@@ -238,11 +238,13 @@
 
 
 <!-- Flashcard Settings Modal -->
-<div id="flashcard-settings-modal" class="vocab-modal" style="display: none;">
-    <div class="vocab-modal-overlay js-close-settings-modal"></div>
-    <div class="vocab-modal-content" style="max-width: 400px; height: auto; max-height: 80vh;">
-        <button class="vocab-modal-close js-close-settings-modal"><i class="fas fa-times"></i></button>
-        <div class="vocab-modal-body" style="padding: 1.5rem;">
+<div id="flashcard-settings-modal" class="aura-modal-overlay">
+    <div class="aura-modal-container" style="max-height: 85vh; height: auto;">
+        <div class="aura-modal-header">
+            <h3 style="margin: 0; font-size: 1.1rem; font-weight: 700;">Cấu hình học tập</h3>
+            <button class="aura-modal-close js-close-settings-modal"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="aura-modal-body" style="padding: 1.5rem;">
             <div id="settings-dynamic-content-wrapper">
                 <!-- Redesigned Settings Content from index.html -->
                 {% include _v ~ '/modules/learning/vocabulary/dashboard/components/_flashcard_settings.html'

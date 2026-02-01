@@ -299,59 +299,65 @@ def get_flashcard_mode_counts(user_id, set_identifier):
     """
     current_app.logger.debug(f"get_flashcard_mode_counts: user={user_id}, set={set_identifier}")
     
-    modes_with_counts = []
-    mode_function_map = {
-        'mixed_srs': get_mixed_items,
-        'new_only': get_new_only_items,
-        'due_only': get_due_items,
-        'all_review': get_all_review_items,
-        'hard_only': get_hard_items,
-        'sequential': get_sequential_items,
-        'pronunciation_practice': get_pronunciation_items,
-        'writing_practice': get_writing_items,
-        'quiz_practice': get_quiz_items,
-        'essay_practice': get_essay_items,
-        'listening_practice': get_listening_items,
-        'speaking_practice': get_speaking_items,
-    }
-
-    for mode_config in FlashcardLearningConfig.FLASHCARD_MODES:
-        mode_id = mode_config['id']
-        mode_name = mode_config['name']
-        algorithm_func = mode_function_map.get(mode_id)
-        hide_if_zero = mode_config.get('hide_if_zero', False)
-
-        if algorithm_func:
-            if mode_id == 'mixed_srs':
-                due_count = get_due_items(user_id, set_identifier, None).count()
-                new_count = get_new_only_items(user_id, set_identifier, None).count()
-                count = due_count + new_count
-            elif mode_id in ('sequential', 'random'):
-                count = get_all_items_for_autoplay(user_id, set_identifier, None).count()
-            else:
-                count = algorithm_func(user_id, set_identifier, None).count()
-
-            if hide_if_zero and count == 0:
-                continue
-
-            modes_with_counts.append({'id': mode_id, 'name': mode_name, 'count': count})
-        else:
-            current_app.logger.warning(f"No algorithm function found for mode: {mode_id}")
-            modes_with_counts.append({'id': mode_id, 'name': mode_name, 'count': 0})
-
-    autoplay_learned_count = get_all_review_items(user_id, set_identifier, None).count()
-    autoplay_all_count = get_all_items_for_autoplay(user_id, set_identifier, None).count()
-    autoplay_total_count = max(autoplay_learned_count, autoplay_all_count)
-
-    modes_with_counts.append({
-        'id': 'autoplay',
-        'name': FlashcardLearningConfig.AUTOPLAY_MODE_NAME,
-        'count': autoplay_total_count,
-        'autoplay_counts': {
-            'autoplay_learned': autoplay_learned_count,
-            'autoplay_all': autoplay_all_count,
+    try:
+        modes_with_counts = []
+        mode_function_map = {
+            'mixed_srs': get_mixed_items,
+            'new_only': get_new_only_items,
+            'due_only': get_due_items,
+            'all_review': get_all_review_items,
+            'hard_only': get_hard_items,
+            'sequential': get_sequential_items,
+            'pronunciation_practice': get_pronunciation_items,
+            'writing_practice': get_writing_items,
+            'quiz_practice': get_quiz_items,
+            'essay_practice': get_essay_items,
+            'listening_practice': get_listening_items,
+            'speaking_practice': get_speaking_items,
         }
-    })
 
-    current_app.logger.debug(f"get_flashcard_mode_counts: modes={modes_with_counts}")
-    return modes_with_counts
+        for mode_config in FlashcardLearningConfig.FLASHCARD_MODES:
+            mode_id = mode_config['id']
+            mode_name = mode_config['name']
+            algorithm_func = mode_function_map.get(mode_id)
+            hide_if_zero = mode_config.get('hide_if_zero', False)
+
+            if algorithm_func:
+                if mode_id == 'mixed_srs':
+                    due_count = get_due_items(user_id, set_identifier, None).count()
+                    new_count = get_new_only_items(user_id, set_identifier, None).count()
+                    count = due_count + new_count
+                elif mode_id in ('sequential', 'random'):
+                    count = get_all_items_for_autoplay(user_id, set_identifier, None).count()
+                else:
+                    count = algorithm_func(user_id, set_identifier, None).count()
+
+                if hide_if_zero and count == 0:
+                    continue
+
+                modes_with_counts.append({'id': mode_id, 'name': mode_name, 'count': count})
+            else:
+                current_app.logger.warning(f"No algorithm function found for mode: {mode_id}")
+                modes_with_counts.append({'id': mode_id, 'name': mode_name, 'count': 0})
+
+        autoplay_learned_count = get_all_review_items(user_id, set_identifier, None).count()
+        autoplay_all_count = get_all_items_for_autoplay(user_id, set_identifier, None).count()
+        autoplay_total_count = max(autoplay_learned_count, autoplay_all_count)
+
+        modes_with_counts.append({
+            'id': 'autoplay',
+            'name': FlashcardLearningConfig.AUTOPLAY_MODE_NAME,
+            'count': autoplay_total_count,
+            'autoplay_counts': {
+                'autoplay_learned': autoplay_learned_count,
+                'autoplay_all': autoplay_all_count,
+            }
+        })
+
+        current_app.logger.debug(f"get_flashcard_mode_counts: modes={modes_with_counts}")
+        return modes_with_counts
+    except Exception as e:
+        current_app.logger.error(f"Error in get_flashcard_mode_counts: {e}")
+        import traceback
+        current_app.logger.error(traceback.format_exc())
+        raise e

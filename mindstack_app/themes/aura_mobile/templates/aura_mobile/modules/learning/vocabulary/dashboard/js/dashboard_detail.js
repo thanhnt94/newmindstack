@@ -99,7 +99,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 document.querySelectorAll('.js-edit-set-btn').forEach(btn => {
                     if (s.can_edit) {
                         btn.style.display = 'flex';
-                        btn.dataset.modalUrl = '/content/flashcards/edit/' + s.id;
+                        btn.dataset.modalUrl = '/content/manage/edit/' + s.id;
                     } else {
                         btn.style.display = 'none';
                     }

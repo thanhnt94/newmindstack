@@ -1,189 +1,37 @@
 {# Reusable Item Stats Modal #}
-<div id="item-stats-modal" class="vocab-modal" style="display: none;">
-    <div class="vocab-modal-overlay js-close-stats-modal"></div>
-    <div class="vocab-modal-content">
-        <button class="vocab-modal-header-btn edit-btn js-edit-item-stats" title="Chỉnh sửa thẻ"
-            style="display: none; left: 1rem; right: auto;">
-            <i class="fas fa-edit"></i>
-        </button>
-        <button class="vocab-modal-close js-close-stats-modal">
-            <i class="fas fa-times"></i>
-        </button>
-        <div id="item-stats-container" class="vocab-modal-body">
+<div id="item-stats-modal" class="aura-modal-overlay">
+    <div class="aura-modal-container">
+        <div class="aura-modal-header" style="background: white;">
+            <button class="aura-modal-close js-edit-item-stats" title="Chỉnh sửa thẻ" style="display: none; background: #eef2ff; color: #4f46e5;">
+                <i class="fas fa-edit"></i>
+            </button>
+            <div style="flex: 1;"></div>
+            <button class="aura-modal-close js-close-stats-modal">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div id="item-stats-container" class="aura-modal-body" style="padding: 0;">
             <!-- Content loaded here -->
         </div>
     </div>
 </div>
 
 <!-- Edit Overlay Modal (appears on top of stats modal) -->
-<div id="vocab-edit-overlay-modal" class="vocab-edit-overlay" style="display: none;">
-    <div class="vocab-edit-overlay-bg" onclick="closeVocabEditOverlay()"></div>
-    <div class="vocab-edit-overlay-content">
-        <div class="vocab-edit-overlay-body">
-            <iframe id="vocab-edit-iframe" src="" frameborder="0"></iframe>
-            <div id="vocab-edit-loading" class="vocab-edit-loading">
-                <i class="fas fa-spinner fa-spin"></i>
+<div id="vocab-edit-overlay-modal" class="aura-modal-overlay" style="z-index: 100001;">
+    <div class="aura-modal-container">
+        <div class="aura-modal-header">
+            <h3 style="margin: 0; font-size: 1.1rem; font-weight: 700;">Chỉnh sửa</h3>
+            <button class="aura-modal-close" onclick="closeVocabEditOverlay()">&times;</button>
+        </div>
+        <div class="aura-modal-body" style="padding: 0;">
+            <iframe id="vocab-edit-iframe" src="" frameborder="0" style="width: 100%; height: 100%; border: none;"></iframe>
+            <div id="vocab-edit-loading" style="position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; background: white; color: #6366f1; gap: 0.75rem;">
+                <i class="fas fa-spinner fa-spin" style="font-size: 2rem;"></i>
                 <span>Đang tải...</span>
             </div>
         </div>
     </div>
 </div>
-
-<style>
-    /* Stats Modal Styles */
-    .vocab-modal {
-        position: fixed;
-        inset: 0;
-        z-index: 10000;
-        display: none;
-        align-items: center;
-        justify-content: center;
-        padding: 0.5rem;
-        box-sizing: border-box;
-    }
-
-    .vocab-modal-overlay {
-        position: absolute;
-        inset: 0;
-        background: rgba(0, 0, 0, 0.4);
-        backdrop-filter: blur(4px);
-    }
-
-    .vocab-modal-content {
-        position: relative;
-        width: 94%;
-        max-width: 480px;
-        height: 88dvh;
-        max-height: 88dvh;
-        background: white;
-        border-radius: 1.5rem;
-        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-        display: flex;
-        flex-direction: column;
-        overflow: hidden;
-        animation: none !important;
-        margin: auto;
-    }
-
-    .vocab-modal-close,
-    .vocab-modal-header-btn {
-        position: absolute;
-        top: 1rem;
-        width: 36px;
-        height: 36px;
-        border-radius: 50%;
-        background: #f1f5f9;
-        border: none;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: #64748b;
-        cursor: pointer;
-        transition: all 0.2s;
-        z-index: 10;
-    }
-
-    .vocab-modal-close {
-        right: 1rem;
-    }
-
-    .vocab-modal-header-btn:hover,
-    .vocab-modal-close:hover {
-        background: #e2e8f0;
-    }
-
-    .vocab-modal-close:hover {
-        color: #ef4444;
-    }
-
-    .edit-btn:hover {
-        color: #4f46e5;
-    }
-
-    .vocab-modal-body {
-        padding: 0;
-        flex: 1;
-        background: #f8fafc;
-        overflow: hidden;
-        display: flex;
-        flex-direction: column;
-    }
-
-    @keyframes vocabScaleIn {
-        from {
-            transform: scale(0.95);
-            opacity: 0;
-        }
-
-        to {
-            transform: scale(1);
-            opacity: 1;
-        }
-    }
-
-    /* Edit Overlay Modal Styles */
-    .vocab-edit-overlay {
-        position: fixed;
-        inset: 0;
-        z-index: 100001;
-        /* Higher than forced stats modal z-index */
-        display: none;
-        align-items: center;
-        justify-content: center;
-    }
-
-    .vocab-edit-overlay-bg {
-        position: absolute;
-        inset: 0;
-        background: rgba(0, 0, 0, 0.6);
-        backdrop-filter: blur(4px);
-    }
-
-    .vocab-edit-overlay-content {
-        position: relative;
-        width: 94%;
-        max-width: 480px;
-        height: 88dvh;
-        max-height: 88dvh;
-        background: white;
-        border-radius: 1.5rem;
-        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.4);
-        display: flex;
-        flex-direction: column;
-        overflow: hidden;
-        animation: vocabScaleIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-        z-index: 1;
-    }
-
-    .vocab-edit-overlay-body {
-        flex: 1;
-        position: relative;
-        overflow: hidden;
-    }
-
-    .vocab-edit-overlay-body iframe {
-        width: 100%;
-        height: 100%;
-        border: none;
-    }
-
-    .vocab-edit-loading {
-        position: absolute;
-        inset: 0;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        background: white;
-        color: #6366f1;
-        font-size: 1rem;
-        gap: 0.75rem;
-    }
-
-    .vocab-edit-loading i {
-        font-size: 2rem;
-    }
-</style>
 
 <script>
     (function () {
@@ -194,11 +42,7 @@
             const loading = document.getElementById('vocab-edit-loading');
             if (!overlay || !iframe) return;
 
-            // Lock stats modal scroll
-            const statsBody = document.querySelector('.vocab-modal-body');
-            if (statsBody) statsBody.style.overflow = 'hidden';
-
-            overlay.style.display = 'flex';
+            overlay.classList.add('active');
             if (loading) loading.style.display = 'flex';
             iframe.style.visibility = 'hidden';
             iframe.src = editUrl;
@@ -212,21 +56,14 @@
         window.closeVocabEditOverlay = function () {
             const overlay = document.getElementById('vocab-edit-overlay-modal');
             const iframe = document.getElementById('vocab-edit-iframe');
-            if (overlay) overlay.style.display = 'none';
+            if (overlay) overlay.classList.remove('active');
             if (iframe) iframe.src = '';
-
-            // Unlock stats modal scroll
-            const statsBody = document.querySelector('.vocab-modal-body');
-            if (statsBody) statsBody.style.overflow = '';
         };
 
         // [MARKER FUNCTION]
         window.toggleVocabMarker = function (itemId, markerType, btn) {
             if (!btn) return;
-            // Optimistic UI interaction
             const icon = btn.querySelector('i');
-
-            // Disable temp
             btn.disabled = true;
 
             fetch('/api/v3/learning/markers/toggle', {
@@ -242,9 +79,7 @@
                     btn.disabled = false;
                     if (data.success) {
                         const isMarked = data.is_marked;
-                        // Update UI based on type
                         if (isMarked) {
-                            // Only toggle fas/far for icons that have outline versions
                             if (markerType !== 'difficult') {
                                 icon.classList.remove('far');
                                 icon.classList.add('fas');
@@ -261,7 +96,6 @@
                                 btn.style.color = '#e11d48';
                             }
                         } else {
-                            // Only toggle fas/far for icons that have outline versions
                             if (markerType !== 'difficult') {
                                 icon.classList.remove('fas');
                                 icon.classList.add('far');
@@ -280,7 +114,6 @@
                 });
         };
 
-        // [GLOBAL FUNCTIONS] Defined early for inline onclicks
         window.toggleNoteEdit = function (showEdit) {
             const displayMode = document.getElementById('note-display-mode');
             const editMode = document.getElementById('note-edit-mode');
@@ -292,13 +125,6 @@
                     if (input) input.focus();
                 }
             }
-        };
-
-        window.toggleSubTabs = function (show) {
-            const el = document.getElementById('header-sub-tabs');
-            if (el) el.style.display = show ? 'flex' : 'none';
-            const histBar = document.getElementById('history-detail-bar');
-            if (histBar) histBar.style.display = 'none';
         };
 
         window.switchSubTab = function (targetId) {
@@ -330,7 +156,6 @@
 
             const tabBtns = modalContainer.querySelectorAll('.tab-btn');
             const tabContents = modalContainer.querySelectorAll('.tab-content');
-            const histBar = document.getElementById('history-detail-bar');
 
             tabBtns.forEach(btn => {
                 btn.addEventListener('click', function () {
@@ -347,20 +172,6 @@
                             content.classList.remove('active');
                         }
                     });
-
-                    const isNộiDung = targetTab === 'content';
-                    const subTabs = document.getElementById('header-sub-tabs');
-                    if (subTabs) subTabs.style.display = isNộiDung ? 'flex' : 'none';
-
-                    const isDetails = targetTab === 'details';
-                    if (histBar) histBar.style.display = isDetails ? 'flex' : 'none';
-
-                    if (isDetails) {
-                        const items = document.querySelectorAll('.js-history-item');
-                        if (items.length > 0 && !document.querySelector('.js-history-item.active')) {
-                            selectHistoryItem(items[0], 0);
-                        }
-                    }
                 });
             });
         };
@@ -491,15 +302,6 @@
                             } else {
                                 contentBox.innerHTML = '<div style="white-space: pre-wrap;">' + content + '</div>';
                             }
-                        } else {
-                            const tabAi = document.querySelector('#sub-ai');
-                            if (tabAi) {
-                                if (window.renderMarkdown) {
-                                    tabAi.innerHTML = '<div class="ai-content-box markdown-body" style="line-height: 1.6; color: #334155; font-size: 0.95rem; white-space: normal;">' + window.renderMarkdown(content.trim()) + '</div>';
-                                } else {
-                                    tabAi.innerHTML = '<div class="ai-content-box" style="line-height: 1.6; color: #334155; font-size: 0.95rem;"><div style="white-space: pre-wrap;">' + content + '</div></div>';
-                                }
-                            }
                         }
                     } else {
                         alert('Lỗi: ' + data.message);
@@ -523,47 +325,26 @@
             if (closeBtns) {
                 closeBtns.forEach(btn => {
                     btn.addEventListener('click', function () {
-                        if (statsModal) statsModal.style.cssText = 'display: none !important;';
+                        if (statsModal) statsModal.classList.remove('active');
                     });
                 });
             }
 
             document.addEventListener('keydown', function (e) {
-                if (e.key === 'Escape' && statsModal && !statsModal.style.cssText.includes('none')) {
-                    statsModal.style.cssText = 'display: none !important;';
+                if (e.key === 'Escape' && statsModal && statsModal.classList.contains('active')) {
+                    statsModal.classList.remove('active');
                 }
             });
 
 
             window.openVocabularyItemStats = function (itemId) {
-                console.log('openVocabularyItemStats called with itemId:', itemId);
-                console.log('statsModal element:', statsModal);
-                console.log('statsContainer element:', statsContainer);
+                if (!statsModal || !statsContainer) return;
 
-                if (!statsModal || !statsContainer) {
-                    console.error("Modal elements not found");
-                    return;
-                }
-
-                console.log('Setting modal display to flex [FORCE V2]');
-
-                // Force wrapper visibility
-                statsModal.style.cssText = 'display: flex !important; position: fixed !important; inset: 0 !important; z-index: 100000 !important; align-items: center !important; justify-content: center !important; opacity: 1 !important; visibility: visible !important; background-color: rgba(0,0,0,0.5) !important;';
-
-                // Force content visibility
-                const content = statsModal.querySelector('.vocab-modal-content');
-                if (content) {
-                    content.style.cssText = 'display: flex !important; opacity: 1 !important; visibility: visible !important; animation: none !important;';
-                }
-
-                console.log('Modal style after set:', statsModal.style.cssText);
-
-
+                statsModal.classList.add('active');
                 statsContainer.innerHTML = '<div style="display: flex; align-items: center; justify-content: center; height: 16rem;"><i class="fas fa-spinner fa-spin" style="font-size: 2rem; color: #6366f1;"></i></div>';
 
                 const editBtn = statsModal.querySelector('.js-edit-item-stats');
                 if (editBtn) editBtn.style.display = 'none';
-
 
                 fetch('/learn/vocabulary/item/' + itemId + '/stats?modal=true&_cb=' + new Date().getTime())
                     .then(r => r.text())
@@ -586,11 +367,9 @@
                             }
                         }
 
-                        // [AI COACH] Render Markdown for existing explanation
                         const mdContainers = statsContainer.querySelectorAll('.js-markdown-content');
                         mdContainers.forEach(container => {
                             if (window.renderMarkdown) {
-                                // Important: We use textContent but remove pre-wrap for proper markdown list rendering
                                 const rawText = container.textContent.trim();
                                 container.innerHTML = window.renderMarkdown(rawText);
                                 container.style.whiteSpace = 'normal';
