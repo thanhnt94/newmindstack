@@ -24,6 +24,14 @@ class FSRSProcessor:
         else: return Rating.Hard
 
     @staticmethod
+    def _normalize_rating(quality: int) -> int:
+        """Map generic quality (1-4) to FSRS Rating."""
+        if quality <= 1: return Rating.Again
+        if quality == 2: return Rating.Hard
+        if quality == 3: return Rating.Good
+        return Rating.Easy
+
+    @staticmethod
     def _calculate_typing_rating(target_text: str, user_answer: str, duration_ms: int) -> int:
         if not target_text or not user_answer: return Rating.Again
         t = target_text.strip().lower()

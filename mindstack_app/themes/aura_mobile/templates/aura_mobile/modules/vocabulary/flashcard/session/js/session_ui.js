@@ -809,14 +809,6 @@
         `, config.score_duration, config.score_position);
     };
 
-    // Alias for Memory Power
-    window.showMemoryPowerToast = function (powerDiff) {
-        const config = window.FlashcardConfig?.notifications || {};
-        return window.showMobileToast(`
-             <div class="text-2xl font-bold text-indigo-400">Memory Power</div>
-             <div class="text-lg font-medium text-indigo-200">+${powerDiff}</div>
-        `, config.score_duration, config.score_position);
-    };
 
     // [UX-IMMEDIATE] Update specific card stats immediately after rating (before transition)
     window.updateFlashcardStats = function (data) {
@@ -834,23 +826,9 @@
 
             setText('.js-card-streak', data.statistics.current_streak || 0);
             setText('.js-card-overlay-streak', data.statistics.current_streak || 0);
-
-            // Difficulty (NEW)
-            const difficulty = parseFloat(data.statistics.easiness_factor || 0).toFixed(1);
-            setText('.js-card-overlay-difficulty', difficulty);
         }
 
-        if (data.memory_power) {
-            // Stability: làm tròn 1 số lẻ (vd: 2.5)
-            const stab = parseFloat(data.memory_power.stability || 0).toFixed(1);
-            setText('.js-card-stability', stab);
-            setText('.js-card-overlay-stability', stab);
-
-            // Retrievability: Backend đã trả về % (vd: 90.5), chỉ cần làm tròn
-            const retriev = Math.round(data.memory_power.retrievability || 0);
-            setText('.js-card-retrievability', retriev);
-            setText('.js-card-overlay-retrievability', retriev);
-        }
+        // FSRS metrics display removed as per user request
 
         // Cập nhật trạng thái (Badge) - both info bar and overlay
         if (data.new_progress_status) {

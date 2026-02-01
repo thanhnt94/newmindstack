@@ -46,7 +46,7 @@ class FlashcardEngine:
             learning_mode: Learning mode string for ReviewLog.
             
         Returns:
-            tuple: (score_change, new_total_score, result_type, new_status, item_stats, memory_power_data)
+            tuple: (score_change, new_total_score, result_type, new_status, item_stats, srs_data)
         """
         item = LearningItem.query.get(item_id)
         if not item:
@@ -64,19 +64,12 @@ class FlashcardEngine:
 
         score_change = 0
         progress = None
-        memory_power_data = None  # NEW: Track Memory Power metrics
+        srs_data = None  # [UPDATED] Track SRS (FSRS) metrics
         
-        # Capture previous state for delta animation
-        old_memory_power = 0.0
-        old_progress = LearningProgress.query.filter_by(
-            user_id=user_id, item_id=item_id, learning_mode='flashcard'
-        ).first()
-        if old_progress:
-            old_memory_power = round(FsrsService.get_memory_power(old_progress) * 100, 1)
+        # SRS state capture removed as per user request
 
         if update_srs:
             # Update SRS via Interface (Pure FSRS)
-            from mindstack_app.modules.fsrs.interface import FSRSInterface
             
             progress, srs_result = FSRSInterface.process_review(
                 user_id=user_id,
@@ -105,13 +98,8 @@ class FlashcardEngine:
             )
             score_change = score_result.total_points
             
-            # Extract FSRS metrics for frontend
-            memory_power_data = {
-                'stability': round(srs_result.stability, 2),  # Days
-                'retrievability': round(srs_result.retrievability * 100, 1),  # %
-                'old_retrievability': old_memory_power,  # % (for delta animation)
-                'correct_streak': srs_result.correct_streak,
-                'incorrect_streak': srs_result.incorrect_streak,
+            # Extract minimal FSRS metrics
+            srs_data = {
                 'next_review': srs_result.next_review.isoformat() if srs_result.next_review else None,
                 'interval_minutes': srs_result.interval_minutes
             }
@@ -162,7 +150,7 @@ class FlashcardEngine:
         # distinct statistics retrieval
         item_stats = cls.get_item_statistics(user_id, item_id)
 
-        return score_change, new_total_score, result_type, {0: 'new', 1: 'learning', 2: 'review', 3: 'relearning'}.get(progress.fsrs_state, 'new'), item_stats, memory_power_data
+        return score_change, new_total_score, result_type, {0: 'new', 1: 'learning', 2: 'review', 3: 'relearning'}.get(progress.fsrs_state, 'new'), item_stats, srs_data
 
     @staticmethod
     def get_item_statistics(user_id: int, item_id: int) -> dict:
@@ -179,7 +167,7 @@ class FlashcardEngine:
             'correct_rate': 0.0, 'current_streak': 0, 'longest_streak': 0,
             'first_seen': None, 'last_reviewed': None, 'next_review': None,
             'easiness_factor': 0.0, 'repetitions': 0, 'interval': 0,
-            'status': 'new', 'mastery': 0.0, 'memory_power': 0.0,
+            'status': 'new', 'repetitions': 0, 'interval': 0,
             'preview_count': 0, 'has_real_reviews': False,
             'has_preview_history': False, 'has_preview_only': False,
             'preview_count': 0, 'has_real_reviews': False,
@@ -207,8 +195,6 @@ class FlashcardEngine:
             'repetitions': progress.repetitions,
             'interval': progress.current_interval or 0,
             'status': {0: 'new', 1: 'learning', 2: 'review', 3: 'relearning'}.get(progress.fsrs_state, 'new'),
-            'mastery': round(min((progress.fsrs_stability or 0)/21.0, 1.0), 4),
-            'memory_power': round(FSRSInterface.get_retrievability(progress) * 100, 1),
             # Spec v7: Custom state from mode_data
             'custom_state': progress.mode_data.get('custom_state', 'new') if progress.mode_data else 'new',
         })

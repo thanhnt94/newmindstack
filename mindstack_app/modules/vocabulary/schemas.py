@@ -30,6 +30,11 @@ class VocabSetDTO:
         """Property alias for backward compatibility with older templates."""
         return self.id
 
+    @property
+    def item_count(self):
+        """Property alias for backward compatibility with older templates."""
+        return self.card_count
+
 
 
 @dataclass

@@ -614,7 +614,7 @@ class FlashcardSessionManager:
             current_user_obj = User.query.get(self.user_id)
             current_user_total_score = current_user_obj.total_score if current_user_obj else 0
 
-            score_change, updated_total_score, answer_result_type, new_progress_status, item_stats, memory_power_data = FlashcardEngine.process_answer(
+            score_change, updated_total_score, answer_result_type, new_progress_status, item_stats, srs_data = FlashcardEngine.process_answer(
                 user_id=self.user_id,
                 item_id=item_id,
                 quality=user_answer_quality,
@@ -666,7 +666,7 @@ class FlashcardSessionManager:
                 'answer_result_type': answer_result_type,
                 'new_progress_status': new_progress_status,
                 'statistics': item_stats,
-                'memory_power': memory_power_data,  # NEW: Include Memory Power metrics
+                'srs_data': srs_data,  # [UPDATED] FSRS metrics
                 'session_points': self.session_points  # NEW: Return accumulated session points
             }
         except Exception as e:

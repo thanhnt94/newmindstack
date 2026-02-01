@@ -1034,7 +1034,7 @@ function renderCardStatsHtml(stats, scoreChange = 0, cardContent = {}, isInitial
                 <div class="icon-bubble"><i class="fas fa-bullseye"></i></div>
                 <div>
                     <h4>Chỉ số ghi nhớ</h4>
-                    <p>Tổng hợp theo thuật toán SM-2.</p>
+                    <p>Dữ liệu ôn tập cá nhân hóa.</p>
                 </div>
             </div>
             <div class="insight-grid">
@@ -1063,21 +1063,6 @@ function renderCardStatsHtml(stats, scoreChange = 0, cardContent = {}, isInitial
                     <span class="insight-card__label">Chuỗi dài nhất</span>
                     <span class="insight-card__value">${longestStreak}</span>
                     <span class="insight-card__muted">${longestStreak > 0 ? 'Kỷ lục ghi nhớ' : 'Chưa xác định'}</span>
-                </div>
-                <div class="insight-card">
-                    <span class="insight-card__label">Hệ số dễ (EF)</span>
-                    <span class="insight-card__value">${easinessFactor}</span>
-                    <span class="insight-card__muted">Điều chỉnh sau mỗi lần ôn</span>
-                </div>
-                <div class="insight-card">
-                    <span class="insight-card__label">Lặp lại (n)</span>
-                    <span class="insight-card__value">${repetitions}</span>
-                    <span class="insight-card__muted">Số lần đã ghi nhớ</span>
-                </div>
-                <div class="insight-card">
-                    <span class="insight-card__label">Khoảng cách (I)</span>
-                    <span class="insight-card__value">${formattedIntervalDisplay || 'Chưa có'}</span>
-                    <span class="insight-card__muted">Thời gian đến lần ôn tiếp theo</span>
                 </div>
             </div>
         </div>
@@ -1259,7 +1244,7 @@ function renderMobileCardStatsHtml(stats, scoreChange = 0, cardContent = {}, isI
             </div>
 
             <!-- Metrics Grid -->
-            <div class="grid grid-cols-3 gap-3 mb-6">
+            <div class="grid grid-cols-2 gap-3 mb-6">
                 <div class="bg-slate-50 p-3 rounded-2xl flex flex-col items-center justify-center text-center">
                     <span class="text-[10px] uppercase font-bold text-slate-400 mb-1">Chuỗi</span>
                     <span class="text-lg font-black text-slate-700">${streak}</span>
@@ -1267,10 +1252,6 @@ function renderMobileCardStatsHtml(stats, scoreChange = 0, cardContent = {}, isI
                 <div class="bg-slate-50 p-3 rounded-2xl flex flex-col items-center justify-center text-center">
                     <span class="text-[10px] uppercase font-bold text-slate-400 mb-1">Lượt ôn</span>
                     <span class="text-lg font-black text-slate-700">${totalReviews}</span>
-                </div>
-                <div class="bg-slate-50 p-3 rounded-2xl flex flex-col items-center justify-center text-center">
-                    <span class="text-[10px] uppercase font-bold text-slate-400 mb-1">Độ khó</span>
-                    <span class="text-lg font-black text-slate-700">${ef}</span>
                 </div>
             </div>
 
@@ -1619,18 +1600,7 @@ Object.defineProperty(window, 'flashcardSessionStats', {
 window.updateCardHudStats = function (stats) {
     if (!stats) return;
 
-    // 1. Memory Power (Percentage)
-    const memPowerEls = document.querySelectorAll('.js-fc-memory-score');
-    memPowerEls.forEach(el => {
-        const val = (stats.retrievability !== undefined) ? Math.round(stats.retrievability) : (stats.memory_power || 0);
-        el.textContent = val + '%';
-
-        // Optional: color based on value
-        if (val >= 90) el.className = 'hud-value-lg text-emerald-500 js-fc-memory-score';
-        else if (val >= 70) el.className = 'hud-value-lg text-purple-600 js-fc-memory-score';
-        else if (val >= 40) el.className = 'hud-value-lg text-indigo-600 js-fc-memory-score';
-        else el.className = 'hud-value-lg text-slate-500 js-fc-memory-score';
-    });
+    // SRS metrics (Memory Score) removed as per user request
 
     // 2. Correct Count for this card
     const correctEls = document.querySelectorAll('.js-fc-card-right');

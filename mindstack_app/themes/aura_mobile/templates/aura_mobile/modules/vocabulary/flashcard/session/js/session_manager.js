@@ -333,9 +333,8 @@ function displayCurrentCard() {
                 current_streak: currentCardData.initial_stats.current_streak,
                 easiness_factor: currentCardData.initial_stats.easiness_factor
             },
-            memory_power: {
-                stability: currentCardData.initial_stats.interval || currentCardData.initial_stats.stability || 0,
-                retrievability: currentCardData.initial_stats.memory_power || currentCardData.initial_stats.retrievability || 0
+            srs_data: {
+                next_review: currentCardData.initial_stats.next_review || null
             },
             new_progress_status: currentCardData.initial_stats.status || currentCardData.initial_stats.custom_state || 'new'
         };
@@ -372,8 +371,7 @@ function displayCurrentCard() {
         incorrect: sessionStatsLocal.incorrect,
         vague: sessionStatsLocal.vague,
         session_score: sessionScore,
-        retrievability: currentCardData.initial_stats ? (currentCardData.initial_stats.retrievability || currentCardData.initial_stats.memory_power || 0) : 0,
-        current_streak: currentCardData.initial_stats ? (currentCardData.initial_stats.current_streak || 0) : 0
+        current_streak: currentCardData.initial_stats ? (currentCardData.initial_streak || 0) : 0
     };
     document.dispatchEvent(new CustomEvent('flashcardStatsUpdated', { detail: window.flashcardSessionStats }));
 }
@@ -499,15 +497,12 @@ async function submitFlashcardAnswer(itemId, answer) {
             accuracy: accuracy,
             session_score: sessionScore,
             // Include card-specific stats (Box B)
-            current_card_mem_percent: data.statistics ? data.statistics.memory_power : 0,
             current_card_history_right: data.statistics ? data.statistics.correct_count : 0,
             current_card_history_wrong: data.statistics ? (data.statistics.incorrect_count + data.statistics.vague_count) : 0,
-            // [NEW] FSRS metrics for dynamic card info bar
+            // [CLEANUP] Removed FSRS metrics display as per user request
             status: data.new_progress_status || data.statistics?.status || 'new',
             times_reviewed: data.statistics ? data.statistics.times_reviewed : 0,
             current_streak: data.statistics ? (data.statistics.current_streak || 0) : 0,
-            stability: data.memory_power?.stability || data.statistics?.stability || 0,
-            retrievability: data.memory_power?.retrievability ? Math.round(data.memory_power.retrievability) : (data.statistics?.memory_power || 0),
             rating_counts: data.statistics?.rating_counts || { 1: 0, 2: 0, 3: 0, 4: 0 }
         };
 

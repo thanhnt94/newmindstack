@@ -29,7 +29,7 @@ class TemplateService:
         },
         'flashcard.cardsession': {
             'label': 'Flashcard Session',
-            'relative_path': 'modules/learning/vocabulary/flashcard/session'
+            'relative_path': 'modules/vocabulary/flashcard/session'
         },
         'flashcard.setup': {
             'label': 'Flashcard Setup (Chọn chế độ)',
@@ -53,7 +53,7 @@ class TemplateService:
         },
         'vocabulary.dashboard': {
             'label': 'Vocabulary (Từ vựng)',
-            'relative_path': 'modules/learning/vocabulary'
+            'relative_path': 'modules/vocabulary'
         },
         'course.dashboard': {
             'label': 'Course (Khóa học)',

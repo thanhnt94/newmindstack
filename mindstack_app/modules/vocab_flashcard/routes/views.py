@@ -28,7 +28,9 @@ from ..engine.algorithms import (
 
 # Import từ services module
 from ..services import AudioService, ImageService, LearningSessionService
-from mindstack_app.modules.fsrs.interface import FSRSInterface as FsrsService
+from mindstack_app.modules.fsrs.interface import FSRSInterface
+from mindstack_app.modules.vocabulary.services.stats_container import VocabularyStatsService
+from mindstack_app.modules.fsrs.services.optimizer_service import FSRSOptimizerService
 
 from ..engine.core import FlashcardEngine
 from mindstack_app.models import (
@@ -116,7 +118,7 @@ def serve_session_asset(filename):
     version = TemplateService.get_active_version()
     
     # Construct path: themes/{version}/templates/{version}/modules/learning/vocabulary/flashcard/session
-    assets_dir = os.path.join(current_app.root_path, 'themes', version, 'templates', version, 'modules', 'learning', 'vocabulary', 'flashcard', 'session')
+    assets_dir = os.path.join(current_app.root_path, 'themes', version, 'templates', version, 'modules', 'vocabulary', 'flashcard', 'session')
     
     try:
         return send_from_directory(assets_dir, filename)
@@ -153,7 +155,7 @@ def setup(set_id):
     except Exception:
         pass
 
-    return render_dynamic_template('modules/learning/vocabulary/flashcard/setup/index.html',
+    return render_dynamic_template('modules/vocabulary/flashcard/setup/index.html',
         set_id=set_id,
         container_title=container.title,
         mode_counts=mode_counts,
@@ -406,7 +408,7 @@ def flashcard_session(session_id):
         current_app.logger.warning(f"Error loading display settings: {e}")
     
     return render_dynamic_template(
-        'modules/learning/vocabulary/flashcard/session/index.html',
+        'modules/vocabulary/flashcard/session/index.html',
         user_button_count=user_button_count,
         is_autoplay_session=is_autoplay_session,
         autoplay_mode=autoplay_mode,
@@ -416,6 +418,72 @@ def flashcard_session(session_id):
         saved_auto_save=saved_auto_save,
         display_settings=display_settings
     )
+
+
+@flashcard_learning_bp.route('/api/items/<int:item_id>', methods=['GET'])
+@login_required
+def api_get_flashcard_item_details(item_id):
+    """Trả về thông tin chi tiết của một thẻ trong phiên học hiện tại."""
+    if 'flashcard_session' not in session:
+        return jsonify({'success': False, 'message': 'Không có phiên học nào đang hoạt động.'}), 400
+
+    try:
+        item = LearningItem.query.filter_by(item_id=item_id, item_type='FLASHCARD').first()
+        if not item:
+            return jsonify({'success': False, 'message': 'Không tìm thấy thẻ yêu cầu.'}), 404
+
+        accessible_set_ids = set(get_accessible_flashcard_set_ids(current_user.user_id))
+        if accessible_set_ids and item.container_id not in accessible_set_ids:
+            return jsonify({'success': False, 'message': 'Bạn không có quyền truy cập thẻ này.'}), 403
+
+        container = item.container if item else None
+        media_folders = {}
+        if container:
+            media_folders = dict(getattr(container, 'media_folders', {}) or {})
+            if not media_folders:
+                settings_payload = container.ai_settings or {}
+                if isinstance(settings_payload, dict):
+                    media_folders = dict(settings_payload.get('media_folders') or {})
+
+        def resolve_media_url(file_path, media_type=None):
+            if not file_path:
+                return None
+            try:
+                relative_path = build_relative_media_path(file_path, media_folders.get(media_type) if media_type else None)
+                if not relative_path:
+                    return None
+                
+                if relative_path.startswith(('http://', 'https://')):
+                    return relative_path
+                
+                # User uploads are served via /media/, not /static/
+                return url_for('media_uploads', filename=relative_path.lstrip('/'), _external=True)
+            except Exception:
+                return None
+
+        initial_stats = FlashcardEngine.get_item_statistics(current_user.user_id, item_id)
+
+        item_payload = {
+            'item_id': item.item_id,
+            'container_id': item.container_id,
+            'content': {
+                'front': item.content.get('front', ''),
+                'back': item.content.get('back', ''),
+                'front_audio_content': item.content.get('front_audio_content', ''),
+                'front_audio_url': resolve_media_url(item.content.get('front_audio_url'), 'audio'),
+                'back_audio_content': item.content.get('back_audio_content', ''),
+                'back_audio_url': resolve_media_url(item.content.get('back_audio_url'), 'audio'),
+                'front_img': resolve_media_url(item.content.get('front_img'), 'image'),
+                'back_img': resolve_media_url(item.content.get('back_img'), 'image'),
+            },
+            'ai_explanation': item.ai_explanation,
+            'initial_stats': initial_stats,
+        }
+
+        return jsonify({'success': True, 'item': item_payload})
+    except Exception as exc:
+        current_app.logger.error('Lỗi khi tải thông tin thẻ %s: %s', item_id, exc, exc_info=True)
+        return jsonify({'success': False, 'message': 'Đã xảy ra lỗi khi tải lại thẻ.'}), 500
 
 
 @flashcard_learning_bp.route('/get_flashcard_batch', methods=['GET'])
@@ -637,7 +705,7 @@ def submit_flashcard_answer():
         'is_correct': result.get('is_correct'),
         'new_progress_status': result.get('new_progress_status'),
         'statistics': result.get('statistics'),
-        'memory_power': result.get('memory_power'),  # NEW: Pass memory power data
+        'srs_data': result.get('srs_data'),  # [UPDATED] Pass FSRS metrics
         'session_correct_answers': session_manager.correct_answers,
         'session_incorrect_answers': session_manager.incorrect_answers,
         'session_vague_answers': session_manager.vague_answers,
@@ -772,13 +840,13 @@ def get_flashcard_sets_partial():
         for f_set in flashcard_sets:
             try:
                 # Assuming flashcard mode for now
-                stats = FsrsService.get_container_stats(current_user.user_id, f_set.container_id, 'flashcard')
-                # Format memory power as percentage
-                stats['memory_power'] = round((stats.get('average_memory_power') or 0) * 100, 1)
+                stats = VocabularyStatsService.get_full_stats(current_user.user_id, f_set.container_id)
+                # Format retrievability as percentage
+                stats['retrievability'] = stats.get('retrievability_avg', 0)
                 stats_map[f_set.container_id] = stats
             except Exception as e:
                 current_app.logger.warning(f"Failed to calculate stats for set {f_set.container_id}: {e}")
-                stats_map[f_set.container_id] = {'memory_power': 0, 'total_items': 0}
+                stats_map[f_set.container_id] = {'retrievability': 0, 'total_items': 0}
 
         template_vars = {
             'flashcard_sets': flashcard_sets,
@@ -1091,11 +1159,10 @@ def preview_fsrs():
         effective_weights = list(DEFAULT_PARAMETERS)
         # Try to fetch user weights if safe
         try:
-             effective_weights = FsrsService._get_effective_parameters(current_user.user_id)
-        except AttributeError:
-             pass # FsrsService might be missing or not imported correctly
+            effective_weights = FSRSOptimizerService.get_user_parameters(current_user.user_id)
         except Exception as e:
-             current_app.logger.warning(f"Failed to load specific weights: {e}")
+            effective_weights = [0.4, 0.6, 2.4, 5.8, 4.93, 0.94, 0.86, 0.01, 1.49, 0.14, 0.94, 2.18, 0.05, 0.34, 1.26, 0.29, 2.61]
+            current_app.logger.warning(f"Failed to load specific weights: {e}")
 
         desired_retention = 0.9
         
