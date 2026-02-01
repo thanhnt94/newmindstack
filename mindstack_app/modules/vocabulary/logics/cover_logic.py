@@ -1,9 +1,13 @@
-# File: mindstack_app/modules/vocabulary/utils.py
+# File: mindstack_app/modules/vocabulary/logics/cover_logic.py
 
 def get_cover_url(path):
-    """Helper to convert database path to accessible URL."""
+    """
+    Stateless logic to convert database path to accessible URL.
+    Does NOT import DB or Flask.
+    """
     if not path:
         return None
+    
     path = path.replace('\\', '/')
     if path.startswith('http') or path.startswith('/'):
         return path
@@ -14,4 +18,3 @@ def get_cover_url(path):
     if p.startswith('uploads/'): p = p[8:]
     
     return '/media/' + p.lstrip('/')
-

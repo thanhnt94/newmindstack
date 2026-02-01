@@ -8,15 +8,7 @@ def generate_content(
     context_ref: Optional[str] = None
 ) -> AIResponseDTO:
     """
-    Public API to generate content using the configured AI provider.
-    
-    Args:
-        prompt: The text prompt to send.
-        feature: The feature name for tracking (e.g. 'explanation', 'chat').
-        context_ref: Optional reference string (e.g. 'Card #123') for logging.
-        
-    Returns:
-        AIResponseDTO: Structured response with success status and content.
+    Core function to generate content.
     """
     try:
         service = get_ai_service()
@@ -35,3 +27,28 @@ def generate_content(
             
     except Exception as e:
         return AIResponseDTO(success=False, error=str(e))
+
+class AIInterface:
+    @staticmethod
+    def generate_content(prompt: str, feature: str = "general", context_ref: Optional[str] = None) -> AIResponseDTO:
+        """Core AI generation call."""
+        return generate_content(prompt, feature, context_ref)
+
+    @staticmethod
+    def generate_item_explanation(item_id: int) -> str:
+        """High-level helper to generate explanation for a specific learning item."""
+        from mindstack_app.models import LearningItem, db
+        from .logics.prompts import get_formatted_prompt
+        
+        item = LearningItem.query.get_or_404(item_id)
+        prompt = get_formatted_prompt(item, purpose="explanation")
+        if not prompt:
+            raise ValueError("Could not format prompt for item.")
+            
+        result = AIInterface.generate_content(prompt, feature="explanation", context_ref=f"ITEM_{item_id}")
+        if not result.success:
+            raise RuntimeError(f"AI Generation Failed: {result.error}")
+            
+        item.ai_explanation = result.content
+        db.session.commit()
+        return result.content

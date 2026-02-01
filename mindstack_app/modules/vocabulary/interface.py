@@ -18,9 +18,10 @@ class VocabularyInterface:
             id=container.container_id,
             title=container.title,
             description=container.description,
-            item_count=count,
+            card_count=count,
             creator_name=container.creator.username if container.creator else "Unknown"
         )
+
 
     @staticmethod
     def get_config(key: str, default: Any = None) -> Any:

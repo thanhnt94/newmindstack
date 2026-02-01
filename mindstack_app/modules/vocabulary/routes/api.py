@@ -1,23 +1,53 @@
-# File: vocabulary/routes/api.py
-# Vocabulary Hub - API Endpoints
-
-from flask import request, jsonify, current_app
+from flask import request, jsonify, current_app, render_template_string
 from flask_login import login_required, current_user
 import traceback
+import math
 
-from .. import vocabulary_bp as blueprint
+from . import blueprint
 from mindstack_app.core.error_handlers import error_response
-from mindstack_app.models import (
-    LearningContainer, LearningItem, UserContainerState, db
-)
-
-# Import Services
-from ..services.vocabulary_service import VocabularyService
-# VocabularyContainerStats was removed, logic moved to stats module
+from mindstack_app.modules.vocabulary.services.vocabulary_service import VocabularyService
 from mindstack_app.modules.stats.interface import StatsInterface as VocabularyContainerStats
-from ...vocab_flashcard.engine.algorithms import get_flashcard_mode_counts
-from mindstack_app.modules.AI.interface import generate_content
-from mindstack_app.modules.AI.logics.prompts import get_formatted_prompt
+from mindstack_app.modules.vocab_flashcard.interface import FlashcardInterface
+from mindstack_app.modules.AI.interface import AIInterface
+from mindstack_app.services.template_service import TemplateService
+
+def _render_pagination(set_id, stats_data, page):
+    """Render pagination HTML for AJAX response."""
+    if not stats_data or 'pagination' not in stats_data:
+        return ""
+    
+    p = stats_data['pagination']
+    total_count = p.get('total', 0)
+    per_page = p.get('per_page', 12)
+    pages = int(math.ceil(total_count / float(per_page)))
+    
+    if pages <= 1:
+        return ""
+
+    # Simple pagination object for template
+    class SimplePagination:
+        def __init__(self, current_page, total_pages):
+            self.page = current_page
+            self.pages = total_pages
+            self.has_prev = current_page > 1
+            self.has_next = current_page < total_pages
+            self.prev_num = current_page - 1
+            self.next_num = current_page + 1
+
+    pag_obj = SimplePagination(page, pages)
+    version = TemplateService.get_active_version()
+    try:
+        # Use a string template to call the macro
+        pagination_template_path = f"{version}/components/pagination/_pagination_mobile.html"
+        base_url = f"/learn/vocabulary/api/set/{set_id}"
+        tmpl = """
+        {% from path import render_pagination_mobile with context %}
+        {{ render_pagination_mobile(pagination, set_id=set_id, base_url=base_url) }}
+        """
+        return render_template_string(tmpl, pagination=pag_obj, set_id=set_id, path=pagination_template_path, base_url=base_url)
+    except Exception as e:
+        current_app.logger.error(f"Error rendering pagination: {e}")
+        return f'<div class="flex justify-center p-4"><span class="text-sm text-slate-500">Trang {page} / {pages}</span></div>'
 
 @blueprint.route('/api/dashboard-global-stats')
 @login_required
@@ -31,7 +61,6 @@ def api_get_dashboard_stats():
         })
     except Exception as e:
         current_app.logger.error(f"Error getting dashboard stats: {e}")
-        current_app.logger.error(traceback.format_exc())
         return error_response(str(e), 'SERVER_ERROR', 500)
 
 @blueprint.route('/api/sets')
@@ -55,7 +84,6 @@ def api_get_sets():
         })
     except Exception as e:
         current_app.logger.error(f"Error getting sets API: {e}")
-        current_app.logger.error(traceback.format_exc())
         return error_response(str(e), 'SERVER_ERROR', 500)
 
 @blueprint.route('/api/flashcard-modes/<int:set_id>')
@@ -63,24 +91,14 @@ def api_get_sets():
 def api_get_flashcard_modes(set_id):
     """API to get flashcard mode counts for inline rendering."""
     try:
-        modes = get_flashcard_mode_counts(current_user.user_id, set_id)
+        modes = FlashcardInterface.get_mode_counts(current_user.user_id, set_id)
         
         # Filter to only essential modes for vocabulary learning
         essential_mode_ids = ['new_only', 'all_review', 'hard_only', 'mixed_srs', 'sequential']
         filtered_modes = [m for m in modes if m['id'] in essential_mode_ids]
         
-        # [NEW] Get user per-set preferences
-        user_button_count = 4 # Default
-        uc_state = UserContainerState.query.filter_by(
-            user_id=current_user.user_id, 
-            container_id=set_id
-        ).first()
-        
-        settings = {}
-        if uc_state and uc_state.settings:
-            settings = uc_state.settings
-            flashcard_settings = settings.get('flashcard', {})
-            user_button_count = flashcard_settings.get('button_count', 4)
+        settings = VocabularyService.get_user_container_settings(current_user.user_id, set_id)
+        user_button_count = settings.get('flashcard', {}).get('button_count', 4)
 
         return jsonify({
             'success': True,
@@ -90,7 +108,6 @@ def api_get_flashcard_modes(set_id):
         })
     except Exception as e:
         current_app.logger.error(f"Error getting flashcard modes API for set {set_id}: {e}")
-        current_app.logger.error(traceback.format_exc())
         return error_response(str(e), 'SERVER_ERROR', 500)
 
 @blueprint.route('/api/settings/container/<int:set_id>', methods=['POST', 'DELETE'])
@@ -110,7 +127,6 @@ def api_container_settings(set_id):
         return jsonify({'success': True, 'settings': new_settings})
     except Exception as e:
         current_app.logger.error(f"Error managing settings for set {set_id}: {e}")
-        current_app.logger.error(traceback.format_exc())
         return error_response(str(e), 'SERVER_ERROR', 500)
 
 @blueprint.route('/api/set/<int:set_id>')
@@ -120,13 +136,19 @@ def api_get_set_detail(set_id):
     try:
         page = request.args.get('page', 1, type=int)
         result = VocabularyService.get_set_detail(current_user.user_id, set_id, page=page)
+        
+        pagination_html = _render_pagination(set_id, result.stats, page)
+        
         return jsonify({
             'success': True,
-            **result
+            'set': result.set_info.__dict__,
+            'course_stats': result.stats, # Alias for compatible JS
+            'capabilities': result.capabilities,
+            'can_edit': result.can_edit,
+            'pagination_html': pagination_html
         })
     except Exception as e:
         current_app.logger.error(f"Error getting set detail API for set {set_id}: {e}")
-        current_app.logger.error(traceback.format_exc())
         return error_response(str(e), 'SERVER_ERROR', 500)
 
 @blueprint.route('/api/stats/container/<int:container_id>')
@@ -149,7 +171,6 @@ def api_get_container_stats(container_id):
         })
     except Exception as e:
         current_app.logger.error(f"Error getting container stats: {e}")
-        current_app.logger.error(traceback.format_exc())
         return error_response(str(e), 'SERVER_ERROR', 500)
 
 @blueprint.route('/api/progress/<int:item_id>/note', methods=['POST'])
@@ -164,30 +185,15 @@ def api_save_item_note(item_id):
         return jsonify({'success': True, 'message': 'Ghi chú đã được lưu.'})
     except Exception as e:
         current_app.logger.error(f"Error saving note for item {item_id}: {e}")
-        current_app.logger.error(traceback.format_exc())
         return error_response(str(e), 'SERVER_ERROR', 500)
 
 @blueprint.route('/api/item/<int:item_id>/generate-ai', methods=['POST'])
 @login_required
 def api_generate_ai_explanation(item_id):
     """Generate AI explanation for a single item."""
-    item = LearningItem.query.get_or_404(item_id)
-    
     try:
-        prompt = get_formatted_prompt(item, purpose="explanation")
-        if not prompt:
-            return jsonify({'success': False, 'message': 'Không thể tạo prompt.'}), 400
-            
-        response = generate_content(prompt, feature="explanation", context_ref=f"ITEM_{item_id}")
-        
-        if not response.success:
-            return jsonify({'success': False, 'message': f'AI Error: {response.error}'}), 500
-            
-        item.ai_explanation = response.content
-        db.session.commit()
-        return jsonify({'success': True, 'explanation': response.content})
+        explanation = AIInterface.generate_item_explanation(item_id)
+        return jsonify({'success': True, 'explanation': explanation})
     except Exception as e:
-        db.session.rollback()
         current_app.logger.error(f"Error generating AI explanation for item {item_id}: {e}")
-        current_app.logger.error(traceback.format_exc())
         return error_response(str(e), 'SERVER_ERROR', 500)

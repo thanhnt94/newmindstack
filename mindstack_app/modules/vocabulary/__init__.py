@@ -9,10 +9,16 @@ module_metadata = {
     'icon': 'book-open',
     'category': 'Learning',
     'url_prefix': '/learn/vocabulary',
+    'admin_route': None, # Managed via content_management or flashcard dashboard
     'enabled': True
 }
 
 def setup_module(app):
-    """Register routes for the vocabulary module."""
-    # Deferred import to avoid circular dependencies
+    """Standard module setup."""
+    # Importing routes attaches them to the vocabulary_bp
     from . import routes
+    
+    # Register Signals, Context Processors, etc.
+    @app.context_processor
+    def inject_vocab_metadata():
+        return {'vocab_module': module_metadata}

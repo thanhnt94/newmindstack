@@ -1,30 +1,18 @@
-# File: mindstack_app/modules/vocabulary/services/vocabulary_service.py
-from sqlalchemy import or_, func
-from flask import render_template_string, current_app, url_for
 from mindstack_app.models import (
     db, LearningContainer, LearningItem, User, UserContainerState, LearningProgress
 )
-from mindstack_app.services.template_service import TemplateService
+from sqlalchemy import or_
+from flask import current_app
 from mindstack_app.modules.stats.interface import StatsInterface
-from ..utils import get_cover_url
+from ..logics.cover_logic import get_cover_url
+from ..schemas import VocabItemDTO, VocabSetDTO, VocabSetDetailDTO
 import math
 from datetime import datetime
-
-class SimplePagination:
-    def __init__(self, page, per_page, total_count):
-        self.page = int(page)
-        self.per_page = int(per_page)
-        self.total = int(total_count)
-        self.pages = int(math.ceil(self.total / float(self.per_page)))
-        self.has_prev = self.page > 1
-        self.has_next = self.page < self.pages
-        self.prev_num = self.page - 1
-        self.next_num = self.page + 1
 
 class VocabularyService:
     @staticmethod
     def get_vocabulary_sets(user_id, category='my', search='', page=1, per_page=10):
-        current_app.logger.debug(f"get_vocabulary_sets: user={user_id}, cat={category}, search='{search}'")
+        """Get filtered vocabulary sets with pagination."""
         try:
             query = LearningContainer.query.filter(LearningContainer.container_type == 'FLASHCARD_SET')
             if search:
@@ -32,6 +20,7 @@ class VocabularyService:
                     LearningContainer.title.ilike(f'%{search}%'),
                     LearningContainer.description.ilike(f'%{search}%')
                 ))
+            
             if category == 'my':
                 query = query.filter(LearningContainer.creator_user_id == user_id)
             elif category == 'learning':
@@ -46,24 +35,30 @@ class VocabularyService:
                     UserContainerState.user_id == user_id,
                     UserContainerState.is_favorite == True
                 )
+            
             pagination = query.order_by(LearningContainer.updated_at.desc()).paginate(
                 page=page, per_page=per_page, error_out=False
             )
+            
             sets_data = []
             for c in pagination.items:
                 card_count = LearningItem.query.filter_by(
                     container_id=c.container_id, item_type='FLASHCARD'
                 ).count()
                 creator = User.query.get(c.creator_user_id)
-                sets_data.append({
-                    'id': c.container_id,
-                    'title': c.title,
-                    'description': c.description or '',
-                    'cover_image': get_cover_url(c.cover_image),
-                    'card_count': card_count,
-                    'creator_name': creator.username if creator else 'Unknown',
-                    'is_public': c.is_public,
-                })
+                
+                sets_data.append(VocabSetDTO(
+                    id=c.container_id,
+                    title=c.title,
+                    description=c.description or '',
+                    cover_image=get_cover_url(c.cover_image),
+                    card_count=card_count,
+                    creator_name=creator.username if creator else 'Unknown',
+                    is_public=c.is_public,
+                    ai_capabilities=list(c.capability_flags())
+                ))
+
+                
             return {
                 'sets': sets_data,
                 'has_next': pagination.has_next,
@@ -72,64 +67,67 @@ class VocabularyService:
                 'page': page
             }
         except Exception as e:
-            current_app.logger.error(f"FATAL Error in get_vocabulary_sets: {e}")
+            current_app.logger.error(f"Error in get_vocabulary_sets: {e}")
             raise e
 
     @staticmethod
-    def get_course_overview_stats(user_id: int, container_id: int, page: int = 1, per_page: int = 12) -> dict:
-        """Overview stats delegated to Stats module."""
-        return StatsInterface.get_vocab_set_overview_stats(user_id, container_id, page, per_page)
-
-    @staticmethod
-    def get_set_detail(user_id, set_id, page=1):
+    def get_set_detail(user_id: int, set_id: int, page: int = 1) -> VocabSetDetailDTO:
+        """Get comprehensive details and stats for a set."""
         container = LearningContainer.query.get_or_404(set_id)
         card_count = LearningItem.query.filter_by(container_id=container.container_id, item_type='FLASHCARD').count()
         creator = User.query.get(container.creator_user_id)
-        course_stats = VocabularyService.get_course_overview_stats(user_id, set_id, page=page, per_page=12)
         
-        pagination_html = ""
-        if course_stats and 'pagination' in course_stats:
-            p = course_stats['pagination']
-            pag_obj = SimplePagination(int(page), 12, int(p['total']))
-            version = TemplateService.get_active_version()
-            try:
-                pagination_template_path = f"{version}/components/pagination/_pagination_mobile.html"
-                base_url = f"/learn/vocabulary/api/set/{set_id}"
-                tmpl = """
-                {% from path import render_pagination_mobile with context %}
-                {{ render_pagination_mobile(pagination, set_id=set_id, base_url=base_url) }}
-                """
-                pagination_html = render_template_string(tmpl, pagination=pag_obj, set_id=set_id, path=pagination_template_path, base_url=base_url)
-            except Exception as e:
-                current_app.logger.error(f"Error rendering pagination template: {e}")
-                pagination_html = f'<div class="flex justify-center gap-4 p-4 bg-yellow-50"><span class="text-sm text-yellow-700">Trang {page} / {pag_obj.pages} (Fallback)</span></div>'
+        # Stats delegated to Stats module
+        course_stats = StatsInterface.get_vocab_set_overview_stats(user_id, set_id, page, 12)
         
         user_obj = User.query.get(user_id)
         user_role = user_obj.user_role if user_obj else 'user'
-        return {
-            'set': {
-                'id': container.container_id, 'title': container.title, 'description': container.description or '',
-                'cover_image': get_cover_url(container.cover_image), 'card_count': card_count,
-                'creator_name': creator.username if creator else 'Unknown', 'is_public': container.is_public,
-                'capabilities': list(container.capability_flags()), 'can_edit': (user_role == 'admin' or container.creator_user_id == user_id),
-            },
-            'course_stats': course_stats,
-            'pagination_html': pagination_html
-        }
+        can_edit = (user_role == 'admin' or container.creator_user_id == user_id)
+        
+        set_info = VocabSetDTO(
+            id=container.container_id,
+            title=container.title,
+            description=container.description or '',
+            cover_image=get_cover_url(container.cover_image),
+            card_count=card_count,
+            creator_name=creator.username if creator else 'Unknown',
+            is_public=container.is_public,
+            ai_capabilities=list(container.capability_flags())
+        )
+
+        
+        return VocabSetDetailDTO(
+            set_info=set_info,
+            stats=course_stats,
+            capabilities=list(container.capability_flags()),
+            can_edit=can_edit
+        )
 
     @staticmethod
     def get_item_stats(user_id: int, item_id: int) -> dict:
-        """Item stats delegated to Stats module."""
+        """Fetch item statistics."""
         return StatsInterface.get_vocab_item_stats(user_id, item_id)
 
     @staticmethod
+    def get_user_container_settings(user_id: int, container_id: int) -> dict:
+        """Fetch user-specific settings for a container."""
+        uc_state = UserContainerState.query.filter_by(
+            user_id=user_id, 
+            container_id=container_id
+        ).first()
+        return uc_state.settings if uc_state and uc_state.settings else {}
+
+    @staticmethod
     def save_item_note(user_id, item_id, note_content):
+        """Save user personal note for a learning item."""
         progress = LearningProgress.query.filter_by(user_id=user_id, item_id=item_id, learning_mode=LearningProgress.MODE_FLASHCARD).first()
         if not progress:
             progress = LearningProgress(user_id=user_id, item_id=item_id, learning_mode=LearningProgress.MODE_FLASHCARD, fsrs_state=LearningProgress.STATE_NEW)
             db.session.add(progress)
+        
         mode_data = dict(progress.mode_data) if progress.mode_data else {}
         mode_data['note'] = note_content
         progress.mode_data = mode_data
         db.session.commit()
         return True
+
