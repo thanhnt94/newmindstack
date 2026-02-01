@@ -1,4 +1,4 @@
-"""AI-related database models."""
+﻿"""AI-related database models."""
 
 from __future__ import annotations
 from sqlalchemy.sql import func
@@ -41,7 +41,7 @@ class AiTokenLog(db.Model):
     error_message = db.Column(db.Text, nullable=True)
 
     # Relationships
-    api_key = db.relationship('ApiKey', backref='usage_logs')
+    api_key = db.relationship('ApiKey', backref=db.backref('usage_logs', lazy='dynamic'))
 
 class AiCache(db.Model):
     """Cache for AI generated content to save costs and reduce latency."""

@@ -1,4 +1,4 @@
-"""
+﻿"""
 Response Parser - Pure functions to clean and parse AI outputs.
 """
 import re

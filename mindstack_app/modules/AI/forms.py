@@ -1,4 +1,4 @@
-# File: mindstack_app/modules/AI/forms.py
+﻿# File: mindstack_app/modules/AI/forms.py
 # Phiên bản: 1.0
 # Mục đích: Định nghĩa form cho việc thêm và sửa API key.
 

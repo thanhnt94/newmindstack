@@ -1,4 +1,4 @@
-# File: mindstack_app/modules/AI/services/autogen_service.py
+﻿# File: mindstack_app/modules/AI/services/autogen_service.py
 # Purpose: Auto-generate AI content for quiz and flashcard sets
 
 from flask import current_app

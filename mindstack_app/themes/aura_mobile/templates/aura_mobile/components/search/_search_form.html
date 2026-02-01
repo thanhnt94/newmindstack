@@ -1,4 +1,4 @@
-{% set _v = template_version | default('aura_mobile') %}
+﻿{% set _v = template_version | default('aura_mobile') %}
 {% from _v ~ '/components/search/_search_form_mobile.html' import render_search_form_mobile with context %}
 
 {% macro render_search_form(search_query=None, search_field='all', placeholder="Tìm kiếm...", set_id=None, container_id=None,

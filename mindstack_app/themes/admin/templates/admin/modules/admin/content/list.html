@@ -1,0 +1,75 @@
+﻿{% extends "admin/modules/admin/admin_layout.html" %}
+{% block title %}Danh sách {{ container_type }}{% endblock %}
+{% block page_title %}Danh sách {{ container_type }}{% endblock %}
+
+{% block content %}
+<div class="mb-6 flex justify-between items-center">
+    <a href="{{ url_for('admin.content_dashboard') }}" class="text-slate-500 hover:text-slate-700 flex items-center gap-2">
+        <i class="fas fa-arrow-left"></i> Quay lại
+    </a>
+</div>
+
+<div class="data-card bg-white">
+    <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-slate-200 text-sm">
+            <thead class="bg-slate-50 text-xs uppercase text-slate-500 font-semibold">
+                <tr>
+                    <th class="px-6 py-3 text-left">ID</th>
+                    <th class="px-6 py-3 text-left">Tiêu đề</th>
+                    <th class="px-6 py-3 text-left">Tác giả</th>
+                    <th class="px-6 py-3 text-center">Trạng thái</th>
+                    <th class="px-6 py-3 text-center">Ngày tạo</th>
+                    <th class="px-6 py-3 text-right">Hành động</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100">
+                {% for item in containers %}
+                <tr class="hover:bg-slate-50 transition">
+                    <td class="px-6 py-4 text-slate-500">#{{ item.container_id }}</td>
+                    <td class="px-6 py-4 font-medium text-slate-900">
+                        {{ item.title }}
+                        {% if item.is_featured %}
+                        <span class="ml-2 text-yellow-500"><i class="fas fa-star" title="Nổi bật"></i></span>
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-4 text-slate-600">
+                        {{ item.creator.username if item.creator else 'Unknown' }}
+                    </td>
+                    <td class="px-6 py-4 text-center">
+                        {% if item.is_public %}
+                        <span class="px-2 py-1 rounded-full bg-emerald-100 text-emerald-700 text-xs font-bold">Public</span>
+                        {% else %}
+                        <span class="px-2 py-1 rounded-full bg-slate-100 text-slate-600 text-xs font-bold">Private</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-4 text-center text-slate-500 text-xs">
+                        {{ item.created_at.strftime('%d/%m/%Y') }}
+                    </td>
+                    <td class="px-6 py-4 text-right">
+                        <a href="{{ url_for('admin.edit_content', container_id=item.container_id) }}" class="text-blue-600 hover:text-blue-800 font-medium">Sửa</a>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="6" class="px-6 py-8 text-center text-slate-400 italic">Không có dữ liệu.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    
+    {% if pagination.pages > 1 %}
+    <div class="px-6 py-4 border-t border-slate-100 flex justify-center">
+        <div class="flex gap-2">
+            {% if pagination.has_prev %}
+            <a href="{{ url_for('admin.list_content', container_type=container_type, page=pagination.prev_num) }}" class="px-3 py-1 border rounded hover:bg-slate-50">Prev</a>
+            {% endif %}
+            <span class="px-3 py-1 text-slate-500">Page {{ pagination.page }} / {{ pagination.pages }}</span>
+            {% if pagination.has_next %}
+            <a href="{{ url_for('admin.list_content', container_type=container_type, page=pagination.next_num) }}" class="px-3 py-1 border rounded hover:bg-slate-50">Next</a>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

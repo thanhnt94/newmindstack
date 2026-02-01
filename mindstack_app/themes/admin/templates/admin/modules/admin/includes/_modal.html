@@ -1,0 +1,121 @@
+﻿{# File: mindstack_app/templates/admin/includes/_modal.html #}
+{# Purpose: Reusable Admin Modal Component (HTML + CSS + JS) #}
+
+<style>
+    /* ===== ADMIN MODAL CSS ===== */
+    .modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: rgba(0, 0, 0, 0.6);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999;
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity 0.3s ease, visibility 0.3s ease;
+        backdrop-filter: blur(4px);
+    }
+
+    .modal-overlay.open {
+        opacity: 1;
+        visibility: visible !important;
+    }
+
+    .modal-content {
+        background-color: #ffffff;
+        border-radius: 0.75rem;
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+        overflow: hidden;
+        max-height: 90vh;
+        min-height: 200px;
+        display: flex;
+        flex-direction: column;
+        position: relative;
+        transform: scale(0.95);
+        transition: transform 0.3s ease;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        visibility: hidden;
+    }
+
+    .modal-overlay.open .modal-content {
+        transform: scale(1);
+        visibility: visible !important;
+    }
+
+    .modal-iframe {
+        width: 100%;
+        height: 100%;
+        border: none;
+        background-color: transparent;
+    }
+</style>
+
+<div id="modalOverlay" class="modal-overlay">
+    <div class="modal-content w-full h-full md:w-3/4 lg:w-2/3 xl:w-1/2 relative bg-white dark:bg-slate-900">
+        <button onclick="window.closeModal()"
+            class="absolute top-4 right-4 z-50 text-slate-400 hover:text-slate-600 bg-white/50 rounded-full w-8 h-8 flex items-center justify-center transition-colors">
+            <i class="fas fa-times"></i>
+        </button>
+        <iframe id="modalIframe" class="modal-iframe" allowtransparency="true"></iframe>
+    </div>
+</div>
+
+<script>
+    // Admin Modal Functions
+    window.openModal = function (url) {
+        const modalOverlay = document.getElementById('modalOverlay');
+        const modalIframe = document.getElementById('modalIframe');
+        if (modalOverlay && modalIframe) {
+            let finalUrl = url.includes('?') ? `${url}&is_modal=true` : `${url}?is_modal=true`;
+            modalIframe.src = finalUrl;
+            modalOverlay.classList.add('open');
+            document.body.style.overflow = 'hidden';
+
+            // Show a loader or transparent bg initially?
+            // For now, simple open logic
+        }
+    };
+
+    window.closeModal = function () {
+        const modalOverlay = document.getElementById('modalOverlay');
+        const modalIframe = document.getElementById('modalIframe');
+        if (modalOverlay && modalIframe) {
+            modalOverlay.classList.remove('open');
+            modalIframe.src = '';
+            document.body.style.overflow = '';
+        }
+    };
+
+    document.addEventListener('DOMContentLoaded', function () {
+        const modalOverlay = document.getElementById('modalOverlay');
+
+        // Listen for open modal clicks
+        document.addEventListener('click', function (event) {
+            const target = event.target.closest('.open-modal-btn');
+            if (target && target.dataset.modalUrl) {
+                event.preventDefault();
+                window.openModal(target.dataset.modalUrl);
+            }
+        });
+
+        // Close on overlay click
+        if (modalOverlay) {
+            modalOverlay.addEventListener('click', function (event) {
+                if (event.target === modalOverlay) {
+                    window.closeModal();
+                }
+            });
+        }
+
+        // Listen for close event from inside iframe
+        window.addEventListener('message', function (event) {
+            if (event.data === 'closeModal') {
+                window.closeModal();
+            }
+        });
+    });
+</script>

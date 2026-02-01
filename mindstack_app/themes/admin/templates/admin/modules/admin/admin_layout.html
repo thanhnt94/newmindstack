@@ -1,0 +1,403 @@
+﻿{% set active_page = active_page|default('dashboard') %}
+<!doctype html>
+<html lang="vi" class="h-full">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <title>{% block title %}Mindstack Admin{% endblock %}</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        (function () {
+            if (typeof window === 'undefined') return;
+            const originalWarn = console.warn.bind(console);
+            window.__TAILWIND_ORIGINAL_WARN__ = originalWarn;
+            console.warn = function (...args) {
+                if (args.length && typeof args[0] === 'string' && args[0].includes('cdn.tailwindcss.com should not be used in production')) {
+                    return;
+                }
+                return originalWarn(...args);
+            };
+        })();
+    </script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        if (window.__TAILWIND_ORIGINAL_WARN__) {
+            console.warn = window.__TAILWIND_ORIGINAL_WARN__;
+            delete window.__TAILWIND_ORIGINAL_WARN__;
+        }
+    </script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+        integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw=="
+        crossorigin="anonymous" referrerpolicy="no-referrer" />
+
+    <style>
+        :root {
+            color-scheme: light;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        @media (min-width: 1024px) {
+            body {
+                overflow: hidden;
+            }
+
+            .admin-shell {
+                min-height: 100vh;
+            }
+
+            .admin-sidebar-fixed {
+                position: sticky;
+                top: 0;
+                height: 100vh;
+            }
+
+            .admin-main-scroll {
+                overflow-y: auto;
+            }
+        }
+
+        .admin-sidebar-link {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.65rem 1rem;
+            border-radius: 0.75rem;
+            font-size: 0.9rem;
+            font-weight: 600;
+            transition: background-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+            color: rgba(226, 232, 240, 1);
+        }
+
+        .admin-sidebar-link:hover {
+            background-color: rgba(71, 85, 105, 0.6);
+            color: #fff;
+        }
+
+        .admin-sidebar-link.is-active {
+            background-color: #f8fafc;
+            color: #0f172a;
+            box-shadow: 0 10px 25px -15px rgba(15, 23, 42, 0.45);
+        }
+
+        .admin-chip {
+            display: inline-flex;
+            align-items: center;
+            border-radius: 999px;
+            padding: 0.15rem 0.55rem;
+            font-size: 0.7rem;
+            font-weight: 700;
+        }
+
+        .data-card {
+            border-radius: 1rem;
+            background-color: #ffffff;
+            border: 1px solid rgba(148, 163, 184, 0.18);
+            box-shadow: 0 24px 45px -28px rgba(15, 23, 42, 0.35);
+        }
+
+        .data-card-header {
+            border-bottom: 1px solid rgba(148, 163, 184, 0.18);
+        }
+    </style>
+
+    {% block extra_head %}{% endblock %}
+</head>
+
+<body class="h-full bg-slate-100 text-slate-800">
+    <div class="min-h-screen flex flex-col lg:flex-row admin-shell">
+        <aside id="adminSidebar"
+            class="bg-slate-900 text-slate-100 w-full lg:w-72 xl:w-80 flex-shrink-0 lg:flex lg:flex-col shadow-xl hidden admin-sidebar-fixed">
+            <div class="px-6 py-6 border-b border-slate-800 flex items-center justify-between">
+                <div>
+                    <div class="text-lg font-semibold tracking-wide">Mindstack Admin</div>
+                    <p class="text-xs text-slate-400 mt-1">Điều hướng và quản trị hệ thống</p>
+                </div>
+                <button class="lg:hidden text-slate-300" data-sidebar-close>
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
+            <nav class="px-4 py-6 space-y-1 overflow-y-auto flex-1">
+                {% set nav_groups = [
+                    {
+                        'title': 'Tổng quan',
+                        'items': [
+                            {'key': 'dashboard', 'label': 'Dashboard', 'icon': 'fa-chart-line', 'endpoint': 'admin.admin_dashboard'},
+                        ]
+                    },
+                    {
+                        'title': 'Học tập & AI',
+                        'items': [
+                            {'key': 'content', 'label': 'Quản lý Dữ liệu (Admin)', 'icon': 'fa-database', 'endpoint': 'admin.content_dashboard'},
+                            {'key': 'creator_studio', 'label': 'Creator Studio', 'icon': 'fa-pen-nib', 'endpoint': 'content_management.content_dashboard'},
+                            {'key': 'api_keys', 'label': 'AI Console', 'icon': 'fa-robot', 'endpoint': 'AI.dashboard'},
+                            {'key': 'audio_studio', 'label': 'Audio Studio', 'icon': 'fa-microphone-lines', 'endpoint': 'audio.admin_audio_studio'},
+                        ]
+                    },
+                    {
+                        'title': 'Người dùng & Game',
+                        'items': [
+                            {'key': 'users', 'label': 'Người dùng', 'icon': 'fa-users', 'endpoint': 'user_management.manage_users'},
+                            {'key': 'badges', 'label': 'Huy hiệu (Badges)', 'icon': 'fa-medal', 'endpoint': 'gamification.list_badges'},
+                        ]
+                    },
+                    {
+                        'title': 'Cấu hình hệ thống',
+                        'items': [
+                            {'key': 'content_config', 'label': 'Cấu hình Upload & Quyền', 'icon': 'fa-sliders-h', 'endpoint': 'admin.content_config_page'},
+                            {'key': 'scoring', 'label': 'Quản lý Điểm số', 'icon': 'fa-trophy', 'endpoint': 'scoring.dashboard'},
+                            {'key': 'fsrs_config', 'label': 'Cấu hình FSRS', 'icon': 'fa-brain', 'endpoint': 'fsrs.config_page'},
+                            {'key': 'maintenance', 'label': 'Chế độ Bảo trì', 'icon': 'fa-wrench', 'endpoint': 'maintenance.admin_dashboard'},
+                            {'key': 'settings', 'label': 'Cài đặt hệ thống', 'icon': 'fa-cogs', 'endpoint': 'admin.manage_system_settings'},
+                            {'key': 'templates', 'label': 'Giao diện (Themes)', 'icon': 'fa-palette', 'endpoint': 'admin.manage_templates'},
+                            {'key': 'modules', 'label': 'Modules', 'icon': 'fa-puzzle-piece', 'endpoint': 'admin.manage_modules'},
+                        ]
+                    },
+                    {
+                        'title': 'Vận hành (Ops)',
+                        'items': [
+                            {'key': 'tasks', 'label': 'Tác vụ nền', 'icon': 'fa-diagram-project', 'endpoint': 'admin.manage_background_tasks'},
+                            {'key': 'media', 'label': 'File Manager', 'icon': 'fa-folder-open', 'endpoint': 'admin.media_library'},
+                            {'key': 'backup', 'label': 'Backup & Restore', 'icon': 'fa-database', 'endpoint': 'backup.manage_backup_restore'},
+                            {'key': 'ops_reset', 'label': 'System Reset', 'icon': 'fa-radiation', 'endpoint': 'ops.reset_page'},
+                        ]
+                    }
+                ] %}
+
+                {% for group in nav_groups %}
+                    <div class="pt-4 pb-2 px-3 text-xs font-bold text-slate-500 uppercase tracking-wider">{{ group.title }}</div>
+                    {% for item in group['items'] %}
+                    <a href="{{ url_for(item.endpoint) }}"
+                        class="admin-sidebar-link {% if active_page == item.key %}is-active{% else %}text-slate-200{% endif %}">
+                        <span class="w-5 text-center"><i class="fas {{ item.icon }}"></i></span>
+                        <span>{{ item.label }}</span>
+                        {% if item.key == 'tasks' and admin_sidebar_metrics.running_tasks %}
+                        <span class="ml-auto admin-chip bg-amber-100 text-amber-700">{{ admin_sidebar_metrics.running_tasks }}</span>
+                        {% endif %}
+                        {% if item.key == 'settings' and admin_sidebar_metrics.maintenance_mode %}
+                        <span class="ml-auto admin-chip bg-rose-100 text-rose-700">Bảo trì</span>
+                        {% endif %}
+                        {% if item.key == 'templates' %}
+                        <span class="ml-auto admin-chip bg-indigo-100 text-indigo-700">{{ template_version|upper }}</span>
+                        {% endif %}
+                    </a>
+                    {% endfor %}
+                {% endfor %}
+            </nav>
+
+            <div class="px-6 py-5 border-t border-slate-800 text-sm space-y-3 bg-slate-950/30">
+                <div>
+                    <p class="text-slate-300 text-xs uppercase tracking-wide">Thống kê nhanh</p>
+                    <div class="mt-3 space-y-2 text-sm">
+                        <div class="flex items-center justify-between">
+                            <span class="text-slate-400">Tổng người dùng</span>
+                            <span class="font-semibold">{{ admin_sidebar_metrics.total_users or 0 }}</span>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <span class="text-slate-400">Hoạt động 7 ngày</span>
+                            <span class="font-semibold">{{ admin_sidebar_metrics.active_weekly_users or 0 }}</span>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <span class="text-slate-400">Kho học liệu</span>
+                            <span class="font-semibold">{{ admin_sidebar_metrics.content_total or 0 }}</span>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <span class="text-slate-400">API đang dùng</span>
+                            <span class="font-semibold">{{ admin_sidebar_metrics.active_api_keys or 0 }}</span>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <span class="text-slate-400">Lần sao lưu cuối</span>
+                            <span class="font-semibold text-right">{{ admin_sidebar_metrics.last_backup or 'Chưa có'
+                                }}</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="border border-slate-700 rounded-lg px-4 py-3 text-xs text-slate-300">
+                    <p class="font-semibold text-slate-100">{{ current_user.username }}</p>
+                    <p class="mt-1">Bạn đang đăng nhập với quyền <strong>quản trị viên</strong>.</p>
+                    <a href="{{ url_for('auth.logout') }}"
+                        class="inline-flex items-center gap-2 mt-3 text-slate-200 hover:text-white transition">
+                        <i class="fas fa-sign-out-alt"></i> Đăng xuất
+                    </a>
+                </div>
+            </div>
+        </aside>
+
+        <div class="flex-1 flex flex-col min-h-screen lg:h-screen overflow-hidden">
+            <header class="bg-white border-b border-slate-200 sticky top-0 z-30">
+                <div class="flex items-center justify-between px-4 py-4 lg:px-8">
+                    <div class="flex items-center justify-between w-full lg:w-auto lg:justify-start lg:gap-6">
+                        <div class="flex items-center gap-3">
+                            <button
+                                class="lg:hidden w-10 h-10 rounded-lg bg-slate-900 text-white flex items-center justify-center"
+                                data-sidebar-toggle>
+                                <i class="fas fa-bars"></i>
+                            </button>
+                            <div>
+                                <h1 class="text-xl font-semibold text-slate-900">
+                                    {% block page_title %}Bảng điều khiển quản trị{% endblock %}
+                                </h1>
+                                <p class="text-sm text-slate-500 mt-1">
+                                    {% block page_subtitle %}Quản lý mọi thứ của Mindstack trong một bảng điều khiển trực
+                                    quan.{% endblock %}
+                                </p>
+                            </div>
+                        </div>
+                        <!-- Home Button -->
+                        <a href="{{ url_for('landing.index') }}" 
+                           class="w-10 h-10 rounded-lg bg-slate-50 text-slate-500 flex items-center justify-center hover:bg-white hover:text-indigo-600 border border-slate-200 shadow-sm transition-all duration-200" 
+                           title="Về trang chủ">
+                            <i class="fas fa-house"></i>
+                        </a>
+                    </div>
+                    <div class="hidden lg:flex items-center gap-4 text-sm text-slate-500">
+                        <div class="text-right">
+                            <p class="font-semibold text-slate-700">{{ current_user.username }}</p>
+                            <p class="text-xs">{{ current_user.email }}</p>
+                        </div>
+                        <div
+                            class="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center text-slate-500">
+                            <i class="fas fa-user-shield"></i>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <main class="flex-1 px-4 py-6 lg:px-8 lg:py-10 space-y-6 admin-main-scroll">
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                <div id="flash-messages" class="space-y-2">
+                    {% for category, message in messages %}
+                    <div
+                        class="flex items-start gap-3 px-4 py-3 rounded-lg shadow-sm border {{ 'bg-emerald-50 border-emerald-200 text-emerald-800' if category == 'success' else '' }}{{ 'bg-sky-50 border-sky-200 text-sky-800' if category == 'info' else '' }}{{ 'bg-amber-50 border-amber-200 text-amber-800' if category == 'warning' else '' }}{{ 'bg-rose-50 border-rose-200 text-rose-800' if category == 'danger' else '' }}">
+                        <span class="mt-1">
+                            {% if category == 'success' %}<i class="fas fa-check-circle"></i>{% elif category == 'info'
+                            %}<i class="fas fa-circle-info"></i>{% elif category == 'warning' %}<i
+                                class="fas fa-triangle-exclamation"></i>{% elif category == 'danger' %}<i
+                                class="fas fa-circle-xmark"></i>{% else %}<i class="fas fa-bell"></i>{% endif %}
+                        </span>
+                        <div class="flex-1 text-sm">{{ message }}</div>
+                        <button type="button" class="text-slate-400 hover:text-slate-600" data-dismiss-flash>
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+                {% endwith %}
+
+                {% block content %}{% endblock %}
+            </main>
+        </div>
+    </div>
+
+    <script>
+        function createFlashElement(message, category) {
+            const wrapper = document.createElement('div');
+            wrapper.className = 'flex items-start gap-3 px-4 py-3 rounded-lg shadow-sm border transition-opacity duration-500';
+
+            let styleClasses = 'bg-slate-50 border-slate-200 text-slate-700';
+            if (category === 'success') styleClasses = 'bg-emerald-50 border-emerald-200 text-emerald-800';
+            if (category === 'info') styleClasses = 'bg-sky-50 border-sky-200 text-sky-800';
+            if (category === 'warning') styleClasses = 'bg-amber-50 border-amber-200 text-amber-800';
+            if (category === 'danger' || category === 'error') styleClasses = 'bg-rose-50 border-rose-200 text-rose-800';
+
+            wrapper.className += ` ${styleClasses}`;
+
+            const iconSpan = document.createElement('span');
+            iconSpan.className = 'mt-1';
+            const iconEl = document.createElement('i');
+            iconEl.className = {
+                success: 'fas fa-check-circle',
+                info: 'fas fa-circle-info',
+                warning: 'fas fa-triangle-exclamation',
+                danger: 'fas fa-circle-xmark',
+                error: 'fas fa-circle-xmark'
+            }[category] || 'fas fa-bell';
+            iconSpan.appendChild(iconEl);
+
+            const text = document.createElement('div');
+            text.className = 'flex-1 text-sm';
+            text.textContent = message;
+
+            const closeBtn = document.createElement('button');
+            closeBtn.type = 'button';
+            closeBtn.className = 'text-slate-400 hover:text-slate-600';
+            closeBtn.innerHTML = '<i class="fas fa-times"></i>';
+            closeBtn.addEventListener('click', () => wrapper.remove());
+
+            wrapper.append(iconSpan, text, closeBtn);
+            return wrapper;
+        }
+
+        window.showFlashMessage = function (message, category = 'info') {
+            const container = document.getElementById('flash-messages');
+            if (!container) return;
+            const element = createFlashElement(message, category);
+            element.classList.add('opacity-0');
+            container.appendChild(element);
+            requestAnimationFrame(() => element.classList.remove('opacity-0'));
+            setTimeout(() => {
+                element.classList.add('opacity-0');
+                setTimeout(() => element.remove(), 500);
+            }, 6000);
+        };
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const sidebar = document.getElementById('adminSidebar');
+            const toggleButtons = document.querySelectorAll('[data-sidebar-toggle]');
+            const closeButtons = document.querySelectorAll('[data-sidebar-close]');
+
+            const openSidebar = () => {
+                sidebar.classList.remove('hidden');
+                sidebar.classList.add('fixed', 'inset-y-0', 'left-0', 'z-40');
+                document.body.classList.add('overflow-hidden');
+            };
+
+            const closeSidebar = () => {
+                sidebar.classList.add('hidden');
+                sidebar.classList.remove('fixed', 'inset-y-0', 'left-0', 'z-40');
+                document.body.classList.remove('overflow-hidden');
+            };
+
+            toggleButtons.forEach(btn => btn.addEventListener('click', openSidebar));
+            closeButtons.forEach(btn => btn.addEventListener('click', closeSidebar));
+
+            sidebar.addEventListener('click', (event) => {
+                if (event.target === sidebar && sidebar.classList.contains('fixed')) {
+                    closeSidebar();
+                }
+            });
+
+            document.querySelectorAll('[data-dismiss-flash]').forEach(button => {
+                button.addEventListener('click', () => {
+                    const container = button.closest('div');
+                    if (container) {
+                        container.remove();
+                    }
+                });
+            });
+
+            setTimeout(() => {
+                document.querySelectorAll('#flash-messages > div').forEach(message => {
+                    message.classList.add('opacity-0', 'transition', 'duration-500');
+                    setTimeout(() => message.remove(), 500);
+                });
+            }, 6000);
+        });
+    </script>
+
+    {% include 'admin/modules/admin/includes/_modal.html' %}
+
+    {% block extra_scripts %}{% endblock %}
+</body>
+
+</html>

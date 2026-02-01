@@ -1,4 +1,4 @@
-"""
+﻿"""
 Prompt Manager - Manages AI prompts and context injection.
 
 Contains pure functions to build prompts from data.

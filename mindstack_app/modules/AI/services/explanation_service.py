@@ -1,4 +1,4 @@
-"""Background task helpers for generating AI explanations in bulk."""
+﻿"""Background task helpers for generating AI explanations in bulk."""
 
 from __future__ import annotations
 

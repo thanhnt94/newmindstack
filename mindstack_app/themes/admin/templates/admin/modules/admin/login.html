@@ -1,0 +1,168 @@
+﻿<!doctype html>
+<html lang="vi" class="h-full bg-slate-950">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <title>Admin Portal - Mindstack</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        @keyframes fade-in-down {
+            0% {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+
+            100% {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .animate-fade-in-down {
+            animation: fade-in-down 0.8s ease-out forwards;
+        }
+    </style>
+</head>
+
+<body class="h-full text-white antialiased selection:bg-indigo-500 selection:text-white">
+
+    <div class="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
+        {# Decorative Background Elements #}
+        <div class="absolute inset-0 z-0">
+            <div
+                class="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_50%_50%,_rgba(30,41,59,1)_0%,_rgba(2,6,23,1)_100%)]">
+            </div>
+            <div class="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-indigo-900/20 rounded-full blur-[120px]">
+            </div>
+            <div class="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-purple-900/20 rounded-full blur-[120px]">
+            </div>
+        </div>
+
+        {# Login Card #}
+        <div class="relative z-10 w-full max-w-[450px]">
+            {# Brand Header #}
+            <div class="text-center mb-8">
+                <div
+                    class="w-20 h-20 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg shadow-indigo-500/30 ring-1 ring-white/10 animate-fade-in-down">
+                    <i class="fa-solid fa-shield-halved text-white text-3xl drop-shadow-md"></i>
+                </div>
+                <h1
+                    class="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-white to-slate-400 mb-2">
+                    Administrator</h1>
+                <p class="text-slate-400 text-sm font-medium tracking-wide uppercase">Secure Access Portal</p>
+            </div>
+
+            {# Form Container #}
+            <div class="bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-8 shadow-2xl">
+                {# Flash Messages #}
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                <div class="mb-6 space-y-2">
+                    {% for category, message in messages %}
+                    <div
+                        class="p-3 rounded-xl text-sm font-medium
+                                    {% if category == 'error' or category == 'danger' %}bg-red-500/10 text-red-400 border border-red-500/20
+                                    {% else %}bg-emerald-500/10 text-emerald-400 border border-emerald-500/20{% endif %}">
+                        {{ message }}
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+                {% endwith %}
+
+                <form action="{{ url_for('admin.login') }}" method="post" class="space-y-6">
+                    {{ form.csrf_token }}
+
+                    <div class="space-y-2">
+                        <label class="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1">Username</label>
+                        <div class="relative group">
+                            <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                <i
+                                    class="fa-solid fa-user-shield text-slate-500 group-focus-within:text-indigo-400 transition-colors"></i>
+                            </div>
+                            {{ form.username(class="w-full pl-11 pr-4 py-3.5 bg-black/20 border border-white/10
+                            rounded-xl text-white placeholder-slate-600 focus:outline-none focus:border-indigo-500/50
+                            focus:bg-black/40 focus:ring-1 focus:ring-indigo-500/50 transition-all font-medium",
+                            placeholder="Admin ID") }}
+                        </div>
+                    </div>
+
+                    <div class="space-y-2">
+                        <label class="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1">Password</label>
+                        <div class="relative group">
+                            <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                <i
+                                    class="fa-solid fa-key text-slate-500 group-focus-within:text-purple-400 transition-colors"></i>
+                            </div>
+                            {{ form.password(class="w-full pl-11 pr-12 py-3.5 bg-black/20 border border-white/10
+                            rounded-xl text-white placeholder-slate-600 focus:outline-none focus:border-purple-500/50
+                            focus:bg-black/40 focus:ring-1 focus:ring-purple-500/50 transition-all font-medium",
+                            placeholder="Security Key", id="admin-password") }}
+                            <button type="button" id="toggle-admin-password"
+                                class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white transition-colors">
+                                <i class="fa-solid fa-eye-slash"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="pt-2">
+                        <button type="submit"
+                            class="w-full py-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold rounded-xl shadow-lg shadow-indigo-600/20 hover:shadow-indigo-600/40 hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 flex items-center justify-center gap-2 group">
+                            <span>Access Dashboard</span>
+                            <i class="fa-solid fa-arrow-right group-hover:translate-x-1 transition-transform"></i>
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            {# Footer #}
+            <div class="mt-8 text-center">
+                <p class="text-xs text-slate-600">&copy; 2026 Mindstack Systems. All rights reserved.</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // Toggle Password
+            const passwordInput = document.getElementById('admin-password');
+            const toggleBtn = document.getElementById('toggle-admin-password');
+
+            if (passwordInput && toggleBtn) {
+                toggleBtn.addEventListener('click', () => {
+                    const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+                    passwordInput.setAttribute('type', type);
+                    toggleBtn.querySelector('i').classList.toggle('fa-eye');
+                    toggleBtn.querySelector('i').classList.toggle('fa-eye-slash');
+                });
+            }
+        });
+    </script>
+</body>
+
+</html>

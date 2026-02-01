@@ -1,4 +1,4 @@
-<div class="stats-container" {% if can_edit %}data-can-edit="true"
+﻿<div class="stats-container" {% if can_edit %}data-can-edit="true"
     data-edit-url="/content/quizzes/{{ item.container_id }}/items/edit/{{ item.item_id }}" {% else
     %}data-can-edit="false" {% endif %} data-history='{{ stats.review_history | tojson | safe }}'
     style="display: flex; flex-direction: column; height: 100%; width: 100%; background: white; overflow: hidden; border-radius: 1rem; position: relative;">

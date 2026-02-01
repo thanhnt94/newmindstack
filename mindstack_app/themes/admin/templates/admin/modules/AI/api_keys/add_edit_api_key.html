@@ -1,0 +1,63 @@
+﻿{% extends "admin/modules/admin/admin_layout.html" %}
+{% set active_page = 'api_keys' %}
+
+{% block title %}{{ title }}{% endblock %}
+{% block page_title %}{{ title }}{% endblock %}
+{% block page_subtitle %}Quản lý khóa API để đảm bảo các dịch vụ AI hoạt động ổn định và an toàn.{% endblock %}
+
+{% block content %}
+<div class="data-card max-w-3xl">
+    <div class="data-card-header px-6 py-5">
+        <h2 class="text-xl font-semibold text-slate-900">Thông tin API key</h2>
+        <p class="text-sm text-slate-500">Nhập đầy đủ khóa và ghi chú để dễ dàng quản lý sau này.</p>
+    </div>
+    <div class="px-6 py-6">
+        <form action="" method="post" class="space-y-6">
+            {{ form.csrf_token }}
+
+            <div class="space-y-2">
+                {{ form.provider.label(class="block text-sm font-medium text-slate-700") }}
+                {{ form.provider(class="block w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none
+                focus:ring-2 focus:ring-blue-500 bg-white") }}
+            </div>
+
+            <div class="space-y-2">
+                {{ form.key_value.label(class="block text-sm font-medium text-slate-700") }}
+                {{ form.key_value(class="block w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none
+                focus:ring-2 focus:ring-blue-500 font-mono", placeholder="Dán API key của bạn vào đây") }}
+                {% if form.key_value.errors %}
+                <div class="text-xs text-rose-600">
+                    {% for error in form.key_value.errors %}<p>{{ error }}</p>{% endfor %}
+                </div>
+                {% endif %}
+            </div>
+
+            <div class="space-y-2">
+                {{ form.notes.label(class="block text-sm font-medium text-slate-700") }}
+                {{ form.notes(class="block w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none
+                focus:ring-2 focus:ring-blue-500", rows="3", placeholder="Ví dụ: Key cá nhân, Key dự phòng...") }}
+            </div>
+
+            <div class="flex flex-wrap gap-6 text-sm">
+                <label class="inline-flex items-center gap-2">
+                    {{ form.is_active(class="h-4 w-4 text-blue-600 border-slate-300 rounded focus:ring-blue-500") }}
+                    <span>{{ form.is_active.label }}</span>
+                </label>
+                <label class="inline-flex items-center gap-2">
+                    {{ form.is_exhausted(class="h-4 w-4 text-rose-600 border-slate-300 rounded focus:ring-rose-500") }}
+                    <span>{{ form.is_exhausted.label }}</span>
+                </label>
+            </div>
+
+            <div class="flex justify-end gap-3 pt-4">
+                <a href="{{ url_for('AI.dashboard') }}"
+                    class="inline-flex items-center gap-2 bg-slate-100 text-slate-700 px-5 py-2.5 rounded-md hover:bg-slate-200 transition">
+                    Hủy
+                </a>
+                {{ form.submit(class="inline-flex items-center gap-2 bg-blue-600 text-white px-5 py-2.5 rounded-md
+                shadow hover:bg-blue-500 transition") }}
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

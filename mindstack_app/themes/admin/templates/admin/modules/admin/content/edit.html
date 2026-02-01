@@ -1,0 +1,55 @@
+﻿{% extends "admin/modules/admin/admin_layout.html" %}
+{% block title %}Chỉnh sửa {{ container.title }}{% endblock %}
+{% block page_title %}Chỉnh sửa: {{ container.title }}{% endblock %}
+
+{% block content %}
+<div class="mb-6 flex justify-between items-center">
+    <a href="{{ url_for('admin.list_content', container_type=container.container_type.lower()) }}" class="text-slate-500 hover:text-slate-700 flex items-center gap-2">
+        <i class="fas fa-arrow-left"></i> Quay lại danh sách
+    </a>
+</div>
+
+<div class="data-card bg-white p-6 max-w-4xl mx-auto">
+    <form method="POST" enctype="multipart/form-data" class="space-y-6">
+        {{ form.hidden_tag() }}
+        
+        <div class="grid grid-cols-1 gap-6">
+            {% for field in form %}
+                {% if field.name not in ['csrf_token', 'submit', 'excel_file', 'settings'] %}
+                <div>
+                    {% if field.type == 'BooleanField' %}
+                        <div class="flex items-start">
+                            <div class="flex items-center h-5">
+                                {{ field(class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded") }}
+                            </div>
+                            <div class="ml-3 text-sm">
+                                {{ field.label(class="font-medium text-slate-700") }}
+                                {% if field.description %}
+                                <p class="text-slate-500">{{ field.description }}</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                    {% else %}
+                        {{ field.label(class="block text-sm font-medium text-slate-700 mb-1") }}
+                        {% set extra_classes = "w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" %}
+                        {{ field(class=extra_classes, rows=4 if field.type == 'TextAreaField' else None) }}
+                        {% if field.description %}
+                        <p class="mt-1 text-xs text-slate-500">{{ field.description }}</p>
+                        {% endif %}
+                    {% endif %}
+                    
+                    {% for error in field.errors %}
+                    <p class="mt-1 text-xs text-rose-500">{{ error }}</p>
+                    {% endfor %}
+                </div>
+                {% endif %}
+            {% endfor %}
+        </div>
+
+        <div class="pt-6 border-t border-slate-100 flex justify-end gap-3">
+            <a href="{{ url_for('admin.list_content', container_type=container.container_type.lower()) }}" class="px-4 py-2 border border-slate-300 rounded-md text-slate-700 hover:bg-slate-50">Hủy</a>
+            <button type="submit" class="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 shadow-sm font-medium">Lưu thay đổi</button>
+        </div>
+    </form>
+</div>
+{% endblock %}

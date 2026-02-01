@@ -1,4 +1,4 @@
-# File: mindstack_app/modules/AI/__init__.py
+﻿# File: mindstack_app/modules/AI/__init__.py
 from flask import Blueprint
 
 blueprint = Blueprint('AI', __name__)
@@ -18,5 +18,3 @@ def setup_module(app):
     
     # Register routes and events
     from . import routes, events
-    from .routes.admin import admin_bp
-    app.register_blueprint(admin_bp)
