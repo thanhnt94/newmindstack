@@ -158,7 +158,7 @@ def speed_api_check_answer():
     
     if item_id:
         try:
-            from mindstack_app.modules.learning.services.fsrs_service import FsrsService
+            from mindstack_app.modules.fsrs.interface import FSRSInterface as FsrsService
             from mindstack_app.models import db
 
             srs_result = FsrsService.process_interaction(

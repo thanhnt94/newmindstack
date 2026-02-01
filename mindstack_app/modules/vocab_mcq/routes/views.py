@@ -280,7 +280,7 @@ def mcq_api_check_answer():
     
     if item_id:
         try:
-            from mindstack_app.modules.learning.services.fsrs_service import FsrsService
+            from mindstack_app.modules.fsrs.interface import FSRSInterface as FsrsService
             srs_result = FsrsService.process_interaction(
                 user_id=current_user.user_id,
                 item_id=item_id,

@@ -34,7 +34,7 @@ def typing_setup(set_id):
     count_review = base_query.join(LearningProgress).filter(LearningProgress.fsrs_due <= now).count()
     count_learned = base_query.join(LearningProgress).count()
     
-    from mindstack_app.modules.learning.services.hard_item_service import HardItemService
+    from mindstack_app.modules.fsrs.services.hard_item_service import FSRSHardItemService as HardItemService
     count_hard = HardItemService.get_hard_count(current_user.user_id, set_id)
     count_random = len(items)
 
@@ -241,7 +241,7 @@ def typing_api_check_answer():
     
     item_id = data.get('item_id')
     if item_id:
-        from mindstack_app.modules.learning.services.fsrs_service import FsrsService
+        from mindstack_app.modules.fsrs.interface import FSRSInterface as FsrsService
         
         progress, srs_result = FsrsService.process_answer(
             user_id=current_user.user_id,

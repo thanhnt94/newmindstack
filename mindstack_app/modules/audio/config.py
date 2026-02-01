@@ -1,4 +1,4 @@
-# File: mindstack_app/modules/audio/config.py
+﻿# File: mindstack_app/modules/audio/config.py
 
 class AudioModuleDefaultConfig:
     AUDIO_DEFAULT_ENGINE = "edge"

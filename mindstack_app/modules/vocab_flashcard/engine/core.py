@@ -6,7 +6,7 @@ from mindstack_app.models import db, User, LearningItem
 from mindstack_app.modules.learning.models import LearningProgress
 from mindstack_app.core.signals import card_reviewed
 from mindstack_app.utils.db_session import safe_commit
-from mindstack_app.modules.learning.services.fsrs_service import FsrsService
+from mindstack_app.modules.fsrs.interface import FSRSInterface
 
 
 class FlashcardEngine:
@@ -75,27 +75,35 @@ class FlashcardEngine:
             old_memory_power = round(FsrsService.get_memory_power(old_progress) * 100, 1)
 
         if update_srs:
-            # Update SRS via Service (Direct FSRS)
-            # For 'all_review', we treat it as Cram Mode (stats update only, no scheduling change unless new)
-            is_cram = is_all_review
+            # Update SRS via Interface (Pure FSRS)
+            from mindstack_app.modules.fsrs.interface import FSRSInterface
             
-            progress, srs_result = FsrsService.process_answer(
+            progress, srs_result = FSRSInterface.process_review(
                 user_id=user_id,
                 item_id=item_id,
                 quality=quality,
                 mode='flashcard',
-                is_first_time=False,  # TODO: detect first time properly
-                response_time_seconds=duration_ms / 1000.0 if duration_ms else None,
-                duration_ms=duration_ms,  # Track response time in ReviewLog
-                is_cram=is_cram,
-                # Session context fields
-                session_id=session_id,
+                duration_ms=duration_ms,
                 container_id=container_id or (item.container_id if item else None),
+                # Custom flags
+                is_cram=is_all_review,
                 learning_mode=learning_mode or mode
             )
             
-            # Use score from SrsResult (already calculated by UnifiedSrsSystem)
-            score_change = srs_result.score_points
+            # Note: Scoring is now handled via card_reviewed signal or should be called separately
+            # For backward compatibility, let's assume we still need score_change here if srs_result has it
+            # (Our SrsResultDTO has score_points=0 currently, we need to bridge with Scoring module)
+            from mindstack_app.modules.learning.logics.scoring_engine import ScoringEngine
+            is_correct = (quality >= 3)
+            score_result = ScoringEngine.calculate_answer_points(
+                mode='flashcard',
+                quality=quality,
+                is_correct=is_correct,
+                correct_streak=progress.correct_streak,
+                stability=progress.fsrs_stability,
+                difficulty=progress.fsrs_difficulty
+            )
+            score_change = score_result.total_points
             
             # Extract FSRS metrics for frontend
             memory_power_data = {
@@ -200,7 +208,7 @@ class FlashcardEngine:
             'interval': progress.current_interval or 0,
             'status': {0: 'new', 1: 'learning', 2: 'review', 3: 'relearning'}.get(progress.fsrs_state, 'new'),
             'mastery': round(min((progress.fsrs_stability or 0)/21.0, 1.0), 4),
-            'memory_power': round(FsrsService.get_memory_power(progress) * 100, 1),
+            'memory_power': round(FSRSInterface.get_retrievability(progress) * 100, 1),
             # Spec v7: Custom state from mode_data
             'custom_state': progress.mode_data.get('custom_state', 'new') if progress.mode_data else 'new',
         })

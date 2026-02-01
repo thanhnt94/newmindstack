@@ -1,7 +1,7 @@
 ﻿"""
 Quiz Configuration Service
 
-Provides centralized configuration for Quiz system, analogous to MemoryPowerConfigService.
+Provides centralized configuration for Quiz system, analogous to FSRSSettingsService.
 Retrieves settings from AppSettings with fallback to defaults.
 """
 

@@ -5,7 +5,7 @@ from datetime import datetime
 from sqlalchemy import func, case
 from mindstack_app.models import LearningItem, LearningProgress, db
 from mindstack_app.utils.content_renderer import render_text_field
-from mindstack_app.modules.learning.services.fsrs_service import FsrsService
+from mindstack_app.modules.fsrs.interface import FSRSInterface as FsrsService
 
 def get_course_overview_stats(user_id: int, container_id: int, page: int = 1, per_page: int = 12) -> dict:
     """

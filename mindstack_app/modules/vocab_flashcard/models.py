@@ -121,18 +121,21 @@ class FlashcardCollabAnswer(db.Model):
     __table_args__ = (db.UniqueConstraint('round_id', 'user_id', name='uq_flashcard_collab_answer'),)
 
 class FlashcardRoomProgress(db.Model):
-    """Tracks SRS progress for a specific ITEM within a specific ROOM."""
+    """Tracks FSRS progress for a specific ITEM within a specific ROOM (Collab)."""
     __tablename__ = 'flashcard_room_progress'
 
     progress_id = db.Column(db.Integer, primary_key=True)
     room_id = db.Column(db.Integer, db.ForeignKey('flashcard_collab_rooms.room_id'), nullable=False)
     item_id = db.Column(db.Integer, db.ForeignKey('learning_items.item_id'), nullable=False)
     
-    status = db.Column(db.String(20), default='new', nullable=False)
-    due_time = db.Column(db.DateTime(timezone=True), nullable=True)
-    interval = db.Column(db.Integer, default=0)
-    easiness_factor = db.Column(db.Float, default=2.5)
+    fsrs_state = db.Column(db.Integer, default=0, nullable=False) # 0=New, 1=Learning, 2=Review, 3=Relearning
+    fsrs_due = db.Column(db.DateTime(timezone=True), nullable=True)
+    fsrs_stability = db.Column(db.Float, default=0.0)
+    fsrs_difficulty = db.Column(db.Float, default=0.0)
+    
+    current_interval = db.Column(db.Float, default=0.0) # In days
     repetitions = db.Column(db.Integer, default=0)
+    lapses = db.Column(db.Integer, default=0)
     last_reviewed = db.Column(db.DateTime(timezone=True), nullable=True)
 
     __table_args__ = (db.UniqueConstraint('room_id', 'item_id', name='uq_flashcard_room_progress'),)

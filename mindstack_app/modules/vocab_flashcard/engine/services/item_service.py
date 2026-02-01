@@ -172,7 +172,7 @@ class FlashcardItemService:
         )
         
         # Use centralized HardItemService for core "hard" logic
-        from mindstack_app.modules.learning.services.hard_item_service import HardItemService
+        from mindstack_app.modules.fsrs.services.hard_item_service import FSRSHardItemService as HardItemService
         
         hard_items_query = HardItemService.get_hard_items_query(
             user_id=user_id,

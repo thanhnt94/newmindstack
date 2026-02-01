@@ -107,7 +107,7 @@ def matching_api_check_match():
     
     is_correct = left_item_id == right_item_id
     
-    from mindstack_app.modules.learning.services.fsrs_service import FsrsService
+    from mindstack_app.modules.fsrs.interface import FSRSInterface as FsrsService
     
     srs_results = []
     

@@ -78,10 +78,13 @@ def process_collab_flashcard_answer(user_id, item_id, user_answer_quality):
 
 def calculate_room_srs(room_id, round_id):
     """
-    Tính toán và cập nhật SRS cho PHÒNG HỌC sau khi kết thúc một vòng.
+    Tính toán và cập nhật FSRS cho PHÒNG HỌC sau khi kết thúc một vòng.
     Dựa trên điểm trung bình của tất cả người chơi.
     """
-    current_app.logger.info(f"Bắt đầu tính toán SRS cho Room {room_id}, Round {round_id}")
+    from mindstack_app.modules.fsrs.interface import FSRSInterface
+    from mindstack_app.modules.fsrs.schemas import CardStateDTO, CardStateEnum
+    
+    current_app.logger.info(f"Bắt đầu tính toán FSRS cho Room {room_id}, Round {round_id}")
     
     round_obj = FlashcardCollabRound.query.get(round_id)
     if not round_obj:
@@ -91,13 +94,15 @@ def calculate_room_srs(room_id, round_id):
     if not answers:
         return
 
-    # 1. Tính điểm chất lượng trung bình (0-5)
+    # 1. Tính điểm chất lượng trung bình (0-5) -> Map to FSRS 1-4
     total_quality = sum((a.answer_quality or 0) for a in answers)
     avg_quality = total_quality / len(answers)
     
-    # Làm tròn về thang 0-5 gần nhất để dễ xử lý SRS
-    # Tuy nhiên, ta có thể dùng số thực để tính toán chính xác hơn
-    current_app.logger.info(f"Room {room_id} - Item {round_obj.item_id}: Average Quality = {avg_quality}")
+    # Simple mapping for group average
+    if avg_quality >= 4.5: fsrs_rating = 4 # Easy
+    elif avg_quality >= 3.0: fsrs_rating = 3 # Good
+    elif avg_quality >= 2.0: fsrs_rating = 2 # Hard
+    else: fsrs_rating = 1 # Again
 
     # 2. Lấy hoặc tạo Progress của Phòng
     progress = FlashcardRoomProgress.query.filter_by(room_id=room_id, item_id=round_obj.item_id).first()
@@ -107,65 +112,51 @@ def calculate_room_srs(room_id, round_id):
         progress = FlashcardRoomProgress(
             room_id=room_id,
             item_id=round_obj.item_id,
-            status='new',
-            easiness_factor=INITIAL_EASINESS_FACTOR,
+            fsrs_state=CardStateEnum.NEW,
+            fsrs_stability=0.0,
+            fsrs_difficulty=0.0,
             repetitions=0,
-            interval=0,
+            current_interval=0.0,
             last_reviewed=now
         )
         db.session.add(progress)
+        db.session.flush()
     
+    # 3. Apply FSRS logic
+    # Use system-wide global weights for rooms (since it's a shared environment)
+    from mindstack_app.modules.fsrs.logics.fsrs_engine import FSRSEngine
+    
+    # Get config via interface
+    desired_retention = float(FSRSInterface.get_config('FSRS_DESIRED_RETENTION', 0.9))
+    global_weights = FSRSInterface.get_config('FSRS_GLOBAL_WEIGHTS')
+    
+    engine = FSRSEngine(custom_weights=global_weights, desired_retention=desired_retention)
+    
+    card_dto = CardStateDTO(
+        stability=progress.fsrs_stability or 0.0,
+        difficulty=progress.fsrs_difficulty or 0.0,
+        reps=progress.repetitions or 0,
+        lapses=progress.lapses or 0,
+        state=progress.fsrs_state,
+        last_review=progress.last_reviewed.replace(tzinfo=timezone.utc) if progress.last_reviewed else None,
+        scheduled_days=progress.current_interval or 0.0
+    )
+    
+    new_card, next_due, _ = engine.review_card(card_dto, fsrs_rating, now=now)
+    
+    # 4. Update Progress
+    progress.fsrs_state = new_card.state
+    progress.fsrs_stability = new_card.stability
+    progress.fsrs_difficulty = new_card.difficulty
+    progress.current_interval = new_card.scheduled_days
+    progress.repetitions = new_card.reps
+    progress.lapses = new_card.lapses
+    progress.fsrs_due = next_due
     progress.last_reviewed = now
-
-    # 3. Áp dụng thuật toán SRS (SM-2 simplified for Groups)
-    # Quy tắc:
-    # - Avg < 3: Fail (Quên) -> Reset về đầu
-    # - Avg >= 3: Pass (Nhớ) -> Tăng interval
-    
-    if avg_quality < 3:
-        # Nhóm trả lời sai nhiều -> Reset
-        progress.repetitions = 0
-        progress.interval = 1 # 1 phút sau hỏi lại
-        progress.status = 'learning'
-        # Giảm EF nhẹ
-        progress.easiness_factor = max(1.3, progress.easiness_factor - 0.2)
-        
-    else:
-        # Nhóm trả lời đúng
-        if progress.status == 'new':
-            progress.status = 'learning'
-            progress.repetitions = 0
-        
-        # Tính interval mới
-        if progress.repetitions == 0:
-            progress.interval = 1 # Step 1
-        elif progress.repetitions == 1:
-            progress.interval = 10 # Step 2
-        else:
-            if progress.interval == 0:
-                progress.interval = 1
-            # Công thức: I(n) = I(n-1) * EF
-            progress.interval = math.ceil(progress.interval * progress.easiness_factor)
-        
-        progress.repetitions += 1
-        
-        # Cập nhật EF
-        # EF' = EF + (0.1 - (5 - q) * (0.08 + (5 - q) * 0.02))
-        q = avg_quality
-        progress.easiness_factor = progress.easiness_factor + (0.1 - (5 - q) * (0.08 + (5 - q) * 0.02))
-        if progress.easiness_factor < 1.3:
-            progress.easiness_factor = 1.3
-            
-        # Nếu đã học đủ lâu -> Reviewing
-        if progress.repetitions > 2:
-            progress.status = 'reviewing'
-
-    # 4. Cập nhật Due Time
-    progress.due_time = now + timedelta(minutes=progress.interval)
     
     try:
         safe_commit(db.session)
-        current_app.logger.info(f"Đã cập nhật SRS Room: Due in {progress.interval} mins")
+        current_app.logger.info(f"Đã cập nhật FSRS Room: Item {round_obj.item_id} due in {new_card.scheduled_days:.2f} days")
     except Exception as e:
-        current_app.logger.error(f"Lỗi cập nhật SRS Room: {e}")
+        current_app.logger.error(f"Lỗi cập nhật FSRS Room: {e}")
         db.session.rollback()

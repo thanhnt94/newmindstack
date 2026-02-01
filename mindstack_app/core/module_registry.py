@@ -127,4 +127,5 @@ DEFAULT_MODULES: Iterable[ModuleDefinition] = (
     ModuleDefinition("mindstack_app.modules.notification", "blueprint", url_prefix="/notifications", display_name="Thông báo (Web Push)"),
     ModuleDefinition("mindstack_app.modules.translator", "blueprint", url_prefix="/translator", display_name="Dịch thuật & Từ điển"),
     ModuleDefinition("mindstack_app.modules.audio", "audio_bp", url_prefix="/admin/audio", display_name="Xử lý Audio (Studio)"),
+    ModuleDefinition("mindstack_app.modules.fsrs", "fsrs_bp", url_prefix="/admin/fsrs", display_name="Thuật toán FSRS"),
 )

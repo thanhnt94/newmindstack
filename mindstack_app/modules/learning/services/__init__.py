@@ -1,2 +1,2 @@
 ﻿from .learning_metrics_service import LearningMetricsService
-from .memory_power_config_service import MemoryPowerConfigService
+from mindstack_app.modules.fsrs.services.settings_service import FSRSSettingsService

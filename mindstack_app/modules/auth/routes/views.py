@@ -58,6 +58,7 @@ def login():
         
     return render_dynamic_template('modules/auth/login/login.html', form=form)
 
+
 @blueprint.route('/logout', methods=['GET', 'POST'])
 def logout():
     logout_user()

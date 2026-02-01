@@ -6,7 +6,7 @@ from datetime import datetime
 from sqlalchemy import func
 from mindstack_app.models import LearningItem, ReviewLog, LearningContainer
 from mindstack_app.modules.learning.models import LearningProgress
-from mindstack_app.modules.learning.services.fsrs_service import FsrsService
+from mindstack_app.modules.fsrs.interface import FSRSInterface as FsrsService
 
 
 class VocabularyContainerStats:
@@ -143,7 +143,7 @@ class VocabularyContainerStats:
         accuracy_pct = (total_correct / (total_correct + total_incorrect) * 100) if (total_correct + total_incorrect) > 0 else 0
         
         # Calculate hard count using centralized HardItemService
-        from mindstack_app.modules.learning.services.hard_item_service import HardItemService
+        from mindstack_app.modules.fsrs.services.hard_item_service import FSRSHardItemService as HardItemService
         hard_count = HardItemService.get_hard_count(user_id, container_id)
         
         return {

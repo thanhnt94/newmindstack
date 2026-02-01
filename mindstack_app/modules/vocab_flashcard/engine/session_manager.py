@@ -449,7 +449,7 @@ class FlashcardSessionManager:
             preview_data = {}
             try:
                 # Import FSRS engine
-                from mindstack_app.modules.learning.logics.hybrid_fsrs import HybridFSRSEngine, CardState, Rating
+                from mindstack_app.modules.fsrs.logics.fsrs_engine import FSRSEngine, CardState, Rating
                 from mindstack_app.modules.learning.logics.scoring_engine import ScoringEngine
                 
                 # 1. Fetch current progress state
@@ -475,10 +475,10 @@ class FlashcardSessionManager:
                 else:
                     card_state = CardState()  # New card
                 
-                # 2. Use HybridFSRSEngine to preview states for rating 1-4
-                from mindstack_app.modules.learning.services.memory_power_config_service import MemoryPowerConfigService
-                desired_retention = MemoryPowerConfigService.get('FSRS_DESIRED_RETENTION', 0.9)
-                engine = HybridFSRSEngine(desired_retention=desired_retention)
+                # 2. Use FSRSEngine to preview states for rating 1-4
+                from mindstack_app.modules.fsrs.services.settings_service import FSRSSettingsService
+                desired_retention = FSRSSettingsService.get('FSRS_DESIRED_RETENTION', 0.9)
+                engine = FSRSEngine(desired_retention=desired_retention)
                 now_utc = datetime.datetime.now(datetime.timezone.utc)
                 simulated_states = engine.preview_states(card_state, now_utc)
                 

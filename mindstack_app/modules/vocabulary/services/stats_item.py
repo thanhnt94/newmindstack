@@ -9,7 +9,7 @@ from mindstack_app.modules.learning.models import LearningProgress
 from mindstack_app.utils.content_renderer import render_text_field
 from flask import url_for
 from mindstack_app.models import db
-from mindstack_app.modules.learning.services.fsrs_service import FsrsService
+from mindstack_app.modules.fsrs.interface import FSRSInterface as FsrsService
 
 class VocabularyItemStats:
     """
@@ -133,7 +133,7 @@ class VocabularyItemStats:
             now = datetime.utcnow()
             
             # Use centralized HardItemService
-            from mindstack_app.modules.learning.services.hard_item_service import HardItemService
+            from mindstack_app.modules.fsrs.services.hard_item_service import FSRSHardItemService as HardItemService
             
             if stability >= 21.0:
                 status = 'mastered'

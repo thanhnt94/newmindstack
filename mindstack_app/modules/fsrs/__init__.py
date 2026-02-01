@@ -1,12 +1,14 @@
-﻿from flask import Blueprint
+﻿# File: mindstack_app/modules/fsrs/__init__.py
+from flask import Blueprint
 
-blueprint = Blueprint('fsrs', __name__, url_prefix='/admin/fsrs')
+fsrs_bp = Blueprint('fsrs', __name__)
 
 module_metadata = {
-    'name': 'FSRS Algorithm',
+    'name': 'Thuật toán FSRS',
     'icon': 'brain',
     'category': 'System',
     'url_prefix': '/admin/fsrs',
+    'admin_route': 'fsrs.config_page',
     'enabled': True
 }
 

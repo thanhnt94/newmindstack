@@ -231,7 +231,7 @@ class ProgressService:
         total_correct = sum(p.times_correct or 0 for p in progress_records)
         total_incorrect = sum(p.times_incorrect or 0 for p in progress_records)
         
-        from mindstack_app.modules.learning.services.fsrs_service import FsrsService
+        from mindstack_app.modules.fsrs.interface import FSRSInterface as FsrsService
         avg_retrievability = (
             sum(FsrsService.get_retrievability(p) for p in progress_records) / studied
             if studied > 0 else 0
@@ -353,62 +353,30 @@ class ProgressService:
         user_id: int,
         item_id: int,
         is_correct: bool,
-        memory_intervals: Dict[int, int]
+        duration_ms: int = 0
     ) -> LearningProgress:
-        """Update Memrise-style progress.
+        """Update Memrise-style progress using FSRS algorithm.
         
         Args:
             user_id: User ID
             item_id: Item ID
             is_correct: Whether answer was correct
-            memory_intervals: Dict mapping memory_level -> interval_minutes
+            duration_ms: Response time in milliseconds
             
         Returns:
             Updated LearningProgress
         """
-        progress, is_new = cls.get_or_create(user_id, item_id, 'memrise')
+        from mindstack_app.modules.fsrs.interface import FSRSInterface
         
-        progress.fsrs_last_review = datetime.now(timezone.utc)
+        # Quality mapping: Correct -> Good (3), Incorrect -> Again (1)
+        quality = 3 if is_correct else 1
         
-        current_level = progress.memory_level
-        
-        if is_correct:
-            progress.times_correct = (progress.times_correct or 0) + 1
-            progress.current_streak = progress.current_streak + 1
-            progress.session_reps = progress.session_reps + 1
-            
-            # Level up
-            new_level = min(7, current_level + 1)
-            progress.memory_level = new_level
-            
-            # Calculate next due time
-            interval_minutes = memory_intervals.get(new_level, 10)
-            progress.current_interval = interval_minutes / 1440.0
-            progress.fsrs_due = datetime.now(timezone.utc) + timedelta(minutes=interval_minutes)
-            
-            # Update status
-            if new_level >= 7:
-                progress.fsrs_state = LearningProgress.STATE_REVIEW
-            elif new_level >= 4:
-                progress.fsrs_state = LearningProgress.STATE_REVIEW
-            else:
-                progress.fsrs_state = LearningProgress.STATE_LEARNING
-        else:
-            progress.times_incorrect = (progress.times_incorrect or 0) + 1
-            progress.current_streak = 0
-            progress.session_reps = progress.session_reps + 1
-            
-            # Reset to level 1 (or stay at 0)
-            new_level = max(1, current_level - 2)  # Drop 2 levels on mistake
-            progress.memory_level = new_level
-            
-            # Short relearning interval
-            relearning_interval = memory_intervals.get(0, 10)
-            progress.current_interval = relearning_interval / 1440.0
-            progress.fsrs_due = datetime.now(timezone.utc) + timedelta(minutes=relearning_interval)
-            progress.fsrs_state = LearningProgress.STATE_RELEARNING
-        
-        # Update mastery
-        # progress.mastery = progress.memory_level / 7.0 # Legacy field removed
+        progress, srs_result = FSRSInterface.process_review(
+            user_id=user_id,
+            item_id=item_id,
+            quality=quality,
+            mode='memrise',
+            duration_ms=duration_ms
+        )
         
         return progress

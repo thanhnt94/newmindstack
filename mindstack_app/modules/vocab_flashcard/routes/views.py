@@ -31,7 +31,7 @@ from ..engine.algorithms import (
 
 # Import từ services module
 from ..services import AudioService, ImageService, LearningSessionService
-from mindstack_app.modules.learning.services.fsrs_service import FsrsService
+from mindstack_app.modules.fsrs.interface import FSRSInterface as FsrsService
 
 from ..engine.core import FlashcardEngine
 from mindstack_app.models import (
@@ -57,7 +57,7 @@ from mindstack_app.utils.media_paths import (
     normalize_media_value_for_storage,
     build_relative_media_path,
 )
-from mindstack_app.modules.learning.logics.hybrid_fsrs import HybridFSRSEngine, CardState
+from mindstack_app.modules.fsrs.logics.fsrs_engine import FSRSEngine, CardState
 
 def _ensure_container_media_folder(container: LearningContainer, media_type: str) -> str:
     """Return the folder for the requested media type, creating a default if missing."""
@@ -1154,7 +1154,7 @@ def preview_fsrs():
 
         desired_retention = 0.9
         
-        engine = HybridFSRSEngine(
+        engine = FSRSEngine(
             desired_retention=desired_retention,
             custom_weights=effective_weights
         )

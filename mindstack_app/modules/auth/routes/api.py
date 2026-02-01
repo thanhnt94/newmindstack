@@ -1,4 +1,4 @@
-# File: mindstack_app/modules/auth/routes/api.py
+﻿# File: mindstack_app/modules/auth/routes/api.py
 from flask import request, jsonify
 from flask_login import current_user
 from .. import auth_bp as blueprint
