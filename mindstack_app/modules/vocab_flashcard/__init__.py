@@ -14,7 +14,13 @@ module_metadata = {
     'enabled': True
 }
 
+_setup_done = False
+
 def setup_module(app):
+    global _setup_done
+    if _setup_done:
+        return
+    _setup_done = True
     """Register sub-blueprints for the flashcard module."""
     # Deferred imports to avoid circular dependencies
     from .routes.dashboard import dashboard_bp
