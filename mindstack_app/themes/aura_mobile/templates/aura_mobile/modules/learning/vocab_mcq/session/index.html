@@ -1,0 +1,1287 @@
+{# MCQ Session Template - Refined UI #}
+{% set _v = template_version or 'aura_mobile' %}
+{% extends _v ~ '/layouts/base.html' %}
+{% block title %}Trắc nghiệm - {{ container.title }}{% endblock %}
+{% block body_class %} mcq-session-active{% endblock %}
+
+{% block head %}
+{{ super() }}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+    /* CRITICAL: Hide global header/footer on mobile */
+    /* CRITICAL: Hide global header/footer always for session */
+    body>header,
+    body>footer {
+        display: none !important;
+    }
+
+    body>main {
+        padding: 0 !important;
+        margin: 0 !important;
+        max-width: none !important;
+    }
+
+    :root {
+        --primary: #6366f1;
+        --primary-hover: #4f46e5;
+        --primary-light: #eef2ff;
+        --success: #10b981;
+        --success-light: #d1fae5;
+        --error: #ef4444;
+        --error-light: #fee2e2;
+        --bg: #f8fafc;
+        --card-bg: #ffffff;
+        --text-main: #1e293b;
+        --text-sub: #64748b;
+        --border: #e2e8f0;
+        --footer-height: 4.5rem;
+        /* Base footer height */
+        --safe-area-bottom: env(safe-area-inset-bottom, 0px);
+    }
+
+    body {
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        background-color: var(--bg);
+        color: var(--text-main);
+        margin: 0;
+        height: 100vh;
+        overflow: hidden;
+        /* Prevent scrolling on body, handle in main */
+    }
+
+    /* Layout */
+    .session-container {
+        display: flex;
+        flex-direction: column;
+        height: 100vh;
+        max-width: 100%;
+        /* Full width on mobile */
+        margin: 0 auto;
+        background: var(--bg);
+        position: relative;
+    }
+
+
+
+
+    /* Header - Static Top Block */
+    .session-header {
+        position: relative;
+        /* Not sticky, just sits at top of flex container */
+        z-index: 50;
+        background: white;
+        padding: 0;
+        flex-shrink: 0;
+        /* Keep size */
+        /* No shadow here, applied to question to slide under? 
+           Or shadow on header to cover question?
+           User wants seamless. Flat. 
+        */
+        box-shadow: none;
+        border-bottom: none;
+    }
+
+
+
+    /* Tailwind-like utility classes */
+    .text-blue-500 {
+        color: #3b82f6;
+    }
+
+    .text-blue-600 {
+        color: #2563eb;
+    }
+
+    .text-emerald-500 {
+        color: #10b981;
+    }
+
+    .text-rose-500 {
+        color: #f43f5e;
+    }
+
+    .text-purple-500 {
+        color: #a855f7;
+    }
+
+    .text-purple-600 {
+        color: #9333ea;
+    }
+
+    .text-xs {
+        font-size: 0.75rem;
+    }
+
+    .font-bold {
+        font-weight: 700;
+    }
+
+    .flex {
+        display: flex;
+    }
+
+    .gap-3 {
+        gap: 0.75rem;
+    }
+
+    .mr-1 {
+        margin-right: 0.25rem;
+    }
+
+    /* Question Card - Sticky to Container Top */
+    .question-card {
+        background: radial-gradient(circle at top left, white, #f8fafc);
+        padding: 2.5rem 2rem 2.5rem 4rem;
+        /* More left padding for labels */
+        text-align: left;
+        margin: 0.75rem 0.75rem 0 0.75rem;
+        border-radius: 1rem;
+        display: flex;
+        align-items: center;
+        justify-content: flex-start;
+        min-height: 160px;
+        position: sticky;
+        top: 0.75rem;
+        z-index: 100;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.05);
+        overflow: hidden;
+    }
+
+    .question-label-v {
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 32px;
+        background: linear-gradient(180deg, #6366f1, #4f46e5);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: flex-start;
+        padding-top: 1rem;
+        gap: 0.5rem;
+        color: white;
+        box-shadow: 2px 0 10px rgba(0, 0, 0, 0.05);
+        border-right: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .question-label-v i {
+        font-size: 0.8rem;
+        opacity: 0.9;
+    }
+
+    .question-label-v span {
+        writing-mode: vertical-rl;
+        transform: rotate(180deg);
+        font-size: 0.75rem;
+        font-weight: 900;
+        letter-spacing: 0.2em;
+        text-transform: uppercase;
+        opacity: 0.95;
+    }
+
+    .question-text {
+        font-size: 1.75rem;
+        font-weight: 800;
+        color: #0f172a;
+        /* Darker for better contrast */
+        line-height: 1.3;
+        width: 100%;
+        letter-spacing: -0.02em;
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    }
+
+    /* Main Content */
+    .session-main {
+        padding: 0;
+        padding-bottom: calc(var(--footer-height) + var(--safe-area-bottom) + 1rem);
+        /* Dynamic space for footer */
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        background: var(--bg);
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        position: relative;
+    }
+
+    /* Scroll mask - hides content scrolling above the question card */
+    .session-main::before {
+        content: '';
+        position: sticky;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 0.75rem;
+        /* Same as question-card top margin */
+        background: var(--bg);
+        z-index: 99;
+        display: block;
+        flex-shrink: 0;
+    }
+
+    /* Scrollbar styling for Main */
+    /* Removed as .session-container now handles scrolling */
+
+    .choices-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1rem;
+        padding: 2rem 1.5rem 2rem 1.5rem;
+        /* Increased top padding */
+        padding-bottom: calc(2rem + env(safe-area-inset-bottom, 0));
+        /* Extra bottom padding for safe scrolling above fixed footer */
+        max-width: 100%;
+        margin: 0 auto;
+        width: 100%;
+    }
+
+    @media (max-width: 640px) {
+        .question-text {
+            font-size: 1.35rem;
+            /* Slightly larger for readability */
+        }
+
+        .question-card {
+            padding: 1.5rem 1rem 1.5rem 3.5rem;
+            /* Preserve space for label */
+            min-height: 120px;
+        }
+
+        .question-label-v {
+            width: 28px;
+            /* Slightly narrower on mobile */
+            font-size: 0.6rem;
+        }
+
+        .choices-grid {
+            grid-template-columns: 1fr;
+            /* Single column on mobile */
+            padding-bottom: calc(var(--footer-height) + var(--safe-area-bottom) + 2rem) !important;
+            /* Dynamic bottom padding for fixed footer + safe area */
+        }
+    }
+
+    .choice-btn {
+        background: white;
+        border: 2px solid #f1f5f9;
+        border-radius: 18px;
+        padding: 1.25rem 1.5rem;
+        /* Increased padding */
+        font-size: 1.05rem;
+        font-weight: 600;
+        color: #334155;
+        cursor: pointer;
+        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        text-align: left;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02);
+        display: flex;
+        align-items: center;
+        gap: 1.5rem;
+        /* Increased gap as requested */
+        width: 100%;
+        position: relative;
+    }
+
+    .choice-index {
+        width: 32px;
+        height: 32px;
+        min-width: 32px;
+        background: #f1f5f9;
+        color: #64748b;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.875rem;
+        font-weight: 800;
+        transition: all 0.25s ease;
+        border: 1px solid #e2e8f0;
+    }
+
+    .choice-text {
+        flex: 1;
+        line-height: 1.4;
+    }
+
+    .choice-btn:hover:not(:disabled) {
+        border-color: var(--primary);
+        background: white;
+        transform: translateY(-2px);
+        box-shadow: 0 10px 20px -5px rgba(99, 102, 241, 0.15);
+    }
+
+    .choice-btn:hover:not(:disabled) .choice-index {
+        background: var(--primary);
+        color: white;
+        border-color: var(--primary);
+        transform: scale(1.1);
+    }
+
+    .choice-btn:active:not(:disabled) {
+        transform: translateY(0);
+        background: #f8fafc;
+    }
+
+    .choice-btn:disabled {
+        cursor: default;
+        opacity: 0.8;
+    }
+
+    .choice-btn.correct {
+        border-color: var(--success);
+        background: #f0fdf4;
+        color: #065f46;
+        box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
+    }
+
+    .choice-btn.correct .choice-index {
+        background: var(--success);
+        color: white;
+        border-color: var(--success);
+    }
+
+    .choice-btn.wrong {
+        border-color: var(--error);
+        background: #fef2f2;
+        color: #991b1b;
+        animation: shake 0.4s cubic-bezier(.36, .07, .19, .97) both;
+    }
+
+    .choice-btn.wrong .choice-index {
+        background: var(--error);
+        color: white;
+        border-color: var(--error);
+    }
+
+    .choice-btn.dimmed {
+        opacity: 0.4;
+        filter: grayscale(0.5);
+    }
+
+    @keyframes shake {
+
+        10%,
+        90% {
+            transform: translate3d(-1px, 0, 0);
+        }
+
+        20%,
+        80% {
+            transform: translate3d(2px, 0, 0);
+        }
+
+        30%,
+        50%,
+        70% {
+            transform: translate3d(-4px, 0, 0);
+        }
+
+        40%,
+        60% {
+            transform: translate3d(4px, 0, 0);
+        }
+    }
+
+    .choice-btn.answered-state {
+        cursor: pointer;
+        /* Keep pointer to indicate clickable for stats */
+    }
+
+    .choice-btn.answered-state:hover {
+        transform: translateY(-2px) scale(1.02);
+        box-shadow: 0 12px 20px -5px rgba(0, 0, 0, 0.1);
+        z-index: 10;
+    }
+
+    /* Footer */
+    .session-footer {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        padding: 0.75rem 1rem;
+        padding-bottom: calc(0.75rem + env(safe-area-inset-bottom, 0));
+        background: white;
+        border-top: 1px solid #e2e8f0;
+        box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.06);
+        z-index: 50;
+        display: flex;
+        justify-content: center;
+    }
+
+    .next-btn {
+        width: 100%;
+        max-width: 600px;
+        padding: 0.875rem 1.5rem;
+        border-radius: 0.75rem;
+        font-size: 0.9375rem;
+        font-weight: 700;
+        border: none;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+        color: white;
+        box-shadow: 0 4px 12px rgba(99, 102, 241, 0.35);
+        transition: all 0.2s;
+    }
+
+    .next-btn:active:not(:disabled) {
+        transform: scale(0.98);
+    }
+
+    .next-btn:disabled {
+        background: #e2e8f0;
+        color: #94a3b8;
+        box-shadow: none;
+        cursor: not-allowed;
+    }
+
+    /* Result Modal - Enhanced Report Style */
+    .result-card {
+        background: white;
+        padding: 0;
+        /* Remove padding for header/content split */
+        border-radius: 24px;
+        text-align: center;
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+        border: 1px solid var(--border);
+        max-width: 800px;
+        /* Wider */
+        width: 95%;
+        max-height: 90vh;
+        /* Prevent overflow on small screens */
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        /* For border radius */
+        transform: scale(0.9);
+        transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    .report-header {
+        background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+        padding: 2rem;
+        color: white;
+        flex-shrink: 0;
+        position: relative;
+        overflow: hidden;
+    }
+
+    /* Confetti/Decor */
+    .report-header::before {
+        content: '';
+        position: absolute;
+        top: -50px;
+        right: -50px;
+        width: 150px;
+        height: 150px;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 50%;
+    }
+
+    .report-title-row {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .report-icon {
+        font-size: 2.5rem;
+        color: #facc15;
+        filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+        animation: float 3s ease-in-out infinite;
+    }
+
+    .report-title {
+        font-size: 2rem;
+        font-weight: 800;
+        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .report-metrics {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 1rem;
+    }
+
+    .metric-box {
+        background: rgba(255, 255, 255, 0.15);
+        border-radius: 12px;
+        padding: 0.75rem;
+        backdrop-filter: blur(4px);
+    }
+
+    .metric-val {
+        font-size: 1.5rem;
+        font-weight: 800;
+        display: block;
+        line-height: 1.2;
+    }
+
+    .metric-lbl {
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        opacity: 0.9;
+        font-weight: 600;
+    }
+
+    .report-body {
+        flex: 1;
+        overflow-y: auto;
+        padding: 1.5rem;
+        background: #f8fafc;
+        text-align: left;
+    }
+
+    .history-list {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    .history-item {
+        background: white;
+        padding: 1rem;
+        border-radius: 12px;
+        border: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .history-item.is-correct {
+        border-left: 4px solid var(--success);
+    }
+
+    .history-item.is-wrong {
+        border-left: 4px solid var(--error);
+    }
+
+    .h-icon {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        font-weight: bold;
+    }
+
+    .is-correct .h-icon {
+        background: var(--success-light);
+        color: var(--success);
+    }
+
+    .is-wrong .h-icon {
+        background: var(--error-light);
+        color: var(--error);
+    }
+
+    .h-content {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .h-question {
+        font-weight: 600;
+        color: var(--text-main);
+        font-size: 0.95rem;
+        margin-bottom: 0.25rem;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+
+    .h-answer {
+        font-size: 0.85rem;
+        color: var(--text-sub);
+    }
+
+    .h-time {
+        font-size: 0.75rem;
+        color: #94a3b8;
+        font-weight: 500;
+        white-space: nowrap;
+    }
+
+    .report-footer {
+        padding: 1.5rem;
+        border-top: 1px solid var(--border);
+        background: white;
+        display: flex;
+        gap: 1rem;
+        justify-content: flex-end;
+    }
+
+    /* Mobile Adjustments */
+    @media (max-width: 640px) {
+        .report-metrics {
+            grid-template-columns: repeat(2, 1fr);
+        }
+
+        .report-title {
+            font-size: 1.5rem;
+        }
+
+        .result-card {
+            width: 100%;
+            height: 100%;
+            max-height: none;
+            border-radius: 0;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="session-container">
+    <header class="session-header">
+        <div class="fc-header flex-col items-stretch !p-0">
+            {# --- Row 1: Badge + Title + Score --- #}
+            <div class="flex items-center justify-between px-3 py-2 bg-gradient-to-r from-indigo-500 to-indigo-600">
+                {# Badge + Title #}
+                <div class="flex items-center gap-2.5 overflow-hidden flex-1 mr-2">
+                    <span class="flex-shrink-0 flex items-center gap-1 px-2.5 py-1 bg-white/20 rounded-lg shadow-sm">
+                        <i class="fas fa-list-check text-white text-[10px]"></i>
+                        <span class="text-[10px] font-bold text-white uppercase tracking-wide">MCQ</span>
+                    </span>
+                    <span class="text-sm font-bold text-white truncate js-fc-title"
+                        style="text-shadow: 0 1px 3px rgba(0,0,0,0.3);">{{ container.title }}</span>
+                </div>
+
+                {# Score Badge #}
+                <div class="flex-shrink-0 flex items-center gap-1 h-7 px-2.5 bg-white/20 rounded-full">
+                    <i class="fa-solid fa-gem text-white text-[10px]"></i>
+                    <span class="text-xs font-black text-white font-mono" id="mcq-total-score-val">
+                        {{ "{:,}".format(current_user.total_score if current_user.total_score is not none else 0) }}
+                    </span>
+                </div>
+            </div>
+
+            {# --- Row 2: Stats (White) --- #}
+            <div class="bg-white border-b border-slate-200">
+                <div class="flex items-center justify-between px-3 py-2">
+                    {# Stats Pills #}
+                    <div id="fc-mobile-stats-pills"
+                        class="flex items-center gap-1.5 text-xs overflow-x-auto no-scrollbar max-w-[60%] transition-all duration-300">
+
+                        {# Progress Pill #}
+                        <div class="stat-pill flex-shrink-0 flex items-center gap-1 px-2 py-1 bg-slate-100 rounded-lg">
+                            <i class="fa-solid fa-bars-progress text-slate-500 text-[9px]"></i>
+                            <span class="text-slate-700 font-semibold gap-0.5 flex items-center">
+                                <span id="current-q-num">1</span>
+                                <span class="text-slate-400 text-[10px] mx-0.5">/</span>
+                                <span id="total-q-num">...</span>
+                            </span>
+                        </div>
+
+                        {# Correct Pill #}
+                        <div class="stat-pill flex-shrink-0 flex items-center gap-1 px-2 py-1 bg-emerald-50 rounded-lg">
+                            <i class="fa-solid fa-check text-emerald-500 text-[9px]"></i>
+                            <span class="text-emerald-600 font-bold" id="live-correct">0</span>
+                        </div>
+
+                        {# Wrong Pill #}
+                        <div class="stat-pill flex-shrink-0 flex items-center gap-1 px-2 py-1 bg-rose-50 rounded-lg">
+                            <i class="fa-solid fa-times text-rose-500 text-[9px]"></i>
+                            <span class="text-rose-600 font-bold" id="live-wrong">0</span>
+                        </div>
+
+                        {# Session Points Pill #}
+                        <div class="stat-pill flex-shrink-0 flex items-center gap-1 px-2 py-1 bg-amber-50 rounded-lg">
+                            <i class="fa-solid fa-gem text-amber-500 text-[9px]"></i>
+                            <span class="text-amber-600 font-bold" id="live-session-score">0</span>
+                        </div>
+                    </div>
+
+                    {# Action Buttons #}
+                    <div class="flex items-center gap-1.5 flex-shrink-0">
+                        {# Stats Button #}
+                        <button id="single-stats-btn"
+                            class="w-7 h-7 rounded-full bg-purple-50 text-purple-600 flex items-center justify-center hover:bg-purple-100">
+                            <i class="fas fa-chart-pie text-[10px]"></i>
+                        </button>
+
+                        {# Home Button #}
+                        <a href="{{ url_for('dashboard.dashboard') }}"
+                            class="w-7 h-7 rounded-full bg-slate-50 text-slate-500 flex items-center justify-center hover:bg-slate-100"
+                            title="Về trang chủ">
+                            <i class="fas fa-home text-[10px]"></i>
+                        </a>
+
+                        {# Exit Button #}
+                        <button onclick="endMcqSession()"
+                            class="w-7 h-7 rounded-full bg-rose-50 text-rose-500 flex items-center justify-center hover:bg-rose-100"
+                            title="Thoát">
+                            <i class="fa-solid fa-right-from-bracket text-[10px]"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="session-main">
+        <!-- Row 3: Question Area (Sticky inside Main) -->
+        <div class="question-card" id="question-card">
+            <div class="question-label-v">
+                <i class="fas fa-bolt"></i>
+                <span>QUIZ</span>
+            </div>
+            <div class="question-text" id="question-text">Đang tải...</div>
+        </div>
+
+        <div class="choices-grid" id="choices-grid">
+            <!-- Buttons injected by JS -->
+        </div>
+    </main>
+
+    <footer class="session-footer">
+        <button class="next-btn" id="next-btn" disabled>
+            Tiếp tục <i class="fas fa-arrow-right ms-2"></i>
+        </button>
+    </footer>
+</div>
+
+<!-- Detailed Result Modal -->
+<div class="result-overlay" id="result-overlay">
+    <div class="result-card">
+        <!-- Header -->
+        <div class="report-header">
+            <div class="report-title-row">
+                <i class="fas fa-trophy report-icon"></i>
+                <h2 class="report-title">Hoàn thành!</h2>
+            </div>
+            <div class="report-metrics">
+                <div class="metric-box">
+                    <span class="metric-val" id="rep-accuracy">0%</span>
+                    <span class="metric-lbl">Chính xác</span>
+                </div>
+                <div class="metric-box">
+                    <span class="metric-val" id="rep-correct">0</span>
+                    <span class="metric-lbl">Đúng</span>
+                </div>
+                <div class="metric-box">
+                    <span class="metric-val" id="rep-points">0</span>
+                    <span class="metric-lbl">Điểm số</span>
+                </div>
+                <div class="metric-box">
+                    <span class="metric-val" id="rep-time">0s</span>
+                    <span class="metric-lbl">Tốc độ</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Scrollable Body -->
+        <div class="report-body">
+            <h3 class="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4">Chi tiết phiên học</h3>
+            <div class="history-list" id="report-list">
+                <!-- Dynamically populated -->
+            </div>
+        </div>
+
+        <!-- Footer Actions -->
+        <div class="report-footer">
+            <button class="px-4 py-2 rounded-lg font-bold text-slate-500 hover:text-slate-700" onclick="goToSummary()">
+                Thoát & Xem Báo Cáo
+            </button>
+            <button
+                class="px-6 py-2 rounded-xl font-bold text-white bg-indigo-500 hover:bg-indigo-600 shadow-lg shadow-indigo-200"
+                onclick="location.reload()">
+                Luyện tập lại
+            </button>
+        </div>
+    </div>
+</div>
+
+{# Explicit Notification Integration #}
+{% include _v ~ '/components/_score_toast.html' %}
+{% include _v ~ '/components/_memory_power.html' %}
+{% include _v ~ '/modules/learning/vocabulary/stats/_modal_stats.html' %}
+
+<!-- Exit Confirmation Modal -->
+<div id="exit-confirm-modal"
+    class="fixed inset-0 bg-slate-900/40 z-[100] hidden items-center justify-center p-4 backdrop-blur-sm opacity-0 transition-opacity duration-300"
+    style="display: none;">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6 transform scale-95 transition-transform duration-300"
+        id="exit-modal-panel">
+        <div class="text-center">
+            <div
+                class="w-16 h-16 bg-rose-50 text-rose-500 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl ring-4 ring-rose-50">
+                <i class="fa-solid fa-right-from-bracket"></i>
+            </div>
+            <h3 class="text-xl font-bold text-slate-800 mb-2">Kết thúc phiên học?</h3>
+            <p class="text-slate-500 text-sm mb-6 leading-relaxed">Kết quả hiện tại sẽ được lưu vào lịch sử. Bạn có muốn
+                xem thống kê ngay không?</p>
+            <div class="flex gap-3">
+                <button onclick="closeExitModal()"
+                    class="flex-1 py-2.5 rounded-xl font-bold text-slate-600 bg-slate-50 hover:bg-slate-100 border border-slate-200 transition-colors">
+                    Ở lại
+                </button>
+                <button onclick="confirmExit()"
+                    class="flex-1 py-2.5 rounded-xl font-bold text-white bg-rose-500 hover:bg-rose-600 shadow-lg shadow-rose-500/30 transition-all">
+                    Kết thúc
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+    (function () {
+        // Config
+        const setId = Number("{{ container.container_id }}");
+        const mode = '{{ mode }}';
+        const count = {{ count | default (10)
+    }};
+    const numChoices = {{ choices | default (4) }};
+    const customPairs = {{ custom_pairs | tojson if custom_pairs else 'null' }};
+
+    // State
+    let questions = [];
+    let currentIndex = 0;
+    let stats = { correct: 0, wrong: 0 };
+    let isAnswered = false;
+    let startTime = 0;
+    let totalScore = 0;
+    let sessionHistory = [];
+    let dbSessionId = null;
+
+    // Elements
+    const els = {
+        qNum: document.getElementById('current-q-num'),
+        tNum: document.getElementById('total-q-num'),
+        lCorrect: document.getElementById('live-correct'),
+        lWrong: document.getElementById('live-wrong'),
+        lSessionScore: document.getElementById('live-session-score'),
+        qText: document.getElementById('question-text'),
+        cGrid: document.getElementById('choices-grid'),
+        nextBtn: document.getElementById('next-btn'),
+        result: document.getElementById('result-overlay'),
+        progressFill: document.getElementById('mcq-progress-fill')
+    };
+
+    // Helper for redirection
+    window.goToSummary = function () {
+        if (dbSessionId) {
+            window.location.href = `/learn/session/${dbSessionId}/summary`;
+        } else {
+            // Fallback if session ID missing
+            location.href = "{{ url_for('vocab_mcq.mcq_setup', set_id=container.container_id) }}";
+        }
+    };
+
+    // Init
+    init();
+
+    // Modal Logic
+    const exitModal = document.getElementById('exit-confirm-modal');
+    const exitPanel = document.getElementById('exit-modal-panel');
+
+    window.endMcqSession = function () {
+        if (exitModal) {
+            exitModal.style.display = 'flex';
+            // Small delay to allow display:flex to apply before adding opacity class for animation
+            setTimeout(() => {
+                exitModal.classList.remove('opacity-0', 'hidden');
+                exitPanel.classList.remove('scale-95');
+                exitPanel.classList.add('scale-100');
+            }, 10);
+        }
+    };
+
+    window.closeExitModal = function () {
+        if (exitModal) {
+            exitModal.classList.add('opacity-0');
+            exitPanel.classList.remove('scale-100');
+            exitPanel.classList.add('scale-95');
+            setTimeout(() => {
+                exitModal.classList.add('hidden');
+                exitModal.style.display = 'none';
+            }, 300);
+        }
+    };
+
+    window.confirmExit = function () {
+        const btn = document.querySelector('button[onclick="confirmExit()"]');
+        if (btn) {
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Xử lý...';
+            btn.disabled = true;
+        }
+
+        fetch("{{ url_for('vocabulary.mcq.end_session') }}", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': "{{ csrf_token() if csrf_token else '' }}"
+            },
+            body: JSON.stringify({ set_id: {{ container.container_id }} })
+        })
+            .then(response => response.json())
+        .then(data => {
+            if (data.success && data.session_id) {
+                window.location.href = `/learn/session/${data.session_id}/summary`;
+            } else {
+                window.location.href = "{{ url_for('learning.manage_sessions') }}";
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            alert("Lỗi kết nối. Vui lòng thử lại.");
+            if (btn) {
+                btn.innerHTML = 'Kết thúc';
+                btn.disabled = false;
+            }
+        });
+    };
+
+    function init() {
+        // [NEW] Calculate dynamic footer padding
+        updateFooterPadding();
+        window.addEventListener('resize', updateFooterPadding);
+
+        // Build API URL
+        let apiUrl = `/learn/vocabulary/mcq/api/items/${setId}?count=${count}&mode=${mode}&choices=${numChoices}`;
+        if (customPairs) apiUrl += '&custom_pairs=' + encodeURIComponent(JSON.stringify(customPairs));
+
+        // Fetch Data
+        fetch(apiUrl)
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    questions = data.questions;
+                    currentIndex = data.currentIndex || 0;
+                    stats = data.stats || { correct: 0, wrong: 0 };
+
+                    // Update stats UI
+                    els.lCorrect.textContent = stats.correct;
+                    els.lWrong.textContent = stats.wrong;
+                    if (els.lSessionScore) els.lSessionScore.textContent = stats.points || 0;
+
+                    // Set Total Count Display
+                    if (count <= 0) {
+                        els.tNum.innerHTML = '<i class="fa-solid fa-infinity text-[10px]"></i>';
+                    } else {
+                        els.tNum.textContent = questions.length;
+                    }
+
+                    // If we have answers for previous questions, we should technically be at the first unanswered one
+                    // The backend manager already handles currentIndex increment.
+
+                    renderQuestion();
+
+                    // If the current question was already answered (from a previous reload), restore UI
+                    const savedAnswer = data.answers ? data.answers[String(currentIndex)] : null;
+                    if (savedAnswer !== null && savedAnswer !== undefined) {
+                        const answerIndex = (typeof savedAnswer === 'object') ? savedAnswer.user_answer_index : savedAnswer;
+                        restoreAnswerState(answerIndex);
+                    }
+
+                } else {
+                    els.qText.textContent = data.message || 'Lỗi tải dữ liệu';
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                els.qText.textContent = 'Lỗi kết nối';
+            });
+
+        // Event Listeners
+        els.nextBtn.addEventListener('click', nextQuestion);
+
+        // Keyboard support
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && isAnswered && !els.nextBtn.disabled) {
+                nextQuestion();
+            }
+            // Number keys 1-4 for choices
+            if (!isAnswered && e.key >= '1' && e.key <= '4') {
+                const idx = parseInt(e.key) - 1;
+                const btn = els.cGrid.children[idx];
+                if (btn) btn.click();
+            }
+        });
+    }
+
+    function renderQuestion() {
+        if (currentIndex >= questions.length) {
+            showResult();
+            return;
+        }
+
+        const q = questions[currentIndex];
+        isAnswered = false;
+
+        // Update UI
+        els.qNum.textContent = currentIndex + 1;
+
+        // Update Progress Bar
+        const progressPercent = ((currentIndex + 1) / questions.length) * 100;
+        if (els.progressFill) {
+            els.progressFill.style.width = progressPercent + '%';
+        }
+
+        els.qText.textContent = q.question;
+
+        // Update Stats Link
+        const statsBtn = document.getElementById('single-stats-btn');
+        if (statsBtn) {
+            statsBtn.onclick = () => {
+                if (window.openVocabularyItemStats && q.item_id) {
+                    window.openVocabularyItemStats(q.item_id);
+                }
+            };
+        }
+
+        els.nextBtn.disabled = true;
+
+        // Render Choices
+        els.cGrid.innerHTML = '';
+        q.choices.forEach((choiceText, idx) => {
+            const btn = document.createElement('button');
+            btn.className = 'choice-btn';
+
+            // Add Index and Text structure
+            btn.innerHTML = `
+                <div class="choice-index">${idx + 1}</div>
+                <div class="choice-text">${choiceText}</div>
+            `;
+
+            btn.onclick = () => {
+                if (!isAnswered) {
+                    handleAnswer(idx, btn);
+                } else {
+                    // Open stats modal for the clicked choice if already answered
+                    if (window.openVocabularyItemStats && q.choice_item_ids && q.choice_item_ids[idx]) {
+                        window.openVocabularyItemStats(q.choice_item_ids[idx]);
+                    } else if (window.openVocabularyItemStats && q.item_id) {
+                        window.openVocabularyItemStats(q.item_id);
+                    }
+                }
+            };
+            els.cGrid.appendChild(btn);
+        });
+
+        startTime = Date.now();
+    }
+
+    function restoreAnswerState(selectedIndex) {
+        // Similar to handleAnswer but without sending to backend or updating local stats (already loaded)
+        isAnswered = true;
+        const q = questions[currentIndex];
+        const isCorrect = (selectedIndex === q.correct_index);
+
+        const buttons = els.cGrid.children;
+        for (let i = 0; i < buttons.length; i++) {
+            const btn = buttons[i];
+            btn.classList.add('answered-state');
+            if (i === q.correct_index) {
+                btn.classList.add('correct');
+            } else if (i === selectedIndex && !isCorrect) {
+                btn.classList.add('wrong');
+            } else {
+                btn.classList.add('dimmed');
+            }
+        }
+        els.nextBtn.disabled = false;
+    }
+
+    function handleAnswer(selectedIndex, selectedBtn) {
+        if (isAnswered) return;
+        isAnswered = true;
+
+        const q = questions[currentIndex];
+        const isCorrect = (selectedIndex === q.correct_index);
+
+        if (isCorrect) {
+            stats.correct++;
+            els.lCorrect.textContent = stats.correct;
+        } else {
+            stats.wrong++;
+            els.lWrong.textContent = stats.wrong;
+        }
+
+        // Visual Feedback
+        const buttons = els.cGrid.children;
+        for (let i = 0; i < buttons.length; i++) {
+            const btn = buttons[i];
+            btn.classList.add('answered-state');
+            if (i === q.correct_index) {
+                btn.classList.add('correct');
+            } else if (i === selectedIndex && !isCorrect) {
+                btn.classList.add('wrong');
+            } else {
+                btn.classList.add('dimmed');
+            }
+        }
+
+        els.nextBtn.disabled = false;
+        els.nextBtn.focus();
+
+        const duration_ms = Date.now() - startTime;
+
+        // [NEW] Record History
+        sessionHistory.push({
+            question: q,
+            selectedIdx: selectedIndex,
+            isCorrect: isCorrect,
+            duration: duration_ms
+        });
+        const payload = {
+            set_id: setId,
+            item_id: q.item_id,
+            correct_index: q.correct_index,
+            user_answer_index: selectedIndex,
+            user_answer_text: q.choices[selectedIndex],
+            duration_ms: duration_ms
+        };
+
+        fetch('/learn/vocabulary/mcq/api/check', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token() }}'
+            },
+            body: JSON.stringify(payload)
+        })
+            .then(r => r.json())
+            .then(async data => {
+                if (data.success) {
+                    if (data.stats && els.lSessionScore) {
+                        els.lSessionScore.textContent = data.stats.points;
+                    }
+                    if (data.updated_total_score !== undefined && data.updated_total_score !== null) {
+                        const totalScoreEl = document.getElementById('mcq-total-score-val');
+                        if (totalScoreEl) totalScoreEl.textContent = data.updated_total_score.toLocaleString();
+                    }
+                    if (data.score_change > 0 && typeof window.showScoreToast === 'function') {
+                        window.showScoreToast(data.score_change);
+                    }
+                    if (data.memory_power && typeof window.showMemoryPowerFeedback === 'function') {
+                        window.showMemoryPowerFeedback(
+                            (data.memory_power.old_retrievability || 0) * 100,
+                            (data.memory_power.retrievability || 0) * 100,
+                            data.set_id
+                        );
+                    }
+
+                    if (data.session_id) {
+                        dbSessionId = data.session_id;
+                    }
+                }
+            })
+            .catch(console.error);
+    }
+
+    async function nextQuestion() {
+        // Call backend to advance index
+        try {
+            const res = await fetch(`/learn/vocabulary/mcq/api/next/${setId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token() }}'
+                }
+            });
+            const data = await res.json();
+            if (data.success) {
+                currentIndex = data.currentIndex;
+                renderQuestion();
+            } else {
+                console.error("Failed to advance MCQ session:", data.message);
+                // Fallback local advance if session lost? 
+                // Better to just reload or show error.
+            }
+        } catch (e) {
+            console.error(e);
+        }
+    }
+
+    function showResult() {
+        // Calculate Metrics
+        const totalQ = questions.length;
+        const accuracy = totalQ > 0 ? Math.round((stats.correct / totalQ) * 100) : 0;
+        const totalTime = sessionHistory.reduce((acc, cur) => acc + cur.duration, 0);
+        const avgTime = sessionHistory.length ? Math.round(totalTime / sessionHistory.length / 1000 * 10) / 10 : 0;
+
+        // Update Metrics UI
+        const accEl = document.getElementById('rep-accuracy');
+        if (accEl) accEl.textContent = accuracy + '%';
+
+        const corrEl = document.getElementById('rep-correct');
+        if (corrEl) corrEl.textContent = stats.correct + '/' + totalQ;
+
+        const ptsEl = document.getElementById('rep-points');
+        if (ptsEl && els.lSessionScore) ptsEl.textContent = els.lSessionScore.textContent;
+
+        const timeEl = document.getElementById('rep-time');
+        if (timeEl) timeEl.textContent = avgTime + 's';
+
+        // Populate List
+        const listEl = document.getElementById('report-list');
+        if (listEl) {
+            listEl.innerHTML = '';
+            sessionHistory.forEach((item, index) => {
+                const el = document.createElement('div');
+                el.className = `history-item ${item.isCorrect ? 'is-correct' : 'is-wrong'}`;
+                el.onclick = () => {
+                    if (window.openVocabularyItemStats && item.question.item_id) {
+                        window.openVocabularyItemStats(item.question.item_id);
+                    }
+                };
+                el.style.cursor = 'pointer';
+
+                el.innerHTML = `
+                    <div class="h-icon">
+                        <i class="fas ${item.isCorrect ? 'fa-check' : 'fa-times'}"></i>
+                    </div>
+                    <div class="h-content">
+                        <div class="h-question" title="${item.question.question}">${item.question.question}</div>
+                        ${!item.isCorrect ?
+                        `<div class="h-answer text-rose-500"><i class="fas fa-times me-1"></i> ${item.question.choices[item.selectedIdx]}</div>
+                             <div class="h-answer text-emerald-600"><i class="fas fa-check me-1"></i> ${item.question.choices[item.question.correct_index]}</div>`
+                        : `<div class="h-answer text-emerald-600"><i class="fas fa-check me-1"></i> ${item.question.choices[item.selectedIdx]}</div>`
+                    }
+                    </div>
+                    <div class="h-time">${(item.duration / 1000).toFixed(1)}s</div>
+                `;
+                listEl.appendChild(el);
+            });
+        }
+
+        els.result.classList.add('active');
+    }
+
+    // [NEW] Dynamic footer padding calculation
+    function updateFooterPadding() {
+        const footer = document.querySelector('.session-footer');
+        const choicesGrid = document.querySelector('.choices-grid');
+
+        if (footer && choicesGrid) {
+            const footerHeight = footer.offsetHeight;
+            // Add buffer of 16px for spacing
+            const requiredPadding = footerHeight + 16;
+
+            // Set CSS variable for dynamic use
+            document.documentElement.style.setProperty('--footer-height', footerHeight + 'px');
+
+            // Apply directly to choices-grid for immediate effect
+            choicesGrid.style.paddingBottom = requiredPadding + 'px';
+        }
+    }
+}) ();
+</script>
+{% endblock %}
+

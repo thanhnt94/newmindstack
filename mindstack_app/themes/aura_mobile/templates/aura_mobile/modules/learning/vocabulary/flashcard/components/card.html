@@ -1,0 +1,112 @@
+{#
+# File: mindstack_app/templates/aura_mobile/modules/learning/vocabulary/flashcard/components/card.html
+# Purpose: Reusable flashcard card component with overlay information
+# Version: 3.0
+#}
+
+{% macro render_flashcard_card() %}
+<div class="session-layout">
+    <div class="flashcard-wrapper">
+        <div class="card-surface">
+            <div class="flashcard-panel">
+                {# Card Overlay - Top Layer #}
+                <div class="absolute inset-0 pointer-events-none z-20">
+                    {# Top-Left Unified Header: Status Badge + Statistics #}
+                    <div class="absolute top-2.5 left-2.5 pointer-events-auto">
+                        <div
+                            class="flex items-center bg-white/95 backdrop-blur-sm rounded-full shadow-lg border border-slate-200 overflow-hidden h-8">
+                            {# Status Part #}
+                            <div
+                                class="js-card-overlay-status-badge flex items-center gap-1 px-2.5 bg-blue-500 text-white font-bold text-[9px] uppercase tracking-wider h-full cursor-pointer hover:brightness-110 active:scale-95 transition-all">
+                                <i class="fas fa-layer-group text-[10px]"></i>
+                                <span class="js-card-overlay-status-text">MỚI</span>
+                            </div>
+
+                            {# Stats Part #}
+                            <div
+                                class="js-card-overlay-stats flex items-center gap-2.5 px-3 h-full transition-all duration-300">
+                                {# Times Reviewed #}
+                                <div class="flex items-center gap-1" title="Số lần ôn">
+                                    <i class="fas fa-redo text-slate-400 text-[9px]"></i>
+                                    <span
+                                        class="text-[11px] font-bold text-slate-700 js-card-overlay-times-reviewed">0</span>
+                                </div>
+
+                                {# Streak #}
+                                <div class="flex items-center gap-1" title="Chuỗi ghi nhớ">
+                                    <i class="fas fa-fire text-amber-500 text-[9px]"></i>
+                                    <span class="text-[11px] font-bold text-amber-700 js-card-overlay-streak">0</span>
+                                </div>
+
+                                {# Difficulty (NEW) #}
+                                <div class="flex items-center gap-1" title="Độ khó">
+                                    <i class="fas fa-mask text-rose-500 text-[9px]"></i>
+                                    <span
+                                        class="text-[11px] font-bold text-rose-700 js-card-overlay-difficulty">0.0</span>
+                                </div>
+
+                                {# Stability #}
+                                <div class="flex items-center gap-1" title="Độ ổn định">
+                                    <i class="fas fa-shield-alt text-emerald-500 text-[9px]"></i>
+                                    <span
+                                        class="text-[11px] font-bold text-emerald-700 js-card-overlay-stability">0</span>
+                                </div>
+
+                                {# Retrievability #}
+                                <div class="flex items-center gap-1" title="Khả năng nhớ">
+                                    <i class="fas fa-brain text-purple-500 text-[9px]"></i>
+                                    <span
+                                        class="text-[11px] font-bold text-purple-700 js-card-overlay-retrievability">0</span>
+                                    <span class="text-[8px] text-purple-500 opacity-60">%</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {# Top-Right: Audio Button #}
+                    <div class="absolute top-3 right-3 pointer-events-auto">
+                        <div class="relative group/audio">
+                            <button
+                                class="js-fc-audio-btn-overlay w-10 h-10 rounded-full bg-blue-500/90 backdrop-blur-sm text-white flex items-center justify-center hover:bg-blue-600 transition-all shadow-lg hover:scale-110"
+                                data-has-audio="false">
+                                <i class="fa-solid fa-volume-xmark text-sm js-fc-audio-icon-overlay"></i>
+                            </button>
+
+                            {# Autoplay Indicator Badge #}
+                            <div
+                                class="js-fc-autoplay-badge absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-emerald-500 border-2 border-white shadow-sm flex items-center justify-center scale-0 transition-transform duration-300">
+                                <i class="fas fa-play text-[7px] text-white translate-x-[0.5px]"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    {# Bottom-Left: Stats Detail Button #}
+                    <div class="absolute bottom-3 left-3 pointer-events-auto z-30">
+                        <button
+                            class="js-fc-stats-detail-overlay w-10 h-10 rounded-full bg-indigo-600/90 backdrop-blur-sm text-white flex items-center justify-center hover:bg-indigo-700 transition-all shadow-lg hover:scale-110"
+                            title="Chi tiết thống kê">
+                            <i class="fas fa-chart-pie text-sm"></i>
+                        </button>
+                    </div>
+
+                    {# Bottom-Right: Image Toggle Button #}
+                    <div class="absolute bottom-3 right-3 pointer-events-auto z-30">
+                        <button
+                            class="js-fc-image-toggle-overlay w-10 h-10 rounded-full bg-slate-700/90 backdrop-blur-sm text-white flex items-center justify-center hover:bg-slate-800 transition-all shadow-lg hover:scale-110">
+                            <i class="fas fa-image text-sm js-fc-image-icon-overlay"></i>
+                        </button>
+                    </div>
+                </div>
+
+                {# Card Content #}
+                <div class="js-flashcard-content">
+                    <div class="flex flex-col items-center justify-center h-full text-emerald-500 min-h-[300px]">
+                        <i class="fas fa-spinner fa-spin text-4xl mb-3"></i>
+                        <p>Đang tải thẻ...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endmacro %}

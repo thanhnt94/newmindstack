@@ -17,47 +17,47 @@ class TemplateService:
     TEMPLATE_CONFIG = {
         'dashboard': {
             'label': 'Dashboard (Bảng điều khiển)',
-            'relative_path': 'pages/dashboard'
+            'relative_path': 'modules/dashboard'
         },
         'landing': {
             'label': 'Landing Page (Trang chủ)',
-            'relative_path': 'pages/landing'
+            'relative_path': 'modules/landing'
         },
         'auth.login': {
             'label': 'Authentication (Đăng nhập/Đăng ký)',
-            'relative_path': 'pages/auth'
+            'relative_path': 'modules/auth'
         },
         'flashcard.cardsession': {
             'label': 'Flashcard Session',
-            'relative_path': 'pages/learning/vocabulary/flashcard/session'
+            'relative_path': 'modules/learning/vocabulary/flashcard/session'
         },
         'flashcard.setup': {
             'label': 'Flashcard Setup (Chọn chế độ)',
-            'relative_path': 'pages/learning/collab/flashcard'
+            'relative_path': 'modules/learning/collab/flashcard'
         },
         'quiz.session': {
             'label': 'Quiz Session (Làm bài)',
-            'relative_path': 'pages/learning/quiz/individual/session/default'
+            'relative_path': 'modules/learning/quiz/individual/session/default'
         },
         'quiz.setup': {
             'label': 'Quiz Setup (Chọn bộ câu hỏi)',
-            'relative_path': 'pages/learning/quiz/individual/setup'
+            'relative_path': 'modules/learning/quiz/individual/setup'
         },
         'quiz.battle': {
             'label': 'Quiz Battle (Đối kháng)',
-            'relative_path': 'pages/learning/quiz/battle'
+            'relative_path': 'modules/learning/quiz/battle'
         },
         'collab.dashboard': {
             'label': 'Collab Dashboard (Học nhóm)',
-            'relative_path': 'pages/learning/collab/default'
+            'relative_path': 'modules/learning/collab/default'
         },
         'vocabulary.dashboard': {
             'label': 'Vocabulary (Từ vựng)',
-            'relative_path': 'pages/learning/vocabulary'
+            'relative_path': 'modules/learning/vocabulary'
         },
         'course.dashboard': {
             'label': 'Course (Khóa học)',
-            'relative_path': 'pages/learning/course'
+            'relative_path': 'modules/learning/course'
         },
     }
 

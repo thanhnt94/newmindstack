@@ -1,0 +1,27 @@
+{% set _v = template_version %}
+{% extends _v ~ '/layouts/base.html' %}
+
+{% block title %}Quản Lý Bộ Thẻ Ghi Nhớ - MindStack{% endblock %}
+
+{% block head %}
+{{ super() }}
+{% include _v ~ '/modules/content_management/shared/_shared_styles.html' %}
+{% endblock %}
+
+{% block content %}
+<div class="cm-shell" data-accent="sky">
+    <div class="cm-container space-y-6">
+
+        {# Include Consolidated List #}
+        {% include _v ~ '/modules/content_management/flashcards/sets/_flashcard_sets_list.html' %}
+
+        <div class="text-center pt-8">
+            <a href="{{ url_for('content_management.content_dashboard') }}"
+                class="cm-link inline-flex items-center gap-2 text-slate-500 hover:text-indigo-600 transition-colors text-sm font-medium">
+                <i class="fa-solid fa-arrow-left"></i>
+                <span>Quay lại Bảng điều khiển nội dung</span>
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

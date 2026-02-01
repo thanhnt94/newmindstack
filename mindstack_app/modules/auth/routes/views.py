@@ -52,7 +52,7 @@ def login():
             next_page = url_for('dashboard.dashboard')
         return redirect(next_page)
         
-    return render_dynamic_template('pages/auth/login/login.html', form=form)
+    return render_dynamic_template('modules/auth/login/login.html', form=form)
 
 @blueprint.route('/logout', methods=['GET', 'POST'])
 def logout():
@@ -78,4 +78,4 @@ def register():
             db.session.rollback()
             flash(f'Lỗi đăng ký: {str(e)}', 'danger')
         
-    return render_dynamic_template('pages/auth/register/register.html', form=form)
+    return render_dynamic_template('modules/auth/register/register.html', form=form)

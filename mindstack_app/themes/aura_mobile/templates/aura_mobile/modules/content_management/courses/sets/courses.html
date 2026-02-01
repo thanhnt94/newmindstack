@@ -1,0 +1,24 @@
+{% set _v = template_version %}
+{% extends _v ~ '/layouts/base.html' %}
+
+{% block title %}Quản Lý Khóa Học - MindStack{% endblock %}
+
+{% block head %}
+{{ super() }}
+{% include _v ~ '/modules/content_management/shared/_shared_styles.html' %}
+{% endblock %}
+
+{% block content %}
+<div class="cm-shell" data-accent="indigo">
+    <div class="cm-container space-y-6">
+        {% include _v ~ '/modules/content_management/courses/sets/_courses_list.html' %}
+
+        <div class="text-center">
+            <a href="{{ url_for('content_management.content_dashboard') }}" class="cm-link">
+                <i class="fa-solid fa-arrow-left"></i>
+                <span>Quay lại Bảng điều khiển nội dung</span>
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

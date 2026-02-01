@@ -45,7 +45,7 @@ def matching_session_page(set_id):
         'db_session_id': db_session_id
     }
     
-    return render_dynamic_template('pages/learning/vocab_matching/session/index.html',
+    return render_dynamic_template('modules/learning/vocab_matching/session/index.html',
         container=container,
         game=game_data
     )

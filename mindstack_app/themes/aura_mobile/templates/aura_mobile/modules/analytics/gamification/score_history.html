@@ -1,0 +1,153 @@
+{% set _v = template_version %}
+{% extends _v ~ '/layouts/base.html' %}
+
+{% block title %}Lịch sử điểm thưởng{% endblock %}
+
+{% block content %}
+<div class="h-full flex flex-col bg-slate-50">
+    <!-- Header -->
+    <div class="bg-white border-b px-4 py-3 flex items-center shadow-sm sticky top-0 z-10">
+        <button onclick="history.back()" class="mr-3 text-slate-600 hover:text-blue-600 transition-colors">
+            <i class="fas fa-arrow-left text-xl"></i>
+        </button>
+        <h1 class="text-lg font-bold text-slate-800 flex-1">Lịch sử điểm thưởng</h1>
+        <div class="flex items-center space-x-2 bg-blue-50 px-3 py-1 rounded-full border border-blue-100">
+            <i class="fas fa-gem text-blue-500"></i>
+            <span class="font-bold text-blue-700">{{ "{:,}".format(current_user.total_score or 0) }}</span>
+        </div>
+    </div>
+
+    <!-- Content -->
+    <div class="flex-1 overflow-y-auto p-4" id="score-history-container">
+        <!-- List will be loaded here via API -->
+        <div id="loading-spinner" class="flex justify-center py-8">
+            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        </div>
+        <div id="score-list" class="space-y-3">
+            <!-- Dynamic items -->
+        </div>
+        <div id="load-more-container" class="text-center py-4 hidden">
+            <button id="load-more-btn" class="text-sm font-medium text-blue-600 hover:text-blue-700">
+                Xem thêm <i class="fas fa-chevron-down ml-1"></i>
+            </button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+    let currentPage = 1;
+    let isLoading = false;
+    let hasMore = true;
+    const itemsPerPage = 20;
+    const listContainer = document.getElementById('score-list');
+    const loadingSpinner = document.getElementById('loading-spinner');
+    const loadMoreContainer = document.getElementById('load-more-container');
+    const loadMoreBtn = document.getElementById('load-more-btn');
+
+    async function loadHistory(page) {
+        if (isLoading) return;
+        isLoading = true;
+        if (page === 1) loadingSpinner.classList.remove('hidden');
+
+        try {
+            const response = await fetch(`{{ url_for('stats.get_score_history_api') }}?page=${page}&per_page=${itemsPerPage}`);
+            const data = await response.json();
+
+            if (data.success) {
+                if (data.logs.length === 0) {
+                    hasMore = false;
+                    if (page === 1) {
+                        listContainer.innerHTML = `
+                            <div class="text-center py-10 text-slate-400">
+                                <i class="fas fa-history text-4xl mb-3 opacity-50"></i>
+                                <p>Chưa có lịch sử điểm nào.</p>
+                            </div>
+                        `;
+                    }
+                } else {
+                    renderLogs(data.logs);
+                    hasMore = data.logs.length === itemsPerPage;
+                }
+            }
+        } catch (error) {
+            console.error('Lỗi tải lịch sử:', error);
+        } finally {
+            isLoading = false;
+            loadingSpinner.classList.add('hidden');
+            updateLoadMoreVisibility();
+        }
+    }
+
+    function renderLogs(logs) {
+        const html = logs.map(log => {
+            const isPositive = log.score_change > 0;
+            const colorClass = isPositive ? 'text-green-600' : 'text-red-600';
+            const iconClass = parseIcon(log.item_type, log.reason);
+            const sign = isPositive ? '+' : '';
+            const bgClass = isPositive ? 'bg-green-50' : 'bg-red-50';
+
+            // Format time
+            const date = new Date(log.timestamp);
+            const timeStr = date.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+            const dateStr = date.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' });
+
+            return `
+                <div class="bg-white p-3 rounded-xl shadow-sm border border-slate-100 flex items-center space-x-3">
+                    <div class="w-10 h-10 rounded-full ${bgClass} flex items-center justify-center shrink-0">
+                        <i class="${iconClass} ${colorClass}"></i>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <p class="text-sm font-medium text-slate-800 truncate">${log.reason}</p>
+                        <p class="text-xs text-slate-500">${timeStr} • ${dateStr}</p>
+                    </div>
+                    <div class="font-bold ${colorClass} text-base whitespace-nowrap">
+                        ${sign}${log.score_change}
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+        if (currentPage === 1) {
+            listContainer.innerHTML = html;
+        } else {
+            listContainer.insertAdjacentHTML('beforeend', html);
+        }
+    }
+
+    function parseIcon(type, reason) {
+        if (!type) {
+            if (reason.toLowerCase().includes('quiz')) return 'fas fa-question';
+            if (reason.toLowerCase().includes('flash')) return 'fas fa-layer-group';
+            return 'fas fa-star';
+        }
+        switch (type.toUpperCase()) {
+            case 'FLASHCARD': return 'fas fa-layer-group';
+            case 'QUIZ_MCQ': return 'fas fa-question';
+            case 'COURSE': return 'fas fa-graduation-cap';
+            case 'DAILY': return 'fas fa-calendar-check';
+            default: return 'fas fa-star';
+        }
+    }
+
+    function updateLoadMoreVisibility() {
+        if (hasMore) {
+            loadMoreContainer.classList.remove('hidden');
+        } else {
+            loadMoreContainer.classList.add('hidden');
+        }
+    }
+
+    loadMoreBtn.addEventListener('click', () => {
+        if (hasMore) {
+            currentPage++;
+            loadHistory(currentPage);
+        }
+    });
+
+    // Init
+    loadHistory(1);
+</script>
+{% endblock %}

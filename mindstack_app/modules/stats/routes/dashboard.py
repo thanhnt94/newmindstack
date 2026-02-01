@@ -207,7 +207,7 @@ def dashboard():
             'streak': {'current_streak': 0, 'longest_streak': 0}
         }
 
-    return render_dynamic_template('pages/analytics/dashboard.html',
+    return render_dynamic_template('modules/analytics/dashboard.html',
         leaderboard_data=leaderboard_data,
         dashboard_data=dashboard_data,
         daily_summary=daily_summary, # Pass to template

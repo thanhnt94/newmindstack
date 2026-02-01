@@ -11,7 +11,7 @@ def render_dynamic_template(relative_path: str, **context):
     Render a template with dynamic version prefix from TemplateService.
     
     Args:
-        relative_path: Template path relative to version folder, e.g. 'pages/dashboard/index.html'
+        relative_path: Template path relative to version folder, e.g. 'modules/dashboard/index.html'
         **context: Template context variables
         
     Returns:
@@ -19,7 +19,7 @@ def render_dynamic_template(relative_path: str, **context):
         
     Example:
         # Instead of: render_template('v3/pages/dashboard/index.html', ...)
-        # Use: render_dynamic_template('pages/dashboard/index.html', ...)
+        # Use: render_dynamic_template('modules/dashboard/index.html', ...)
     """
     version = TemplateService.get_active_version()
     full_path = f'{version}/{relative_path}'

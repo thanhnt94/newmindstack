@@ -9,4 +9,4 @@ from ..services.dashboard_service import DashboardService
 def dashboard():
     """Trang dashboard tổng quan của người dùng."""
     data = DashboardService.get_dashboard_data(current_user.user_id)
-    return render_dynamic_template('pages/dashboard/index.html', **data)
+    return render_dynamic_template('modules/dashboard/index.html', **data)

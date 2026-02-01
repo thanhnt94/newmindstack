@@ -24,7 +24,7 @@ from ..config import ContentManagementModuleDefaultConfig
 @login_required
 def content_dashboard():
     """Hiển thị dashboard tổng quan về nội dung."""
-    return render_dynamic_template('pages/content_management/index.html')
+    return render_dynamic_template('modules/content_management/index.html')
 
 @blueprint.route('/<container_type>')
 @login_required
@@ -93,9 +93,9 @@ def list_containers(container_type):
     full_tpl, partial_tpl = templates.get(container_type, ('index.html', '_list.html'))
     
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-        return render_dynamic_template(f'pages/content_management/{type_slug}/sets/{partial_tpl}', **template_vars)
+        return render_dynamic_template(f'modules/content_management/{type_slug}/sets/{partial_tpl}', **template_vars)
     else:
-        return render_dynamic_template(f'pages/content_management/{type_slug}/sets/{full_tpl}', **template_vars)
+        return render_dynamic_template(f'modules/content_management/{type_slug}/sets/{full_tpl}', **template_vars)
 
 def _get_form_for_type(container_type):
     forms = {
@@ -152,7 +152,7 @@ def add_container(container_type):
     type_slug = ContentManagementModuleDefaultConfig.TYPE_SLUG_MAP.get(container_type.upper(), container_type.lower())
     template = templates.get(container_type, 'add_edit.html')
     
-    return render_dynamic_template(f'pages/content_management/{type_slug}/sets/{template}', 
+    return render_dynamic_template(f'modules/content_management/{type_slug}/sets/{template}', 
                                    form=form, 
                                    title=f'Thêm {container_type}',
                                    available_keys=['front', 'back'],
@@ -285,7 +285,7 @@ def edit_container(container_id):
     type_slug = ContentManagementModuleDefaultConfig.TYPE_SLUG_MAP.get(container.container_type.upper(), container.container_type.lower())
     template = templates.get(container.container_type, 'add_edit.html')
     
-    return render_dynamic_template(f'pages/content_management/{type_slug}/sets/{template}', 
+    return render_dynamic_template(f'modules/content_management/{type_slug}/sets/{template}', 
                                    form=form, 
                                    title='Chỉnh sửa', 
                                    container=container,
@@ -372,9 +372,9 @@ def list_items(container_id):
     full_tpl, partial_tpl = templates.get(container.container_type, ('index.html', '_list.html'))
     
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-        return render_dynamic_template(f'pages/content_management/{type_slug}/items/{partial_tpl}', **template_vars)
+        return render_dynamic_template(f'modules/content_management/{type_slug}/items/{partial_tpl}', **template_vars)
     else:
-        return render_dynamic_template(f'pages/content_management/{type_slug}/items/{full_tpl}', **template_vars)
+        return render_dynamic_template(f'modules/content_management/{type_slug}/items/{full_tpl}', **template_vars)
 
 @blueprint.route('/manage_contributors/<int:container_id>', methods=['GET', 'POST'])
 @login_required
@@ -413,7 +413,7 @@ def manage_contributors(container_id):
     eligible_usernames = User.query.filter(~User.user_role.in_((User.ROLE_FREE, User.ROLE_ANONYMOUS))).order_by(User.username.asc()).with_entities(User.username).all()
     username_suggestions = [u for (u,) in eligible_usernames]
 
-    return render_dynamic_template('pages/content_management/manage_contributors.html',
+    return render_dynamic_template('modules/content_management/manage_contributors.html',
                            container=container,
                            contributors=contributors,
                            form=form,
@@ -481,8 +481,8 @@ def add_item(container_id):
             flash(f'Lỗi khi thêm: {str(e)}', 'danger')
 
     templates = {
-        'COURSE': 'pages/content_management/courses/lessons/add_edit_lesson.html',
-        'QUIZ_SET': 'pages/content_management/quizzes/items/add_edit_quiz_item.html'
+        'COURSE': 'modules/content_management/courses/lessons/add_edit_lesson.html',
+        'QUIZ_SET': 'modules/content_management/quizzes/items/add_edit_quiz_item.html'
     }
     template = templates.get(container.container_type)
     
@@ -555,8 +555,8 @@ def edit_item(container_id, item_id):
             flash(f'Lỗi khi cập nhật: {str(e)}', 'danger')
 
     templates = {
-        'COURSE': 'pages/content_management/courses/lessons/add_edit_lesson.html',
-        'QUIZ_SET': 'pages/content_management/quizzes/items/add_edit_quiz_item.html'
+        'COURSE': 'modules/content_management/courses/lessons/add_edit_lesson.html',
+        'QUIZ_SET': 'modules/content_management/quizzes/items/add_edit_quiz_item.html'
     }
     template = templates.get(container.container_type)
     

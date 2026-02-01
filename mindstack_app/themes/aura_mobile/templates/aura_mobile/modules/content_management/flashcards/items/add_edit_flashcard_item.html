@@ -1,0 +1,521 @@
+<!-- File: newmindstack/mindstack_app/modules/content_management/templates/flashcards/add_edit_flashcard_item.html -->
+<!-- Phiên bản: 4.0 -->
+<!-- Mục đích: Hiển thị form thêm/sửa thẻ với giao diện Tab gọn gàng, đẹp mắt. -->
+
+{% set _v = template_version %}
+{% extends _v ~ '/layouts/base.html' %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="flex justify-center min-h-[600px] items-start pt-8 pb-20">
+    <div class="w-full max-w-4xl">
+        <div class="bg-white shadow-xl rounded-2xl overflow-hidden border border-slate-100 flex flex-col max-h-[90vh]">
+
+            <!-- HEADER -->
+            <div class="bg-white border-b border-gray-100 px-8 py-5 flex justify-between items-center shrink-0">
+                <h2 class="text-xl font-bold text-slate-800 flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-600">
+                        <i class="fas {{ 'fa-plus' if 'Thêm' in title else 'fa-pen' }}"></i>
+                    </div>
+                    {{ title }}
+                </h2>
+                <div class="flex gap-2">
+                    <button type="button" onclick="window.history.back()"
+                        class="px-4 py-2 rounded-lg text-slate-500 hover:bg-slate-50 hover:text-slate-700 transition font-medium text-sm">
+                        Đóng
+                    </button>
+                    <!-- Form Submit Button (External Trigger) -->
+                    <button type="button" onclick="document.getElementById('flashcardItemForm').requestSubmit()"
+                        class="px-6 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 shadow-md shadow-blue-200 transition font-medium text-sm flex items-center gap-2">
+                        <i class="fas fa-save"></i> Lưu thẻ
+                    </button>
+                </div>
+            </div>
+
+            <!-- TABS & CONTENT WRAPPER -->
+            <div class="flex flex-col flex-1 overflow-hidden" x-data="{ activeTab: 'general' }">
+
+                <!-- TABS NAVIGATION -->
+                <div class="flex px-6 border-b border-gray-100 bg-slate-50/50 shrink-0 gap-6">
+                    <button @click="activeTab = 'general'"
+                        :class="activeTab === 'general' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'"
+                        class="py-4 px-2 border-b-2 font-semibold text-sm transition-all duration-200 flex items-center gap-2">
+                        <i class="fas fa-layer-group"></i> Cơ bản
+                    </button>
+                    <button @click="activeTab = 'media'"
+                        :class="activeTab === 'media' ? 'border-purple-600 text-purple-600' : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'"
+                        class="py-4 px-2 border-b-2 font-semibold text-sm transition-all duration-200 flex items-center gap-2">
+                        <i class="fas fa-photo-film"></i> Hình ảnh & Âm thanh
+                    </button>
+                    <button @click="activeTab = 'advanced'"
+                        :class="activeTab === 'advanced' ? 'border-orange-600 text-orange-600' : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'"
+                        class="py-4 px-2 border-b-2 font-semibold text-sm transition-all duration-200 flex items-center gap-2">
+                        <i class="fas fa-robot"></i> AI & Mở rộng
+                    </button>
+                </div>
+
+                <!-- MAIN SCROLLABLE AREA -->
+                <div class="overflow-y-auto flex-1 bg-white p-8 custom-scrollbar">
+                    <form id="flashcardItemForm" action="" method="post" class="space-y-6 max-w-3xl mx-auto"
+                        data-image-search-url="{{ image_search_url }}" data-front-source-id="{{ form.front.id }}"
+                        data-back-source-id="{{ form.back.id }}"
+                        data-item-id="{{ flashcard_item.item_id if flashcard_item else '' }}"
+                        data-regenerate-audio-url="{{ regenerate_audio_url }}"
+                        data-image-base-folder="{{ image_base_folder or '' }}"
+                        data-audio-base-folder="{{ audio_base_folder or '' }}">
+                        {{ form.csrf_token }}
+
+                        <!-- TAB 1: GENERAL -->
+                        <div x-show="activeTab === 'general'" x-transition:enter="transition ease-out duration-200"
+                            x-transition:enter-start="opacity-0 translate-y-2"
+                            x-transition:enter-end="opacity-100 translate-y-0" class="space-y-6">
+
+                            <div class="grid grid-cols-1 gap-6">
+                                <!-- Front -->
+                                <div class="space-y-2">
+                                    {{ form.front.label(class="block text-sm font-semibold text-slate-700 uppercase
+                                    tracking-wider") }}
+                                    {{ form.front(class="block w-full px-4 py-3 bg-slate-50 border border-slate-200
+                                    rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-100
+                                    focus:border-blue-500 transition text-base text-slate-800", rows="4",
+                                    placeholder="Nhập nội dung mặt trước...") }}
+                                    {% if form.front.errors %}
+                                    <p class="text-red-500 text-xs mt-1">{{ form.front.errors[0] }}</p>
+                                    {% endif %}
+                                </div>
+
+                                <!-- Back -->
+                                <div class="space-y-2">
+                                    {{ form.back.label(class="block text-sm font-semibold text-slate-700 uppercase
+                                    tracking-wider") }}
+                                    {{ form.back(class="block w-full px-4 py-3 bg-slate-50 border border-slate-200
+                                    rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-100
+                                    focus:border-blue-500 transition text-base text-slate-800", rows="6",
+                                    placeholder="Nhập nội dung mặt sau...") }}
+                                    {% if form.back.errors %}
+                                    <p class="text-red-500 text-xs mt-1">{{ form.back.errors[0] }}</p>
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            <div class="pt-6 border-t border-slate-100">
+                                <div class="w-1/3">
+                                    {{ form.order_in_container.label(class="block text-sm font-semibold text-slate-700
+                                    mb-2") }}
+                                    {{ form.order_in_container(class="block w-full px-4 py-2 bg-slate-50 border
+                                    border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500
+                                    focus:border-blue-500") }}
+                                    <p class="text-xs text-slate-400 mt-1">{{ form.order_in_container.description }}</p>
+                                </div>
+                            </div>
+
+                        </div>
+
+                        <!-- TAB 2: MEDIA -->
+                        <div x-show="activeTab === 'media'" x-cloak class="space-y-8">
+
+                            <!-- Front Media -->
+                            <div class="bg-slate-50 rounded-xl p-6 border border-slate-100">
+                                <h3
+                                    class="text-sm font-bold text-slate-800 uppercase tracking-wide mb-4 flex items-center gap-2">
+                                    <i class="fas fa-arrow-up text-blue-500"></i> Mặt trước (Front)
+                                </h3>
+
+                                <div class="grid grid-cols-1 gap-6">
+                                    <!-- Front Audio -->
+                                    <div class="space-y-3">
+                                        <label class="text-xs font-semibold text-slate-500 uppercase">Audio</label>
+                                        <div class="flex gap-4">
+                                            <div class="flex-1">
+                                                {{ form.front_audio_content(class="w-full px-3 py-2 text-sm border
+                                                border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500",
+                                                placeholder="Text to speech content...", rows="1") }}
+                                            </div>
+                                            <div class="flex-1">
+                                                {{ form.front_audio_url(class="w-full px-3 py-2 text-sm border
+                                                border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500",
+                                                placeholder="Audio URL...") }}
+                                            </div>
+                                        </div>
+                                        <!-- Player & Controls -->
+                                        <div class="flex flex-wrap items-center gap-2" data-audio-side="front"
+                                            data-audio-url-input-id="{{ form.front_audio_url.id }}"
+                                            data-audio-content-input-id="{{ form.front_audio_content.id }}"
+                                            data-initial-audio-url="{{ front_audio_url_resolved or '' }}">
+
+                                            <button type="button" data-role="play-audio"
+                                                class="p-2 bg-white border border-slate-200 rounded-lg hover:text-blue-600 transition shadow-sm">
+                                                <i class="fas fa-play"></i>
+                                            </button>
+                                            <button type="button" data-role="regenerate-audio"
+                                                class="px-3 py-2 bg-blue-50 text-blue-600 text-xs font-semibold rounded-lg hover:bg-blue-100 transition">
+                                                <i class="fas fa-wand-magic-sparkles mr-1"></i> Tạo Audio
+                                            </button>
+
+                                            <audio controls class="h-8 max-w-[200px] hidden"
+                                                data-role="audio-player"></audio>
+                                            <p class="text-xs text-slate-400 italic flex-1 text-right"
+                                                data-role="audio-status"></p>
+                                        </div>
+                                    </div>
+
+                                    <!-- Front Image -->
+                                    <div class="space-y-3 pt-4 border-t border-slate-200/50" data-image-side="front"
+                                        data-initial-url="{{ front_image_url or '' }}">
+                                        <label class="text-xs font-semibold text-slate-500 uppercase">Hình ảnh</label>
+
+                                        <div class="flex gap-4">
+                                            <!-- Preview Box -->
+                                            <div class="w-32 h-32 bg-white rounded-lg border-2 border-dashed border-slate-300 flex items-center justify-center relative group overflow-hidden shrink-0"
+                                                data-role="image-preview-wrapper">
+                                                <div class="text-slate-400 text-center" data-role="image-placeholder">
+                                                    <i class="fas fa-image text-2xl mb-1 block"></i>
+                                                    <span class="text-[10px]">Trống</span>
+                                                </div>
+                                                <img src="" class="absolute inset-0 w-full h-full object-cover hidden"
+                                                    data-role="image-preview">
+                                                <button type="button" data-role="remove-image"
+                                                    class="absolute top-1 right-1 w-6 h-6 bg-red-500 text-white rounded-full items-center justify-center hidden group-hover:flex shadow-sm hover:scale-110 transition z-10">
+                                                    <i class="fas fa-times text-xs"></i>
+                                                </button>
+                                                <div class="absolute inset-0 bg-white/80 flex items-center justify-center hidden z-20"
+                                                    data-role="image-loading">
+                                                    <i class="fas fa-spinner fa-spin text-blue-500"></i>
+                                                </div>
+                                            </div>
+
+                                            <!-- Controls -->
+                                            <div class="flex-1 space-y-3">
+                                                {{ form.front_img(class="w-full px-3 py-2 text-sm border
+                                                border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500",
+                                                placeholder="Image URL...", id=form.front_img.id) }}
+
+                                                <div class="flex gap-2">
+                                                    <input type="text" data-role="image-query"
+                                                        class="flex-1 px-3 py-2 text-sm border border-slate-200 rounded-lg bg-slate-50"
+                                                        placeholder="Từ khoá tìm ảnh...">
+                                                    <button type="button" data-role="search-image"
+                                                        class="px-4 py-2 bg-slate-800 text-white text-xs font-semibold rounded-lg hover:bg-slate-700 transition">
+                                                        <i class="fas fa-search mr-1"></i> Tìm
+                                                    </button>
+                                                </div>
+                                                <p class="text-xs text-red-500 hidden" data-role="image-error"></p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Back Media -->
+                            <div class="bg-slate-50 rounded-xl p-6 border border-slate-100">
+                                <h3
+                                    class="text-sm font-bold text-slate-800 uppercase tracking-wide mb-4 flex items-center gap-2">
+                                    <i class="fas fa-arrow-down text-purple-500"></i> Mặt sau (Back)
+                                </h3>
+
+                                <div class="grid grid-cols-1 gap-6">
+                                    <!-- Back Audio -->
+                                    <div class="space-y-3">
+                                        <label class="text-xs font-semibold text-slate-500 uppercase">Audio</label>
+                                        <div class="flex gap-4">
+                                            <div class="flex-1">
+                                                {{ form.back_audio_content(class="w-full px-3 py-2 text-sm border
+                                                border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500",
+                                                placeholder="Text to speech content...", rows="1") }}
+                                            </div>
+                                            <div class="flex-1">
+                                                {{ form.back_audio_url(class="w-full px-3 py-2 text-sm border
+                                                border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500",
+                                                placeholder="Audio URL...") }}
+                                            </div>
+                                        </div>
+                                        <!-- Player & Controls -->
+                                        <div class="flex flex-wrap items-center gap-2" data-audio-side="back"
+                                            data-audio-url-input-id="{{ form.back_audio_url.id }}"
+                                            data-audio-content-input-id="{{ form.back_audio_content.id }}"
+                                            data-initial-audio-url="{{ back_audio_url_resolved or '' }}">
+
+                                            <button type="button" data-role="play-audio"
+                                                class="p-2 bg-white border border-slate-200 rounded-lg hover:text-blue-600 transition shadow-sm">
+                                                <i class="fas fa-play"></i>
+                                            </button>
+                                            <button type="button" data-role="regenerate-audio"
+                                                class="px-3 py-2 bg-purple-50 text-purple-600 text-xs font-semibold rounded-lg hover:bg-purple-100 transition">
+                                                <i class="fas fa-wand-magic-sparkles mr-1"></i> Tạo Audio
+                                            </button>
+
+                                            <audio controls class="h-8 max-w-[200px] hidden"
+                                                data-role="audio-player"></audio>
+                                            <p class="text-xs text-slate-400 italic flex-1 text-right"
+                                                data-role="audio-status"></p>
+                                        </div>
+                                    </div>
+
+                                    <!-- Back Image -->
+                                    <div class="space-y-3 pt-4 border-t border-slate-200/50" data-image-side="back"
+                                        data-initial-url="{{ back_image_url or '' }}">
+                                        <label class="text-xs font-semibold text-slate-500 uppercase">Hình ảnh</label>
+
+                                        <div class="flex gap-4">
+                                            <!-- Preview Box -->
+                                            <div class="w-32 h-32 bg-white rounded-lg border-2 border-dashed border-slate-300 flex items-center justify-center relative group overflow-hidden shrink-0"
+                                                data-role="image-preview-wrapper">
+                                                <div class="text-slate-400 text-center" data-role="image-placeholder">
+                                                    <i class="fas fa-image text-2xl mb-1 block"></i>
+                                                    <span class="text-[10px]">Trống</span>
+                                                </div>
+                                                <img src="" class="absolute inset-0 w-full h-full object-cover hidden"
+                                                    data-role="image-preview">
+                                                <button type="button" data-role="remove-image"
+                                                    class="absolute top-1 right-1 w-6 h-6 bg-red-500 text-white rounded-full items-center justify-center hidden group-hover:flex shadow-sm hover:scale-110 transition z-10">
+                                                    <i class="fas fa-times text-xs"></i>
+                                                </button>
+                                                <div class="absolute inset-0 bg-white/80 flex items-center justify-center hidden z-20"
+                                                    data-role="image-loading">
+                                                    <i class="fas fa-spinner fa-spin text-blue-500"></i>
+                                                </div>
+                                            </div>
+
+                                            <!-- Controls -->
+                                            <div class="flex-1 space-y-3">
+                                                {{ form.back_img(class="w-full px-3 py-2 text-sm border border-slate-200
+                                                rounded-lg focus:ring-2 focus:ring-blue-500", placeholder="Image
+                                                URL...", id=form.back_img.id) }}
+
+                                                <div class="flex gap-2">
+                                                    <input type="text" data-role="image-query"
+                                                        class="flex-1 px-3 py-2 text-sm border border-slate-200 rounded-lg bg-slate-50"
+                                                        placeholder="Từ khoá tìm ảnh...">
+                                                    <button type="button" data-role="search-image"
+                                                        class="px-4 py-2 bg-slate-800 text-white text-xs font-semibold rounded-lg hover:bg-slate-700 transition">
+                                                        <i class="fas fa-search mr-1"></i> Tìm
+                                                    </button>
+                                                </div>
+                                                <p class="text-xs text-red-500 hidden" data-role="image-error"></p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- TAB 3: ADVANCED & AI -->
+                        <div x-show="activeTab === 'advanced'" x-cloak class="space-y-8">
+
+                            <!-- AI Section -->
+                            <div class="space-y-4">
+                                <h3 class="text-lg font-bold text-slate-800 border-b border-slate-100 pb-2">Trí tuệ nhân
+                                    tạo (AI)</h3>
+
+                                <div>
+                                    <label class="block text-sm font-semibold text-slate-700 mb-2">Prompt Tùy
+                                        chỉnh</label>
+                                    {{ form.ai_prompt(class="block w-full px-4 py-3 bg-slate-50 border border-slate-200
+                                    rounded-lg text-sm font-mono focus:ring-2 focus:ring-blue-500", rows="3",
+                                    placeholder="Ghi đè prompt mặc định...") }}
+                                    <p class="text-xs text-slate-400 mt-1">{{ form.ai_prompt.description }}</p>
+                                </div>
+
+                                <div>
+                                    <label class="block text-sm font-semibold text-slate-700 mb-2">Giải thích chi tiết
+                                        (AI Explanation)</label>
+                                    {{ form.ai_explanation(class="block w-full px-4 py-3 bg-slate-50 border
+                                    border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500", rows="5",
+                                    placeholder="Nội dung giải thích...") }}
+                                </div>
+                            </div>
+
+                            <!-- Custom Data Section -->
+                            <div class="space-y-4">
+                                <div class="flex justify-between items-end border-b border-slate-100 pb-2">
+                                    <h3 class="text-lg font-bold text-slate-800">Dữ liệu tùy chỉnh</h3>
+                                    <button type="button" id="add-custom-data-btn"
+                                        class="text-sm font-semibold text-blue-600 hover:text-blue-800 flex items-center gap-1">
+                                        <i class="fas fa-plus-circle"></i> Thêm trường
+                                    </button>
+                                </div>
+
+                                <!-- Custom Data Container -->
+                                <div class="bg-gray-50 rounded-xl p-4 border border-gray-200">
+                                    <div id="custom-data-container" class="space-y-3">
+                                        <!-- Existing Items -->
+                                        {% if flashcard_item and flashcard_item.custom_data %}
+                                        {% for key, value in flashcard_item.custom_data.items() %}
+                                        <div
+                                            class="flex flex-col md:flex-row gap-3 items-start md:items-center custom-data-row group">
+                                            <div class="flex-1 w-full md:w-1/3">
+                                                <input type="text" name="custom_keys[]" value="{{ key }}"
+                                                    class="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm font-semibold text-slate-700"
+                                                    placeholder="Tên trường">
+                                            </div>
+                                            <div class="flex-[2] w-full md:w-2/3 flex gap-2 items-center">
+                                                <input type="text" name="custom_values[]" value="{{ value }}"
+                                                    class="flex-1 px-3 py-2 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm text-slate-600"
+                                                    placeholder="Giá trị">
+                                                <button type="button"
+                                                    class="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-full transition"
+                                                    onclick="this.closest('.custom-data-row').remove()">
+                                                    <i class="fas fa-times"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                        {% endfor %}
+                                        {% else %}
+                                        <!-- Empty state hint -->
+                                        <p id="empty-custom-data-msg"
+                                            class="text-sm text-slate-400 text-center py-4 italic">Chưa có dữ liệu tùy
+                                            chỉnh nào.</p>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Memrise Section -->
+                            <div class="space-y-4">
+                                <h3 class="text-lg font-bold text-slate-800 border-b border-slate-100 pb-2">Cấu hình
+                                    Memrise</h3>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div>
+                                        <label class="block text-sm font-semibold text-slate-700 mb-2">Memrise
+                                            Prompt</label>
+                                        {{ form.memrise_prompt(class="block w-full px-4 py-2 bg-slate-50 border
+                                        border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-purple-500") }}
+                                        <p class="text-xs text-slate-400 mt-1">Câu hỏi hiển thị (VD: Hello)</p>
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-semibold text-slate-700 mb-2">Memrise
+                                            Answers</label>
+                                        {{ form.memrise_answers(class="block w-full px-4 py-2 bg-slate-50 border
+                                        border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-purple-500") }}
+                                        <p class="text-xs text-slate-400 mt-1">Đáp án chấp nhận, cách nhau dấu phẩy</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
+                    </form>
+                </div>
+
+                <!-- FOOTER / MOVE CARD -->
+                {% if flashcard_item and move_targets %}
+                <div class="bg-gray-50 border-t border-gray-100 px-8 py-4 shrink-0">
+                    <form method="post"
+                        action="{{ url_for('.move_flashcard_item', set_id=flashcard_set.container_id, item_id=flashcard_item.item_id) }}"
+                        class="flex items-center gap-3">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <span class="text-sm font-medium text-slate-600">Di chuyển thẻ:</span>
+                        <select name="target_set_id"
+                            class="px-3 py-1.5 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500">
+                            <option value="">-- Chọn bộ thẻ --</option>
+                            {% for target in move_targets %}
+                            <option value="{{ target.container_id }}">{{ target.title }}</option>
+                            {% endfor %}
+                        </select>
+                        <button type="submit"
+                            class="text-purple-600 hover:text-purple-700 text-sm font-semibold hover:underline">
+                            Thực hiện
+                        </button>
+                    </form>
+                </div>
+                {% endif %}
+
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Template for new row (hidden) -->
+<template id="custom-data-row-template">
+    <div
+        class="flex flex-col md:flex-row gap-3 items-start md:items-center custom-data-row group mt-3 animate-fade-in-down">
+        <div class="flex-1 w-full md:w-1/3">
+            <input type="text" name="custom_keys[]" value=""
+                class="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm font-semibold text-slate-700"
+                placeholder="Tên trường">
+        </div>
+        <div class="flex-[2] w-full md:w-2/3 flex gap-2 items-center">
+            <input type="text" name="custom_values[]" value=""
+                class="flex-1 px-3 py-2 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm text-slate-600"
+                placeholder="Giá trị">
+            <button type="button"
+                class="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-full transition"
+                onclick="this.closest('.custom-data-row').remove()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+    </div>
+</template>
+
+{% endblock %}
+
+
+{% block scripts %}
+{{ super() }}
+<!-- Load Alpine.js for Tabs if not already loaded globally (assuming it might be, but safe to verify or use vanilla if preferred. Here using Alpine syntax x-data) -->
+<!-- If Alpine is not available, we can quickly replace x-data logic with vanilla JS below -->
+
+{% include _v ~ '/modules/content_management/flashcards/shared/_flashcard_image_control_scripts.html' %}
+{% include _v ~ '/modules/content_management/flashcards/shared/_flashcard_audio_control_scripts.html' %}
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        initializeFlashcardImageControls({ formSelector: '#flashcardItemForm' });
+        initializeFlashcardAudioControls({ formSelector: '#flashcardItemForm' });
+
+        // Custom Data Dynamic Rows
+        const container = document.getElementById('custom-data-container');
+        const addBtn = document.getElementById('add-custom-data-btn');
+        const template = document.getElementById('custom-data-row-template');
+        const emptyMsg = document.getElementById('empty-custom-data-msg');
+
+        if (addBtn && container && template) {
+            addBtn.addEventListener('click', function () {
+                if (emptyMsg) emptyMsg.style.display = 'none';
+                const clone = template.content.cloneNode(true);
+                container.appendChild(clone);
+            });
+        }
+    });
+
+    // Simple Tab Logic (Fallback if Alpine is not present)
+    /*
+    const tabs = document.querySelectorAll('[data-tab-target]');
+    tabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+            // Remove active classes
+            tabs.forEach(t => t.classList.remove('border-blue-600', 'text-blue-600'));
+            document.querySelectorAll('[data-tab-content]').forEach(c => c.classList.add('hidden'));
+            
+            // Add active classes
+            tab.classList.add('border-blue-600', 'text-blue-600');
+            document.querySelector(tab.dataset.tabTarget).classList.remove('hidden');
+        });
+    });
+    */
+</script>
+<style>
+    /* Custom Scrollbar for the form body */
+    .custom-scrollbar::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar-track {
+        background: #f1f5f9;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+        background-color: #cbd5e1;
+        border-radius: 20px;
+    }
+
+    textarea {
+        resize: vertical;
+        min-height: 80px;
+    }
+
+    [x-cloak] {
+        display: none !important;
+    }
+</style>
+{% endblock %}

@@ -11,4 +11,4 @@ def index():
     """
     if current_user.is_authenticated:
         return redirect(url_for('dashboard.dashboard'))
-    return render_dynamic_template('pages/landing/index.html')
+    return render_dynamic_template('modules/landing/index.html')

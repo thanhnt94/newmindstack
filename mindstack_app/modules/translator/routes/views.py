@@ -19,7 +19,7 @@ def history_page():
     ).count()
 
     return render_dynamic_template(
-        'pages/translator/history.html',
+        'modules/translator/history.html',
         history=history,
         today_count=today_count
     )

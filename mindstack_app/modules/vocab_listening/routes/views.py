@@ -55,7 +55,7 @@ def listening_setup(set_id):
     except Exception as e:
         pass
 
-    return render_dynamic_template('pages/learning/vocab_listening/setup/index.html',
+    return render_dynamic_template('modules/learning/vocab_listening/setup/index.html',
         container=container,
         counts={
             'new': count_new,
@@ -163,7 +163,7 @@ def listening_session_page():
     custom_pairs = session_data.get('custom_pairs')
     count = session_data.get('count', 10)
     
-    return render_dynamic_template('pages/learning/vocab_listening/session/index.html',
+    return render_dynamic_template('modules/learning/vocab_listening/session/index.html',
         container=container,
         custom_pairs=custom_pairs,
         count=count
@@ -205,7 +205,7 @@ def listening_session(set_id):
     except Exception as e:
         pass
 
-    return render_dynamic_template('pages/learning/vocab_listening/session/index.html',
+    return render_dynamic_template('modules/learning/vocab_listening/session/index.html',
         container=container,
         total_items=len(items)
     )

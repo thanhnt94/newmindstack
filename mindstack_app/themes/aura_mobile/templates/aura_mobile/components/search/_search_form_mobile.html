@@ -1,0 +1,41 @@
+{# File: mindstack_app/templates/aura_mobile/components/search/_search_form_mobile.html #}
+{# Mobile version of search form - Premium App Style #}
+
+{% macro render_search_form_mobile(search_query=None, search_field='all', placeholder="Tìm kiếm...", set_id=None, container_id=None,
+search_options=None) %}
+<form method="GET" action="{{ url_for(request.endpoint, container_type=(container_type or request.view_args.get('container_type')), set_id=set_id, container_id=container_id) }}"
+    class="w-full">
+    <div class="flex items-center space-x-2 w-full bg-white p-1 rounded-2xl border border-slate-200 shadow-sm">
+        {# Ô chọn trường tìm kiếm #}
+        {% if search_options %}
+        <div class="relative pl-1">
+            <select name="search_field"
+                class="appearance-none bg-slate-50 border-none text-slate-700 text-sm font-medium rounded-xl py-3 pl-3 pr-8 focus:ring-0 cursor-pointer">
+                {% for value, display_text in search_options.items() %}
+                <option value="{{ value }}" {% if search_field==value %}selected{% endif %}>{{ display_text }}</option>
+                {% endfor %}
+            </select>
+            <i
+                class="fas fa-chevron-down absolute right-3 top-1/2 transform -translate-y-1/2 text-xs text-slate-400 pointer-events-none"></i>
+        </div>
+        {% else %}
+        <select name="search_field" class="hidden">
+            <option value="all" {% if search_field=='all' %}selected{% endif %}>Tất cả</option>
+        </select>
+        {% endif %}
+
+        {# Ô nhập liệu #}
+        <div class="flex-grow flex items-center gap-2 pr-1">
+            <input type="text" name="q" value="{{ search_query if search_query else '' }}"
+                placeholder="{{ placeholder }}"
+                class="w-full bg-transparent border-none text-slate-800 placeholder-slate-400 text-sm focus:ring-0 focus:outline-none py-2 px-1">
+
+            {# Nút tìm kiếm #}
+            <button type="submit"
+                class="flex-shrink-0 bg-blue-600 text-white w-10 h-10 rounded-xl flex items-center justify-center hover:bg-blue-700 active:scale-95 transition-all shadow-md">
+                <i class="fas fa-search text-sm"></i>
+            </button>
+        </div>
+    </div>
+</form>
+{% endmacro %}

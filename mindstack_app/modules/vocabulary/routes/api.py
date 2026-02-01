@@ -42,6 +42,21 @@ class SimplePagination:
                 last = num
 
 
+def get_cover_url(path):
+    """Helper to convert database path to accessible URL."""
+    if not path:
+        return None
+    path = path.replace('\\', '/')
+    if path.startswith('http') or path.startswith('/'):
+        return path
+    
+    # Standardize: remove common legacy prefixes if they exist
+    p = path
+    if p.startswith('static/'): p = p[7:]
+    if p.startswith('uploads/'): p = p[8:]
+    
+    return '/media/' + p.lstrip('/')
+
 @blueprint.route('/api/dashboard-global-stats')
 @login_required
 def api_get_dashboard_stats():
@@ -123,7 +138,7 @@ def api_get_sets():
             'id': c.container_id,
             'title': c.title,
             'description': c.description or '',
-            'cover_image': c.cover_image,
+            'cover_image': get_cover_url(c.cover_image),
             'card_count': card_count,
             'creator_name': creator.username if creator else 'Unknown',
             'creator_avatar': None,  # User model doesn't have avatar_url
@@ -274,13 +289,12 @@ def api_get_set_detail(set_id):
 
     return jsonify({
         'success': True,
-        'set': {
-            'id': container.container_id,
-            'title': container.title,
-            'description': container.description or '',
-            'cover_image': container.cover_image,
-            'card_count': card_count,
-            'memrise_count': memrise_count,
+                'set': {
+                    'id': container.container_id,
+                    'title': container.title,
+                    'description': container.description or '',
+                    'cover_image': get_cover_url(container.cover_image),
+                    'card_count': card_count,            'memrise_count': memrise_count,
             'creator_name': creator.username if creator else 'Unknown',
             'creator_avatar': None,
             'is_public': container.is_public,

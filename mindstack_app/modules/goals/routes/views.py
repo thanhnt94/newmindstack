@@ -82,7 +82,7 @@ def manage_goals():
     flashcard_sets = get_user_sets('FLASHCARD_SET')
     quiz_sets = get_user_sets('QUIZ_SET')
 
-    return render_dynamic_template('pages/goals/manage.html',
+    return render_dynamic_template('modules/goals/manage.html',
         form=form,
         pagination=pagination,
         goal_progress=goal_progress,
@@ -124,7 +124,7 @@ def edit_goal(goal_id: int):
         flash('Đã cập nhật mục tiêu học tập.', 'success')
         return redirect(url_for('goals.manage_goals'))
 
-    return render_dynamic_template('pages/goals/edit.html',
+    return render_dynamic_template('modules/goals/edit.html',
         form=form,
         goal=user_goal,
         period_labels=PERIOD_LABELS,

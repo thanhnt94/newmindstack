@@ -35,7 +35,7 @@ def speed_setup(set_id):
     except:
         pass
     
-    return render_dynamic_template('pages/learning/vocab_speed/setup/index.html',
+    return render_dynamic_template('modules/learning/vocab_speed/setup/index.html',
         container=container,
         total_items=len(items),
         available_keys=available_keys,
@@ -91,7 +91,7 @@ def speed_session_page(set_id):
     except:
         pass
     
-    return render_dynamic_template('pages/learning/vocab_speed/session/index.html',
+    return render_dynamic_template('modules/learning/vocab_speed/session/index.html',
         container=container,
         count=count,
         time_limit=time_limit,

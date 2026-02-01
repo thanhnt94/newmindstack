@@ -42,7 +42,7 @@ def mcq_setup(set_id):
     except Exception as e:
         pass
     
-    return render_dynamic_template('pages/learning/vocab_mcq/setup/index.html',
+    return render_dynamic_template('modules/learning/vocab_mcq/setup/index.html',
         container=container,
         total_items=len(items),
         available_keys=available_keys,
@@ -125,7 +125,7 @@ def mcq_session(set_id):
         import traceback
         traceback.print_exc()
     
-    return render_dynamic_template('pages/learning/vocab_mcq/session/index.html',
+    return render_dynamic_template('modules/learning/vocab_mcq/session/index.html',
         container=container,
         total_items=len(items),
         mode=mode,

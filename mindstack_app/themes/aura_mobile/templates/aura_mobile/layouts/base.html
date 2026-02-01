@@ -1,0 +1,75 @@
+{# layouts/base.html #}
+{% set _v = template_version or _v or 'aura_mobile' %}
+
+<!doctype html>
+<html lang="vi">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <title>{% block title %}Mindstack App{% endblock %}</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/png" href="/theme-assets/{{ _v }}/img/favicon.png">
+
+    <!-- Vendors: Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    {# Standard Scripts (Tailwind, Alpine) #}
+    {% include _v ~ '/components/_head_scripts.html' %}
+
+    {# Global Core Styles #}
+    {% include _v ~ '/components/_global_styles.html' %}
+    {% include _v ~ '/components/_markdown_assets.html' %}
+
+    <style>
+        /* Core Layout Styles */
+        body {
+            background-color: #F8FAFC;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .app-container {
+            flex-grow: 1;
+            width: 100%;
+            max-width: 100%;
+            padding: 0;
+            margin: 0;
+            padding-bottom: 90px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        ::-webkit-scrollbar {
+            width: 0px;
+            background: transparent;
+        }
+    </style>
+
+    {% block styles %}{% endblock %}
+    {% block head %}{% endblock %}
+</head>
+
+<body class="antialiased {% block body_class %}{% endblock %}">
+
+    <main class="app-container">
+        {# Flash Messages #}
+        {% include _v ~ '/components/_flash_msg.html' %}
+
+        {% block content %}{% endblock %}
+    </main>
+
+    {# App Logic & Shared Modals #}
+    {% include _v ~ '/components/_app_logic.html' %}
+
+    {% block scripts %}{% endblock %}
+</body>
+
+</html>

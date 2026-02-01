@@ -39,7 +39,7 @@ def dashboard():
         'user_default_batch_size': user_default_batch_size,
         'quiz_type': quiz_type
     }
-    return render_dynamic_template('pages/learning/quiz/dashboard/index.html', **template_vars)
+    return render_dynamic_template('modules/learning/quiz/dashboard/index.html', **template_vars)
 
 
 @blueprint.route('/set/<int:set_id>')
@@ -64,7 +64,7 @@ def set_detail(set_id):
         'modes': modes,
         'user_default_batch_size': user_default_batch_size
     }
-    return render_dynamic_template('pages/learning/quiz/individual/setup/index.html', **template_vars)
+    return render_dynamic_template('modules/learning/quiz/individual/setup/index.html', **template_vars)
 
 
 @blueprint.route('/get_quiz_modes_partial/all', methods=['GET'])
@@ -81,7 +81,7 @@ def get_quiz_modes_partial_all():
         user_default_batch_size = QuizModuleDefaultConfig.QUIZ_DEFAULT_BATCH_SIZE
 
     modes = get_quiz_mode_counts(current_user.user_id, 'all')
-    return render_dynamic_template('pages/learning/quiz/individual/setup/_modes_list.html',
+    return render_dynamic_template('modules/learning/quiz/individual/setup/_modes_list.html',
         modes=modes,
         selected_set_id='all',
         selected_quiz_mode_id=selected_mode,
@@ -108,7 +108,7 @@ def get_quiz_modes_partial_multi(set_ids_str):
     except ValueError:
         return '<p class="text-red-500 text-center">Lỗi: Định dạng ID bộ quiz không hợp lệ.</p>', 400
 
-    return render_dynamic_template('pages/learning/quiz/individual/setup/_modes_list.html',
+    return render_dynamic_template('modules/learning/quiz/individual/setup/_modes_list.html',
         modes=modes,
         selected_set_id='multi',
         selected_quiz_mode_id=selected_mode,
@@ -131,7 +131,7 @@ def get_quiz_modes_partial_by_id(set_id):
 
     modes = get_quiz_mode_counts(current_user.user_id, set_id)
 
-    return render_dynamic_template('pages/learning/quiz/individual/setup/_modes_list.html',
+    return render_dynamic_template('modules/learning/quiz/individual/setup/_modes_list.html',
         modes=modes,
         selected_set_id=str(set_id),
         selected_quiz_mode_id=selected_mode,
@@ -147,7 +147,7 @@ def get_quiz_custom_options(set_id):
     from ..engine.core import QuizEngine
     available_columns = QuizEngine.get_available_content_keys(set_id)
     
-    return render_dynamic_template('pages/learning/quiz/individual/setup/_quiz_custom_options.html',
+    return render_dynamic_template('modules/learning/quiz/individual/setup/_quiz_custom_options.html',
         container=container,
         available_columns=available_columns
     )
@@ -304,9 +304,9 @@ def quiz_session(session_id):
         
         from mindstack_app.services.template_service import TemplateService
         if TemplateService.get_active_version() == 'aura_mobile':
-             return render_dynamic_template('pages/learning/quiz/individual/session/index.html')
+             return render_dynamic_template('modules/learning/quiz/individual/session/index.html')
 
-        return render_dynamic_template('pages/learning/quiz/individual/session/index.html')
+        return render_dynamic_template('modules/learning/quiz/individual/session/index.html')
     except Exception as e:
         current_app.logger.error(f"Error loading quiz session: {e}", exc_info=True)
         return f"<h3>Lỗi tải phiên học:</h3><pre>{str(e)}</pre><p>Vui lòng quay lại Dashboard và thử lại.</p>", 500

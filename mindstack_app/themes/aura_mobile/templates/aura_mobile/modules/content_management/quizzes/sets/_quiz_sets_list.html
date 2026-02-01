@@ -1,0 +1,99 @@
+{% from _v ~ '/components/search/_search_form.html' import render_search_form with context %}
+
+{# Hidden search form for mobile CMS to pick up #}
+<div class="search-form-container-source hidden">
+    {% set display_search_options = {
+    'title': 'Tiêu đề',
+    'description': 'Mô tả',
+    'tags': 'Thẻ'
+    } %}
+    {{ render_search_form(search_query=search_query, placeholder="Tìm kiếm bộ câu hỏi...",
+    search_field=search_field, search_options=display_search_options) }}
+</div>
+
+{% if containers %}
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+    {% for container in containers %}
+    <div
+        class="bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-all active:scale-[0.99] overflow-hidden flex flex-col h-full group">
+        {# Cover / Header #}
+        <div
+            class="h-32 bg-gradient-to-br from-rose-500 to-pink-600 relative flex items-center justify-center overflow-hidden">
+            {% if container.cover_image %}
+            <img src="{{ container.cover_image | media_url }}"
+                class="absolute inset-0 w-full h-full object-cover opacity-90 group-hover:scale-105 transition-transform duration-500">
+            <div class="absolute inset-0 bg-black/20"></div>
+            {% else %}
+            <i
+                class="fa-solid fa-bolt text-white/30 text-6xl transform -rotate-12 group-hover:scale-110 transition-transform duration-500"></i>
+            {% endif %}
+
+            <div class="absolute top-2 right-2 flex gap-1">
+                {% if not container.is_public %}
+                <span class="bg-black/40 backdrop-blur-md text-white px-2 py-0.5 rounded-lg text-[10px] font-bold">
+                    <i class="fa-solid fa-lock mr-1"></i> Riêng tư
+                </span>
+                {% endif %}
+            </div>
+        </div>
+
+        {# Content #}
+        <div class="p-4 flex-1 flex flex-col">
+            <h3
+                class="font-bold text-slate-800 text-base line-clamp-2 mb-1 group-hover:text-rose-600 transition-colors">
+                <a href="{{ url_for('content_management.list_items', container_id=container.container_id) }}">
+                    {{ container.title }}
+                </a>
+            </h3>
+            <p class="text-xs text-slate-500 line-clamp-2 mb-3">{{ container.description or 'Chưa có mô tả' }}</p>
+
+            <div class="mt-auto pt-3 border-t border-slate-100 flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    <span class="text-xs font-bold text-slate-600 bg-slate-100 px-2 py-1 rounded-lg">
+                        {{ container.item_count }} câu
+                    </span>
+                    <span class="text-[10px] text-slate-400">
+                        {{ container.updated_at.strftime('%d/%m') if container.updated_at else '' }}
+                    </span>
+                </div>
+
+                <div class="flex gap-2">
+                    <a href="{{ url_for('content_management.list_items', container_id=container.container_id) }}"
+                        class="w-8 h-8 rounded-full bg-rose-50 text-rose-600 flex items-center justify-center hover:bg-rose-100 transition-colors"
+                        title="Quản lý câu hỏi">
+                        <i class="fa-solid fa-list-check text-xs"></i>
+                    </a>
+                    <a href="javascript:void(0)"
+                        class="open-modal-btn w-8 h-8 rounded-full bg-slate-50 text-slate-600 flex items-center justify-center hover:bg-slate-100 transition-colors"
+                        data-modal-url="{{ url_for('content_management.edit_container', container_id=container.container_id) }}"
+                        title="Chỉnh sửa">
+                        <i class="fa-solid fa-pen text-xs"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+{# Pagination #}
+<div class="mt-6">
+    {% include _v ~ '/components/pagination/_pagination.html' %}
+</div>
+
+{% else %}
+<div class="flex flex-col items-center justify-center py-12 text-center">
+    <div class="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-3">
+        <i class="fa-solid fa-layer-group text-slate-400 text-2xl"></i>
+    </div>
+    <h3 class="text-slate-900 font-bold mb-1">Chưa có bộ câu hỏi nào</h3>
+    <p class="text-slate-500 text-sm mb-4">Tạo bộ câu hỏi mới để bắt đầu</p>
+    {% if current_user.user_role != 'free' %}
+    <a href="javascript:void(0)"
+        class="open-modal-btn inline-flex items-center gap-2 bg-rose-600 text-white px-4 py-2 rounded-xl font-bold text-sm shadow-sm hover:scale-105 transition-transform"
+        data-modal-url="{{ url_for('content_management.add_container', container_type='QUIZ_SET') }}">
+        <i class="fa-solid fa-plus"></i> Tạo mới
+    </a>
+    {% endif %}
+</div>
+{% endif %}

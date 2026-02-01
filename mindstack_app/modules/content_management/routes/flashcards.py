@@ -39,7 +39,7 @@ def add_flashcard_item(set_id):
             db.session.rollback()
             flash(f'Lỗi khi thêm: {str(e)}', 'danger')
             
-    return render_dynamic_template('pages/content_management/flashcards/items/add_edit_flashcard_item.html', 
+    return render_dynamic_template('modules/content_management/flashcards/items/add_edit_flashcard_item.html', 
                            form=form, 
                            container=container,
                            title="Thêm thẻ mới",
@@ -114,7 +114,7 @@ def edit_flashcard_item(set_id, item_id):
     if item.content.get('back_audio_url'):
         back_audio_url_resolved = url_for('media_uploads', filename=build_relative_media_path(item.content.get('back_audio_url'), item.container.media_audio_folder))
 
-    return render_dynamic_template('pages/content_management/flashcards/items/add_edit_flashcard_item.html', 
+    return render_dynamic_template('modules/content_management/flashcards/items/add_edit_flashcard_item.html', 
                            form=form, 
                            container=item.container,
                            flashcard_item=item,

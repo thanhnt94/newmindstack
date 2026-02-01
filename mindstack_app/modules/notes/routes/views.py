@@ -8,4 +8,4 @@ from mindstack_app.utils.template_helpers import render_dynamic_template
 def manage_notes():
     """HTML: Render notes management page."""
     notes_data = NoteManager.get_manage_notes_data(current_user.user_id)
-    return render_dynamic_template('pages/notes/manage_notes.html', notes_data=notes_data)
+    return render_dynamic_template('modules/notes/manage_notes.html', notes_data=notes_data)

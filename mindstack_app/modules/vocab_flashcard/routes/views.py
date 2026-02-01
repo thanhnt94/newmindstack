@@ -117,8 +117,8 @@ def serve_session_asset(filename):
     # Get active version (e.g., 'v4')
     version = TemplateService.get_active_version()
     
-    # Construct path: themes/{version}/templates/{version}/pages/learning/vocabulary/flashcard/session
-    assets_dir = os.path.join(current_app.root_path, 'themes', version, 'templates', version, 'pages', 'learning', 'vocabulary', 'flashcard', 'session')
+    # Construct path: themes/{version}/templates/{version}/modules/learning/vocabulary/flashcard/session
+    assets_dir = os.path.join(current_app.root_path, 'themes', version, 'templates', version, 'modules', 'learning', 'vocabulary', 'flashcard', 'session')
     
     try:
         return send_from_directory(assets_dir, filename)
@@ -155,7 +155,7 @@ def setup(set_id):
     except Exception:
         pass
 
-    return render_dynamic_template('pages/learning/vocabulary/flashcard/setup/index.html',
+    return render_dynamic_template('modules/learning/vocabulary/flashcard/setup/index.html',
         set_id=set_id,
         container_title=container.title,
         mode_counts=mode_counts,
@@ -211,7 +211,7 @@ def get_flashcard_options_partial(set_identifier):
             return '<p class="text-red-500 text-center">Lỗi: Không tìm thấy ID bộ thẻ.</p>', 400
 
 
-    return render_dynamic_template('pages/learning/collab/flashcard/_modes_list.html',
+    return render_dynamic_template('modules/learning/collab/flashcard/_modes_list.html',
                            modes=modes,
                            selected_set_id=set_identifier,
                            selected_flashcard_mode_id=selected_mode,
@@ -408,7 +408,7 @@ def flashcard_session(session_id):
         current_app.logger.warning(f"Error loading display settings: {e}")
     
     return render_dynamic_template(
-        'pages/learning/vocabulary/flashcard/session/index.html',
+        'modules/learning/vocabulary/flashcard/session/index.html',
         user_button_count=user_button_count,
         is_autoplay_session=is_autoplay_session,
         autoplay_mode=autoplay_mode,
@@ -848,7 +848,7 @@ def get_flashcard_sets_partial():
         }
 
         current_app.logger.debug("<<< Kết thúc thực thi get_flashcard_sets_partial (Thành công) >>>")
-        return render_dynamic_template('pages/learning/collab/flashcard/_sets_list.html', **template_vars)
+        return render_dynamic_template('modules/learning/collab/flashcard/_sets_list.html', **template_vars)
 
     except Exception as e:
         print(f">>> PYTHON LỖI: Đã xảy ra lỗi trong get_flashcard_sets_partial: {e}")

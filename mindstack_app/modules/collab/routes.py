@@ -13,4 +13,4 @@ from . import blueprint
 @login_required
 def dashboard():
     """Dashboard cho các chế độ học cộng tác."""
-    return render_dynamic_template('pages/learning/collab/default/dashboard.html')
+    return render_dynamic_template('modules/learning/collab/default/dashboard.html')

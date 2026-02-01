@@ -19,7 +19,7 @@ def manage_feedback():
     else:
         received_feedbacks = [] 
 
-    return render_dynamic_template('pages/feedback/manage_feedback.html',
+    return render_dynamic_template('modules/feedback/manage_feedback.html',
                             received_feedbacks=received_feedbacks,
                             sent_feedbacks=sent_feedbacks,
                             users=User.query.order_by(User.username).all())

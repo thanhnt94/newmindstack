@@ -36,7 +36,7 @@ from .. import blueprint
 @login_required
 def quiz_battle_dashboard():
     """Simple landing page that explains the quiz battle feature."""
-    return render_dynamic_template('pages/learning/quiz/battle/index.html')
+    return render_dynamic_template('modules/learning/quiz/battle/index.html')
 
 
 def _get_room_or_404(room_code: str) -> QuizBattleRoom:
@@ -329,7 +329,7 @@ def view_room(room_code: str):
         include_round_history=True,
         user_id=current_user.user_id,
     )
-    return render_dynamic_template('pages/learning/quiz/battle/room/index.html',
+    return render_dynamic_template('modules/learning/quiz/battle/room/index.html',
         room_code=room.room_code,
         room_title=room.title,
         initial_room=room_payload,

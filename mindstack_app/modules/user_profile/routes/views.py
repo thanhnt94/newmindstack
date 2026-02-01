@@ -25,7 +25,7 @@ def view_profile():
         telegram_link = '#'
         print(f"Error generating telegram link: {e}")
 
-    return render_dynamic_template('pages/user_profile/profile.html', user=current_user, badges=badges, telegram_link=telegram_link)
+    return render_dynamic_template('modules/user_profile/profile.html', user=current_user, badges=badges, telegram_link=telegram_link)
 
 @blueprint.route('/edit', methods=['GET', 'POST'])
 def edit_profile():
@@ -49,7 +49,7 @@ def edit_profile():
         form.email.data = user.email
         form.timezone.data = user.timezone or 'UTC'
 
-    return render_dynamic_template('pages/user_profile/edit_profile.html', form=form, title='Sửa Profile', user=user)
+    return render_dynamic_template('modules/user_profile/edit_profile.html', form=form, title='Sửa Profile', user=user)
 
 @blueprint.route('/change-password', methods=['GET', 'POST'])
 def change_password():
@@ -60,4 +60,4 @@ def change_password():
         flash('Mật khẩu đã được đổi thành công!', 'success')
         return redirect(url_for('user_profile.view_profile'))
 
-    return render_dynamic_template('pages/user_profile/change_password.html', form=form, title='Đổi mật khẩu')
+    return render_dynamic_template('modules/user_profile/change_password.html', form=form, title='Đổi mật khẩu')

@@ -31,7 +31,7 @@ def course_learning_dashboard():
     Mô tả: Hiển thị trang dashboard chính cho việc học Course.
     """
     current_filter = request.args.get('filter', 'doing', type=str)
-    return render_dynamic_template('pages/learning/course/course_learning_dashboard.html', current_filter=current_filter)
+    return render_dynamic_template('modules/learning/course/course_learning_dashboard.html', current_filter=current_filter)
 
 @blueprint.route('/get_course_sets_partial')
 @login_required
@@ -52,7 +52,7 @@ def get_course_sets_partial():
         page=page
     )
     
-    return render_dynamic_template('pages/learning/course/_course_sets_selection.html',
+    return render_dynamic_template('modules/learning/course/_course_sets_selection.html',
                            courses=pagination.items,
                            pagination=pagination,
                            search_query=search_query,
@@ -70,7 +70,7 @@ def get_lesson_list_partial(course_id):
         abort(403)
     lessons = get_lessons_for_course(current_user.user_id, course_id)
     
-    return render_dynamic_template('pages/learning/course/_lesson_selection.html', lessons=lessons, course=course)
+    return render_dynamic_template('modules/learning/course/_lesson_selection.html', lessons=lessons, course=course)
 
 @blueprint.route('/course_session/<int:lesson_id>')
 @login_required
@@ -111,7 +111,7 @@ def course_session(lesson_id):
     # THÊM MỚI: Lấy ghi chú của người dùng cho bài học này
     note = Note.query.filter_by(user_id=current_user.user_id, reference_type='item', reference_id=lesson.item_id).first()
 
-    return render_dynamic_template('pages/learning/course/course_session.html', 
+    return render_dynamic_template('modules/learning/course/course_session.html', 
         lesson=lesson, 
         course=course, 
         current_percentage=current_percentage,

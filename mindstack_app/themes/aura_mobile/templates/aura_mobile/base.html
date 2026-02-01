@@ -58,8 +58,8 @@ Mục đích: Base template - Pure Mobile Interface
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 
     {# GLOBAL STYLES #}
-    {% include _v ~ '/includes/assets/_global_styles.html' %}
-    {% include _v ~ '/includes/assets/_markdown_assets.html' %}
+    {% include _v ~ '/components/_global_styles.html' %}
+    {% include _v ~ '/components/_markdown_assets.html' %}
 
     <style>
         /* Force Mobile Layout Styles Inline */
@@ -137,7 +137,7 @@ Mục đích: Base template - Pure Mobile Interface
     </main>
 
     {# APP LOGIC & MODALS #}
-    {% include _v ~ '/includes/assets/_app_logic.html' %}
+    {% include _v ~ '/components/_app_logic.html' %}
 
     {% block scripts %}{% endblock %}
 </body>

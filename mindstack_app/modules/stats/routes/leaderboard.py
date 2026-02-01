@@ -9,7 +9,7 @@ from mindstack_app.modules.gamification.services.scoring_service import ScoreSer
 def score_history():
     """Trang lịch sử điểm thưởng của người dùng."""
     # Template will be moved to analytics/gamification/
-    return render_dynamic_template('pages/analytics/gamification/score_history.html')
+    return render_dynamic_template('modules/analytics/gamification/score_history.html')
 
 @stats_bp.route('/api/history', methods=['GET'])
 @login_required
@@ -32,7 +32,7 @@ def get_score_history_api():
 @login_required
 def leaderboard_ui():
     """Trang bảng xếp hạng (Gamification View)."""
-    return render_dynamic_template('pages/analytics/gamification/leaderboard.html')
+    return render_dynamic_template('modules/analytics/gamification/leaderboard.html')
 
 @stats_bp.route('/api/leaderboard', methods=['GET'])
 @login_required

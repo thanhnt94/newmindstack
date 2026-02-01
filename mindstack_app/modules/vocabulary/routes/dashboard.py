@@ -14,7 +14,7 @@ from mindstack_app.models import LearningContainer, User
 @login_required
 def dashboard():
     """Main vocabulary learning hub dashboard."""
-    return render_dynamic_template('pages/learning/vocabulary/dashboard/index.html')
+    return render_dynamic_template('modules/learning/vocabulary/dashboard/index.html')
 
 
 @blueprint.route('/set/<int:set_id>')
@@ -25,7 +25,7 @@ def set_detail_page(set_id):
     can_edit_set = (current_user.user_role == User.ROLE_ADMIN or 
                     container.creator_user_id == current_user.user_id)
     
-    return render_dynamic_template('pages/learning/vocabulary/dashboard/detail.html', 
+    return render_dynamic_template('modules/learning/vocabulary/dashboard/detail.html', 
                           active_set_id=set_id, 
                           can_edit_set=can_edit_set,
                           set_id=set_id)
@@ -61,7 +61,7 @@ def modes_selection_page(set_id):
     New URL: /learn/vocabulary/modes/<set_id>
     """
     container = LearningContainer.query.get_or_404(set_id)
-    return render_dynamic_template('pages/learning/vocabulary/modes/index.html', container=container)
+    return render_dynamic_template('modules/learning/vocabulary/modes/index.html', container=container)
 
 
 @blueprint.route('/set/<int:set_id>/flashcard')
@@ -92,9 +92,9 @@ def item_stats_page(item_id):
         abort(404, description="Item not found")
 
     if request.args.get('modal') == 'true':
-        return render_dynamic_template('pages/learning/vocabulary/stats/_item_stats_content.html', stats=stats)
+        return render_dynamic_template('modules/learning/vocabulary/stats/_item_stats_content.html', stats=stats)
         
-    return render_dynamic_template('pages/learning/vocabulary/stats/item_detail.html', stats=stats)
+    return render_dynamic_template('modules/learning/vocabulary/stats/item_detail.html', stats=stats)
 
 
 @blueprint.route('/assets/<path:filename>')
@@ -112,6 +112,6 @@ def serve_dashboard_asset(filename):
         version,
         'templates',
         version, 
-        'pages', 'learning', 'vocabulary', 'dashboard'
+        'modules', 'learning', 'vocabulary', 'dashboard'
     )
     return send_from_directory(directory, filename)

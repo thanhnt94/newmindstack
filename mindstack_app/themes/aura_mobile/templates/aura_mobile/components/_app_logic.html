@@ -1,0 +1,53 @@
+{% include _v ~ '/modules/notification/center.html' %}
+{% include _v ~ '/components/_settings_modal.html' %}
+
+{% include _v ~ '/components/_modal.html' %}
+
+{% include _v ~ '/components/_score_toast.html' %}
+<script>
+
+
+    window.showFlashMessage = function (message, category) {
+        const container = document.getElementById('flash-messages-container');
+        if (!container) return;
+        const alertDiv = document.createElement('div');
+        alertDiv.className = `flex items-center p-2 rounded-md shadow-lg bg-gray-800 text-white relative text-sm
+transition-opacity duration-500 opacity-100 data-dismissible`;
+        alertDiv.innerHTML = `<i class="fas fa-info-circle mr-2"></i><span>${message}</span><button class="ml-auto pl-2"
+    onclick="this.parentNode.remove()">&times;</button>`;
+        if (category === 'success') alertDiv.classList.add('bg-green-500');
+        else if (category === 'danger') alertDiv.classList.add('bg-red-500');
+        else if (category === 'info') alertDiv.classList.add('bg-blue-500');
+        else if (category === 'warning') alertDiv.classList.add('bg-yellow-500');
+        else alertDiv.classList.add('bg-gray-500');
+
+        container.appendChild(alertDiv);
+        setTimeout(() => alertDiv.classList.remove('opacity-0'), 10);
+        setTimeout(() => {
+            alertDiv.classList.add('opacity-0');
+            setTimeout(() => alertDiv.remove(), 500);
+        }, 5000);
+    };
+
+    // Hàm loadTabContent này sẽ được cập nhật để tải nội dung AJAX cho các tab trong content_dashboard
+    // Tuy nhiên, ở đây nó đang được sử dụng để reload trang.
+    // Cần lưu ý nếu có xung đột với logic AJAX của content_dashboard
+    window.loadTabContent = function (tabName) {
+        window.location.reload();
+    };
+
+    document.addEventListener('DOMContentLoaded', function () {
+        // Tự động đóng flash messages
+        document.querySelectorAll('[data-dismissible]').forEach(notification => {
+            setTimeout(() => {
+                notification.classList.add('opacity-0');
+                setTimeout(() => notification.remove(), 500);
+            }, 5000);
+        });
+
+
+    });
+</script>
+<script src="{{ url_for('translator.static', filename='js/translator.js') }}"></script>
+{# Image Viewer Helper #}
+{% include _v ~ '/components/_image_viewer.html' %}

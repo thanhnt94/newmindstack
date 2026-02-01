@@ -189,7 +189,7 @@ def serve_v3_asset(filename):
     
     # Resolve directory dynamically based on active template version
     version = TemplateService.get_active_version()
-    directory = os.path.join(current_app.root_path, 'themes', version, 'templates', version, 'pages', 'learning')
+    directory = os.path.join(current_app.root_path, 'themes', version, 'templates', version, 'modules', 'learning')
     return send_from_directory(directory, filename)
 
 
@@ -337,7 +337,7 @@ def manage_sessions():
         })
     
     current_app.logger.debug("Rendering v3/pages/learning/sessions.html")
-    return render_dynamic_template('pages/learning/sessions.html', sessions=session_list, history=history_list)
+    return render_dynamic_template('modules/learning/sessions.html', sessions=session_list, history=history_list)
 
 
 @blueprint.route('/session/<session_id>/summary')
@@ -423,7 +423,7 @@ def session_summary(session_id):
         
         processed_logs.append(log_data)
     
-    return render_dynamic_template('pages/learning/session_summary.html',
+    return render_dynamic_template('modules/learning/session_summary.html',
         summary=summary_data,
         set_id=session.set_id_data if isinstance(session.set_id_data, int) else None,
         pagination=pagination,

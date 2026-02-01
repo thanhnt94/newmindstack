@@ -1,0 +1,34 @@
+{# components/_head_scripts.html #}
+{# TAILWIND & CORE SCRIPTS #}
+<script>
+    (function () {
+        if (typeof window === 'undefined') return;
+        const originalWarn = console.warn.bind(console);
+        window.__TAILWIND_ORIGINAL_WARN__ = originalWarn;
+        console.warn = function (...args) {
+            if (args.length && typeof args[0] === 'string' && args[0].includes('cdn.tailwindcss.com should not be used in production')) { return; }
+            return originalWarn(...args);
+        };
+    })();
+</script>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+    if (window.__TAILWIND_ORIGINAL_WARN__) {
+        console.warn = window.__TAILWIND_ORIGINAL_WARN__;
+        delete window.__TAILWIND_ORIGINAL_WARN__;
+    }
+    tailwind.config = {
+        theme: {
+            extend: {
+                fontFamily: { sans: ['Inter', 'sans-serif'] },
+                boxShadow: {
+                    'soft': '0 4px 20px -2px rgba(0, 0, 0, 0.05)',
+                    'glow': '0 0 15px rgba(59, 130, 246, 0.5)'
+                }
+            }
+        }
+    }
+</script>
+
+<!-- Alpine.js -->
+<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
