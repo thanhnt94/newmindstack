@@ -7,7 +7,8 @@ from mindstack_app.modules.learning.models import LearningProgress
 from mindstack_app.core.signals import card_reviewed
 from mindstack_app.utils.db_session import safe_commit
 from mindstack_app.modules.fsrs.interface import FSRSInterface
-
+from mindstack_app.modules.learning_history.services import HistoryRecorder
+from mindstack_app.modules.learning_history.models import StudyLog
 
 class FlashcardEngine:
     """
@@ -33,20 +34,6 @@ class FlashcardEngine:
                       learning_mode: str = None):
         """
         Process a flashcard answer.
-        
-        Args:
-            user_id: ID of the user.
-            item_id: ID of the item.
-            quality: Answer quality (0-5).
-            current_user_total_score: Current score for UI update.
-            mode: Learning mode (e.g., 'all_review').
-            update_srs: Whether to update SRS progress (False for Collab).
-            session_id: Learning session ID for context.
-            container_id: Container ID for faster queries.
-            learning_mode: Learning mode string for ReviewLog.
-            
-        Returns:
-            tuple: (score_change, new_total_score, result_type, new_status, item_stats, srs_data)
         """
         item = LearningItem.query.get(item_id)
         if not item:
@@ -64,13 +51,11 @@ class FlashcardEngine:
 
         score_change = 0
         progress = None
-        srs_data = None  # [UPDATED] Track SRS (FSRS) metrics
-        
-        # SRS state capture removed as per user request
+        srs_data = None
+        fsrs_snapshot = None
 
         if update_srs:
             # Update SRS via Interface (Pure FSRS)
-            
             progress, srs_result = FSRSInterface.process_review(
                 user_id=user_id,
                 item_id=item_id,
@@ -84,8 +69,6 @@ class FlashcardEngine:
             )
             
             # Note: Scoring is now handled via card_reviewed signal or should be called separately
-            # For backward compatibility, let's assume we still need score_change here if srs_result has it
-            # (Our SrsResultDTO has score_points=0 currently, we need to bridge with Scoring module)
             from mindstack_app.modules.learning.logics.scoring_engine import ScoringEngine
             is_correct = (quality >= 3)
             score_result = ScoringEngine.calculate_answer_points(
@@ -98,10 +81,19 @@ class FlashcardEngine:
             )
             score_change = score_result.total_points
             
-            # Extract minimal FSRS metrics
+            # Extract minimal FSRS metrics for UI
             srs_data = {
                 'next_review': srs_result.next_review.isoformat() if srs_result.next_review else None,
                 'interval_minutes': srs_result.interval_minutes
+            }
+            
+            # Prepare Snapshot for History
+            fsrs_snapshot = {
+                'stability': srs_result.stability,
+                'difficulty': srs_result.difficulty,
+                'state': srs_result.state,
+                'scheduled_days': progress.current_interval,
+                'next_review': srs_result.next_review.isoformat() if srs_result.next_review else None
             }
         else:
             # No SRS update (Collab or All Review)
@@ -142,8 +134,27 @@ class FlashcardEngine:
             reason=log_reason
         )
 
-        # Optimistic score update (actual DB update happens in listener)
+        # Optimistic score update
         new_total_score = current_user_total_score + score_change
+        
+        # === NEW: Record Interaction via HistoryRecorder ===
+        HistoryRecorder.record_interaction(
+            user_id=user_id,
+            item_id=item_id,
+            result_data={
+                'rating': quality,
+                'user_answer': user_answer_text,
+                'is_correct': (quality >= 3),
+                'review_duration': duration_ms
+            },
+            context_data={
+                'session_id': session_id,
+                'container_id': container_id or (item.container_id if item else None),
+                'learning_mode': learning_mode or 'flashcard'
+            },
+            fsrs_snapshot=fsrs_snapshot,
+            game_snapshot={'score_earned': score_change}
+        )
 
         safe_commit(db.session)
 
@@ -166,14 +177,15 @@ class FlashcardEngine:
             'times_reviewed': 0, 'correct_count': 0, 'incorrect_count': 0, 'vague_count': 0,
             'correct_rate': 0.0, 'current_streak': 0, 'longest_streak': 0,
             'first_seen': None, 'last_reviewed': None, 'next_review': None,
-            'easiness_factor': 0.0, 'repetitions': 0, 'interval': 0,
-            'status': 'new', 'repetitions': 0, 'interval': 0,
-            'preview_count': 0, 'has_real_reviews': False,
-            'has_preview_history': False, 'has_preview_only': False,
+            'easiness_factor': 0.0, 'difficulty': 0.0, 'stability': 0.0,
+            'retrievability': 100.0, 'retention': 100.0,
+            'repetitions': 0, 'interval': 0,
+            'status': 'new',
             'preview_count': 0, 'has_real_reviews': False,
             'has_preview_history': False, 'has_preview_only': False,
             'recent_reviews': [],
             'rating_counts': {1: 0, 2: 0, 3: 0, 4: 0},
+            'custom_state': 'new'
         }
 
         if not progress:
@@ -188,7 +200,7 @@ class FlashcardEngine:
             return dt.isoformat()
 
         stats.update({
-            'first_seen': _fmt_date(progress.first_seen_timestamp) if hasattr(progress, 'first_seen_timestamp') else None,
+            'first_seen': _fmt_date(progress.first_seen) if hasattr(progress, 'first_seen') else None,
             'last_reviewed': _fmt_date(progress.fsrs_last_review),
             'next_review': _fmt_date(progress.fsrs_due),
             'easiness_factor': round(progress.fsrs_difficulty or 0.0, 2), # Legacy support
@@ -203,11 +215,10 @@ class FlashcardEngine:
             'custom_state': progress.mode_data.get('custom_state', 'new') if progress.mode_data else 'new',
         })
 
-        # Query ReviewLog table instead of legacy JSON review_history
-        from mindstack_app.models import ReviewLog
-        logs = ReviewLog.query.filter_by(
+        # Query StudyLog table instead of legacy ReviewLog
+        logs = StudyLog.query.filter_by(
             user_id=user_id, item_id=item_id
-        ).order_by(ReviewLog.timestamp.asc()).all()
+        ).order_by(StudyLog.timestamp.asc()).all()
         
         if not logs:
             return stats
@@ -221,7 +232,7 @@ class FlashcardEngine:
             
             norm_entry = {
                 'timestamp': ts_str, 
-                'type': log.review_type or 'review',
+                'type': log.learning_mode or 'review',
                 'user_answer_quality': quality,
                 'result': 'correct' if quality >= 4 else ('vague' if quality >= 2 else 'incorrect')
             }
@@ -229,7 +240,7 @@ class FlashcardEngine:
             review_qualities.append(quality)
             normalized_entries.append(norm_entry)
 
-        stats['preview_count'] = 0  # No preview tracking in ReviewLog
+        stats['preview_count'] = 0  # No preview tracking
         stats['has_preview_history'] = False
 
         if not review_qualities:

@@ -1,27 +1,19 @@
 # File: mindstack_app/modules/learning/quiz_learning/quiz_stats_logic.py
-# Phiên bản: 3.0
-# MỤC ĐÍCH: Cập nhật để đọc từ ReviewLog table thay vì JSON review_history.
+# Phiên bản: 3.1
+# MỤC ĐÍCH: Cập nhật để đọc từ StudyLog table thay vì ReviewLog.
 
-from mindstack_app.models import ReviewLog
+from mindstack_app.modules.learning_history.models import StudyLog
 from mindstack_app.modules.learning.models import LearningProgress
 import datetime
 
 def get_quiz_item_statistics(user_id, item_id):
     """
     Lấy các thống kê chi tiết về tiến độ của người dùng đối với một câu hỏi Quiz cụ thể.
-    Truy vấn từ model QuizProgress và ReviewLog.
-
-    Args:
-        user_id (int): ID của người dùng.
-        item_id (int): ID của câu hỏi Quiz.
-
-    Returns:
-        dict: Một dictionary chứa các thống kê, hoặc None nếu không tìm thấy QuizProgress.
     """
     progress = LearningProgress.query.filter_by(
         user_id=user_id, 
         item_id=item_id,
-        learning_mode=LearningProgress.MODE_QUIZ
+        learning_mode='quiz' # or LearningProgress.MODE_QUIZ if imported constant
     ).first()
 
     if not progress:
@@ -30,20 +22,23 @@ def get_quiz_item_statistics(user_id, item_id):
     total_attempts = (progress.times_correct or 0) + (progress.times_incorrect or 0)
     correct_percentage = (progress.times_correct or 0) / total_attempts * 100 if total_attempts > 0 else 0
 
-    # Query ReviewLog table instead of JSON review_history
-    logs = ReviewLog.query.filter_by(
-        user_id=user_id, item_id=item_id, review_type='quiz'
-    ).order_by(ReviewLog.timestamp.desc()).all()
+    # Query StudyLog table
+    logs = StudyLog.query.filter_by(
+        user_id=user_id, item_id=item_id, learning_mode='quiz'
+    ).order_by(StudyLog.timestamp.desc()).all()
     
     formatted_review_history = []
     for log in logs:
+        fsrs = log.fsrs_snapshot or {}
+        gamification = log.gamification_snapshot or {}
+        
         entry = {
             'timestamp': log.timestamp.isoformat() if log.timestamp else None,
             'timestamp_formatted': log.timestamp.strftime("%H:%M %d/%m/%Y") if log.timestamp else None,
             'user_answer': log.user_answer,
             'is_correct': log.is_correct,
-            'score_change': log.score_change,
-            'stability': log.fsrs_stability,
+            'score_change': gamification.get('score_change', 0),
+            'stability': fsrs.get('stability'),
             'duration_ms': log.review_duration
         }
         formatted_review_history.append(entry)

@@ -5,7 +5,7 @@ import random
 from typing import Optional, Tuple, Dict, Any
 from flask import current_app
 from sqlalchemy import func
-from mindstack_app.models import db, ReviewLog, LearningProgress
+from mindstack_app.models import db, LearningProgress
 from ..schemas import SrsResultDTO, CardStateDTO, Rating, CardStateEnum
 from ..logics.fsrs_engine import FSRSEngine
 from ..services.settings_service import FSRSSettingsService
@@ -146,15 +146,8 @@ class FSRSProcessor:
         if is_correct: progress.times_correct = (progress.times_correct or 0) + 1
         else: progress.times_incorrect = (progress.times_incorrect or 0) + 1
 
-        # 8. Log Review
-        log_entry = ReviewLog(
-            user_id=user_id, item_id=item_id, timestamp=now, rating=fsrs_rating,
-            scheduled_days=new_card.scheduled_days, elapsed_days=log_info.get('days_elapsed', 0.0),
-            review_duration=duration_ms, state=card_dto.state,
-            fsrs_stability=new_card.stability, fsrs_difficulty=new_card.difficulty,
-            review_type=mode, is_correct=is_correct, container_id=container_id
-        )
-        db.session.add(log_entry)
+        # 8. Log Review - DELEGATED to HistoryRecorder (via caller)
+        # log_entry = ReviewLog(...) REMOVED
         
         # 9. Return Result
         srs_result = SrsResultDTO(

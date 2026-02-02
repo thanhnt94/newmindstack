@@ -41,7 +41,7 @@ class User(UserMixin, db.Model):
     container_states = db.relationship(
         'UserContainerState', backref='user', lazy=True, cascade='all, delete-orphan'
     )
-    review_logs = db.relationship('ReviewLog', backref='user', lazy='dynamic')
+    study_logs = db.relationship('StudyLog', backref='user', lazy='dynamic')
 
     def get_avatar_url(self):
         if self.avatar_url:

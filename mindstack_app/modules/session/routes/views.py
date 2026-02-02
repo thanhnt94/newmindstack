@@ -1,10 +1,10 @@
-
 # File: mindstack_app/modules/session/routes/views.py
 from flask import render_template, request, redirect, url_for, flash, abort, current_app
 from mindstack_app.utils.template_helpers import render_dynamic_template
 from flask_login import login_required, current_user
-from mindstack_app.models import LearningContainer, ReviewLog, LearningItem, db
+from mindstack_app.models import LearningContainer, LearningItem, db
 from mindstack_app.modules.vocab_flashcard.services.session_service import LearningSessionService
+from mindstack_app.modules.learning_history.models import StudyLog
 from .. import blueprint
 from .api import safe_url_for
 
@@ -138,14 +138,33 @@ def session_summary(session_id):
         
         from mindstack_app.utils.content_renderer import render_text_field
         page = request.args.get('page', 1, type=int)
-        pagination = ReviewLog.query.filter_by(session_id=session_obj.session_id).order_by(ReviewLog.timestamp.desc()).paginate(page=page, per_page=20, error_out=False)
         
+        # Query StudyLog instead of ReviewLog
+        pagination = StudyLog.query.filter_by(session_id=session_obj.session_id).order_by(StudyLog.timestamp.desc()).paginate(page=page, per_page=20, error_out=False)
+        
+        # Prefetch items to avoid N+1 and because StudyLog has no relationship
+        item_ids = [log.item_id for log in pagination.items]
+        items = LearningItem.query.filter(LearningItem.item_id.in_(item_ids)).all()
+        item_map = {i.item_id: i for i in items}
+
         processed_logs = []
         for log in pagination.items:
-            log_data = {'timestamp': log.timestamp, 'rating': log.rating, 'score_change': log.score_change, 'duration_ms': log.review_duration, 'item_id': log.item_id, 'item_content': f"Item #{log.item_id}"}
-            if log.item:
-                if log.item.item_type == 'FLASHCARD': log_data['item_content'] = render_text_field(log.item.content.get('front', ''), 'front')
-                elif log.item.item_type == 'QUIZ': log_data['item_content'] = render_text_field(log.item.content.get('question', ''), 'question')
+            item = item_map.get(log.item_id)
+            game = log.gamification_snapshot or {}
+            
+            log_data = {
+                'timestamp': log.timestamp, 
+                'rating': log.rating, 
+                'score_change': game.get('score_change', 0), 
+                'duration_ms': log.review_duration, 
+                'item_id': log.item_id, 
+                'item_content': f"Item #{log.item_id}"
+            }
+            if item:
+                if item.item_type == 'FLASHCARD': 
+                    log_data['item_content'] = render_text_field(item.content.get('front', ''), 'front')
+                elif item.item_type == 'QUIZ': 
+                    log_data['item_content'] = render_text_field(item.content.get('question', ''), 'question')
             processed_logs.append(log_data)
         
         return render_dynamic_template('modules/learning/session_summary.html',

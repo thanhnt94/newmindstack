@@ -1,7 +1,8 @@
 from mindstack_app.models import (
-    db, User, LearningProgress, ReviewLog, LearningItem, LearningContainer, 
+    db, User, LearningProgress, LearningItem, LearningContainer, 
     LearningSession, UserItemMarker, UserContainerState, ContainerContributor, LearningGroup
 )
+from mindstack_app.modules.learning_history.models import StudyLog
 from sqlalchemy import text
 
 class ResetService:
@@ -13,14 +14,14 @@ class ResetService:
         try:
             if user_id:
                 # Dữ liệu phụ thuộc vào User
-                ReviewLog.query.filter_by(user_id=user_id).delete()
+                StudyLog.query.filter_by(user_id=user_id).delete()
                 LearningProgress.query.filter_by(user_id=user_id).delete()
                 LearningSession.query.filter_by(user_id=user_id).delete()
                 UserItemMarker.query.filter_by(user_id=user_id).delete()
                 UserContainerState.query.filter_by(user_id=user_id).delete()
             else:
                 # Xóa toàn bộ
-                db.session.query(ReviewLog).delete()
+                db.session.query(StudyLog).delete()
                 db.session.query(LearningProgress).delete()
                 db.session.query(LearningSession).delete()
                 db.session.query(UserItemMarker).delete()
@@ -41,7 +42,7 @@ class ResetService:
         try:
             # 1. Xóa dữ liệu học tập phụ thuộc (Tiến độ, Logs, Sessions)
             # Cần xóa trước vì chúng có Foreign Key trỏ tới Item/Container
-            db.session.query(ReviewLog).delete()
+            db.session.query(StudyLog).delete()
             db.session.query(LearningProgress).delete()
             db.session.query(UserItemMarker).delete()
             

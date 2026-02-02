@@ -199,36 +199,6 @@ class ContainerContributor(db.Model):
     granted_at = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
     __table_args__ = (db.UniqueConstraint('container_id', 'user_id', name='_container_user_uc'),)
 
-class ReviewLog(db.Model):
-    __tablename__ = 'review_logs'
-    log_id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('users.user_id'), nullable=False)
-    item_id = db.Column(db.Integer, db.ForeignKey('learning_items.item_id'), nullable=False)
-    timestamp = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
-    rating = db.Column(db.Integer, nullable=False)
-    scheduled_days = db.Column(db.Float, default=0.0)
-    elapsed_days = db.Column(db.Float, default=0.0)
-    review_duration = db.Column(db.Integer, default=0)
-    state = db.Column(db.Integer, default=0)
-    fsrs_stability = db.Column(db.Float, default=0.0)
-    fsrs_difficulty = db.Column(db.Float, default=0.0)
-    review_type = db.Column(db.String(20), default='flashcard')
-    user_answer = db.Column(db.String(10))
-    is_correct = db.Column(db.Boolean)
-    score_change = db.Column(db.Integer)
-    session_id = db.Column(db.Integer, db.ForeignKey('learning_sessions.session_id'), nullable=True)
-    container_id = db.Column(db.Integer, db.ForeignKey('learning_containers.container_id'), nullable=True)
-    mode = db.Column(db.String(50), nullable=True)
-    streak_position = db.Column(db.Integer, default=0)
-    __table_args__ = (
-        db.Index('ix_review_logs_user_item', 'user_id', 'item_id'),
-        db.Index('ix_review_logs_user_timestamp', 'user_id', 'timestamp'),
-        db.Index('ix_review_logs_timestamp', 'timestamp'),
-        db.Index('ix_review_logs_session', 'session_id'),
-        db.Index('ix_review_logs_container', 'container_id'),
-    )
-    item = db.relationship('LearningItem', backref=db.backref('review_logs', cascade='all, delete-orphan'))
-
 class UserItemMarker(db.Model):
     __tablename__ = 'user_item_markers'
     marker_id = db.Column(db.Integer, primary_key=True)
@@ -370,7 +340,7 @@ from sqlalchemy import event
 @event.listens_for(LearningItem, 'before_update')
 def clean_learning_item_content(mapper, connection, target):
     if target.content and isinstance(target.content, dict):
-        keys_to_remove = [k for k in target.content.keys() if k.startswith('supports_')]
+        keys_to_remove = [k for k in target.content.keys() if k.startswith('supports_')] 
         if keys_to_remove:
             new_content = dict(target.content)
             for k in keys_to_remove: new_content.pop(k, None)

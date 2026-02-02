@@ -4,8 +4,9 @@
 
 from datetime import datetime
 from sqlalchemy import func
-from mindstack_app.models import LearningItem, ReviewLog, LearningContainer
+from mindstack_app.models import LearningItem, LearningContainer
 from mindstack_app.modules.learning.models import LearningProgress
+from mindstack_app.modules.learning_history.models import StudyLog
 from mindstack_app.modules.fsrs.interface import FSRSInterface as FsrsService
 
 
@@ -13,8 +14,6 @@ class VocabularyContainerStats:
     """
     Centralized service for vocabulary container-level statistics.
     Provides comprehensive methods to get progress counts, overview stats, etc.
-    
-    MIGRATED: Uses LearningProgress instead of FlashcardProgress.
     """
     
     @staticmethod
@@ -65,13 +64,6 @@ class VocabularyContainerStats:
     def get_full_stats(user_id: int, container_id: int) -> dict:
         """
         Get comprehensive statistics for a vocabulary container.
-        
-        Args:
-            user_id: The user's ID
-            container_id: The vocabulary container ID
-            
-        Returns:
-            dict with all available statistics
         """
         items = LearningItem.query.filter(
             LearningItem.container_id == container_id,
@@ -84,7 +76,7 @@ class VocabularyContainerStats:
         if not item_ids:
             return VocabularyContainerStats._empty_stats()
         
-        # Get progress records - MIGRATED to LearningProgress
+        # Get progress records
         progress_records = LearningProgress.query.filter(
             LearningProgress.user_id == user_id,
             LearningProgress.learning_mode == LearningProgress.MODE_FLASHCARD,
@@ -99,7 +91,6 @@ class VocabularyContainerStats:
         learning_count = 0
         mastered_count = 0
         due_count = 0
-        hard_count = 0
         
         total_retrievability = 0.0
         total_correct = 0
@@ -116,38 +107,31 @@ class VocabularyContainerStats:
                 retrievability = FsrsService.get_retrievability(progress)
                 total_retrievability += retrievability
                 
-                # Categorize by stability (proxy for 'mastered')
                 if stability >= 21.0:
                     mastered_count += 1
                 else:
                     learning_count += 1
                 
-                # Check if due
                 if progress.fsrs_due and progress.fsrs_due <= now:
                     due_count += 1
                 
-                # Accumulate totals
                 total_correct += progress.times_correct or 0
                 total_incorrect += progress.times_incorrect or 0
                 total_reviews += (progress.times_correct or 0) + (progress.times_incorrect or 0)
                 
-                # Track last reviewed
                 if progress.fsrs_last_review:
                     if not last_reviewed or progress.fsrs_last_review > last_reviewed:
                         last_reviewed = progress.fsrs_last_review
         
-        # Calculate percentages
         learned_count = len(progress_records)
         completion_pct = (learned_count / total * 100) if total > 0 else 0
         retrievability_avg = (total_retrievability / learned_count) if learned_count > 0 else 0
         accuracy_pct = (total_correct / (total_correct + total_incorrect) * 100) if (total_correct + total_incorrect) > 0 else 0
         
-        # Calculate hard count using centralized HardItemService
         from mindstack_app.modules.fsrs.services.hard_item_service import FSRSHardItemService as HardItemService
         hard_count = HardItemService.get_hard_count(user_id, container_id)
         
         return {
-            # Counts
             'total': total,
             'new': new_count,
             'learning': learning_count,
@@ -155,25 +139,18 @@ class VocabularyContainerStats:
             'due': due_count,
             'hard': hard_count,
             'learned': learned_count,
-            
-            # Progress metrics
             'completion_pct': round(completion_pct, 1),
             'retrievability_avg': round(retrievability_avg, 2),
-            'mastery_avg': round(retrievability_avg, 2), # Compatibility
+            'mastery_avg': round(retrievability_avg, 2),
             'accuracy_pct': round(accuracy_pct, 1),
-            
-            # Review metrics
             'total_reviews': total_reviews,
             'total_correct': total_correct,
             'total_incorrect': total_incorrect,
-            
-            # Time-based
             'last_reviewed': last_reviewed.isoformat() if last_reviewed else None
         }
     
     @staticmethod
     def _empty_stats() -> dict:
-        """Return empty stats dict."""
         return {
             'total': 0, 'new': 0, 'learning': 0, 'mastered': 0,
             'due': 0, 'hard': 0, 'learned': 0,
@@ -184,33 +161,20 @@ class VocabularyContainerStats:
     
     @staticmethod
     def get_mode_counts(user_id: int, container_id: int) -> dict:
-        """
-        Get learning mode counts for a vocabulary set.
-        Simplified version of get_full_stats for mode selection.
-        
-        Returns:
-            dict with keys: new, due, learned, total
-        """
         stats = VocabularyContainerStats.get_full_stats(user_id, container_id)
         return {
             'new': stats['new'],
             'due': stats['due'],
-            'review': stats['due'],     # Added alias
+            'review': stats['due'],
             'learned': stats['learned'],
-            'hard': stats['hard'],      # Added
+            'hard': stats['hard'],
             'total': stats['total'],
-            'random': stats['total']    # Added alias
+            'random': stats['total']
         }
     
     
     @staticmethod
     def get_chart_data(user_id: int, container_id: int) -> dict:
-        """
-        Generate chart data for container stats modal.
-        
-        Returns:
-            dict with distribution and timeline chart data
-        """
         from datetime import timedelta
         from collections import defaultdict
         
@@ -220,95 +184,59 @@ class VocabularyContainerStats:
         ).all()
         
         item_ids = [item.item_id for item in items]
-        
         if not item_ids:
-            return {
-                'distribution': {'weak': 0, 'medium': 0, 'strong': 0},
-                'timeline': {'dates': [], 'values': []}
-            }
+            return {'distribution': {'weak': 0, 'medium': 0, 'strong': 0}, 'timeline': {'dates': [], 'values': []}}
         
-        # Get progress records
         progress_records = LearningProgress.query.filter(
             LearningProgress.user_id == user_id,
             LearningProgress.learning_mode == LearningProgress.MODE_FLASHCARD,
             LearningProgress.item_id.in_(item_ids)
         ).all()
         
-        # Distribution: categorize by mastery level
-        weak_count = 0      # 0-50%
-        medium_count = 0    # 50-80%
-        strong_count = 0    # 80-100%
-        
+        weak_count = medium_count = strong_count = 0
         for progress in progress_records:
             retrievability = FsrsService.get_retrievability(progress)
-            
-            # Categories based on retrievability
-            # Weak: < 70%
-            # Medium: 70-90%
-            # Strong: > 90%
-            if retrievability < 0.7:
-                weak_count += 1
-            elif retrievability < 0.9:
-                medium_count += 1
-            else:
-                strong_count += 1
+            if retrievability < 0.7: weak_count += 1
+            elif retrievability < 0.9: medium_count += 1
+            else: strong_count += 1
         
-        # Timeline: Get average memory power for last 30 days
         now = datetime.utcnow()
-        timeline_data = defaultdict(list)  # date -> [mastery values]
-        
-        # Query review logs for the last 30 days
+        timeline_data = defaultdict(list)
         start_date = now - timedelta(days=30)
-        logs = ReviewLog.query.filter(
-            ReviewLog.user_id == user_id,
-            ReviewLog.item_id.in_(item_ids),
-            ReviewLog.timestamp >= start_date,
-            ReviewLog.fsrs_stability.isnot(None)
-        ).order_by(ReviewLog.timestamp).all()
         
-        # Group by date and calculate average retrievability per day
+        # Query StudyLog instead of ReviewLog
+        logs = StudyLog.query.filter(
+            StudyLog.user_id == user_id,
+            StudyLog.item_id.in_(item_ids),
+            StudyLog.timestamp >= start_date
+        ).order_by(StudyLog.timestamp).all()
+        
         for log in logs:
             date_key = log.timestamp.strftime('%d/%m')
-            if log.fsrs_stability is not None:
-                # Calculate retrievability for that log's stability if possible, 
-                # but ReviewLog doesn't store last_review or current_time easily here.
-                # Simplified: map stability to a percentage for the timeline chart.
-                # Use 21 days as 100% just for visualization consistency in the timeline chart.
-                timeline_data[date_key].append(min((log.fsrs_stability or 0)/21.0, 1.0) * 100)
+            fsrs = log.fsrs_snapshot or {}
+            stability = fsrs.get('stability')
+            if stability is not None:
+                timeline_data[date_key].append(min((stability)/21.0, 1.0) * 100)
         
-        # Generate date labels and values for past 30 days
         dates = []
         values = []
-        
-        for i in range(29, -1, -1):  # Last 30 days
+        for i in range(29, -1, -1):
             date = now - timedelta(days=i)
             date_key = date.strftime('%d/%m')
             dates.append(date_key)
-            
             if date_key in timeline_data and timeline_data[date_key]:
-                avg_mastery = sum(timeline_data[date_key]) / len(timeline_data[date_key])
-                values.append(round(avg_mastery, 1))
+                values.append(round(sum(timeline_data[date_key]) / len(timeline_data[date_key]), 1))
             else:
-                values.append(None)  # No data for this day
+                values.append(None)
         
         return {
-            'distribution': {
-                'weak': weak_count,
-                'medium': medium_count,
-                'strong': strong_count
-            },
-            'timeline': {
-                'dates': dates,
-                'values': values
-            }
+            'distribution': {'weak': weak_count, 'medium': medium_count, 'strong': strong_count},
+            'timeline': {'dates': dates, 'values': values}
         }
     
     @staticmethod
     def get_hard_count(user_id: int, container_id: int) -> int:
-        """Get count of hard items."""
         stats = VocabularyContainerStats.get_full_stats(user_id, container_id)
         return stats['hard']
 
-
-# Alias for backward compatibility
 VocabularyStatsService = VocabularyContainerStats

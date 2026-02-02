@@ -19,13 +19,14 @@ from mindstack_app.models import (
     UserContainerState, LearningProgress, ScoreLog,
     Goal, UserGoal, GoalProgress, Note,
     Feedback, FeedbackAttachment,
-    LearningSession, ReviewLog, UserItemMarker, Badge, UserBadge,
+    LearningSession, UserItemMarker, Badge, UserBadge,
     QuizBattleRoom, QuizBattleParticipant, QuizBattleRound, QuizBattleAnswer, QuizBattleMessage,
     FlashcardCollabRoom, FlashcardCollabParticipant, FlashcardCollabRound, FlashcardCollabAnswer, FlashcardCollabMessage, FlashcardRoomProgress,
     AiTokenLog, AiCache,
     Notification, PushSubscription, NotificationPreference,
     UserMetric, DailyStat, Achievement, TranslationHistory, Streak
 )
+from mindstack_app.modules.learning_history.models import StudyLog
 from mindstack_app.core.config import Config
 from mindstack_app.services.config_service import get_runtime_config
 
@@ -52,7 +53,7 @@ DATASET_CATALOG: "OrderedDict[str, dict[str, object]]" = OrderedDict(
                 GoalProgress,
                 Note,
                 LearningSession,
-                ReviewLog,
+                StudyLog,
                 UserItemMarker,
                 UserBadge,
                 Badge,
@@ -102,7 +103,7 @@ DATASET_CATALOG: "OrderedDict[str, dict[str, object]]" = OrderedDict(
             'models': [
                 User, LearningContainer, LearningGroup, LearningItem, ContainerContributor,
                 UserContainerState, LearningProgress, ScoreLog, UserGoal, GoalProgress, Note,
-                LearningSession, ReviewLog, UserItemMarker, Badge, UserBadge,
+                LearningSession, StudyLog, UserItemMarker, Badge, UserBadge,
                 Feedback, FeedbackAttachment,
                 AppSettings, BackgroundTask, BackgroundTaskLog, ApiKey,
                 QuizBattleRoom, QuizBattleParticipant, QuizBattleRound, QuizBattleAnswer, QuizBattleMessage,

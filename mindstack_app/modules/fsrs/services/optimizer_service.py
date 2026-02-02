@@ -4,7 +4,8 @@ from typing import List, Optional, Dict, Any
 from datetime import datetime, timezone
 from flask import current_app
 from fsrs_rs_python import FSRS, FSRSItem, FSRSReview, DEFAULT_PARAMETERS
-from mindstack_app.models import ReviewLog, User, db
+from mindstack_app.models import User, db
+from mindstack_app.modules.learning_history.models import StudyLog
 
 class FSRSOptimizerService:
     """Service to optimize FSRS parameters for individual users."""
@@ -56,8 +57,9 @@ class FSRSOptimizerService:
     
     @staticmethod
     def _get_reviews_by_item(user_id: int) -> Dict[int, List[Dict]]:
-        reviews = ReviewLog.query.filter_by(user_id=user_id)\
-            .order_by(ReviewLog.item_id, ReviewLog.timestamp)\
+        # Query StudyLog instead of ReviewLog
+        reviews = StudyLog.query.filter_by(user_id=user_id)\
+            .order_by(StudyLog.item_id, StudyLog.timestamp)\
             .all()
             
         grouped = {}
@@ -65,10 +67,15 @@ class FSRSOptimizerService:
             item_id = log.item_id
             if item_id not in grouped:
                 grouped[item_id] = []
+            
+            # Extract interval from snapshot
+            fsrs = log.fsrs_snapshot or {}
+            interval = fsrs.get('scheduled_days', 0.0)
+            
             grouped[item_id].append({
                 'timestamp': log.timestamp,
                 'rating': log.rating,
-                'interval': log.interval
+                'interval': interval
             })
         return grouped
     
