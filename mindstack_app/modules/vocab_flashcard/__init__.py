@@ -10,7 +10,7 @@ module_metadata = {
     'icon': 'clone',
     'category': 'Learning',
     'url_prefix': '/learn/vocab-flashcard',
-    'admin_route': 'vocab_flashcard.dashboard.dashboard_home',
+    'admin_route': 'vocab_flashcard.dashboard_home',
     'enabled': True
 }
 
@@ -21,15 +21,9 @@ def setup_module(app):
     if _setup_done:
         return
     _setup_done = True
-    """Register sub-blueprints for the flashcard module."""
-    # Deferred imports to avoid circular dependencies
-    from .routes.dashboard import dashboard_bp
-    from .routes.bp import flashcard_learning_bp
-    from .routes import views  # Trigger route registration
-    from .routes.collab import flashcard_collab_bp
-    from .routes import api_bp
     
-    blueprint.register_blueprint(dashboard_bp)
-    blueprint.register_blueprint(flashcard_learning_bp)
-    blueprint.register_blueprint(flashcard_collab_bp)
-    blueprint.register_blueprint(api_bp)
+    # Register the main blueprint
+    from . import routes
+    app.register_blueprint(blueprint, url_prefix=module_metadata['url_prefix'])
+    
+    # Additional setup (signals, etc.) can go here

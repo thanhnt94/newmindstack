@@ -648,31 +648,27 @@
             el.textContent = stats.streak || 0;
         });
 
-        // 4b. Stability (Shield)
-        document.querySelectorAll('.js-fc-stability-days').forEach(el => {
+        // 4d. Difficulty (D)
+        document.querySelectorAll('.js-fc-difficulty-val, .js-card-overlay-difficulty').forEach(el => {
+            const val = stats.difficulty !== undefined ? parseFloat(stats.difficulty).toFixed(1) :
+                (stats.easiness_factor !== undefined ? parseFloat(stats.easiness_factor).toFixed(1) : '0.0');
+            el.textContent = val;
+        });
+
+        // 4e. Stability (S)
+        document.querySelectorAll('.js-fc-stability-days, .js-card-overlay-stability').forEach(el => {
             const val = stats.stability !== undefined ? parseFloat(stats.stability).toFixed(1) : '0';
             // If it's 0.0, show 0
             el.textContent = (val === '0.0' || val === '0.00') ? '0' : val;
         });
 
-        // 4c. Retention (Purple Brain)
-        document.querySelectorAll('.js-fc-retention-percent').forEach(el => {
+        // 4f. Retention (R)
+        document.querySelectorAll('.js-fc-retention-percent, .js-card-overlay-retrievability').forEach(el => {
             const val = stats.retrievability !== undefined ? Math.round(stats.retrievability) : 0;
-            el.textContent = val + '%';
+            el.textContent = val;
         });
 
-        // 4d. Difficulty (D) - if exists
-        document.querySelectorAll('.js-fc-difficulty-val').forEach(el => {
-            // Difficulty is usually 1-10
-            // We might need to fetch it from 'difficulty' or check if it's passed
-            // In session_manager.js we didn't explicitly pass 'difficulty' in flashcardSessionStats root,
-            // but it might be in statistics object?
-            // Actually session_manager.js passes: stability, retrievability.
-            // Let's rely on what we have.
-            el.textContent = '0.0'; // Placeholder if not passed
-        });
-
-        // 4e. Review Counts (Refresh Icon)
+        // 4g. Review Counts (Refresh Icon)
         document.querySelectorAll('.js-fc-review-count').forEach(el => {
             el.textContent = (stats.times_reviewed || 0) + ' lần';
         });
@@ -826,6 +822,16 @@
 
             setText('.js-card-streak', data.statistics.current_streak || 0);
             setText('.js-card-overlay-streak', data.statistics.current_streak || 0);
+
+            // Update FSRS metrics in overlay
+            const sVal = data.statistics.stability !== undefined ? parseFloat(data.statistics.stability).toFixed(1) : '0';
+            setText('.js-card-overlay-stability', (sVal === '0.0' || sVal === '0.00') ? '0' : sVal);
+
+            const dVal = data.statistics.difficulty !== undefined ? parseFloat(data.statistics.difficulty).toFixed(1) : '0.0';
+            setText('.js-card-overlay-difficulty', dVal);
+
+            const rVal = data.statistics.retrievability !== undefined ? Math.round(data.statistics.retrievability) : 0;
+            setText('.js-card-overlay-retrievability', rVal);
         }
 
         // FSRS metrics display removed as per user request

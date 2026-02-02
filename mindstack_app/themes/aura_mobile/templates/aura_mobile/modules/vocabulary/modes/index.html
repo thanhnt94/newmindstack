@@ -304,7 +304,7 @@
             {# Flashcard #}
             {% set flashcard_enabled = show_all or 'supports_flashcard' in caps %}
             <div {% if flashcard_enabled
-                %}onclick="checkSession('flashcard', '{{ url_for('vocab_flashcard.flashcard_learning.setup', set_id=container.container_id) }}')"
+                %}onclick="checkSession('flashcard', '{{ url_for('vocab_flashcard.setup', sets=container.container_id) }}')"
                 {% endif %} class="mode-card mode-flashcard {% if not flashcard_enabled %}mode-disabled{% endif %}">
                 <div class="mode-icon-box"><i class="fas fa-clone"></i></div>
                 <div class="mode-info">

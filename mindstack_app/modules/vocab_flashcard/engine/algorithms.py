@@ -354,8 +354,21 @@ def get_flashcard_mode_counts(user_id, set_identifier):
             }
         })
 
-        current_app.logger.debug(f"get_flashcard_mode_counts: modes={modes_with_counts}")
-        return modes_with_counts
+        # [NEW] Return a dict for template convenience, while keeping 'list' for API
+        new_count = get_new_only_items(user_id, set_identifier, None).count()
+        due_count = get_due_items(user_id, set_identifier, None).count()
+        hard_count = get_hard_items(user_id, set_identifier, None).count()
+        learned_count = get_all_review_items(user_id, set_identifier, None).count()
+        total_count = get_all_items_for_autoplay(user_id, set_identifier, None).count()
+
+        return {
+            'list': modes_with_counts,
+            'new': new_count,
+            'due': due_count,
+            'hard': hard_count,
+            'learned': learned_count,
+            'total': total_count
+        }
     except Exception as e:
         current_app.logger.error(f"Error in get_flashcard_mode_counts: {e}")
         import traceback

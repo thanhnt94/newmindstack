@@ -78,7 +78,7 @@ class FSRSProcessor:
         if not progress:
             progress = LearningProgress(
                 user_id=user_id, item_id=item_id, learning_mode=mode,
-                fsrs_state=CardStateEnum.NEW, fsrs_stability=0.0, fsrs_difficulty=0.0,
+                fsrs_state=CardStateEnum.NEW, fsrs_stability=0.0, fsrs_difficulty=5.0,
                 repetitions=0, current_interval=0.0, correct_streak=0, incorrect_streak=0
             )
             db.session.add(progress)

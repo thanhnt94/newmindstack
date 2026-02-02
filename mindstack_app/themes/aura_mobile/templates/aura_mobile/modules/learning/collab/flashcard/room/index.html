@@ -1513,8 +1513,8 @@
         <div class="sidebar-header">
           <div class="room-title-row">
             <h2 class="room-title" title="{{ room_payload.title }}">{{ room_payload.title }}</h2>
-            <a href="{{ url_for('vocabulary.dashboard') }}"
-              class="text-slate-400 hover:text-rose-500 transition-colors" title="Thoát phòng">
+            <a href="{{ url_for('vocabulary.dashboard') }}" class="text-slate-400 hover:text-rose-500 transition-colors"
+              title="Thoát phòng">
               <i class="fas fa-sign-out-alt"></i>
             </a>
           </div>
@@ -1654,8 +1654,7 @@
 {% block scripts %}
 {{ super() }}
 {% include _v ~ '/components/chat/chat_widget.html' %}
-<script
-  src="{{ url_for('vocab_flashcard.flashcard_learning.serve_session_asset', filename='v2/static/js/flashcard_viewport.js') }}"></script>
+<script src="{{ url_for('static', filename='vocab_flashcard/js/flashcard_viewport.js') }}"></script>
 <script>
   const refreshViewportSizing = () => {
     if (window.flashcardViewport && typeof window.flashcardViewport.refresh === 'function') {
@@ -1736,11 +1735,11 @@
 
   // Flashcard Logic
   (() => {
-    const nextCardUrl = {{ url_for('vocab_flashcard.flashcard_collab.get_next_card', room_code = room_payload.room_code) | tojson
+    const nextCardUrl = {{ url_for('vocab_flashcard.get_next_card', room_code = room_payload.room_code) | tojson
   }};
-  const submitAnswerUrl = {{ url_for('vocab_flashcard.flashcard_collab.submit_collab_answer', room_code = room_payload.room_code) | tojson }};
+  const submitAnswerUrl = {{ url_for('vocab_flashcard.submit_collab_answer', room_code = room_payload.room_code) | tojson }};
   const roomButtonCount = Number({{ room_payload.button_count or 3 }}) || 3;
-  const regenerateAudioUrl = {{ url_for('vocab_flashcard.flashcard_learning.regenerate_audio_from_content') | tojson }};
+  const regenerateAudioUrl = {{ url_for('vocab_flashcard.api_regenerate_audio_from_content') | tojson }};
   const currentUserId = {{ current_user.user_id }};
   const csrfTokenMeta = document.querySelector('meta[name="csrf-token"]');
   const csrfHeaders = csrfTokenMeta ? { 'X-CSRFToken': csrfTokenMeta.getAttribute('content') } : {};
@@ -2243,7 +2242,7 @@
     if (chatRoundStatusEl) chatRoundStatusEl.innerHTML = loadingHtml;
   };
 
-  const kickUrlTemplate = {{ url_for('vocab_flashcard.flashcard_collab.kick_participant', room_code = room_payload.room_code) | tojson }};
+  const kickUrlTemplate = {{ url_for('vocab_flashcard.kick_participant', room_code = room_payload.room_code) | tojson }};
   const hostId = {{ room_payload.host_user_id }};
 
   // Kick Logic
@@ -2467,7 +2466,7 @@
     isFetching = true;
     if (showLoader) setLoadingState('Đang tải thẻ...');
     try {
-      const response = await fetch(nextCardUrl, { credentials: 'same-origin' });
+      const response = await fetch("{{ url_for('vocab_flashcard.get_next_card', room_code=room_payload.room_code) }}", { credentials: 'same-origin' });
 
       // Handle Kicked User (403)
       if (response.status === 403) {
@@ -2503,7 +2502,7 @@
     }
 
     try {
-      const response = await fetch(submitAnswerUrl, {
+      const response = await fetch("{{ url_for('vocab_flashcard.submit_collab_answer', room_code=room_payload.room_code) }}", {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...csrfHeaders },
         credentials: 'same-origin',
@@ -2804,4 +2803,3 @@
     });
 </script>
 {% endblock %}
-

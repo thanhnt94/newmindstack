@@ -91,7 +91,13 @@ class LearningContainer(db.Model):
 
     def capability_flags(self) -> set[str]:
         normalized = self._normalize_capabilities(self.ai_capabilities)
-        return set(normalized) if normalized else set()
+        flags = set(normalized) if normalized else set()
+        
+        # [FIX] Always ensure supports_flashcard for FLASHCARD_SET
+        if self.container_type == 'FLASHCARD_SET':
+            flags.add('supports_flashcard')
+            
+        return flags
 
     @property
     def ai_settings(self) -> Optional[dict[str, Any]]:

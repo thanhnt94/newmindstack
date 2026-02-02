@@ -10,7 +10,6 @@ class LearningSessionService:
     """
 
     @staticmethod
-    @staticmethod
     def create_session(user_id, learning_mode, mode_config_id, set_id_data, total_items=0):
         """Create a new session in the database."""
         try:

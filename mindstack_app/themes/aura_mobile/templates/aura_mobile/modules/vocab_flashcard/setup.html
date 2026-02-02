@@ -468,7 +468,8 @@
 <script>
     (function () {
         // --- Data ---
-        const setId = Number("{{ set_id }}");
+        const setIdStr = "{{ set_id }}";
+        const setId = (setIdStr === 'all' || setIdStr === 'None') ? 'all' : Number(setIdStr);
         const modeCounts = {{ mode_counts | tojson
     }};
     const savedSettings = {{ saved_settings | tojson }} || {};

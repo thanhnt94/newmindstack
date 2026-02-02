@@ -191,7 +191,11 @@ class FlashcardEngine:
             'first_seen': _fmt_date(progress.first_seen_timestamp) if hasattr(progress, 'first_seen_timestamp') else None,
             'last_reviewed': _fmt_date(progress.fsrs_last_review),
             'next_review': _fmt_date(progress.fsrs_due),
-            'easiness_factor': round(progress.fsrs_difficulty, 2),
+            'easiness_factor': round(progress.fsrs_difficulty or 0.0, 2), # Legacy support
+            'difficulty': round(progress.fsrs_difficulty or 0.0, 2),
+            'stability': round(progress.fsrs_stability or 0.0, 2),
+            'retrievability': round(FSRSInterface.get_retrievability(progress) * 100, 1) if progress.fsrs_stability else 100.0,
+            'retention': round(FSRSInterface.get_retrievability(progress) * 100, 1) if progress.fsrs_stability else 100.0, # Aliases
             'repetitions': progress.repetitions,
             'interval': progress.current_interval or 0,
             'status': {0: 'new', 1: 'learning', 2: 'review', 3: 'relearning'}.get(progress.fsrs_state, 'new'),

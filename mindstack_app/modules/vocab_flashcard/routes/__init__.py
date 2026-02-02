@@ -1,5 +1,5 @@
-from flask import Blueprint
+from .. import blueprint
 
-api_bp = Blueprint('api', __name__)
-
-from . import api, collab, dashboard
+# Import routes to trigger registration
+from . import views
+from . import api
