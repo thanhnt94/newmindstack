@@ -83,10 +83,10 @@ document.addEventListener('DOMContentLoaded', function () {
                 document.querySelectorAll('.js-detail-desc').forEach(el => el.textContent = s.description || 'Không có mô tả');
                 document.querySelectorAll('.js-card-count').forEach(el => el.textContent = s.card_count);
                 document.querySelectorAll('.js-detail-title').forEach(el => el.textContent = s.title);
-                
+
                 // New header selectors from render_unified_header
                 document.querySelectorAll('h1.text-base.font-bold.text-slate-800').forEach(el => el.textContent = s.title);
-                
+
                 document.querySelectorAll('.js-header-title').forEach(el => el.textContent = s.title);
                 document.querySelectorAll('.js-header-card-count').forEach(el => el.textContent = s.card_count);
 
@@ -224,7 +224,7 @@ document.addEventListener('DOMContentLoaded', function () {
             // Render Pagination
             const paginationBars = document.querySelectorAll('#detail-pagination-bar, .js-detail-pagination-bar-desktop');
             console.log('Pagination bars found:', paginationBars.length, 'HTML length:', paginationHtml ? paginationHtml.length : 0);
-            
+
             if (paginationBars.length > 0 && paginationHtml && paginationHtml.trim().length > 0) {
                 paginationBars.forEach(bar => {
                     bar.innerHTML = paginationHtml;
@@ -254,7 +254,7 @@ document.addEventListener('DOMContentLoaded', function () {
         function checkSetActiveSession(setId) {
             const banner = document.getElementById('active-session-banner-detail');
             if (!banner) return;
-            fetch('/learn/api/check_active_vocab_session/' + setId)
+            fetch('/session/api/check_active/' + setId)
                 .then(r => r.json())
                 .then(data => {
                     if (data.has_active) {

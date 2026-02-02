@@ -75,7 +75,7 @@ def api_get_active_sessions():
                 resume_url = safe_url_for('vocab_speed.speed_session_page', set_id=s.set_id_data)
             else:
                 # Default to Flashcard
-                resume_url = safe_url_for('vocab_flashcard.flashcard_learning.flashcard_session', session_id=s.session_id)
+                resume_url = safe_url_for('vocab_flashcard.flashcard_session', session_id=s.session_id)
 
             results.append({
                 'session_id': s.session_id,
@@ -101,7 +101,7 @@ def check_active_vocab_session(set_id):
             mode = active_session.learning_mode
             
             if mode == 'flashcard': 
-                resume_url = safe_url_for('vocab_flashcard.flashcard_learning.flashcard_session', session_id=active_session.session_id)
+                resume_url = safe_url_for('vocab_flashcard.flashcard_session', session_id=active_session.session_id)
             elif mode == 'mcq': 
                 resume_url = safe_url_for('vocab_mcq.mcq_session', set_id=set_id)
             elif mode == 'typing': 

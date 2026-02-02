@@ -34,6 +34,18 @@ def _render_pagination(set_id, stats_data, page):
             self.prev_num = current_page - 1
             self.next_num = current_page + 1
 
+        def iter_pages(self, left_edge=2, left_current=2, right_current=5, right_edge=2):
+            last = 0
+            for num in range(1, self.pages + 1):
+                if num <= left_edge or \
+                   (num > self.page - left_current - 1 and \
+                    num < self.page + right_current) or \
+                   num > self.pages - right_edge:
+                    if last + 1 != num:
+                        yield None
+                    yield num
+                    last = num
+
     pag_obj = SimplePagination(page, pages)
     version = TemplateService.get_active_version()
     try:
@@ -91,7 +103,8 @@ def api_get_sets():
 def api_get_flashcard_modes(set_id):
     """API to get flashcard mode counts for inline rendering."""
     try:
-        modes = FlashcardInterface.get_mode_counts(current_user.user_id, set_id)
+        mode_data = FlashcardInterface.get_flashcard_mode_counts(current_user.user_id, set_id)
+        modes = mode_data.get('list', [])
         
         # Filter to only essential modes for vocabulary learning
         essential_mode_ids = ['new_only', 'all_review', 'hard_only', 'mixed_srs', 'sequential']
@@ -139,9 +152,14 @@ def api_get_set_detail(set_id):
         
         pagination_html = _render_pagination(set_id, result.stats, page)
         
+        set_data = result.set_info.__dict__.copy()
+        if '_sa_instance_state' in set_data:
+            del set_data['_sa_instance_state']
+        set_data['can_edit'] = result.can_edit
+
         return jsonify({
             'success': True,
-            'set': result.set_info.__dict__,
+            'set': set_data,
             'course_stats': result.stats, # Alias for compatible JS
             'capabilities': result.capabilities,
             'can_edit': result.can_edit,

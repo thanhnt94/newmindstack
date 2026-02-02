@@ -1128,7 +1128,7 @@
         nextBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang khởi tạo...';
 
         // Check for active session first (Conflict Warning)
-        fetch('/learn/api/check_active_vocab_session/' + setId)
+        fetch('/session/api/check_active/' + setId)
             .then(r => r.json())
             .then(statusData => {
                 if (statusData.has_active && statusData.active_mode !== 'typing') {
@@ -1186,4 +1186,3 @@
 }) ();
 </script>
 {% endblock %}
-

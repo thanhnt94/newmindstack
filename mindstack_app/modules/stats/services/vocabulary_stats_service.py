@@ -188,6 +188,9 @@ class VocabularyStatsService:
         markers = UserItemMarker.query.filter_by(user_id=user_id, item_id=item_id).all()
         marker_list = [m.marker_type for m in markers]
 
+        durations = [log.review_duration for log in logs if log.review_duration]
+        min_duration = min(durations) if durations else 0
+
         return {
             'markers': marker_list,
             'item': {
@@ -207,9 +210,10 @@ class VocabularyStatsService:
                 'stability_trend': 0, 'mastery_trend': 0, 'first_reviewed': first_reviewed, 'last_reviewed_log': last_reviewed_log,
                 'last_reviewed_relative': VocabularyStatsService._get_relative_time_string(last_reviewed_log) if last_reviewed_log else 'Chưa học'
             },
+            'modes': mode_counts,
             'performance': {
                 'total_reviews': total_attempts, 'accuracy': round(accuracy, 1), 'total_time_ms': total_duration_ms,
-                'avg_time_ms': round(avg_duration, 0), 'total_score': total_score, 'avg_score': round(avg_score, 1)
+                'avg_time_ms': round(avg_duration, 0), 'min_time_ms': min_duration, 'total_score': total_score, 'avg_score': round(avg_score, 1)
             },
             'history': [
                 {

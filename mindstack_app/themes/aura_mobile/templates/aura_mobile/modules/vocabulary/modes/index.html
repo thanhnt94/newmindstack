@@ -480,7 +480,7 @@
     function checkSession(mode, targetUrl) {
         const setId = "{{ container.container_id }}";
 
-        fetch('/learn/api/check_active_vocab_session/' + setId)
+        fetch('/session/api/check_active/' + setId)
             .then(r => r.json())
             .then(data => {
                 if (data.has_active) {

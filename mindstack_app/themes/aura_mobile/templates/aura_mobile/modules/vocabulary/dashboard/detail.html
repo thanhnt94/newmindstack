@@ -3,7 +3,8 @@
 {% set _v = template_version or 'aura_mobile' %}
 {% extends _v ~ '/layouts/base.html' %}
 
-{% from _v ~ '/components/components/dashboard_header.html' import render_dashboard_header, mobile_footer, render_unified_header with context %}
+{% from _v ~ '/components/components/dashboard_header.html' import render_dashboard_header, mobile_footer,
+render_unified_header with context %}
 
 {% block title %}Chi tiết bộ thẻ - MindStack{% endblock %}
 
@@ -76,7 +77,8 @@
         flex-shrink: 0;
         background: white;
         border-top: 1px solid #f1f5f9;
-        z-index: 50; /* Increased */
+        z-index: 50;
+        /* Increased */
         display: none;
         align-items: center;
         justify-content: center;
@@ -140,14 +142,18 @@
     <!-- Detail View - Unified -->
     <div id="detail-view-wrapper" class="js-detail-view-wrapper">
         <div id="step-detail" class="vocab-step active">
-            {% call render_unified_header(title='Tên bộ thẻ', score_overview=score_overview, back_url='/learn/vocabulary/') %}
-                <a href="javascript:void(0)" class="w-8 h-8 flex items-center justify-center rounded-full bg-white text-slate-500 border border-slate-100 shadow-sm js-edit-set-btn open-modal-btn" title="Sửa bộ thẻ"
-                    style="display: none;">
-                    <i class="fas fa-edit text-xs"></i>
-                </a>
-                <button type="button" class="w-8 h-8 flex items-center justify-center rounded-full bg-white text-slate-500 border border-slate-100 shadow-sm js-open-flashcard-settings" title="Cài đặt học tập">
-                    <i class="fas fa-cog text-xs"></i>
-                </button>
+            {% call render_unified_header(title='Tên bộ thẻ', score_overview=score_overview,
+            back_url='/learn/vocabulary/', hide_default_actions=True) %}
+            <a href="javascript:void(0)"
+                class="w-8 h-8 flex items-center justify-center rounded-full bg-white text-slate-500 border border-slate-100 shadow-sm js-edit-set-btn open-modal-btn"
+                title="Sửa bộ thẻ" style="display: none;">
+                <i class="fas fa-edit text-xs"></i>
+            </a>
+            <a href="{{ url_for('vocabulary.dashboard') }}"
+                class="w-8 h-8 flex items-center justify-center rounded-full bg-white text-slate-500 border border-slate-100 shadow-sm"
+                title="Trang chủ">
+                <i class="fas fa-home text-xs"></i>
+            </a>
             {% endcall %}
 
             <div class="vocab-scroll">

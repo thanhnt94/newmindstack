@@ -70,3 +70,8 @@ class FSRSHardItemService:
             )
         )
         return query
+
+    @classmethod
+    def get_hard_count(cls, user_id: int, container_id: Optional[int] = None, learning_mode: str = 'flashcard') -> int:
+        """Return the count of hard items."""
+        return cls.get_hard_items_query(user_id, container_id, learning_mode).count()

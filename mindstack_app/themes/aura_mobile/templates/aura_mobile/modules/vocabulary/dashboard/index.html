@@ -3,7 +3,8 @@
 {% set _v = template_version or 'aura_mobile' %}
 {% extends _v ~ '/layouts/base.html' %}
 
-{% from _v ~ '/components/components/dashboard_header.html' import render_dashboard_header, mobile_footer, render_unified_header with context %}
+{% from _v ~ '/components/components/dashboard_header.html' import render_dashboard_header, mobile_footer,
+render_unified_header with context %}
 
 {% block title %}Học từ vựng - MindStack{% endblock %}
 
@@ -2493,9 +2494,11 @@
     <div id="step-browser" class="vocab-step active">
 
         {% call render_unified_header(title='Học từ vựng', score_overview=score_overview) %}
-            <a href="{{ url_for('dashboard.dashboard') }}" class="w-8 h-8 flex items-center justify-center rounded-full bg-white text-slate-500 border border-slate-100 shadow-sm" title="Trang chủ">
-                <i class="fas fa-home text-xs"></i>
-            </a>
+        <a href="{{ url_for('dashboard.dashboard') }}"
+            class="w-8 h-8 flex items-center justify-center rounded-full bg-white text-slate-500 border border-slate-100 shadow-sm"
+            title="Trang chủ">
+            <i class="fas fa-home text-xs"></i>
+        </a>
         {% endcall %}
 
 
@@ -2811,7 +2814,8 @@
             // Filter modes based on container capabilities
             (function () {
                 {% if container_capabilities is defined %}
-                const capabilities = {{ container_capabilities| tojson | safe }};
+                const capabilities = {{ container_capabilities| tojson | safe
+            }};
             const modeCards = document.querySelectorAll('.mode-select-card[data-capability]');
 
             modeCards.forEach(card => {
@@ -2821,7 +2825,7 @@
                 }
             });
             {% endif %}
-    })();
+    }) ();
         </script>
 
         {# Bottom Action Bar #}
@@ -3329,7 +3333,8 @@
                 let currentActiveStep = 'browser';
 
                 // Check for active set ID and step from server template
-                const activeSetId = {{ active_set_id|default('null') }};
+                const activeSetId = {{ active_set_id|default ('null')
+            }};
 
         const activeStep = '{{ active_step|default("browser") }}';
 
@@ -3733,7 +3738,7 @@
             const banner = document.getElementById('active-session-banner-detail');
             if (!banner) return;
 
-            fetch('/learn/api/check_active_vocab_session/' + setId)
+            fetch('/session/api/check_active/' + setId)
                 .then(r => r.json())
                 .then(data => {
                     if (data.has_active) {
@@ -5387,7 +5392,7 @@
 
 
 
-    })();
+    }) ();
 
 });
 
@@ -5404,8 +5409,10 @@
     <!-- Edit Set Modal - Beautiful App-like Design -->
     <div id="editSetModal" class="aura-modal-overlay">
         <div class="aura-modal-container">
-            <div class="aura-modal-header" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
-                <h3 class="aura-modal-title" style="margin: 0; font-size: 1.25rem; font-weight: 700; display: flex; align-items: center; gap: 0.75rem;">
+            <div class="aura-modal-header"
+                style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+                <h3 class="aura-modal-title"
+                    style="margin: 0; font-size: 1.25rem; font-weight: 700; display: flex; align-items: center; gap: 0.75rem;">
                     <i class="fas fa-edit"></i>
                     Chỉnh sửa bộ thẻ
                 </h3>

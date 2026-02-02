@@ -275,7 +275,7 @@
                     style="font-size: 0.85rem; font-weight: 800; color: #475569; margin-bottom: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em;">
                     Phân tích chế độ</h3>
                 <div style="background: #f8fafc; border-radius: 0.75rem; border: 1px solid #f1f5f9; overflow: hidden;">
-                    {% for mode, data in s.modes.items() %}
+                    {% for mode, data in s.modes.items() if s.modes %}
                     <div
                         style="padding: 0.75rem 1rem; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center;">
                         <span

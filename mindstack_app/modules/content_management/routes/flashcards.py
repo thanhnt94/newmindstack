@@ -45,7 +45,7 @@ def add_flashcard_item(set_id):
                            title="Thêm thẻ mới",
                            image_base_folder=container.media_image_folder,
                            audio_base_folder=container.media_audio_folder,
-                           regenerate_audio_url=url_for('vocab_flashcard.flashcard_learning.regenerate_audio_from_content'))
+                           regenerate_audio_url=url_for('vocab_flashcard.api_regenerate_audio_from_content'))
 
 @blueprint.route('/flashcards/process_excel_info', methods=['POST'])
 @login_required
@@ -123,7 +123,7 @@ def edit_flashcard_item(set_id, item_id):
                            image_base_folder=item.container.media_image_folder,
                            audio_base_folder=item.container.media_audio_folder,
                            title="Chỉnh sửa thẻ",
-                           regenerate_audio_url=url_for('vocab_flashcard.flashcard_learning.regenerate_audio_from_content'))
+                           regenerate_audio_url=url_for('vocab_flashcard.api_regenerate_audio_from_content'))
 
 @blueprint.route('/flashcards/<int:set_id>/delete/<int:item_id>', methods=['POST'])
 @login_required

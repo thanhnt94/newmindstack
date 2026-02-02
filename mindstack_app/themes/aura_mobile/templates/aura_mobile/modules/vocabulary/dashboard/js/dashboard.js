@@ -518,7 +518,7 @@ document.addEventListener('DOMContentLoaded', function () {
             const banner = document.getElementById('active-session-banner-detail');
             if (!banner) return;
 
-            fetch('/learn/api/check_active_vocab_session/' + setId)
+            fetch('/session/api/check_active/' + setId)
                 .then(r => r.json())
                 .then(data => {
                     if (data.has_active) {
