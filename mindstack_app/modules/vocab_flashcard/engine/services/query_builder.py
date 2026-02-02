@@ -1,7 +1,7 @@
 # File: flashcard/engine/services/query_builder.py
 # FlashcardQueryBuilder - Helper for constructing SQLAlchemy queries for flashcards.
 
-from sqlalchemy import func, or_
+from sqlalchemy import func, or_, and_
 from mindstack_app.models import LearningItem, LearningContainer, db
 from mindstack_app.modules.fsrs.models import ItemMemoryState
 
@@ -69,29 +69,42 @@ class FlashcardQueryBuilder:
         )
         return self
 
-    def filter_mixed(self):
-        """Random mix of all available items (new + reviewed)."""
-        # Note: User complained 100% remembered items show up.
-        # Mixed SRS typically prioritizes DUE items then adds some NEW items.
-        # If it's just 'random' then yes, everything shows up.
-        # Let's make 'mixed' smart: prioritize due items.
+    def filter_available(self):
+        """Filter for items that should be studied (NEW or DUE)."""
         from datetime import datetime, timezone
         self._join_progress()
-        
-        # SQL logic to order: Due first, then New, then the rest
         now = datetime.now(timezone.utc)
+        self._query = self._query.filter(
+            or_(
+                ItemMemoryState.state_id.is_(None), # Never seen
+                ItemMemoryState.state == 0,         # Explicitly New
+                and_(
+                    ItemMemoryState.state != 0,     # Reviewed
+                    ItemMemoryState.due_date <= now # But due (R <= desired_retention)
+                )
+            )
+        )
+        return self
+
+    def filter_mixed(self):
+        """Smart mix of Due & New items, excluding those not yet due."""
+        self.filter_available()
+        from datetime import datetime, timezone
+        now = datetime.now(timezone.utc)
+        
         self._query = self._query.order_by(
-            # Priority 1: Due items (due_date <= now)
-            ItemMemoryState.due_date.isnot(None) & (ItemMemoryState.due_date <= now).desc(),
+            # Priority 1: Due items 
+            (ItemMemoryState.due_date <= now).desc(),
             # Priority 2: New items
-            ItemMemoryState.state_id.is_(None).desc(),
-            # Randomize within priorities
+            ItemMemoryState.state == 0, 
+            # Randomize
             func.random()
         )
         return self
 
     def filter_sequential(self):
-        """Absolute sequential order based on order_in_container."""
+        """Sequential order for available (due/new) items."""
+        self.filter_available()
         self._query = self._query.order_by(LearningItem.order_in_container.asc())
         return self
 

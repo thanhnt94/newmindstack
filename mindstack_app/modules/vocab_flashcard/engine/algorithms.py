@@ -133,9 +133,10 @@ def get_flashcard_mode_counts(user_id, set_id):
         'list': [
             {'id': 'new_only', 'count': new_count, 'label': 'Học từ mới', 'icon': 'fa-seedling', 'color': 'blue'},
             {'id': 'due_only', 'count': due, 'label': 'Ôn tập tới hạn', 'icon': 'fa-clock', 'color': 'emerald'},
+            {'id': 'sequential', 'count': new_count + due, 'label': 'Học tập tuần tự', 'icon': 'fa-list-ol', 'color': 'amber'},
             {'id': 'hard_only', 'count': hard, 'label': 'Các từ khó', 'icon': 'fa-fire', 'color': 'rose'},
-            {'id': 'mixed_srs', 'count': total, 'label': 'Học ngẫu nhiên', 'icon': 'fa-random', 'color': 'indigo'},
-            {'id': 'all_review', 'count': total, 'label': 'Ôn tập tất cả', 'icon': 'fa-layer-group', 'color': 'slate'},
+            {'id': 'mixed_srs', 'count': new_count + due, 'label': 'Học ngẫu nhiên', 'icon': 'fa-random', 'color': 'indigo'},
+            {'id': 'all_review', 'count': learned, 'label': 'Ôn tập tất cả', 'icon': 'fa-layer-group', 'color': 'slate'},
         ]
     }
 
@@ -167,11 +168,16 @@ def get_due_items(user_id, set_id, limit=None):
 def get_reviewed_items(user_id, set_id, limit=None):
     qb = FlashcardQueryBuilder(user_id)
     if set_id != 'all': qb.filter_by_containers([set_id] if isinstance(set_id, int) else set_id)
-    qb.filter_due_only() # Should this be all reviewed? 
-    # For compatibility, assume 'reviewed' means 'reviewed and not new'
-    # Actually qb.filter_due_only() is filtered by due date. 
-    # If they want ALL reviewed, I need filter_reviewed()
-    query = qb.get_query().filter(ItemMemoryState.state != 0)
+    qb.filter_all_review()
+    query = qb.get_query()
+    if limit: query = query.limit(limit)
+    return query
+
+def get_sequential_items(user_id, set_id, limit=None):
+    qb = FlashcardQueryBuilder(user_id)
+    if set_id != 'all': qb.filter_by_containers([set_id] if isinstance(set_id, int) else set_id)
+    qb.filter_sequential()
+    query = qb.get_query()
     if limit: query = query.limit(limit)
     return query
 

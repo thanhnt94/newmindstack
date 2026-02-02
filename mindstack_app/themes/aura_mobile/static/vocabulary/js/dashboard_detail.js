@@ -371,10 +371,11 @@ document.addEventListener('DOMContentLoaded', function () {
             if (!container) return;
 
             const modeIcons = {
-                'new_only': { icon: 'fa-star', color: 'linear-gradient(135deg, #f59e0b, #fbbf24)' },
-                'all_review': { icon: 'fa-redo', color: 'linear-gradient(135deg, #3b82f6, #60a5fa)' },
+                'new_only': { icon: 'fa-seedling', color: 'linear-gradient(135deg, #3b82f6, #60a5fa)' },
+                'all_review': { icon: 'fa-layer-group', color: 'linear-gradient(135deg, #64748b, #94a3b8)' },
                 'hard_only': { icon: 'fa-fire', color: 'linear-gradient(135deg, #ef4444, #f87171)' },
-                'mixed_srs': { icon: 'fa-brain', color: 'linear-gradient(135deg, #8b5cf6, #a78bfa)' }
+                'mixed_srs': { icon: 'fa-random', color: 'linear-gradient(135deg, #8b5cf6, #a78bfa)' },
+                'sequential': { icon: 'fa-list-ol', color: 'linear-gradient(135deg, #f59e0b, #fbbf24)' }
             };
 
             let html = '';

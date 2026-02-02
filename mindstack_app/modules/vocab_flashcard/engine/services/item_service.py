@@ -57,16 +57,15 @@ class FlashcardItemService:
             f"FlashcardItemService.get_new_items: user={user_id}, container={container_id}"
         )
         
+        accessible_ids = FlashcardPermissionService.normalize_container_id(user_id, container_id)
         builder = (FlashcardQueryBuilder(user_id)
-            .for_container(container_id)
-            .only_new()
-            .exclude_archived()
-            .order_random())
+            .filter_by_containers(accessible_ids)
+            .filter_new_only())
         
         if session_size is None or session_size == 999999:
-            return builder.build()
+            return builder.get_query()
         
-        items = builder.execute(session_size)
+        items = builder.get_query().limit(session_size).all()
         current_app.logger.debug(f"FlashcardItemService.get_new_items: found {len(items)} items")
         return items
     
@@ -84,16 +83,15 @@ class FlashcardItemService:
             f"FlashcardItemService.get_due_items: user={user_id}, container={container_id}"
         )
         
+        accessible_ids = FlashcardPermissionService.normalize_container_id(user_id, container_id)
         builder = (FlashcardQueryBuilder(user_id)
-            .for_container(container_id)
-            .only_due()
-            .exclude_archived()
-            .order_by_due(ascending=True))
+            .filter_by_containers(accessible_ids)
+            .filter_due_only())
         
         if session_size is None or session_size == 999999:
-            return builder.build()
+            return builder.get_query()
         
-        items = builder.execute(session_size)
+        items = builder.get_query().limit(session_size).all()
         current_app.logger.debug(f"FlashcardItemService.get_due_items: found {len(items)} items")
         return items
     
@@ -111,16 +109,15 @@ class FlashcardItemService:
             f"FlashcardItemService.get_all_review_items: user={user_id}, container={container_id}"
         )
         
+        accessible_ids = FlashcardPermissionService.normalize_container_id(user_id, container_id)
         builder = (FlashcardQueryBuilder(user_id)
-            .for_container(container_id)
-            .only_reviewed()
-            .exclude_archived()
-            .order_by_due(ascending=True))
+            .filter_by_containers(accessible_ids)
+            .filter_all_review())
         
         if session_size is None or session_size == 999999:
-            return builder.build()
+            return builder.get_query()
         
-        items = builder.execute(session_size)
+        items = builder.get_query().limit(session_size).all()
         current_app.logger.debug(f"FlashcardItemService.get_all_review_items: found {len(items)} items")
         return items
     
@@ -183,17 +180,17 @@ class FlashcardItemService:
         )
         
         # Build queries WITHOUT ordering (required for UNION in SQLite)
+        accessible_ids = FlashcardPermissionService.normalize_container_id(user_id, container_id)
+        # Order-less queries for UNION
         due_query = (FlashcardQueryBuilder(user_id)
-            .for_container(container_id)
-            .only_due()
-            .exclude_archived()
-            .build())  # No order_by
+            .filter_by_containers(accessible_ids)
+            .filter_due_only()
+            .get_query())
         
         new_query = (FlashcardQueryBuilder(user_id)
-            .for_container(container_id)
-            .only_new()
-            .exclude_archived()
-            .build())  # No order_by
+            .filter_by_containers(accessible_ids)
+            .filter_new_only()
+            .get_query())
         
         # Union for counting unique items
         mixed_query = due_query.union(new_query)
@@ -214,15 +211,15 @@ class FlashcardItemService:
             f"FlashcardItemService.get_autoplay_items: user={user_id}, container={container_id}"
         )
         
+        accessible_ids = FlashcardPermissionService.normalize_container_id(user_id, container_id)
         builder = (FlashcardQueryBuilder(user_id)
-            .for_container(container_id)
-            .exclude_archived()
-            .order_by_container_order())
+            .filter_by_containers(accessible_ids)
+            .filter_sequential()) # Autoplay is often sequential
         
         if session_size is None or session_size == 999999:
-            return builder.build()
+            return builder.get_query()
         
-        items = builder.execute(session_size)
+        items = builder.get_query().limit(session_size).all()
         current_app.logger.debug(f"FlashcardItemService.get_autoplay_items: found {len(items)} items")
         return items
     
@@ -240,16 +237,15 @@ class FlashcardItemService:
             f"FlashcardItemService.get_sequential_items: user={user_id}, container={container_id}"
         )
         
+        accessible_ids = FlashcardPermissionService.normalize_container_id(user_id, container_id)
         builder = (FlashcardQueryBuilder(user_id)
-            .for_container(container_id)
-            .only_due_or_new()
-            .exclude_archived()
-            .order_by_container_order())
+            .filter_by_containers(accessible_ids)
+            .filter_sequential())
         
         if session_size is None or session_size == 999999:
-            return builder.build()
+            return builder.get_query()
         
-        items = builder.execute(session_size)
+        items = builder.get_query().limit(session_size).all()
         current_app.logger.debug(f"FlashcardItemService.get_sequential_items: found {len(items)} items")
         return items
     
@@ -269,7 +265,6 @@ class FlashcardItemService:
             f"container={container_id}, capability={capability_flag}"
         )
         
-        # Get accessible container IDs
         accessible_ids = FlashcardPermissionService.normalize_container_id(
             user_id, container_id
         )
