@@ -3,7 +3,7 @@
 
 from datetime import datetime, timezone
 from mindstack_app.models import db, User, LearningItem
-from mindstack_app.modules.learning.models import LearningProgress
+from mindstack_app.modules.fsrs.models import ItemMemoryState
 from mindstack_app.core.signals import card_reviewed
 from mindstack_app.utils.db_session import safe_commit
 from mindstack_app.modules.fsrs.interface import FSRSInterface
@@ -50,13 +50,13 @@ class FlashcardEngine:
             result_type = 'incorrect'
 
         score_change = 0
-        progress = None
+        state_record = None
         srs_data = None
         fsrs_snapshot = None
 
         if update_srs:
             # Update SRS via Interface (Pure FSRS)
-            progress, srs_result = FSRSInterface.process_review(
+            state_record, srs_result = FSRSInterface.process_review(
                 user_id=user_id,
                 item_id=item_id,
                 quality=quality,
@@ -75,9 +75,9 @@ class FlashcardEngine:
                 mode='flashcard',
                 quality=quality,
                 is_correct=is_correct,
-                correct_streak=progress.correct_streak,
-                stability=progress.fsrs_stability,
-                difficulty=progress.fsrs_difficulty
+                correct_streak=state_record.streak,
+                stability=state_record.stability,
+                difficulty=state_record.difficulty
             )
             score_change = score_result.total_points
             
@@ -88,25 +88,33 @@ class FlashcardEngine:
             }
             
             # Prepare Snapshot for History
+            current_ivl = 0.0
+            if state_record.due_date and state_record.last_review:
+                 delta = (state_record.due_date.replace(tzinfo=timezone.utc) - state_record.last_review.replace(tzinfo=timezone.utc))
+                 current_ivl = max(0.0, delta.total_seconds() / 86400.0)
+
             fsrs_snapshot = {
                 'stability': srs_result.stability,
                 'difficulty': srs_result.difficulty,
                 'state': srs_result.state,
-                'scheduled_days': progress.current_interval,
+                'scheduled_days': current_ivl,
                 'next_review': srs_result.next_review.isoformat() if srs_result.next_review else None
             }
         else:
             # No SRS update (Collab or All Review)
-            progress = LearningProgress.query.filter_by(
-                user_id=user_id, item_id=item_id, learning_mode='flashcard'
+            # Fetch existing state without updating
+            state_record = ItemMemoryState.query.filter_by(
+                user_id=user_id, item_id=item_id
             ).first()
-            if not progress:
+            if not state_record:
                 # Temporary progress object for stats (not committed unless needed)
-                progress = LearningProgress(
+                # But ItemMemoryState has required fields.
+                # Just create dummy
+                state_record = ItemMemoryState(
                     user_id=user_id, item_id=item_id, 
-                    learning_mode='flashcard', status='new'
+                    state=0
                 )
-                db.session.add(progress)
+                # db.session.add(progress) # Don't add if we don't want to persist?
 
             # Scoring for Collab/No-SRS
             if quality >= 4:
@@ -137,7 +145,7 @@ class FlashcardEngine:
         # Optimistic score update
         new_total_score = current_user_total_score + score_change
         
-        # === NEW: Record Interaction via HistoryRecorder ===
+        # === Record Interaction via HistoryRecorder ===
         HistoryRecorder.record_interaction(
             user_id=user_id,
             item_id=item_id,
@@ -161,7 +169,7 @@ class FlashcardEngine:
         # distinct statistics retrieval
         item_stats = cls.get_item_statistics(user_id, item_id)
 
-        return score_change, new_total_score, result_type, {0: 'new', 1: 'learning', 2: 'review', 3: 'relearning'}.get(progress.fsrs_state, 'new'), item_stats, srs_data
+        return score_change, new_total_score, result_type, {0: 'new', 1: 'learning', 2: 'review', 3: 'relearning'}.get(state_record.state, 'new'), item_stats, srs_data
 
     @staticmethod
     def get_item_statistics(user_id: int, item_id: int) -> dict:
@@ -169,8 +177,8 @@ class FlashcardEngine:
         Get detailed statistics for a flashcard item.
         Mirroring logic from legacy stats_logic.py
         """
-        progress = LearningProgress.query.filter_by(
-            user_id=user_id, item_id=item_id, learning_mode='flashcard'
+        state_record = ItemMemoryState.query.filter_by(
+            user_id=user_id, item_id=item_id
         ).first()
         
         base_stats = {
@@ -188,7 +196,7 @@ class FlashcardEngine:
             'custom_state': 'new'
         }
 
-        if not progress:
+        if not state_record:
             return base_stats
 
         stats = base_stats.copy()
@@ -198,24 +206,31 @@ class FlashcardEngine:
             if not dt: return None
             if dt.tzinfo is None: dt = dt.replace(tzinfo=timezone.utc)
             return dt.isoformat()
+            
+        # Calculate interval if due date exists
+        interval_val = 0
+        if state_record.due_date and state_record.last_review:
+             delta = (state_record.due_date.replace(tzinfo=timezone.utc) - state_record.last_review.replace(tzinfo=timezone.utc))
+             interval_val = max(0.0, delta.total_seconds() / 86400.0)
 
         stats.update({
-            'first_seen': _fmt_date(progress.first_seen) if hasattr(progress, 'first_seen') else None,
-            'last_reviewed': _fmt_date(progress.fsrs_last_review),
-            'next_review': _fmt_date(progress.fsrs_due),
-            'easiness_factor': round(progress.fsrs_difficulty or 0.0, 2), # Legacy support
-            'difficulty': round(progress.fsrs_difficulty or 0.0, 2),
-            'stability': round(progress.fsrs_stability or 0.0, 2),
-            'retrievability': round(FSRSInterface.get_retrievability(progress) * 100, 1) if progress.fsrs_stability else 100.0,
-            'retention': round(FSRSInterface.get_retrievability(progress) * 100, 1) if progress.fsrs_stability else 100.0, # Aliases
-            'repetitions': progress.repetitions,
-            'interval': progress.current_interval or 0,
-            'status': {0: 'new', 1: 'learning', 2: 'review', 3: 'relearning'}.get(progress.fsrs_state, 'new'),
-            # Spec v7: Custom state from mode_data
-            'custom_state': progress.mode_data.get('custom_state', 'new') if progress.mode_data else 'new',
+            'first_seen': _fmt_date(state_record.created_at),
+            'last_reviewed': _fmt_date(state_record.last_review),
+            'next_review': _fmt_date(state_record.due_date),
+            'easiness_factor': round(state_record.difficulty or 0.0, 2), # Legacy support
+            'difficulty': round(state_record.difficulty or 0.0, 2),
+            'stability': round(state_record.stability or 0.0, 2),
+            'retrievability': round(FSRSInterface.get_retrievability(state_record) * 100, 1) if state_record.stability else 100.0,
+            'retention': round(FSRSInterface.get_retrievability(state_record) * 100, 1) if state_record.stability else 100.0, # Aliases
+            'repetitions': state_record.repetitions,
+            'interval': interval_val,
+            'status': {0: 'new', 1: 'learning', 2: 'review', 3: 'relearning'}.get(state_record.state, 'new'),
+            # Spec v7: Custom state from data
+            'custom_state': (state_record.data or {}).get('custom_state', 'new') if state_record.data else 'new',
+            'predicted_intervals': FSRSInterface.predict_next_intervals(user_id, item_id)
         })
 
-        # Query StudyLog table instead of legacy ReviewLog
+        # Query StudyLog table
         logs = StudyLog.query.filter_by(
             user_id=user_id, item_id=item_id
         ).order_by(StudyLog.timestamp.asc()).all()

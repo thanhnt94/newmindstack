@@ -1,13 +1,14 @@
 from mindstack_app.models import (
-    db, LearningContainer, LearningItem, User, UserContainerState, LearningProgress
+    db, LearningContainer, LearningItem, User, UserContainerState
 )
-from sqlalchemy import or_
+from mindstack_app.modules.fsrs.models import ItemMemoryState
+from sqlalchemy import or_, func
 from flask import current_app
 from mindstack_app.modules.stats.interface import StatsInterface
 from ..logics.cover_logic import get_cover_url
 from ..schemas import VocabItemDTO, VocabSetDTO, VocabSetDetailDTO
 import math
-from datetime import datetime
+from datetime import datetime, timezone
 
 class VocabularyService:
     @staticmethod
@@ -24,9 +25,13 @@ class VocabularyService:
             if category == 'my':
                 query = query.filter(LearningContainer.creator_user_id == user_id)
             elif category == 'learning':
+                # MIGRATED: Use ItemMemoryState
                 learned_container_ids = db.session.query(LearningItem.container_id).join(
-                    LearningProgress, LearningItem.item_id == LearningProgress.item_id
-                ).filter(LearningProgress.user_id == user_id).distinct()
+                    ItemMemoryState, LearningItem.item_id == ItemMemoryState.item_id
+                ).filter(
+                    ItemMemoryState.user_id == user_id,
+                    ItemMemoryState.state != 0 # Only learned items
+                ).distinct()
                 query = query.filter(LearningContainer.container_id.in_(learned_container_ids))
             elif category in ['public', 'explore']:
                 query = query.filter(LearningContainer.is_public == True)
@@ -42,8 +47,9 @@ class VocabularyService:
             
             sets_data = []
             for c in pagination.items:
-                card_count = LearningItem.query.filter_by(
-                    container_id=c.container_id, item_type='FLASHCARD'
+                card_count = LearningItem.query.filter(
+                    LearningItem.container_id == c.container_id,
+                    LearningItem.item_type.in_(['FLASHCARD', 'VOCABULARY'])
                 ).count()
                 creator = User.query.get(c.creator_user_id)
                 
@@ -74,7 +80,10 @@ class VocabularyService:
     def get_set_detail(user_id: int, set_id: int, page: int = 1, sort_by: str = 'default') -> VocabSetDetailDTO:
         """Get comprehensive details and stats for a set."""
         container = LearningContainer.query.get_or_404(set_id)
-        card_count = LearningItem.query.filter_by(container_id=container.container_id, item_type='FLASHCARD').count()
+        card_count = LearningItem.query.filter(
+            LearningItem.container_id == container.container_id,
+            LearningItem.item_type.in_(['FLASHCARD', 'VOCABULARY'])
+        ).count()
         creator = User.query.get(container.creator_user_id)
         
         # Stats delegated to Stats module
@@ -120,14 +129,25 @@ class VocabularyService:
     @staticmethod
     def save_item_note(user_id, item_id, note_content):
         """Save user personal note for a learning item."""
-        progress = LearningProgress.query.filter_by(user_id=user_id, item_id=item_id, learning_mode=LearningProgress.MODE_FLASHCARD).first()
-        if not progress:
-            progress = LearningProgress(user_id=user_id, item_id=item_id, learning_mode=LearningProgress.MODE_FLASHCARD, fsrs_state=LearningProgress.STATE_NEW)
-            db.session.add(progress)
+        # MIGRATED: Use ItemMemoryState
+        state_record = ItemMemoryState.query.filter_by(
+            user_id=user_id, item_id=item_id
+        ).first()
         
-        mode_data = dict(progress.mode_data) if progress.mode_data else {}
-        mode_data['note'] = note_content
-        progress.mode_data = mode_data
+        if not state_record:
+            state_record = ItemMemoryState(
+                user_id=user_id, item_id=item_id,
+                state=0, # NEW
+                created_at=datetime.now(timezone.utc)
+            )
+            db.session.add(state_record)
+        
+        data = dict(state_record.data) if state_record.data else {}
+        data['note'] = note_content
+        state_record.data = data
+        
+        from sqlalchemy.orm.attributes import flag_modified
+        flag_modified(state_record, 'data')
+        
         db.session.commit()
         return True
-

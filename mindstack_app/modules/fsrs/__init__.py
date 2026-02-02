@@ -13,4 +13,4 @@ module_metadata = {
 }
 
 def setup_module(app):
-    from . import routes
+    from . import models, routes

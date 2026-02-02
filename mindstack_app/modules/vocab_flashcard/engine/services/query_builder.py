@@ -1,246 +1,119 @@
-"""
-FlashcardQueryBuilder - Fluent Query Builder for Flashcard Items
+# File: flashcard/engine/services/query_builder.py
+# FlashcardQueryBuilder - Helper for constructing SQLAlchemy queries for flashcards.
 
-Provides a clean, chainable API for building SQLAlchemy queries
-for flashcard items with common filters.
-"""
-from typing import Optional, Union, List, Set
-from flask import current_app
-from sqlalchemy import func, and_, or_
-from sqlalchemy.orm import Query
-
-from mindstack_app.models import (
-    db,
-    LearningItem,
-    LearningContainer,
-    UserContainerState,
-)
-from mindstack_app.modules.learning.models import LearningProgress
-from .permission_service import FlashcardPermissionService
-
+from sqlalchemy import func, or_
+from mindstack_app.models import LearningItem, LearningContainer, db
+from mindstack_app.modules.fsrs.models import ItemMemoryState
 
 class FlashcardQueryBuilder:
     """
-    Fluent builder for constructing flashcard item queries.
-    
-    Usage:
-        items = (FlashcardQueryBuilder(user_id)
-            .for_container(container_id)
-            .exclude_archived()
-            .only_due()
-            .build()
-            .limit(20)
-            .all())
+    Builder pattern for constructing complex Flashcard item queries.
+    Uses ItemMemoryState for FSRS logic.
     """
-    
-    def __init__(self, user_id: int):
-        """
-        Initialize the query builder.
-        
-        Args:
-            user_id: The user ID for permission and progress filtering
-        """
+
+    def __init__(self, user_id):
         self.user_id = user_id
+        # Base query: Flashcard or Vocabulary Items
         self._query = LearningItem.query.filter(
-            LearningItem.item_type == 'FLASHCARD'
+            LearningItem.item_type.in_(['FLASHCARD', 'VOCABULARY'])
         )
-        self._progress_joined = False
-        self._archive_joined = False
-        self._container_ids: Set[int] = set()
-    
-    def for_container(self, container_id: Union[int, str, List]) -> 'FlashcardQueryBuilder':
-        """
-        Filter by container(s) with permission checking.
-        
-        Args:
-            container_id: Container ID, 'all', or list of IDs
-            
-        Returns:
-            Self for chaining
-        """
-        self._container_ids = FlashcardPermissionService.normalize_container_id(
-            self.user_id, container_id
-        )
-        
-        if not self._container_ids:
-            # No accessible containers - return empty query
-            self._query = self._query.filter(False)
-        else:
-            self._query = self._query.filter(
-                LearningItem.container_id.in_(self._container_ids)
-            )
-        
-        return self
-    
-    def exclude_archived(self) -> 'FlashcardQueryBuilder':
-        """
-        Exclude items from archived containers.
-        
-        Returns:
-            Self for chaining
-        """
-        if not self._archive_joined:
+        self._joined_progress = False
+
+    def _join_progress(self):
+        """Internal: Join ItemMemoryState table if not already joined."""
+        if not self._joined_progress:
+            # Join condition: Item matches, User matches.
             self._query = self._query.outerjoin(
-                UserContainerState,
-                and_(
-                    UserContainerState.container_id == LearningItem.container_id,
-                    UserContainerState.user_id == self.user_id
-                )
-            ).filter(
-                or_(
-                    UserContainerState.is_archived == False,
-                    UserContainerState.is_archived == None
-                )
+                ItemMemoryState,
+                (ItemMemoryState.item_id == LearningItem.item_id) &
+                (ItemMemoryState.user_id == self.user_id)
             )
-            self._archive_joined = True
-        
-        return self
-    
-    def _join_progress(self, outer: bool = False) -> 'FlashcardQueryBuilder':
-        """Internal: Join LearningProgress table if not already joined."""
-        if not self._progress_joined:
-            join_condition = and_(
-                LearningProgress.item_id == LearningItem.item_id,
-                LearningProgress.user_id == self.user_id,
-                LearningProgress.learning_mode == LearningProgress.MODE_FLASHCARD
-            )
-            
-            if outer:
-                self._query = self._query.outerjoin(LearningProgress, join_condition)
-            else:
-                self._query = self._query.join(LearningProgress, join_condition)
-            
-            self._progress_joined = True
-        
-        return self
-    
-    def only_new(self) -> 'FlashcardQueryBuilder':
-        """
-        Filter to only new items (no progress or STATE_NEW).
-        
-        Returns:
-            Self for chaining
-        """
-        self._join_progress(outer=True)
-        self._query = self._query.filter(
-            or_(
-                LearningProgress.item_id == None,
-                LearningProgress.fsrs_state == LearningProgress.STATE_NEW
-            )
-        )
-        return self
-    
-    def only_due(self) -> 'FlashcardQueryBuilder':
-        """
-        Filter to only due items (fsrs_due <= now).
-        
-        Returns:
-            Self for chaining
-        """
-        self._join_progress(outer=False)
-        self._query = self._query.filter(
-            LearningProgress.fsrs_due <= func.now()
-        )
-        return self
-    
-    def only_due_or_new(self) -> 'FlashcardQueryBuilder':
-        """
-        Filter to only due or new items.
-        
-        Returns:
-            Self for chaining
-        """
-        self._join_progress(outer=True)
-        self._query = self._query.filter(
-            or_(
-                LearningProgress.item_id == None,
-                LearningProgress.fsrs_state == LearningProgress.STATE_NEW,
-                LearningProgress.fsrs_due <= func.now()
-            )
-        )
-        return self
-    
-    def only_reviewed(self) -> 'FlashcardQueryBuilder':
-        """
-        Filter to items with learning progress (not NEW state).
-        
-        Returns:
-            Self for chaining
-        """
-        self._join_progress(outer=False)
-        self._query = self._query.filter(
-            LearningProgress.fsrs_state != LearningProgress.STATE_NEW
-        )
-        return self
-    
-    def order_by_due(self, ascending: bool = True) -> 'FlashcardQueryBuilder':
-        """
-        Order by due date.
-        
-        Args:
-            ascending: True for oldest first, False for newest first
-            
-        Returns:
-            Self for chaining
-        """
-        self._join_progress(outer=True)
-        if ascending:
-            self._query = self._query.order_by(LearningProgress.fsrs_due.asc())
+            self._joined_progress = True
+
+    def filter_by_containers(self, container_ids):
+        """Filter items by a list of container IDs."""
+        if not container_ids:
+            self._query = self._query.filter(func.false())
         else:
-            self._query = self._query.order_by(LearningProgress.fsrs_due.desc())
+            self._query = self._query.filter(LearningItem.container_id.in_(container_ids))
         return self
-    
-    def order_random(self) -> 'FlashcardQueryBuilder':
-        """
-        Order randomly.
+
+    def filter_new_only(self):
+        """Filter for NEW items (State=0 or NULL)."""
+        self._join_progress()
+        self._query = self._query.filter(
+            or_(
+                ItemMemoryState.state_id.is_(None),
+                ItemMemoryState.state == 0
+            )
+        )
+        self._query = self._query.order_by(LearningItem.order_in_container.asc())
+        return self
+
+    def filter_due_only(self):
+        """Filter for DUE items (State!=0 AND Due<=Now)."""
+        from datetime import datetime, timezone
+        self._join_progress()
+        self._query = self._query.filter(
+            ItemMemoryState.state != 0,
+            ItemMemoryState.due_date <= datetime.now(timezone.utc)
+        )
+        self._query = self._query.order_by(ItemMemoryState.due_date.asc())
+        return self
+
+    def filter_hard_only(self):
+        """Filter for HARD items (Difficulty >= 7.0)."""
+        self._join_progress()
+        self._query = self._query.filter(
+            ItemMemoryState.difficulty >= 7.0
+        )
+        return self
+
+    def filter_mixed(self):
+        """Random mix of all available items (new + reviewed)."""
+        # Note: User complained 100% remembered items show up.
+        # Mixed SRS typically prioritizes DUE items then adds some NEW items.
+        # If it's just 'random' then yes, everything shows up.
+        # Let's make 'mixed' smart: prioritize due items.
+        from datetime import datetime, timezone
+        self._join_progress()
         
-        Returns:
-            Self for chaining
-        """
+        # SQL logic to order: Due first, then New, then the rest
+        now = datetime.now(timezone.utc)
+        self._query = self._query.order_by(
+            # Priority 1: Due items (due_date <= now)
+            ItemMemoryState.due_date.isnot(None) & (ItemMemoryState.due_date <= now).desc(),
+            # Priority 2: New items
+            ItemMemoryState.state_id.is_(None).desc(),
+            # Randomize within priorities
+            func.random()
+        )
+        return self
+
+    def filter_sequential(self):
+        """Absolute sequential order based on order_in_container."""
+        self._query = self._query.order_by(LearningItem.order_in_container.asc())
+        return self
+
+    def filter_all_review(self):
+        """Filter for all reviewed items (State!=0)."""
+        self._join_progress()
+        self._query = self._query.filter(
+            ItemMemoryState.state != 0
+        )
         self._query = self._query.order_by(func.random())
         return self
-    
-    def order_by_container_order(self) -> 'FlashcardQueryBuilder':
-        """
-        Order by order_in_container field.
-        
-        Returns:
-            Self for chaining
-        """
-        self._query = self._query.order_by(
-            LearningItem.order_in_container.asc(),
-            LearningItem.item_id.asc()
-        )
+
+    def exclude_items(self, item_ids):
+        """Exclude specific item IDs."""
+        if item_ids:
+            self._query = self._query.filter(LearningItem.item_id.notin_(item_ids))
         return self
-    
-    def build(self) -> Query:
-        """
-        Return the built query without executing.
-        
-        Returns:
-            SQLAlchemy Query object
-        """
+
+    def get_query(self):
+        """Return the constructed SQLAlchemy query object."""
         return self._query
-    
-    def count(self) -> int:
-        """
-        Execute query and return count.
-        
-        Returns:
-            Number of matching items
-        """
+
+    def count(self):
+        """Execute count on the current query."""
         return self._query.count()
-    
-    def execute(self, limit: Optional[int] = None) -> List[LearningItem]:
-        """
-        Execute query with optional limit.
-        
-        Args:
-            limit: Maximum number of items to return (None = all)
-            
-        Returns:
-            List of LearningItem objects
-        """
-        if limit is not None and limit != 999999:
-            return self._query.limit(limit).all()
-        return self._query.all()

@@ -2,10 +2,10 @@
 # Vocabulary Container Statistics Service
 # Provides comprehensive learning statistics for vocabulary sets
 
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlalchemy import func
 from mindstack_app.models import LearningItem, LearningContainer
-from mindstack_app.modules.learning.models import LearningProgress
+from mindstack_app.modules.fsrs.models import ItemMemoryState
 from mindstack_app.modules.learning_history.models import StudyLog
 from mindstack_app.modules.fsrs.interface import FSRSInterface as FsrsService
 
@@ -28,7 +28,7 @@ class VocabularyContainerStats:
             LearningContainer.container_type == 'FLASHCARD_SET'
         ).count()
         
-        # 2. Total Cards (Total items in all FLASHCARD_SET containers of the user)
+        # 2. Total Cards
         total_cards = LearningItem.query.join(
             LearningContainer, LearningItem.container_id == LearningContainer.container_id
         ).filter(
@@ -37,20 +37,18 @@ class VocabularyContainerStats:
             LearningItem.item_type.in_(['FLASHCARD', 'VOCABULARY'])
         ).count()
         
-        # 3. Mastered & Due (from LearningProgress)
-        now = datetime.utcnow()
+        # 3. Mastered & Due (from ItemMemoryState)
+        now = datetime.now(timezone.utc)
         
-        # Mastered: fsrs_stability >= 21.0
-        mastered = LearningProgress.query.filter(
-            LearningProgress.user_id == user_id,
-            LearningProgress.learning_mode == LearningProgress.MODE_FLASHCARD,
-            LearningProgress.fsrs_stability >= 21.0
+        # Mastered: stability >= 21.0
+        mastered = ItemMemoryState.query.filter(
+            ItemMemoryState.user_id == user_id,
+            ItemMemoryState.stability >= 21.0
         ).count()
         
-        due = LearningProgress.query.filter(
-            LearningProgress.user_id == user_id,
-            LearningProgress.learning_mode == LearningProgress.MODE_FLASHCARD,
-            LearningProgress.fsrs_due <= now
+        due = ItemMemoryState.query.filter(
+            ItemMemoryState.user_id == user_id,
+            ItemMemoryState.due_date <= now
         ).count()
         
         return {
@@ -77,14 +75,13 @@ class VocabularyContainerStats:
             return VocabularyContainerStats._empty_stats()
         
         # Get progress records
-        progress_records = LearningProgress.query.filter(
-            LearningProgress.user_id == user_id,
-            LearningProgress.learning_mode == LearningProgress.MODE_FLASHCARD,
-            LearningProgress.item_id.in_(item_ids)
+        progress_records = ItemMemoryState.query.filter(
+            ItemMemoryState.user_id == user_id,
+            ItemMemoryState.item_id.in_(item_ids)
         ).all()
         
         progress_map = {p.item_id: p for p in progress_records}
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         
         # Calculate counts
         new_count = 0
@@ -103,7 +100,7 @@ class VocabularyContainerStats:
             if not progress:
                 new_count += 1
             else:
-                stability = progress.fsrs_stability or 0.0
+                stability = progress.stability or 0.0
                 retrievability = FsrsService.get_retrievability(progress)
                 total_retrievability += retrievability
                 
@@ -112,16 +109,21 @@ class VocabularyContainerStats:
                 else:
                     learning_count += 1
                 
-                if progress.fsrs_due and progress.fsrs_due <= now:
-                    due_count += 1
+                if progress.due_date:
+                    # Ensure progress.due_date is aware for comparison
+                    due_val = progress.due_date
+                    if due_val.tzinfo is None:
+                        due_val = due_val.replace(tzinfo=timezone.utc)
+                    if due_val <= now:
+                        due_count += 1
                 
                 total_correct += progress.times_correct or 0
                 total_incorrect += progress.times_incorrect or 0
                 total_reviews += (progress.times_correct or 0) + (progress.times_incorrect or 0)
                 
-                if progress.fsrs_last_review:
-                    if not last_reviewed or progress.fsrs_last_review > last_reviewed:
-                        last_reviewed = progress.fsrs_last_review
+                if progress.last_review:
+                    if not last_reviewed or progress.last_review > last_reviewed:
+                        last_reviewed = progress.last_review
         
         learned_count = len(progress_records)
         completion_pct = (learned_count / total * 100) if total > 0 else 0
@@ -187,10 +189,9 @@ class VocabularyContainerStats:
         if not item_ids:
             return {'distribution': {'weak': 0, 'medium': 0, 'strong': 0}, 'timeline': {'dates': [], 'values': []}}
         
-        progress_records = LearningProgress.query.filter(
-            LearningProgress.user_id == user_id,
-            LearningProgress.learning_mode == LearningProgress.MODE_FLASHCARD,
-            LearningProgress.item_id.in_(item_ids)
+        progress_records = ItemMemoryState.query.filter(
+            ItemMemoryState.user_id == user_id,
+            ItemMemoryState.item_id.in_(item_ids)
         ).all()
         
         weak_count = medium_count = strong_count = 0
@@ -200,11 +201,10 @@ class VocabularyContainerStats:
             elif retrievability < 0.9: medium_count += 1
             else: strong_count += 1
         
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         timeline_data = defaultdict(list)
         start_date = now - timedelta(days=30)
         
-        # Query StudyLog instead of ReviewLog
         logs = StudyLog.query.filter(
             StudyLog.user_id == user_id,
             StudyLog.item_id.in_(item_ids),

@@ -1,5 +1,5 @@
 from mindstack_app.models import (
-    db, User, LearningProgress, LearningItem, LearningContainer, 
+    db, User, ItemMemoryState, LearningItem, LearningContainer, 
     LearningSession, UserItemMarker, UserContainerState, ContainerContributor, LearningGroup
 )
 from mindstack_app.modules.learning_history.models import StudyLog
@@ -15,14 +15,14 @@ class ResetService:
             if user_id:
                 # Dữ liệu phụ thuộc vào User
                 StudyLog.query.filter_by(user_id=user_id).delete()
-                LearningProgress.query.filter_by(user_id=user_id).delete()
+                ItemMemoryState.query.filter_by(user_id=user_id).delete()
                 LearningSession.query.filter_by(user_id=user_id).delete()
                 UserItemMarker.query.filter_by(user_id=user_id).delete()
                 UserContainerState.query.filter_by(user_id=user_id).delete()
             else:
                 # Xóa toàn bộ
                 db.session.query(StudyLog).delete()
-                db.session.query(LearningProgress).delete()
+                db.session.query(ItemMemoryState).delete()
                 db.session.query(LearningSession).delete()
                 db.session.query(UserItemMarker).delete()
                 db.session.query(UserContainerState).delete()
@@ -43,7 +43,7 @@ class ResetService:
             # 1. Xóa dữ liệu học tập phụ thuộc (Tiến độ, Logs, Sessions)
             # Cần xóa trước vì chúng có Foreign Key trỏ tới Item/Container
             db.session.query(StudyLog).delete()
-            db.session.query(LearningProgress).delete()
+            db.session.query(ItemMemoryState).delete()
             db.session.query(UserItemMarker).delete()
             
             # LearningSession không có FK cứng tới Item nhưng chứa ID item trong JSON

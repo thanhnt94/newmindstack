@@ -1,26 +1,27 @@
 # File: mindstack_app/modules/learning/quiz_learning/quiz_stats_logic.py
-# Phiên bản: 3.1
-# MỤC ĐÍCH: Cập nhật để đọc từ StudyLog table thay vì ReviewLog.
+# Phiên bản: 3.2
+# MỤC ĐÍCH: Cập nhật để đọc từ StudyLog và ItemMemoryState.
 
 from mindstack_app.modules.learning_history.models import StudyLog
-from mindstack_app.modules.learning.models import LearningProgress
+from mindstack_app.modules.fsrs.models import ItemMemoryState
 import datetime
 
 def get_quiz_item_statistics(user_id, item_id):
     """
     Lấy các thống kê chi tiết về tiến độ của người dùng đối với một câu hỏi Quiz cụ thể.
     """
-    progress = LearningProgress.query.filter_by(
+    state_record = ItemMemoryState.query.filter_by(
         user_id=user_id, 
-        item_id=item_id,
-        learning_mode='quiz' # or LearningProgress.MODE_QUIZ if imported constant
+        item_id=item_id
     ).first()
 
-    if not progress:
+    if not state_record:
         return None
 
-    total_attempts = (progress.times_correct or 0) + (progress.times_incorrect or 0)
-    correct_percentage = (progress.times_correct or 0) / total_attempts * 100 if total_attempts > 0 else 0
+    times_correct = state_record.times_correct or 0
+    times_incorrect = state_record.times_incorrect or 0
+    total_attempts = times_correct + times_incorrect
+    correct_percentage = times_correct / total_attempts * 100 if total_attempts > 0 else 0
 
     # Query StudyLog table
     logs = StudyLog.query.filter_by(
@@ -45,13 +46,13 @@ def get_quiz_item_statistics(user_id, item_id):
 
     return {
         'total_attempts': total_attempts,
-        'times_correct': progress.times_correct or 0,
-        'times_incorrect': progress.times_incorrect or 0,
+        'times_correct': times_correct,
+        'times_incorrect': times_incorrect,
         'correct_percentage': round(correct_percentage, 2),
-        'correct_streak': progress.correct_streak or 0,
-        'incorrect_streak': progress.incorrect_streak or 0,
-        'status': {0: 'new', 1: 'learning', 2: 'review', 3: 'relearning'}.get(progress.fsrs_state, 'new'),
-        'first_seen': progress.first_seen.isoformat() if progress.first_seen else None,
-        'last_reviewed': progress.fsrs_last_review.isoformat() if progress.fsrs_last_review else None,
+        'correct_streak': state_record.streak or 0,
+        'incorrect_streak': 0, # Not tracked in ItemMemoryState core, maybe add to data if needed
+        'status': {0: 'new', 1: 'learning', 2: 'review', 3: 'relearning'}.get(state_record.state, 'new'),
+        'first_seen': state_record.created_at.isoformat() if state_record.created_at else None,
+        'last_reviewed': state_record.last_review.isoformat() if state_record.last_review else None,
         'review_history': formatted_review_history
     }

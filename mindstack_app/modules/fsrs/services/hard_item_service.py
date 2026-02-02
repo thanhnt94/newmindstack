@@ -2,8 +2,8 @@
 from __future__ import annotations
 from typing import List, Optional
 from sqlalchemy import or_, and_
-from mindstack_app.models import db, LearningItem
-from mindstack_app.modules.learning.models import LearningProgress, UserItemMarker
+from mindstack_app.models import db, LearningItem, UserItemMarker
+from mindstack_app.modules.fsrs.models import ItemMemoryState
 from .settings_service import FSRSSettingsService
 
 class FSRSHardItemService:
@@ -28,13 +28,14 @@ class FSRSHardItemService:
         ).first()
         if manual_marker: return True
         
-        progress = LearningProgress.query.filter_by(
-            user_id=user_id, item_id=item_id, learning_mode=learning_mode
+        # MIGRATED: Use ItemMemoryState
+        state = ItemMemoryState.query.filter_by(
+            user_id=user_id, item_id=item_id
         ).first()
-        if not progress: return False
+        if not state: return False
         
-        if (progress.incorrect_streak or 0) >= cls._get_min_streak(): return True
-        if (progress.repetitions or 0) > cls._get_max_reps() and (progress.fsrs_stability or 0) < cls._get_stuck_stability():
+        if (state.incorrect_streak or 0) >= cls._get_min_streak(): return True
+        if (state.repetitions or 0) > cls._get_max_reps() and (state.stability or 0) < cls._get_stuck_stability():
             return True
         return False
 
@@ -52,20 +53,20 @@ class FSRSHardItemService:
             UserItemMarker.user_id == user_id, UserItemMarker.marker_type == 'difficult'
         )
         
+        # MIGRATED: Use ItemMemoryState
         query = base_query.outerjoin(
-            LearningProgress,
+            ItemMemoryState,
             and_(
-                LearningProgress.item_id == LearningItem.item_id,
-                LearningProgress.user_id == user_id,
-                LearningProgress.learning_mode == learning_mode
+                ItemMemoryState.item_id == LearningItem.item_id,
+                ItemMemoryState.user_id == user_id
             )
         ).filter(
             or_(
                 LearningItem.item_id.in_(manual_marker_subquery),
-                LearningProgress.incorrect_streak >= min_streak,
+                ItemMemoryState.incorrect_streak >= min_streak,
                 and_(
-                    LearningProgress.repetitions > max_reps,
-                    LearningProgress.fsrs_stability < stuck_stability
+                    ItemMemoryState.repetitions > max_reps,
+                    ItemMemoryState.stability < stuck_stability
                 )
             )
         )

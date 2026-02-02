@@ -1,96 +1,61 @@
-# File: vocabulary/listening/logic.py
-# Listening Learning Mode Logic
-
-from mindstack_app.models import LearningItem, LearningProgress
-from mindstack_app.utils.content_renderer import render_text_field
+# File: mindstack_app/modules/vocab_listening/logics/listening_logic.py
 from datetime import datetime, timezone
+from sqlalchemy import func
+from mindstack_app.models import LearningItem
+from mindstack_app.modules.fsrs.models import ItemMemoryState
 
-
-def get_listening_eligible_items(container_id, mode='random', custom_pairs=None):
-    """Get all items eligible for Listening mode from a container with mode filtering.
-    With TTS, any item with text content is eligible (no audio URL required).
+def get_listening_items(user_id, mode='new', limit=10):
     """
-    
-    base_query = LearningItem.query.filter_by(
-        container_id=container_id,
-        item_type='FLASHCARD'
+    Lấy danh sách item cho luyện nghe.
+    mode: 'new', 'review', 'hard', 'mixed'
+    """
+    base_query = LearningItem.query.filter(
+        LearningItem.item_type == 'FLASHCARD',
+        # Chỉ lấy item có audio
+        # LearningItem.content['audio'].astext != None # Postgres specific
+        # SQLite doesn't support easy JSON filtering, rely on app logic or filter later
     )
     
-    # Apply mode filtering
-    if mode == 'new':
-        # Items without any progress records
-        base_query = base_query.filter(~LearningItem.progress_records.any())
-    elif mode == 'review':
-        # Items due for review
-        now = datetime.now(timezone.utc)
-        base_query = base_query.join(LearningProgress).filter(LearningProgress.fsrs_due <= now)
+    # Filter items that actually have content to listen to (basic check)
+    # Since we can't easily filter JSON in SQLite efficiently without extension, 
+    # we might filter in Python or assume Flashcards generally have audio if generated.
+    
+    now = datetime.now(timezone.utc)
+    
+    if mode == 'review':
+        # Due items
+        base_query = base_query.join(ItemMemoryState).filter(
+            ItemMemoryState.user_id == user_id,
+            ItemMemoryState.due_date <= now
+        ).order_by(ItemMemoryState.due_date)
     elif mode == 'hard':
-        # Items with low easiness factor
-        # Items with high difficulty (replacing low EF)
-        base_query = base_query.join(LearningProgress).filter(LearningProgress.fsrs_difficulty >= 7.5)
-    elif mode == 'learned':
-        # All items with progress
-        base_query = base_query.join(LearningProgress)
-    # 'random' = no filtering
+        # Difficulty high
+        base_query = base_query.join(ItemMemoryState).filter(
+            ItemMemoryState.user_id == user_id,
+            ItemMemoryState.difficulty >= 7.5
+        )
+    elif mode == 'new':
+        # Not in ItemMemoryState OR state=NEW
+        # Outer join
+        base_query = base_query.outerjoin(ItemMemoryState, (ItemMemoryState.item_id == LearningItem.item_id) & (ItemMemoryState.user_id == user_id)).filter(
+            (ItemMemoryState.state == None) | (ItemMemoryState.state == 0)
+        )
+    elif mode == 'mixed':
+        # Random mix of learned items
+        base_query = base_query.join(ItemMemoryState).filter(
+            ItemMemoryState.user_id == user_id,
+            ItemMemoryState.state != 0
+        ).order_by(func.random())
+        
+    items = base_query.limit(limit * 2).all() # Fetch more to filter by audio existence
     
-    items = base_query.all()
-    
-    eligible = []
+    valid_items = []
     for item in items:
         content = item.content or {}
-        # With TTS, any item with front and back text is eligible
-        if content.get('front') and content.get('back'):
-            eligible.append({
-                'item_id': item.item_id,
-                'prompt': '???',
-                'answer': content.get('front'),  # Keep original for validation
-                'meaning': render_text_field(content.get('back')),  # BBCode rendering
-                'content': content
-            })
-    
-    return eligible
-
-
-def check_listening_answer(correct_answer, user_answer):
-    """Check if user's typed answer is close enough to correct."""
-    from mindstack_app.utils.content_renderer import strip_bbcode
-    
-    # Strip BBCode from correct_answer before comparison
-    correct = strip_bbcode(correct_answer).strip().lower()
-    user = user_answer.strip().lower()
-    
-    # Exact match
-    if correct == user:
-        return {'correct': True, 'accuracy': 1.0}
-    
-    # Calculate similarity (simple Levenshtein distance-based)
-    distance = levenshtein_distance(correct, user)
-    max_len = max(len(correct), len(user), 1)
-    similarity = 1 - (distance / max_len)
-    
-    # Accept if similarity > 0.8 (allow minor typos)
-    if similarity >= 0.8:
-        return {'correct': True, 'accuracy': similarity, 'typo': True}
-    
-    return {'correct': False, 'accuracy': similarity, 'correct_answer': correct_answer}
-
-
-def levenshtein_distance(s1, s2):
-    """Calculate Levenshtein distance between two strings."""
-    if len(s1) < len(s2):
-        return levenshtein_distance(s2, s1)
-    
-    if len(s2) == 0:
-        return len(s1)
-    
-    previous_row = range(len(s2) + 1)
-    for i, c1 in enumerate(s1):
-        current_row = [i + 1]
-        for j, c2 in enumerate(s2):
-            insertions = previous_row[j + 1] + 1
-            deletions = current_row[j] + 1
-            substitutions = previous_row[j] + (c1 != c2)
-            current_row.append(min(insertions, deletions, substitutions))
-        previous_row = current_row
-    
-    return previous_row[-1]
+        # Check if has audio (front or back)
+        if content.get('audio') or content.get('front_audio_url') or content.get('back_audio_url'):
+            valid_items.append(item)
+            if len(valid_items) >= limit:
+                break
+                
+    return valid_items

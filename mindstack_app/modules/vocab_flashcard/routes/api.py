@@ -30,8 +30,8 @@ from mindstack_app.models import (
     LearningItem, 
     LearningContainer, 
     UserContainerState,
-    LearningProgress
 )
+from mindstack_app.modules.fsrs.models import ItemMemoryState
 from mindstack_app.modules.fsrs.schemas import CardStateDTO as CardState
 from mindstack_app.modules.fsrs.logics.fsrs_engine import FSRSEngine
 from mindstack_app.modules.fsrs.services.optimizer_service import FSRSOptimizerService
@@ -147,7 +147,10 @@ def api_get_flashcard_item_details(item_id):
         return jsonify({'success': False, 'message': 'Không có phiên học nào đang hoạt động.'}), 400
 
     try:
-        item = LearningItem.query.filter_by(item_id=item_id, item_type='FLASHCARD').first()
+        item = LearningItem.query.filter(
+            LearningItem.item_id == item_id,
+            LearningItem.item_type.in_(['FLASHCARD', 'VOCABULARY'])
+        ).first()
         if not item:
             return jsonify({'success': False, 'message': 'Không tìm thấy thẻ yêu cầu.'}), 404
 
@@ -245,8 +248,10 @@ def api_get_flashcard_batch():
         flashcard_batch['container_name'] = container_name
         return jsonify(flashcard_batch)
     except Exception as e:
-        current_app.logger.error(f"LỖI khi lấy nhóm thẻ: {e}", exc_info=True)
-        return jsonify({'message': f'Lỗi khi tải thẻ: {str(e)}'}), 500
+        import traceback
+        error_msg = traceback.format_exc()
+        current_app.logger.error(f"LỖI khi lấy nhóm thẻ: {error_msg}")
+        return jsonify({'message': f'Lỗi khi tải thẻ: {str(e)}', 'traceback': error_msg}), 500
 
 @blueprint.route('/submit_flashcard_answer', methods=['POST'])
 @login_required
@@ -432,16 +437,23 @@ def preview_fsrs():
     except (ValueError, TypeError):
         return jsonify({'success': False, 'message': 'Invalid item_id'}), 400
 
-    progress = LearningProgress.query.filter_by(user_id=current_user.user_id, item_id=item_id, learning_mode='flashcard').first()
+    # MIGRATED: Use ItemMemoryState
+    progress = ItemMemoryState.query.filter_by(user_id=current_user.user_id, item_id=item_id).first()
     
+    # Calculate interval from due date if available, or 0.0
+    current_ivl = 0.0
+    if progress and progress.due_date and progress.last_review:
+         delta = (progress.due_date.replace(tzinfo=timezone.utc) - progress.last_review.replace(tzinfo=timezone.utc))
+         current_ivl = max(0.0, delta.total_seconds() / 86400.0)
+
     card_state = CardState(
-        stability=progress.fsrs_stability if progress else 0.0,
-        difficulty=progress.fsrs_difficulty if progress else 0.0,
+        stability=progress.stability if progress else 0.0,
+        difficulty=progress.difficulty if progress else 0.0,
         reps=progress.repetitions if progress else 0,
         lapses=progress.lapses if progress else 0,
-        state=progress.fsrs_state if progress else 0,
-        last_review=progress.fsrs_last_review if progress else None,
-        scheduled_days=float(progress.current_interval or 0.0) if progress else 0.0
+        state=progress.state if progress else 0,
+        last_review=progress.last_review if progress else None,
+        scheduled_days=current_ivl
     )
 
     weights = FSRSOptimizerService.get_user_parameters(current_user.user_id)
@@ -472,4 +484,3 @@ def preview_fsrs():
 
 # --- LEGACY COLLAB API (Removed as per user request to focus on individual learning) ---
 # All collaborative routes have been purged.
-

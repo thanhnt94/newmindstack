@@ -8,7 +8,7 @@ from sqlalchemy import func, case, distinct, desc
 from mindstack_app.models import (
     db, User, ScoreLog, LearningContainer, LearningItem
 )
-from ..models import LearningProgress
+from mindstack_app.modules.fsrs.models import ItemMemoryState
 
 
 class LearningMetricsService:
@@ -73,40 +73,40 @@ class LearningMetricsService:
         """Internal helper for flashcard specific metrics."""
         summary = (
             db.session.query(
-                func.count(LearningProgress.progress_id).label('total'),
+                func.count(ItemMemoryState.state_id).label('total'),
                 # FSRS State Mapping
-                func.sum(case((LearningProgress.fsrs_stability >= 21.0, 1), else_=0)).label('mastered'),
-                func.sum(case((LearningProgress.fsrs_state.in_([LearningProgress.STATE_LEARNING, LearningProgress.STATE_RELEARNING]), 1), else_=0)).label('learning'),
-                func.sum(case((LearningProgress.fsrs_state == LearningProgress.STATE_NEW, 1), else_=0)).label('new'),
-                func.sum(case((LearningProgress.fsrs_difficulty >= 8.0, 1), else_=0)).label('hard'),
-                func.sum(case((LearningProgress.fsrs_state == LearningProgress.STATE_REVIEW, 1), else_=0)).label('reviewing'),
-                func.sum(case((LearningProgress.fsrs_due <= func.now(), 1), else_=0)).label('due'),
-                func.sum(LearningProgress.times_correct).label('correct'),
-                func.sum(LearningProgress.times_incorrect).label('incorrect'),
-                func.avg(LearningProgress.correct_streak).label('avg_streak'),
-                func.max(LearningProgress.correct_streak).label('best_streak'),
-                func.avg(case((LearningProgress.fsrs_state != LearningProgress.STATE_NEW, LearningProgress.fsrs_stability), else_=None)).label('avg_stability'),
+                func.sum(case((ItemMemoryState.stability >= 21.0, 1), else_=0)).label('mastered'),
+                func.sum(case((ItemMemoryState.state.in_([1, 3]), 1), else_=0)).label('learning'),
+                func.sum(case((ItemMemoryState.state == 0, 1), else_=0)).label('new'),
+                func.sum(case((ItemMemoryState.difficulty >= 8.0, 1), else_=0)).label('hard'),
+                func.sum(case((ItemMemoryState.state == 2, 1), else_=0)).label('reviewing'),
+                func.sum(case((ItemMemoryState.due_date <= func.now(), 1), else_=0)).label('due'),
+                func.sum(ItemMemoryState.times_correct).label('correct'),
+                func.sum(ItemMemoryState.times_incorrect).label('incorrect'),
+                func.avg(ItemMemoryState.streak).label('avg_streak'),
+                func.max(ItemMemoryState.streak).label('best_streak'),
+                func.avg(case((ItemMemoryState.state != 0, ItemMemoryState.stability), else_=None)).label('avg_stability'),
             )
+            .join(LearningItem, LearningItem.item_id == ItemMemoryState.item_id)
             .filter(
-                LearningProgress.user_id == user_id,
-                LearningProgress.learning_mode == LearningProgress.MODE_FLASHCARD
+                ItemMemoryState.user_id == user_id,
+                LearningItem.item_type == 'FLASHCARD'
             )
             .one()
         )
         
         # Calculate Average Retention (Retrievability)
-        # Formula: R = 0.9 ** (elapsed_days / stability)
-        # We fetch records that are NOT new to calculate current retention
         active_items = (
             db.session.query(
-                LearningProgress.fsrs_stability,
-                LearningProgress.fsrs_last_review
+                ItemMemoryState.stability,
+                ItemMemoryState.last_review
             )
+            .join(LearningItem, LearningItem.item_id == ItemMemoryState.item_id)
             .filter(
-                LearningProgress.user_id == user_id,
-                LearningProgress.learning_mode == LearningProgress.MODE_FLASHCARD,
-                LearningProgress.fsrs_state != LearningProgress.STATE_NEW,
-                LearningProgress.fsrs_stability > 0
+                ItemMemoryState.user_id == user_id,
+                LearningItem.item_type == 'FLASHCARD',
+                ItemMemoryState.state != 0,
+                ItemMemoryState.stability > 0
             )
             .all()
         )
@@ -124,7 +124,6 @@ class LearningMetricsService:
                 last_review = last_review.replace(tzinfo=timezone.utc)
                 
             elapsed_days = (now - last_review).total_seconds() / 86400.0
-            # Cap elapsed_days at 0
             elapsed_days = max(0, elapsed_days)
             
             retention = 0.9 ** (elapsed_days / stability)
@@ -137,7 +136,6 @@ class LearningMetricsService:
         total = int(summary.total or 0)
         mastered = int(summary.mastered or 0)
         
-        # Calculate accuracy
         correct = int(summary.correct or 0)
         incorrect = int(summary.incorrect or 0)
         attempts = correct + incorrect
@@ -165,25 +163,25 @@ class LearningMetricsService:
     @classmethod
     def _get_quiz_metrics(cls, user_id: int) -> Dict[str, Any]:
         """Internal helper for quiz specific metrics."""
-        # Quiz mode might use simple correct/incorrect mostly, but if we track progress:
         summary = (
             db.session.query(
-                func.count(LearningProgress.progress_id).label('total'),
-                func.sum(case((LearningProgress.fsrs_stability >= 5.0, 1), else_=0)).label('mastered'), # Lower threshold for quiz?
-                func.sum(case((LearningProgress.fsrs_state.in_([LearningProgress.STATE_LEARNING, LearningProgress.STATE_RELEARNING]), 1), else_=0)).label('learning'),
-                func.sum(LearningProgress.times_correct).label('correct'),
-                func.sum(LearningProgress.times_incorrect).label('incorrect'),
-                func.avg(LearningProgress.correct_streak).label('avg_streak'),
-                func.max(LearningProgress.correct_streak).label('best_streak'),
+                func.count(ItemMemoryState.state_id).label('total'),
+                func.sum(case((ItemMemoryState.stability >= 5.0, 1), else_=0)).label('mastered'), # Lower threshold for quiz
+                func.sum(case((ItemMemoryState.state.in_([1, 3]), 1), else_=0)).label('learning'),
+                func.sum(ItemMemoryState.times_correct).label('correct'),
+                func.sum(ItemMemoryState.times_incorrect).label('incorrect'),
+                func.avg(ItemMemoryState.streak).label('avg_streak'),
+                func.max(ItemMemoryState.streak).label('best_streak'),
             )
+            .join(LearningItem, LearningItem.item_id == ItemMemoryState.item_id)
             .filter(
-                LearningProgress.user_id == user_id,
-                LearningProgress.learning_mode == LearningProgress.MODE_QUIZ
+                ItemMemoryState.user_id == user_id,
+                LearningItem.item_type == 'QUIZ_MCQ'
             )
             .one()
         )
 
-        total = int(summary.total or 0) # Questions encountered
+        total = int(summary.total or 0)
         mastered = int(summary.mastered or 0)
         correct = int(summary.correct or 0)
         incorrect = int(summary.incorrect or 0)
@@ -194,10 +192,10 @@ class LearningMetricsService:
         sets_started = (
             db.session.query(func.count(distinct(LearningContainer.container_id)))
             .join(LearningItem, LearningItem.container_id == LearningContainer.container_id)
-            .join(LearningProgress, LearningProgress.item_id == LearningItem.item_id)
+            .join(ItemMemoryState, ItemMemoryState.item_id == LearningItem.item_id)
             .filter(
-                LearningProgress.user_id == user_id,
-                LearningProgress.learning_mode == LearningProgress.MODE_QUIZ,
+                ItemMemoryState.user_id == user_id,
+                LearningItem.item_type == 'QUIZ_MCQ',
                 LearningContainer.container_type == 'QUIZ_SET'
             )
             .scalar() or 0
@@ -222,15 +220,16 @@ class LearningMetricsService:
         """Internal helper for course specific metrics."""
         summary = (
             db.session.query(
-                func.count(LearningProgress.progress_id).label('total_lessons'),
-                func.sum(case((db.cast(LearningProgress.mode_data['completion_percentage'], db.Integer) >= 100, 1), else_=0)).label('completed'),
-                func.sum(case(((db.cast(LearningProgress.mode_data['completion_percentage'], db.Integer) > 0) & (db.cast(LearningProgress.mode_data['completion_percentage'], db.Integer) < 100), 1), else_=0)).label('in_progress'),
-                func.avg(db.cast(LearningProgress.mode_data['completion_percentage'], db.Integer)).label('avg_completion'),
-                func.max(LearningProgress.fsrs_last_review).label('last_progress'),
+                func.count(ItemMemoryState.state_id).label('total_lessons'),
+                func.sum(case((db.cast(ItemMemoryState.data['completion_percentage'], db.Integer) >= 100, 1), else_=0)).label('completed'),
+                func.sum(case(((db.cast(ItemMemoryState.data['completion_percentage'], db.Integer) > 0) & (db.cast(ItemMemoryState.data['completion_percentage'], db.Integer) < 100), 1), else_=0)).label('in_progress'),
+                func.avg(db.cast(ItemMemoryState.data['completion_percentage'], db.Integer)).label('avg_completion'),
+                func.max(ItemMemoryState.last_review).label('last_progress'),
             )
+            .join(LearningItem, LearningItem.item_id == ItemMemoryState.item_id)
             .filter(
-                LearningProgress.user_id == user_id,
-                LearningProgress.learning_mode == LearningProgress.MODE_COURSE
+                ItemMemoryState.user_id == user_id,
+                LearningItem.item_type == 'LESSON'
             )
             .one()
         )
@@ -239,10 +238,10 @@ class LearningMetricsService:
         courses_started = (
             db.session.query(func.count(distinct(LearningContainer.container_id)))
             .join(LearningItem, LearningItem.container_id == LearningContainer.container_id)
-            .join(LearningProgress, LearningProgress.item_id == LearningItem.item_id)
+            .join(ItemMemoryState, ItemMemoryState.item_id == LearningItem.item_id)
             .filter(
-                LearningProgress.user_id == user_id,
-                LearningProgress.learning_mode == LearningProgress.MODE_COURSE,
+                ItemMemoryState.user_id == user_id,
+                LearningItem.item_type == 'LESSON',
                 LearningContainer.container_type == 'COURSE'
             )
             .scalar() or 0
@@ -264,25 +263,26 @@ class LearningMetricsService:
         
         results = (
             db.session.query(
-                LearningProgress.learning_mode,
-                func.count(LearningProgress.progress_id)
+                LearningItem.item_type,
+                func.count(ItemMemoryState.state_id)
             )
+            .join(LearningItem, LearningItem.item_id == ItemMemoryState.item_id)
             .filter(
-                LearningProgress.user_id == user_id,
-                LearningProgress.fsrs_last_review >= today_start
+                ItemMemoryState.user_id == user_id,
+                ItemMemoryState.last_review >= today_start
             )
-            .group_by(LearningProgress.learning_mode)
+            .group_by(LearningItem.item_type)
             .all()
         )
         
         counts = defaultdict(int)
-        for mode, count in results:
-            counts[mode] = count
+        for item_type, count in results:
+            counts[item_type] = count
             
         return {
-            'flashcard': counts.get(LearningProgress.MODE_FLASHCARD, 0),
-            'quiz': counts.get(LearningProgress.MODE_QUIZ, 0),
-            'course': counts.get(LearningProgress.MODE_COURSE, 0),
+            'flashcard': counts.get('FLASHCARD', 0),
+            'quiz': counts.get('QUIZ_MCQ', 0),
+            'course': counts.get('LESSON', 0),
         }
 
     @classmethod
@@ -307,30 +307,31 @@ class LearningMetricsService:
         
         results = (
             db.session.query(
-                LearningProgress.learning_mode,
-                func.count(LearningProgress.progress_id)
+                LearningItem.item_type,
+                func.count(ItemMemoryState.state_id)
             )
+            .join(LearningItem, LearningItem.item_id == ItemMemoryState.item_id)
             .filter(
-                LearningProgress.user_id == user_id,
-                LearningProgress.fsrs_last_review >= week_start
+                ItemMemoryState.user_id == user_id,
+                ItemMemoryState.last_review >= week_start
             )
-            .group_by(LearningProgress.learning_mode)
+            .group_by(LearningItem.item_type)
             .all()
         )
         
         counts = defaultdict(int)
-        for mode, count in results:
-            counts[mode] = count
+        for item_type, count in results:
+            counts[item_type] = count
             
         return {
-            'flashcard': counts.get(LearningProgress.MODE_FLASHCARD, 0),
-            'quiz': counts.get(LearningProgress.MODE_QUIZ, 0),
-            'course': counts.get(LearningProgress.MODE_COURSE, 0),
+            'flashcard': counts.get('FLASHCARD', 0),
+            'quiz': counts.get('QUIZ_MCQ', 0),
+            'course': counts.get('LESSON', 0),
         }
 
     @classmethod
     def get_score_breakdown(cls, user_id: int) -> Dict[str, int]:
-        """Get score totals for today, week (7d), and all time."""
+        # ... (ScoreLog logic unchanged) ...
         now = datetime.now(timezone.utc)
         today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
         week_start = today_start - timedelta(days=6)
@@ -353,7 +354,7 @@ class LearningMetricsService:
 
     @classmethod
     def _compute_learning_streaks(cls, user_id: int) -> Tuple[int, int]:
-        """Return (current_streak, longest_streak) in days."""
+        # ... (ScoreLog logic unchanged) ...
         rows = (
             db.session.query(func.date(ScoreLog.timestamp).label('activity_date'))
             .filter(ScoreLog.user_id == user_id)
@@ -362,66 +363,35 @@ class LearningMetricsService:
             .all()
         )
 
-        if not rows:
-            return 0, 0
+        if not rows: return 0, 0
 
         dates = []
         for row in rows:
             val = row.activity_date
             if isinstance(val, str):
-                try:
-                    val = date.fromisoformat(val)
-                except ValueError:
-                    continue
-            if isinstance(val, datetime):
-                val = val.date()
-            if isinstance(val, date):
-                dates.append(val)
+                try: val = date.fromisoformat(val)
+                except ValueError: continue
+            if isinstance(val, datetime): val = val.date()
+            if isinstance(val, date): dates.append(val)
 
-        if not dates:
-            return 0, 0
+        if not dates: return 0, 0
 
         date_set = set(dates)
         today = date.today()
         current_streak = 0
         
-        # Check if active today
-        if today in date_set:
-            current_streak = 1
-            pointer = today - timedelta(days=1)
-        else:
-            # Maybe active yesterday? ( Streak logic often permits missing today if checked early)
-            # But simpler logic: count back from *yesterday* if today is empty?
-            # Standard logic: Streak is unbroken sequence ending Today or Yesterday.
-            pointer = today - timedelta(days=1)
-            if pointer in date_set:
-                 # Streak is active but user hasn't learned today yet
-                 current_streak = 0 
-                 # Wait, if they learned yesterday, streak is 1?
-                 # Commonly: Streak persists if last activity was yesterday.
-                 pass
-            else:
-                 # Gap greater than 1 day
-                 pass
-        
-        # Re-calc standard backward count from 'most recent consecutive block'
-        # Simplest approach: Identify the latest contiguous block relative to Today.
-        
         sorted_dates = sorted(list(date_set))
         last_active = sorted_dates[-1]
         
-        # If gap between today and last_active > 1 day, streak is 0
         if (today - last_active).days > 1:
             current_streak = 0
         else:
-            # Count backwards from last_active
             current_streak = 0
             pointer = last_active
             while pointer in date_set:
                 current_streak += 1
                 pointer -= timedelta(days=1)
 
-        # Longest streak
         longest = 1
         run = 1
         for i in range(len(sorted_dates) - 1):
@@ -436,14 +406,13 @@ class LearningMetricsService:
 
     @classmethod
     def get_recent_activity(cls, user_id: int, limit: int = 6) -> List[Dict[str, Any]]:
-        """Get recent score logs."""
+        # ... (ScoreLog logic unchanged) ...
         logs = (
             ScoreLog.query.filter_by(user_id=user_id)
             .order_by(ScoreLog.timestamp.desc())
             .limit(limit)
             .all()
         )
-        
         return [
             {
                 'timestamp': log.timestamp.isoformat() if log.timestamp else None,
@@ -457,10 +426,7 @@ class LearningMetricsService:
 
     @classmethod
     def get_recent_sessions(cls, user_id: int, limit: int = 10) -> List[Dict[str, Any]]:
-        """
-        Get recent learning sessions.
-        Used for displaying session history with links to summary.
-        """
+        # ... (LearningSession logic unchanged) ...
         from mindstack_app.models import LearningSession
         
         sessions = (
@@ -472,17 +438,11 @@ class LearningMetricsService:
         
         results = []
         for session in sessions:
-            # Format mode name
             mode_display = session.learning_mode.title()
-            if session.learning_mode == 'flashcard':
-                mode_display = 'Flashcard'
-            elif session.learning_mode == 'quiz':
-                mode_display = 'Trắc nghiệm'
-            elif session.learning_mode == 'course':
-                mode_display = 'Khóa học'
+            if session.learning_mode == 'flashcard': mode_display = 'Flashcard'
+            elif session.learning_mode == 'quiz': mode_display = 'Trắc nghiệm'
+            elif session.learning_mode == 'course': mode_display = 'Khóa học'
             
-            # Determine success/color based on points or accuracy
-            # Simple heuristic: if points > 0, green.
             is_positive = (session.points_earned or 0) > 0
             
             results.append({

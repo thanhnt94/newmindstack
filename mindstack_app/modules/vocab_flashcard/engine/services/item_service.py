@@ -14,7 +14,6 @@ from mindstack_app.models import (
     LearningContainer,
     UserContainerState,
 )
-from mindstack_app.modules.learning.models import LearningProgress
 from .permission_service import FlashcardPermissionService
 from .query_builder import FlashcardQueryBuilder
 
@@ -53,14 +52,6 @@ class FlashcardItemService:
     ):
         """
         Get new items (not yet learned or in NEW state).
-        
-        Args:
-            user_id: User ID
-            container_id: Container ID, 'all', or list of IDs
-            session_size: Max items to return (None = return query)
-            
-        Returns:
-            Query object or list of LearningItem
         """
         current_app.logger.debug(
             f"FlashcardItemService.get_new_items: user={user_id}, container={container_id}"
@@ -87,15 +78,7 @@ class FlashcardItemService:
         session_size: Optional[int] = None
     ):
         """
-        Get items due for review (fsrs_due <= now).
-        
-        Args:
-            user_id: User ID
-            container_id: Container ID, 'all', or list of IDs
-            session_size: Max items to return (None = return query)
-            
-        Returns:
-            Query object or list of LearningItem
+        Get items due for review (due_date <= now).
         """
         current_app.logger.debug(
             f"FlashcardItemService.get_due_items: user={user_id}, container={container_id}"
@@ -123,14 +106,6 @@ class FlashcardItemService:
     ):
         """
         Get all items with learning progress (not NEW state).
-        
-        Args:
-            user_id: User ID
-            container_id: Container ID, 'all', or list of IDs
-            session_size: Max items to return (None = return query)
-            
-        Returns:
-            Query object or list of LearningItem
         """
         current_app.logger.debug(
             f"FlashcardItemService.get_all_review_items: user={user_id}, container={container_id}"
@@ -158,14 +133,6 @@ class FlashcardItemService:
     ):
         """
         Get difficult items using HardItemService.
-        
-        Args:
-            user_id: User ID
-            container_id: Container ID, 'all', or list of IDs
-            session_size: Max items to return (None = return query)
-            
-        Returns:
-            Query object or list of LearningItem
         """
         current_app.logger.debug(
             f"FlashcardItemService.get_hard_items: user={user_id}, container={container_id}"
@@ -177,7 +144,7 @@ class FlashcardItemService:
         hard_items_query = HardItemService.get_hard_items_query(
             user_id=user_id,
             container_id=container_id,
-            learning_mode=LearningProgress.MODE_FLASHCARD
+            learning_mode='flashcard'
         )
         
         # Add archive filter
@@ -210,17 +177,6 @@ class FlashcardItemService:
     ):
         """
         Get mixed due + new items (union query for counting).
-        
-        Note: Builds fresh queries without ORDER BY for UNION compatibility
-        (SQLite doesn't allow ORDER BY inside UNION subqueries).
-        
-        Args:
-            user_id: User ID
-            container_id: Container ID, 'all', or list of IDs
-            session_size: Max items to return (None = return query)
-            
-        Returns:
-            Query object (union of due and new queries)
         """
         current_app.logger.debug(
             f"FlashcardItemService.get_mixed_items: user={user_id}, container={container_id}"
@@ -253,14 +209,6 @@ class FlashcardItemService:
     ):
         """
         Get all items for autoplay mode (including new).
-        
-        Args:
-            user_id: User ID
-            container_id: Container ID, 'all', or list of IDs
-            session_size: Max items to return (None = return query)
-            
-        Returns:
-            Query object or list of LearningItem
         """
         current_app.logger.debug(
             f"FlashcardItemService.get_autoplay_items: user={user_id}, container={container_id}"
@@ -287,14 +235,6 @@ class FlashcardItemService:
     ):
         """
         Get due or new items in sequential order.
-        
-        Args:
-            user_id: User ID
-            container_id: Container ID, 'all', or list of IDs
-            session_size: Max items to return (None = return query)
-            
-        Returns:
-            Query object or list of LearningItem
         """
         current_app.logger.debug(
             f"FlashcardItemService.get_sequential_items: user={user_id}, container={container_id}"
@@ -323,15 +263,6 @@ class FlashcardItemService:
     ):
         """
         Get items with a specific capability flag.
-        
-        Args:
-            user_id: User ID
-            container_id: Container ID, 'all', or list of IDs
-            capability_flag: Capability to filter by (e.g., 'supports_pronunciation')
-            session_size: Max items to return (None = return query)
-            
-        Returns:
-            Query object or list of LearningItem
         """
         current_app.logger.debug(
             f"FlashcardItemService.get_items_by_capability: user={user_id}, "

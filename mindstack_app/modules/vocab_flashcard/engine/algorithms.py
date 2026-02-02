@@ -1,376 +1,192 @@
-"""
-Flashcard Algorithms - Backward Compatibility Facade
+# File: flashcard/engine/algorithms.py
+# Flashcard Algorithms - High level algorithms for set selection and mode counts.
 
-This module re-exports functions from the new service classes
-to maintain backward compatibility with existing code.
-
-New code should import directly from:
-- FlashcardPermissionService (permission_service.py)
-- FlashcardQueryBuilder (query_builder.py)
-- FlashcardItemService (item_service.py)
-
-File: mindstack_app/modules/learning/flashcard/engine/algorithms.py
-Version: 5.0 (Refactored to services)
-"""
-from flask import current_app
-from sqlalchemy import func, and_, or_
-
-from mindstack_app.models import (
-    db,
-    LearningItem,
-    LearningContainer,
-    ContainerContributor,
-    UserContainerState,
-    User,
-)
-from mindstack_app.modules.learning.models import LearningProgress
-from mindstack_app.utils.pagination import get_pagination_data
-from mindstack_app.utils.search import apply_search_filter
+from mindstack_app.models import LearningContainer, LearningItem, User, ContainerContributor, UserContainerState, db
+from mindstack_app.modules.fsrs.models import ItemMemoryState
 from flask_login import current_user
+from sqlalchemy import func, or_, and_, case
+from datetime import datetime, timezone
 
-from .config import FlashcardLearningConfig
-
-# Import new services
-from .services import (
-    FlashcardPermissionService,
-    FlashcardQueryBuilder,
-    FlashcardItemService,
-)
-
-
-# =============================================================================
-# BACKWARD COMPATIBLE FUNCTION EXPORTS
-# =============================================================================
-# These delegate to the new service classes to maintain API compatibility
-
-def get_accessible_flashcard_set_ids(user_id):
-    """Return IDs of flashcard sets accessible to the current user."""
-    return list(FlashcardPermissionService.get_accessible_set_ids(user_id))
-
-
-def _get_base_items_query(user_id, container_id):
-    """Create base query for LearningItem filtered by container."""
-    return (FlashcardQueryBuilder(user_id)
-            .for_container(container_id)
-            .build())
-
-
-def get_new_only_items(user_id, container_id, session_size):
-    """Get new items (not yet learned)."""
-    return FlashcardItemService.get_new_items(user_id, container_id, session_size)
-
-
-def get_due_items(user_id, container_id, session_size):
-    """Get items due for review."""
-    return FlashcardItemService.get_due_items(user_id, container_id, session_size)
-
-
-def get_all_review_items(user_id, container_id, session_size):
-    """Get all items with learning progress."""
-    return FlashcardItemService.get_all_review_items(user_id, container_id, session_size)
-
-
-def get_hard_items(user_id, container_id, session_size):
-    """Get difficult items."""
-    return FlashcardItemService.get_hard_items(user_id, container_id, session_size)
-
-
-def get_mixed_items(user_id, container_id, session_size):
-    """Get mixed due + new items."""
-    return FlashcardItemService.get_mixed_items(user_id, container_id, session_size)
-
-
-def get_all_items_for_autoplay(user_id, container_id, session_size):
-    """Get all items for autoplay mode."""
-    return FlashcardItemService.get_autoplay_items(user_id, container_id, session_size)
-
-
-def get_sequential_items(user_id, container_id, session_size):
-    """Get due or new items in sequential order."""
-    return FlashcardItemService.get_sequential_items(user_id, container_id, session_size)
-
-
-def get_pronunciation_items(user_id, container_id, session_size):
-    return FlashcardItemService.get_pronunciation_items(user_id, container_id, session_size)
-
-
-def get_writing_items(user_id, container_id, session_size):
-    return FlashcardItemService.get_writing_items(user_id, container_id, session_size)
-
-
-def get_quiz_items(user_id, container_id, session_size):
-    return FlashcardItemService.get_quiz_items(user_id, container_id, session_size)
-
-
-def get_essay_items(user_id, container_id, session_size):
-    return FlashcardItemService.get_essay_items(user_id, container_id, session_size)
-
-
-def get_listening_items(user_id, container_id, session_size):
-    return FlashcardItemService.get_listening_items(user_id, container_id, session_size)
-
-
-def get_speaking_items(user_id, container_id, session_size):
-    return FlashcardItemService.get_speaking_items(user_id, container_id, session_size)
-
-
-# =============================================================================
-# FUNCTIONS KEPT IN ALGORITHMS.PY (Complex UI Logic)
-# =============================================================================
-
-def get_filtered_flashcard_sets(user_id, search_query, search_field, current_filter, page, per_page=FlashcardLearningConfig.DEFAULT_ITEMS_PER_PAGE):
+def get_filtered_flashcard_sets(user_id, search_query, search_field, current_filter, page, per_page=12):
     """
-    Get paginated flashcard sets with filtering and user state.
-    
-    [OPTIMIZED] Uses batch queries instead of N+1 queries.
+    Get filtered list of flashcard sets.
     """
-    current_app.logger.debug(f"get_filtered_flashcard_sets: user={user_id}, filter={current_filter}")
+    # Base query
+    query = LearningContainer.query.filter(
+        LearningContainer.container_type == 'FLASHCARD_SET'
+    )
     
-    # === PHASE 1: Build base query ===
-    base_query = LearningContainer.query.filter_by(container_type='FLASHCARD_SET')
-    
-    user_interacted_ids_subquery = db.session.query(UserContainerState.container_id).filter(
-        UserContainerState.user_id == user_id
-    ).subquery()
-
-    # Access control based on user role
+    # Access control
     if current_user.user_role == User.ROLE_ADMIN:
         pass
     elif current_user.user_role == User.ROLE_FREE:
-        base_query = base_query.filter(
-            or_(
-                LearningContainer.creator_user_id == user_id,
-                LearningContainer.container_id.in_(user_interacted_ids_subquery),
-            )
-        )
+        query = query.filter(LearningContainer.creator_user_id == user_id)
     else:
         access_conditions = [
             LearningContainer.creator_user_id == user_id,
-            LearningContainer.is_public == True,
-            LearningContainer.container_id.in_(user_interacted_ids_subquery),
+            LearningContainer.is_public == True
         ]
-
-        contributed_sets_ids = db.session.query(ContainerContributor.container_id).filter(
-            ContainerContributor.user_id == user_id,
-            ContainerContributor.permission_level == 'editor'
+        # Contributions
+        contributed_ids = db.session.query(ContainerContributor.container_id).filter(
+            ContainerContributor.user_id == user_id
         ).all()
+        if contributed_ids:
+            access_conditions.append(LearningContainer.container_id.in_([c.container_id for c in contributed_ids]))
+        query = query.filter(or_(*access_conditions))
 
-        if contributed_sets_ids:
-            access_conditions.append(LearningContainer.container_id.in_([c.container_id for c in contributed_sets_ids]))
+    # Search
+    if search_query:
+        if search_field == 'title':
+            query = query.filter(LearningContainer.title.ilike(f'%{search_query}%'))
+        else:
+            query = query.filter(or_(
+                LearningContainer.title.ilike(f'%{search_query}%'),
+                LearningContainer.description.ilike(f'%{search_query}%')
+            ))
 
-        base_query = base_query.filter(or_(*access_conditions))
+    # Filter tabs
+    user_interacted = db.session.query(UserContainerState.container_id).filter(
+        UserContainerState.user_id == user_id
+    ).subquery()
 
-    # Apply search filter
-    search_field_map = {
-        'title': LearningContainer.title,
-        'description': LearningContainer.description,
-        'tags': LearningContainer.tags
-    }
-    filtered_query = apply_search_filter(base_query, search_query, search_field_map, search_field)
-
-    # === PHASE 2: Apply filter and JOIN UserContainerState ===
     if current_filter == 'archive':
-        final_query = filtered_query.join(UserContainerState,
-            and_(UserContainerState.container_id == LearningContainer.container_id, UserContainerState.user_id == user_id)
-        ).add_columns(
-            UserContainerState.is_archived,
-            UserContainerState.is_favorite,
-            UserContainerState.last_accessed
-        ).filter(
-            UserContainerState.is_archived == True
-        ).order_by(UserContainerState.last_accessed.desc())
+        query = query.join(UserContainerState, 
+            (UserContainerState.container_id == LearningContainer.container_id) & 
+            (UserContainerState.user_id == user_id)
+        ).filter(UserContainerState.is_archived == True)
     elif current_filter == 'doing':
-        final_query = filtered_query.join(UserContainerState,
-            and_(UserContainerState.container_id == LearningContainer.container_id, UserContainerState.user_id == user_id)
-        ).add_columns(
-            UserContainerState.is_archived,
-            UserContainerState.is_favorite,
-            UserContainerState.last_accessed
-        ).filter(
-            UserContainerState.is_archived == False
-        ).order_by(UserContainerState.last_accessed.desc())
+        query = query.join(UserContainerState, 
+            (UserContainerState.container_id == LearningContainer.container_id) & 
+            (UserContainerState.user_id == user_id)
+        ).filter(UserContainerState.is_archived == False)
     elif current_filter == 'explore':
-        final_query = filtered_query.filter(
-            ~LearningContainer.container_id.in_(user_interacted_ids_subquery)
-        ).add_columns(
-            db.literal(False).label('is_archived'),
-            db.literal(False).label('is_favorite'),
-            db.literal(None).label('last_accessed')
-        ).order_by(LearningContainer.created_at.desc())
-    else:
-        final_query = filtered_query.outerjoin(UserContainerState,
-            and_(UserContainerState.container_id == LearningContainer.container_id, UserContainerState.user_id == user_id)
-        ).add_columns(
-            UserContainerState.is_archived,
-            UserContainerState.is_favorite,
-            UserContainerState.last_accessed
-        ).filter(
-            or_(UserContainerState.is_archived == False, UserContainerState.is_archived == None)
-        ).order_by(LearningContainer.created_at.desc())
+        query = query.filter(~LearningContainer.container_id.in_(user_interacted))
+    
+    # Sort
+    query = query.order_by(LearningContainer.created_at.desc())
+    
+    # Paginate
+    from mindstack_app.utils.pagination import get_pagination_data
+    pagination = get_pagination_data(query, page, per_page)
+    
+    # Augment with stats
+    for container in pagination.items:
+        total_items = LearningItem.query.filter(
+            LearningItem.container_id == container.container_id,
+            LearningItem.item_type.in_(['FLASHCARD', 'VOCABULARY'])
+        ).count()
+        
+        learned_count = 0
+        if total_items > 0:
+            learned_count = db.session.query(func.count(ItemMemoryState.state_id)).join(LearningItem, LearningItem.item_id == ItemMemoryState.item_id).filter(
+                LearningItem.container_id == container.container_id,
+                ItemMemoryState.user_id == user_id,
+                ItemMemoryState.state != 0
+            ).scalar() or 0
+            
+        container.total_items = total_items
+        container.completion_percentage = (learned_count / total_items * 100) if total_items > 0 else 0
+        container.item_count_display = f"{learned_count} / {total_items}"
+        
+        ucs = UserContainerState.query.filter_by(user_id=user_id, container_id=container.container_id).first()
+        container.user_state = ucs.to_dict() if ucs else {'is_archived': False}
 
-    # === PHASE 3: Paginate ===
-    pagination = get_pagination_data(final_query, page, per_page=per_page)
-    
-    # Extract container IDs and map joined data
-    container_ids = []
-    user_state_map = {}
-    
-    for row in pagination.items:
-        if isinstance(row, tuple):
-            container = row[0]
-            user_state_map[container.container_id] = {
-                'is_archived': row[1] if row[1] is not None else False,
-                'is_favorite': row[2] if row[2] is not None else False,
-                'last_accessed': row[3]
-            }
-        else:
-            container = row
-            user_state_map[container.container_id] = {'is_archived': False, 'is_favorite': False, 'last_accessed': None}
-        container_ids.append(container.container_id)
-    
-    if not container_ids:
-        pagination.items = []
-        return pagination
-    
-    # === PHASE 4: Batch Query for Item Counts ===
-    item_counts = db.session.query(
-        LearningItem.container_id,
-        func.count(LearningItem.item_id).label('total')
-    ).filter(
-        LearningItem.container_id.in_(container_ids),
-        LearningItem.item_type == 'FLASHCARD'
-    ).group_by(LearningItem.container_id).all()
-    
-    item_count_map = {row.container_id: row.total for row in item_counts}
-    
-    # === PHASE 5: Batch Query for Learned Items ===
-    learned_counts = db.session.query(
-        LearningItem.container_id,
-        func.count(LearningProgress.item_id).label('learned')
-    ).join(
-        LearningProgress,
-        and_(
-            LearningProgress.item_id == LearningItem.item_id,
-            LearningProgress.user_id == user_id,
-            LearningProgress.learning_mode == LearningProgress.MODE_FLASHCARD
-        )
-    ).filter(
-        LearningItem.container_id.in_(container_ids),
-        LearningItem.item_type == 'FLASHCARD'
-    ).group_by(LearningItem.container_id).all()
-    
-    learned_count_map = {row.container_id: row.learned for row in learned_counts}
-    
-    # === PHASE 6: Map batch data to pagination items ===
-    processed_items = []
-    
-    for row in pagination.items:
-        if isinstance(row, tuple):
-            set_item = row[0]
-        else:
-            set_item = row
-        
-        container_id = set_item.container_id
-        
-        if not hasattr(set_item, 'creator') or set_item.creator is None:
-            set_item.creator = type('obj', (object,), {'username': 'Người dùng không xác định'})()
-        
-        total_items = item_count_map.get(container_id, 0)
-        learned_items = learned_count_map.get(container_id, 0)
-        
-        set_item.item_count_display = f"{learned_items} / {total_items}"
-        set_item.total_items = total_items
-        set_item.completion_percentage = (learned_items / total_items * 100) if total_items > 0 else 0
-        
-        state_data = user_state_map.get(container_id, {'is_archived': False, 'is_favorite': False, 'last_accessed': None})
-        set_item.user_state = state_data
-        set_item.last_accessed = state_data.get('last_accessed')
-        
-        processed_items.append(set_item)
-    
-    pagination.items = processed_items
-    current_app.logger.debug(f"get_filtered_flashcard_sets: total={pagination.total}")
     return pagination
 
+def get_flashcard_mode_counts(user_id, set_id):
+    """
+    Get counts for different modes (new, due, etc.).
+    """
+    def _base_item_query(s_id):
+        q = LearningItem.query.filter(LearningItem.item_type.in_(['FLASHCARD', 'VOCABULARY']))
+        if s_id != 'all':
+            if isinstance(s_id, list): q = q.filter(LearningItem.container_id.in_(s_id))
+            else: q = q.filter(LearningItem.container_id == s_id)
+        return q
 
-def get_flashcard_mode_counts(user_id, set_identifier):
-    """
-    Calculate item counts for each flashcard learning mode.
-    """
-    current_app.logger.debug(f"get_flashcard_mode_counts: user={user_id}, set={set_identifier}")
+    base_q = _base_item_query(set_id)
+    total = base_q.count()
+    learned_q = base_q.join(ItemMemoryState, (ItemMemoryState.item_id == LearningItem.item_id) & (ItemMemoryState.user_id == user_id)).filter(
+        ItemMemoryState.state != 0
+    )
+    learned = learned_q.count()
+    new_count = total - learned
     
-    try:
-        modes_with_counts = []
-        mode_function_map = {
-            'mixed_srs': get_mixed_items,
-            'new_only': get_new_only_items,
-            'due_only': get_due_items,
-            'all_review': get_all_review_items,
-            'hard_only': get_hard_items,
-            'sequential': get_sequential_items,
-            'pronunciation_practice': get_pronunciation_items,
-            'writing_practice': get_writing_items,
-            'quiz_practice': get_quiz_items,
-            'essay_practice': get_essay_items,
-            'listening_practice': get_listening_items,
-            'speaking_practice': get_speaking_items,
-        }
+    now = datetime.now(timezone.utc)
+    due_q = base_q.join(ItemMemoryState, (ItemMemoryState.item_id == LearningItem.item_id) & (ItemMemoryState.user_id == user_id)).filter(
+        ItemMemoryState.state != 0,
+        ItemMemoryState.due_date <= now
+    )
+    due = due_q.count()
+    
+    hard_q = base_q.join(ItemMemoryState, (ItemMemoryState.item_id == LearningItem.item_id) & (ItemMemoryState.user_id == user_id)).filter(
+        ItemMemoryState.difficulty >= 7.0
+    )
+    hard = hard_q.count()
+    
+    return {
+        'total': total,
+        'new': new_count,
+        'due': due,
+        'learned': learned,
+        'hard': hard,
+        'list': [
+            {'id': 'new_only', 'count': new_count, 'label': 'Học từ mới', 'icon': 'fa-seedling', 'color': 'blue'},
+            {'id': 'due_only', 'count': due, 'label': 'Ôn tập tới hạn', 'icon': 'fa-clock', 'color': 'emerald'},
+            {'id': 'hard_only', 'count': hard, 'label': 'Các từ khó', 'icon': 'fa-fire', 'color': 'rose'},
+            {'id': 'mixed_srs', 'count': total, 'label': 'Học ngẫu nhiên', 'icon': 'fa-random', 'color': 'indigo'},
+            {'id': 'all_review', 'count': total, 'label': 'Ôn tập tất cả', 'icon': 'fa-layer-group', 'color': 'slate'},
+        ]
+    }
 
-        for mode_config in FlashcardLearningConfig.FLASHCARD_MODES:
-            mode_id = mode_config['id']
-            mode_name = mode_config['name']
-            algorithm_func = mode_function_map.get(mode_id)
-            hide_if_zero = mode_config.get('hide_if_zero', False)
+def get_accessible_flashcard_set_ids(user_id):
+    query = LearningContainer.query.filter(
+        LearningContainer.container_type == 'FLASHCARD_SET',
+        LearningContainer.creator_user_id == user_id
+    )
+    return [c.container_id for c in query.all()]
 
-            if algorithm_func:
-                if mode_id == 'mixed_srs':
-                    due_count = get_due_items(user_id, set_identifier, None).count()
-                    new_count = get_new_only_items(user_id, set_identifier, None).count()
-                    count = due_count + new_count
-                elif mode_id in ('sequential', 'random'):
-                    count = get_all_items_for_autoplay(user_id, set_identifier, None).count()
-                else:
-                    count = algorithm_func(user_id, set_identifier, None).count()
+from .services.query_builder import FlashcardQueryBuilder
 
-                if hide_if_zero and count == 0:
-                    continue
+def get_new_only_items(user_id, set_id, limit=None):
+    qb = FlashcardQueryBuilder(user_id)
+    if set_id != 'all': qb.filter_by_containers([set_id] if isinstance(set_id, int) else set_id)
+    qb.filter_new_only()
+    query = qb.get_query()
+    if limit: query = query.limit(limit)
+    return query
 
-                modes_with_counts.append({'id': mode_id, 'name': mode_name, 'count': count})
-            else:
-                current_app.logger.warning(f"No algorithm function found for mode: {mode_id}")
-                modes_with_counts.append({'id': mode_id, 'name': mode_name, 'count': 0})
+def get_due_items(user_id, set_id, limit=None):
+    qb = FlashcardQueryBuilder(user_id)
+    if set_id != 'all': qb.filter_by_containers([set_id] if isinstance(set_id, int) else set_id)
+    qb.filter_due_only()
+    query = qb.get_query()
+    if limit: query = query.limit(limit)
+    return query
 
-        autoplay_learned_count = get_all_review_items(user_id, set_identifier, None).count()
-        autoplay_all_count = get_all_items_for_autoplay(user_id, set_identifier, None).count()
-        autoplay_total_count = max(autoplay_learned_count, autoplay_all_count)
+def get_reviewed_items(user_id, set_id, limit=None):
+    qb = FlashcardQueryBuilder(user_id)
+    if set_id != 'all': qb.filter_by_containers([set_id] if isinstance(set_id, int) else set_id)
+    qb.filter_due_only() # Should this be all reviewed? 
+    # For compatibility, assume 'reviewed' means 'reviewed and not new'
+    # Actually qb.filter_due_only() is filtered by due date. 
+    # If they want ALL reviewed, I need filter_reviewed()
+    query = qb.get_query().filter(ItemMemoryState.state != 0)
+    if limit: query = query.limit(limit)
+    return query
 
-        modes_with_counts.append({
-            'id': 'autoplay',
-            'name': FlashcardLearningConfig.AUTOPLAY_MODE_NAME,
-            'count': autoplay_total_count,
-            'autoplay_counts': {
-                'autoplay_learned': autoplay_learned_count,
-                'autoplay_all': autoplay_all_count,
-            }
-        })
+def get_hard_items(user_id, set_id, limit=None):
+    qb = FlashcardQueryBuilder(user_id)
+    if set_id != 'all': qb.filter_by_containers([set_id] if isinstance(set_id, int) else set_id)
+    qb.filter_hard_only()
+    query = qb.get_query()
+    if limit: query = query.limit(limit)
+    return query
 
-        # [NEW] Return a dict for template convenience, while keeping 'list' for API
-        new_count = get_new_only_items(user_id, set_identifier, None).count()
-        due_count = get_due_items(user_id, set_identifier, None).count()
-        hard_count = get_hard_items(user_id, set_identifier, None).count()
-        learned_count = get_all_review_items(user_id, set_identifier, None).count()
-        total_count = get_all_items_for_autoplay(user_id, set_identifier, None).count()
-
-        return {
-            'list': modes_with_counts,
-            'new': new_count,
-            'due': due_count,
-            'hard': hard_count,
-            'learned': learned_count,
-            'total': total_count
-        }
-    except Exception as e:
-        current_app.logger.error(f"Error in get_flashcard_mode_counts: {e}")
-        import traceback
-        current_app.logger.error(traceback.format_exc())
-        raise e
+def get_mixed_items(user_id, set_id, limit=None):
+    qb = FlashcardQueryBuilder(user_id)
+    if set_id != 'all': qb.filter_by_containers([set_id] if isinstance(set_id, int) else set_id)
+    qb.filter_mixed()
+    query = qb.get_query()
+    if limit: query = query.limit(limit)
+    return query

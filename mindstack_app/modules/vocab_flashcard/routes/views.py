@@ -35,17 +35,7 @@ from mindstack_app.modules.fsrs.services.optimizer_service import FSRSOptimizerS
 from ..engine.core import FlashcardEngine
 
 
-from mindstack_app.models import (
-    db,
-    User,
-    UserContainerState,
-    LearningContainer,
-    LearningItem,
-    ContainerContributor,
-    LearningSession,
-    LearningProgress,
-    Note
-)
+from mindstack_app.models import LearningContainer, UserContainerState, ItemMemoryState, db
 from sqlalchemy.sql import func
 from sqlalchemy.exc import OperationalError
 import asyncio
@@ -222,6 +212,7 @@ def flashcard_session(session_id):
             user_id=active_db_session.user_id,
             set_id=active_db_session.set_id_data,
             mode=active_db_session.mode_config_id,
+            batch_size=1,
             total_items_in_session=active_db_session.total_items,
             processed_item_ids=active_db_session.processed_item_ids or [],
             correct_answers=active_db_session.correct_count,

@@ -15,8 +15,10 @@ from mindstack_app.services.config_service import get_runtime_config
 from mindstack_app.services.template_service import TemplateService
 from mindstack_app.models import (
     db, User, LearningContainer, LearningItem, ApiKey, BackgroundTask, BackgroundTaskLog,
-    AppSettings, UserContainerState, LearningProgress, Note, ScoreLog, Feedback as UserFeedback
+    AppSettings, UserContainerState, Note, ScoreLog, Feedback as UserFeedback
 )
+from mindstack_app.modules.fsrs.models import ItemMemoryState
+from mindstack_app.modules.learning_history.models import StudyLog
 from mindstack_app.utils.pagination import get_pagination_data
 from mindstack_app.modules.content_management.forms import CourseForm, FlashcardSetForm, QuizSetForm
 from mindstack_app.modules.content_management.services.kernel_service import ContentKernelService
@@ -744,7 +746,8 @@ def reset_learning_progress():
 
         # Reset logic
         UserContainerState.query.filter_by(user_id=user.user_id).delete(synchronize_session=False)
-        LearningProgress.query.filter_by(user_id=user.user_id).delete(synchronize_session=False)
+        ItemMemoryState.query.filter_by(user_id=user.user_id).delete(synchronize_session=False)
+        StudyLog.query.filter_by(user_id=user.user_id).delete(synchronize_session=False)
         Note.query.filter_by(user_id=user.user_id).delete(synchronize_session=False)
         UserFeedback.query.filter_by(user_id=user.user_id).delete(synchronize_session=False)
         ScoreLog.query.filter_by(user_id=user.user_id).delete(synchronize_session=False)
@@ -778,7 +781,8 @@ def reset_learning_progress():
 
         item_subquery = db.session.query(LearningItem.item_id).filter(LearningItem.container_id == container.container_id).subquery()
 
-        LearningProgress.query.filter(LearningProgress.item_id.in_(item_subquery)).delete(synchronize_session=False)
+        ItemMemoryState.query.filter(ItemMemoryState.item_id.in_(item_subquery)).delete(synchronize_session=False)
+        StudyLog.query.filter(StudyLog.item_id.in_(item_subquery)).delete(synchronize_session=False)
         Note.query.filter(
             (Note.reference_type == 'item') & Note.reference_id.in_(item_subquery) |
             (Note.reference_type == 'container') & (Note.reference_id == container.container_id)

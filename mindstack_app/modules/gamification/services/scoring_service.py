@@ -2,7 +2,7 @@
 Score Service
 Logic quản lý điểm số và leaderboard.
 """
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from mindstack_app.core.extensions import db
 from mindstack_app.models import User
 from ..models import ScoreLog
@@ -41,7 +41,7 @@ class ScoreService:
                 score_change=amount,
                 reason=reason,
                 item_type=item_type,
-                timestamp=datetime.utcnow()
+                timestamp=datetime.now(timezone.utc)
             )
             
             db.session.add(log)
@@ -81,7 +81,7 @@ class ScoreService:
     @staticmethod
     def record_daily_login(user_id):
         """Ghi nhận đăng nhập hàng ngày (chỉ 1 lần/ngày)."""
-        today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+        today_start = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
         existing = ScoreLog.query.filter(
             ScoreLog.user_id == user_id,
             ScoreLog.item_type == 'LOGIN',
@@ -127,7 +127,7 @@ class ScoreService:
             func.sum(ScoreLog.score_change).label('period_score')
         ).join(ScoreLog, User.user_id == ScoreLog.user_id)
 
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         if timeframe == 'day':
             start_date = now - timedelta(days=1)
             query = query.filter(ScoreLog.timestamp >= start_date)
@@ -166,4 +166,4 @@ class ScoreService:
 
         # Extract dates from query results and delegate to pure logic
         activity_dates = [row.activity_date for row in rows]
-        return calculate_streak_from_dates(activity_dates, datetime.utcnow().date())
+        return calculate_streak_from_dates(activity_dates, datetime.now(timezone.utc).date())

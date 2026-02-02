@@ -15,7 +15,7 @@ from mindstack_app.models import (
     UserItemMarker,
     db,
 )
-from mindstack_app.modules.learning.models import LearningProgress
+from mindstack_app.modules.fsrs.models import ItemMemoryState
 from .algorithms import (
     get_new_only_items,
     get_reviewed_items,
@@ -580,25 +580,21 @@ class QuizSessionManager:
             # Calculate User Stats for this question
             # Note: This might cause N+1 query issue if batch is large. For generic batch size (10-20) it's acceptable.
             # Optimization: could query stats for all items in batch in one go, but keeping it simple for now.
-            # Get User Stats for this question using LearningProgress
-            progress = LearningProgress.query.filter_by(
+            # Get User Stats for this question using ItemMemoryState
+            state_record = ItemMemoryState.query.filter_by(
                 user_id=self.user_id,
-                item_id=item.item_id,
-                learning_mode=LearningProgress.MODE_QUIZ
+                item_id=item.item_id
             ).first()
                 
-            if progress:
-                times_answered = (progress.times_correct or 0) + (progress.times_incorrect or 0)
-                correct_count = progress.times_correct or 0
-                incorrect_count = progress.times_incorrect or 0
+            if state_record:
+                correct_count = state_record.times_correct or 0
+                incorrect_count = state_record.times_incorrect or 0
+                times_answered = correct_count + incorrect_count
                 accuracy = round((correct_count / times_answered * 100), 1) if times_answered > 0 else 0
                     
-                # History from mode_data if available
-                mode_data = progress.mode_data or {}
-                history = mode_data.get('review_history', [])
-                recent_history = history[-5:][::-1] if history else []
+                recent_history = [] # History moved to StudyLog table, skipped for performance
                     
-                last_reviewed_str = progress.fsrs_last_review.strftime("%d/%m %H:%M") if progress.fsrs_last_review else "--"
+                last_reviewed_str = state_record.last_review.strftime("%d/%m %H:%M") if state_record.last_review else "--"
 
                 item_dict['user_stats'] = {
                     'has_data': True,
@@ -606,7 +602,7 @@ class QuizSessionManager:
                     'correct_count': correct_count,
                     'incorrect_count': incorrect_count,
                     'accuracy': accuracy,
-                    'streak': progress.correct_streak or 0,
+                    'streak': state_record.streak or 0,
                     'last_reviewed': last_reviewed_str,
                     'recent_history': recent_history
                 }

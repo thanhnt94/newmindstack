@@ -6,8 +6,9 @@ from flask import current_app, url_for
 from collections import defaultdict
 from mindstack_app.models import (
     db, LearningItem, User, ContainerContributor, LearningContainer, 
-    UserItemMarker, LearningProgress, ScoreLog
+    UserItemMarker, ScoreLog
 )
+from mindstack_app.modules.fsrs.models import ItemMemoryState
 from mindstack_app.modules.learning_history.models import StudyLog
 from mindstack_app.modules.fsrs.interface import FSRSInterface as FsrsService
 from mindstack_app.modules.fsrs.services.hard_item_service import FSRSHardItemService as HardItemService
@@ -18,7 +19,6 @@ class VocabularyStatsService:
 
     @staticmethod
     def get_container_leaderboard(container_id: int, limit: int = 20, timeframe: str = 'all') -> list:
-        # ... (Existing logic for leaderboard unchanged as it uses ScoreLog) ...
         item_ids_query = db.session.query(LearningItem.item_id).filter(
             LearningItem.container_id == container_id
         ).subquery()
@@ -33,9 +33,12 @@ class VocabularyStatsService:
         user_ids = [r.user_id for r in score_results]
         mastered_map = {}
         if user_ids:
-            mastered_data = db.session.query(LearningProgress.user_id, func.count(LearningProgress.item_id)).filter(
-                 LearningProgress.item_id.in_(item_ids_query), LearningProgress.user_id.in_(user_ids), LearningProgress.fsrs_stability >= 21.0
-            ).group_by(LearningProgress.user_id).all()
+            # MIGRATED: Use ItemMemoryState
+            mastered_data = db.session.query(ItemMemoryState.user_id, func.count(ItemMemoryState.item_id)).filter(
+                 ItemMemoryState.item_id.in_(item_ids_query), 
+                 ItemMemoryState.user_id.in_(user_ids), 
+                 ItemMemoryState.stability >= 21.0
+            ).group_by(ItemMemoryState.user_id).all()
             mastered_map = {uid: count for uid, count in mastered_data}
         leaderboard = []
         for idx, row in enumerate(score_results, start=1):
@@ -58,11 +61,14 @@ class VocabularyStatsService:
             LearningContainer.creator_user_id == user_id, LearningContainer.container_type == 'FLASHCARD_SET', LearningItem.item_type.in_(['FLASHCARD', 'VOCABULARY'])
         ).count()
         now = datetime.now(timezone.utc)
-        mastered = LearningProgress.query.filter(
-            LearningProgress.user_id == user_id, LearningProgress.learning_mode == LearningProgress.MODE_FLASHCARD, LearningProgress.fsrs_stability >= 21.0
+        # MIGRATED: Use ItemMemoryState
+        mastered = ItemMemoryState.query.filter(
+            ItemMemoryState.user_id == user_id, 
+            ItemMemoryState.stability >= 21.0
         ).count()
-        due = LearningProgress.query.filter(
-            LearningProgress.user_id == user_id, LearningProgress.learning_mode == LearningProgress.MODE_FLASHCARD, LearningProgress.fsrs_due <= now
+        due = ItemMemoryState.query.filter(
+            ItemMemoryState.user_id == user_id, 
+            ItemMemoryState.due_date <= now
         ).count()
         return {'total_sets': total_sets, 'total_cards': total_cards, 'mastered': mastered, 'due': due}
 
@@ -72,8 +78,10 @@ class VocabularyStatsService:
         item_ids = [item.item_id for item in items]
         total = len(item_ids)
         if not item_ids: return VocabularyStatsService._empty_stats()
-        progress_records = LearningProgress.query.filter(
-            LearningProgress.user_id == user_id, LearningProgress.learning_mode == LearningProgress.MODE_FLASHCARD, LearningProgress.item_id.in_(item_ids)
+        # MIGRATED: Use ItemMemoryState
+        progress_records = ItemMemoryState.query.filter(
+            ItemMemoryState.user_id == user_id, 
+            ItemMemoryState.item_id.in_(item_ids)
         ).all()
         progress_map = {p.item_id: p for p in progress_records}
         now = datetime.now(timezone.utc)
@@ -84,17 +92,21 @@ class VocabularyStatsService:
             p = progress_map.get(item_id)
             if not p: new_count += 1
             else:
-                stability = p.fsrs_stability or 0.0
+                stability = p.stability or 0.0
                 retrievability = FsrsService.get_retrievability(p)
                 total_retrievability += retrievability
                 if stability >= 21.0: mastered_count += 1
                 else: learning_count += 1
-                if p.fsrs_due and p.fsrs_due.replace(tzinfo=timezone.utc) <= now: due_count += 1
+                
+                due_date = p.due_date
+                if due_date and (due_date.replace(tzinfo=timezone.utc) if due_date.tzinfo is None else due_date) <= now:
+                    due_count += 1
+                    
                 total_correct += p.times_correct or 0
                 total_incorrect += p.times_incorrect or 0
                 total_reviews += (p.times_correct or 0) + (p.times_incorrect or 0)
-                if p.fsrs_last_review:
-                    if not last_reviewed or p.fsrs_last_review > last_reviewed: last_reviewed = p.fsrs_last_review
+                if p.last_review:
+                    if not last_reviewed or p.last_review > last_reviewed: last_reviewed = p.last_review
         learned_count = len(progress_records)
         return {
             'total': total, 'new': new_count, 'learning': learning_count, 'mastered': mastered_count, 'due': due_count,
@@ -118,7 +130,11 @@ class VocabularyStatsService:
         if not item_ids: return {'distribution': {'weak': 0, 'medium': 0, 'strong': 0}, 'timeline': {'dates': [], 'values': []}}
         
         # Distribution
-        progress_records = LearningProgress.query.filter(LearningProgress.user_id == user_id, LearningProgress.learning_mode == LearningProgress.MODE_FLASHCARD, LearningProgress.item_id.in_(item_ids)).all()
+        # MIGRATED: Use ItemMemoryState
+        progress_records = ItemMemoryState.query.filter(
+            ItemMemoryState.user_id == user_id, 
+            ItemMemoryState.item_id.in_(item_ids)
+        ).all()
         weak = medium = strong = 0
         for p in progress_records:
             r = FsrsService.get_retrievability(p)
@@ -159,7 +175,8 @@ class VocabularyStatsService:
         item = LearningItem.query.get(item_id)
         if not item: return None
         content = item.content or {}
-        progress = LearningProgress.query.filter_by(user_id=user_id, item_id=item_id, learning_mode=LearningProgress.MODE_FLASHCARD).first()
+        # MIGRATED: Use ItemMemoryState
+        progress = ItemMemoryState.query.filter_by(user_id=user_id, item_id=item_id).first()
         
         # Query StudyLog
         logs = StudyLog.query.filter_by(user_id=user_id, item_id=item_id).order_by(StudyLog.timestamp.desc()).all()
@@ -189,11 +206,11 @@ class VocabularyStatsService:
             mode_data['accuracy'] = round((mode_data['correct'] / mode_data['count'] * 100), 1) if mode_data['count'] > 0 else 0
             mode_data['avg_duration'] = round(mode_data['duration'] / mode_data['count'], 0) if mode_data['count'] > 0 else 0
 
-        stability = progress.fsrs_stability if progress else 0.0
-        difficulty = progress.fsrs_difficulty if progress else 0.0
+        stability = progress.stability if progress else 0.0
+        difficulty = progress.difficulty if progress else 0.0
         retrievability = FsrsService.get_retrievability(progress) if progress else 0.0
-        streak = progress.correct_streak if progress else 0
-        next_due = progress.fsrs_due if progress else None
+        streak = progress.streak if progress else 0
+        next_due = progress.due_date if progress else None
         
         accuracy = (total_correct / total_attempts * 100) if total_attempts > 0 else 0
         avg_duration = (total_duration_ms / total_attempts) if total_attempts > 0 else 0
@@ -206,7 +223,7 @@ class VocabularyStatsService:
         if progress:
             now = datetime.now(timezone.utc)
             if stability >= 21.0: status = 'mastered'
-            elif progress.fsrs_due and progress.fsrs_due.replace(tzinfo=timezone.utc) <= now: status = 'due'
+            elif progress.due_date and (progress.due_date.replace(tzinfo=timezone.utc) if progress.due_date.tzinfo is None else progress.due_date) <= now: status = 'due'
             elif HardItemService.is_hard_item(user_id, item_id): status = 'hard'
             else: status = 'learning'
                 
@@ -239,7 +256,7 @@ class VocabularyStatsService:
                 'example_meaning': render_text_field(content.get('example_meaning')), 'phonetic': content.get('phonetic'),
                 'tags': content.get('tags', []), 'custom_data': content.get('custom_data') or content.get('custom_content', {}),
                 'ai_explanation': render_text_field(item.ai_explanation),
-                'note': (progress.mode_data or {}).get('note', '') if progress else '',
+                'note': (progress.data or {}).get('note', '') if progress else '',
                 'full_content': content
             },
             'progress': {
@@ -267,24 +284,21 @@ class VocabularyStatsService:
 
     @staticmethod
     def get_course_overview_stats(user_id: int, container_id: int, page: int = 1, per_page: int = 12, sort_by: str = 'default') -> dict:
-        # ... (Unchanged logic using LearningProgress and LearningItem) ...
         base_query = LearningItem.query.filter(
             LearningItem.container_id == container_id,
             LearningItem.item_type.in_(['FLASHCARD', 'VOCABULARY'])
         )
         if sort_by == 'due_date':
             base_query = base_query.outerjoin(
-                LearningProgress, 
-                (LearningItem.item_id == LearningProgress.item_id) & 
-                (LearningProgress.user_id == user_id) &
-                (LearningProgress.learning_mode == LearningProgress.MODE_FLASHCARD)
-            ).order_by(LearningProgress.fsrs_due.asc().nulls_last(), LearningItem.order_in_container.asc())
+                ItemMemoryState, 
+                (LearningItem.item_id == ItemMemoryState.item_id) & 
+                (ItemMemoryState.user_id == user_id)
+            ).order_by(ItemMemoryState.due_date.asc().nulls_last(), LearningItem.order_in_container.asc())
         elif sort_by == 'mastery':
             base_query = base_query.outerjoin(
-                LearningProgress, 
-                (LearningItem.item_id == LearningProgress.item_id) & 
-                (LearningProgress.user_id == user_id) &
-                (LearningProgress.learning_mode == LearningProgress.MODE_FLASHCARD)
+                ItemMemoryState, 
+                (LearningItem.item_id == ItemMemoryState.item_id) & 
+                (ItemMemoryState.user_id == user_id)
             ).order_by(LearningItem.order_in_container.asc())
         else:
             base_query = base_query.order_by(LearningItem.order_in_container.asc(), LearningItem.item_id.asc())
@@ -294,8 +308,10 @@ class VocabularyStatsService:
         if not pagination.items: return {'items': [], 'pagination': {'total': total_items, 'page': page, 'per_page': per_page, 'pages': pagination.pages}, 'learned_count': 0}
         
         item_ids = [item.item_id for item in pagination.items]
-        progress_records = LearningProgress.query.filter(
-            LearningProgress.user_id == user_id, LearningProgress.learning_mode == LearningProgress.MODE_FLASHCARD, LearningProgress.item_id.in_(item_ids)
+        # MIGRATED: Use ItemMemoryState
+        progress_records = ItemMemoryState.query.filter(
+            ItemMemoryState.user_id == user_id, 
+            ItemMemoryState.item_id.in_(item_ids)
         ).all()
         progress_map = {p.item_id: p for p in progress_records}
         now = datetime.now(timezone.utc)
@@ -310,20 +326,25 @@ class VocabularyStatsService:
             if progress:
                 retrievability = FsrsService.get_retrievability(progress)
                 mastery = int(retrievability * 100)
-                stability = progress.fsrs_stability or 0.0
-                state = progress.fsrs_state
+                stability = progress.stability or 0.0
+                state = progress.state
                 if state == 0: status = 'new'
                 elif state in [1, 3]: status = 'learning'
                 elif stability >= 21.0: status = 'mastered'
                 else: status = 'reviewing'
-                is_due = progress.fsrs_due and progress.fsrs_due.replace(tzinfo=timezone.utc) <= now if progress.fsrs_due else False
-                memory_level = progress.memory_level if hasattr(progress, 'memory_level') else 0
-                difficulty = progress.fsrs_difficulty or 0.0
-                repetitions = progress.repetitions or 0
-                has_note = bool((progress.mode_data or {}).get('note'))
                 
-                if progress.fsrs_due:
-                    due_date = progress.fsrs_due.replace(tzinfo=timezone.utc)
+                due_date_raw = progress.due_date
+                is_due = False
+                if due_date_raw:
+                    is_due = (due_date_raw.replace(tzinfo=timezone.utc) if due_date_raw.tzinfo is None else due_date_raw) <= now
+                
+                memory_level = (progress.data or {}).get('memory_level', 0) if progress.data else 0
+                difficulty = progress.difficulty or 0.0
+                repetitions = progress.repetitions or 0
+                has_note = bool((progress.data or {}).get('note'))
+                
+                if progress.due_date:
+                    due_date = progress.due_date.replace(tzinfo=timezone.utc) if progress.due_date.tzinfo is None else progress.due_date
                     diff = due_date - now
                     if diff.total_seconds() <= 0: next_review = "Ngay bây giờ"
                     elif diff.days > 365: next_review = f"{diff.days // 365} năm"
@@ -346,7 +367,7 @@ class VocabularyStatsService:
             
             has_ai = bool(item.ai_explanation and item.ai_explanation.strip())
             is_hard = False
-            if progress: is_hard = (progress.incorrect_streak or 0) >= 3 or ((progress.repetitions or 0) > 10 and (progress.fsrs_stability or 0) < 7.0)
+            if progress: is_hard = (progress.incorrect_streak or 0) >= 3 or ((progress.repetitions or 0) > 10 and (progress.stability or 0) < 7.0)
 
             result_items.append({
                 'item_id': item.item_id, 'term': term, 'definition': definition, 'mastery': mastery, 'retrievability': retrievability, 
@@ -354,8 +375,11 @@ class VocabularyStatsService:
                 'repetitions': repetitions, 'has_ai': has_ai, 'has_note': has_note, 'is_hard': is_hard, 'next_review': next_review, 'state_label': state_label
             })
         
-        learned_count = db.session.query(func.count(LearningProgress.progress_id)).join(LearningItem, LearningProgress.item_id == LearningItem.item_id).filter(
-            LearningItem.container_id == container_id, LearningProgress.user_id == user_id, LearningProgress.learning_mode == LearningProgress.MODE_FLASHCARD, LearningProgress.fsrs_state != LearningProgress.STATE_NEW
+        # MIGRATED: Use ItemMemoryState
+        learned_count = db.session.query(func.count(ItemMemoryState.state_id)).join(LearningItem, ItemMemoryState.item_id == LearningItem.item_id).filter(
+            LearningItem.container_id == container_id, 
+            ItemMemoryState.user_id == user_id, 
+            ItemMemoryState.state != 0
         ).scalar()
         
         return {'items': result_items, 'pagination': {'total': total_items, 'page': page, 'per_page': per_page, 'pages': pagination.pages}, 'learned_count': learned_count}
@@ -368,7 +392,7 @@ class VocabularyStatsService:
 
     @staticmethod
     def _get_start_date(timeframe: str) -> datetime | None:
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         if timeframe == 'day': return now.replace(hour=0, minute=0, second=0, microsecond=0)
         elif timeframe == 'week': return (now - timedelta(days=now.weekday())).replace(hour=0, minute=0, second=0, microsecond=0)
         elif timeframe == 'month': return now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)

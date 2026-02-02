@@ -1,7 +1,6 @@
 # mindstack_app/modules/learning/course/algorithms.py
-# Phiên bản: 2.2
+# Phiên bản: 2.3 (Refactored for ItemMemoryState)
 # MỤC ĐÍCH: Sửa lỗi logic hiển thị các khóa học ở tab 'Đang học' và 'Khám phá'.
-# ĐÃ SỬA: Thay đổi logic lọc để dựa vào sự tồn tại của UserContainerState để phân loại.
 
 from mindstack_app.models import (
     db,
@@ -11,7 +10,7 @@ from mindstack_app.models import (
     UserContainerState,
     User,
 )
-from mindstack_app.modules.learning.models import LearningProgress
+from mindstack_app.modules.fsrs.models import ItemMemoryState
 from flask_login import current_user
 from sqlalchemy import func, and_, not_, or_
 from flask import current_app
@@ -21,7 +20,6 @@ from mindstack_app.utils.search import apply_search_filter
 def get_filtered_course_sets(user_id, search_query, search_field, current_filter, page, per_page=12):
     """
     Mô tả: Lấy danh sách các Khoá học đã được lọc và phân trang dựa trên các tiêu chí.
-    Đã sửa lại logic để hiển thị chính xác các khóa học cho từng tab.
     """
     print(f">>> ALGORITHMS: Bắt đầu get_filtered_course_sets cho user_id={user_id}, filter={current_filter} <<<")
 
@@ -64,26 +62,22 @@ def get_filtered_course_sets(user_id, search_query, search_field, current_filter
     ).subquery()
     
     if current_filter == 'archive':
-        # Tab LƯU TRỮ: chỉ lấy các khóa học có trong danh sách lưu trữ
         final_query = filtered_query.join(UserContainerState,
             and_(UserContainerState.container_id == LearningContainer.container_id, UserContainerState.user_id == user_id)
         ).filter(
             UserContainerState.is_archived == True
         )
     elif current_filter == 'doing':
-        # SỬA: Lấy các khóa học mà người dùng ĐÃ TƯƠNG TÁC và KHÔNG bị lưu trữ
         final_query = filtered_query.join(UserContainerState,
             and_(UserContainerState.container_id == LearningContainer.container_id, UserContainerState.user_id == user_id)
         ).filter(
             UserContainerState.is_archived == False
         )
     elif current_filter == 'explore':
-        # SỬA LỖI: Lấy các khóa học CHƯA TỪNG được tương tác
         final_query = filtered_query.filter(
             ~LearningContainer.container_id.in_(user_interacted_ids_subquery)
         )
-    else: # Mặc định là 'all' hoặc các trường hợp khác
-        # Lấy tất cả các khóa học không bị lưu trữ
+    else: 
         final_query = filtered_query.outerjoin(UserContainerState,
             and_(UserContainerState.container_id == LearningContainer.container_id, UserContainerState.user_id == user_id)
         ).filter(
@@ -108,16 +102,15 @@ def get_filtered_course_sets(user_id, search_query, search_field, current_filter
         if total_lessons > 0:
             lesson_ids = [lesson.item_id for lesson in lessons]
             
-            # Get progress using LearningProgress
-            progress_records = LearningProgress.query.filter(
-                LearningProgress.user_id == user_id,
-                LearningProgress.learning_mode == LearningProgress.MODE_COURSE,
-                LearningProgress.item_id.in_(lesson_ids)
+            # Get progress using ItemMemoryState
+            progress_records = ItemMemoryState.query.filter(
+                ItemMemoryState.user_id == user_id,
+                ItemMemoryState.item_id.in_(lesson_ids)
             ).all()
             
             for progress in progress_records:
-                mode_data = progress.mode_data or {}
-                total_completion_percentage += mode_data.get('completion_percentage', 0)
+                data = progress.data or {}
+                total_completion_percentage += data.get('completion_percentage', 0)
             
             # Tính tổng thời gian dự tính
             for lesson in lessons:
@@ -152,15 +145,14 @@ def get_lessons_for_course(user_id, course_id):
 
     lesson_ids = [lesson.item_id for lesson in lessons]
     
-    # Get progress using LearningProgress
+    # Get progress using ItemMemoryState
     progress_map = {}
-    for p in LearningProgress.query.filter(
-        LearningProgress.user_id == user_id,
-        LearningProgress.learning_mode == LearningProgress.MODE_COURSE,
-        LearningProgress.item_id.in_(lesson_ids)
+    for p in ItemMemoryState.query.filter(
+        ItemMemoryState.user_id == user_id,
+        ItemMemoryState.item_id.in_(lesson_ids)
     ):
-        mode_data = p.mode_data or {}
-        progress_map[p.item_id] = mode_data.get('completion_percentage', 0)
+        data = p.data or {}
+        progress_map[p.item_id] = data.get('completion_percentage', 0)
 
     for lesson in lessons:
         lesson.completion_percentage = progress_map.get(lesson.item_id, 0)

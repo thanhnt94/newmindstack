@@ -1,7 +1,6 @@
 # mindstack_app/modules/learning/course/routes.py
-# Phiên bản: 2.5
-# MỤC ĐÍCH: Lấy dữ liệu ghi chú của người dùng cho bài học hiện tại.
-# ĐÃ THÊM: Truy vấn model UserNote và truyền đối tượng 'note' ra template.
+# Phiên bản: 2.6
+# MỤC ĐÍCH: Refactor to use ItemMemoryState (FSRS) instead of LearningProgress.
 
 from flask import Blueprint, render_template, request, jsonify, redirect, url_for, flash, abort
 from mindstack_app.utils.template_helpers import render_dynamic_template
@@ -19,7 +18,7 @@ from mindstack_app.models import (
     Note,
     db,
 )
-from mindstack_app.modules.learning.models import LearningProgress
+from mindstack_app.modules.fsrs.models import ItemMemoryState
 from mindstack_app.modules.gamification.services.scoring_service import ScoreService
 
 from .. import blueprint
@@ -88,15 +87,14 @@ def course_session(lesson_id):
         flash('Bạn không có quyền truy cập khóa học này.', 'danger')
         return redirect(url_for('.course_learning_dashboard'))
     
-    # Get LearningProgress
-    progress = LearningProgress.query.filter_by(
+    # Get ItemMemoryState
+    progress = ItemMemoryState.query.filter_by(
         user_id=current_user.user_id,
-        item_id=lesson_id,
-        learning_mode=LearningProgress.MODE_COURSE
+        item_id=lesson_id
     ).first()
     
-    mode_data = progress.mode_data or {} if progress else {}
-    current_percentage = mode_data.get('completion_percentage', 0) if progress else 0
+    data = progress.data or {} if progress else {}
+    current_percentage = data.get('completion_percentage', 0)
 
     can_edit = (
         current_user.user_role == 'admin' or
@@ -126,8 +124,8 @@ def update_lesson_progress(lesson_id):
     """
     Mô tả: API endpoint để cập nhật tiến độ hoàn thành của một bài học.
     """
-    data = request.get_json()
-    percentage = data.get('percentage')
+    data_in = request.get_json()
+    percentage = data_in.get('percentage')
 
     if percentage is None or not (0 <= int(percentage) <= 100):
         return jsonify({'success': False, 'message': 'Giá trị phần trăm không hợp lệ.'}), 400
@@ -137,7 +135,8 @@ def update_lesson_progress(lesson_id):
 
     if current_user.user_role == User.ROLE_FREE and container.creator_user_id != current_user.user_id:
         return jsonify({'success': False, 'message': 'Bạn không có quyền cập nhật khóa học này.'}), 403
-    # Cập nhật last_accessed cho UserContainerState khi có tương tác
+    
+    # Cập nhật last_accessed cho UserContainerState
     user_container_state = UserContainerState.query.filter_by(
         user_id=current_user.user_id,
         container_id=lesson.container_id
@@ -147,38 +146,45 @@ def update_lesson_progress(lesson_id):
         db.session.add(user_container_state)
     user_container_state.last_accessed = func.now()
 
-    # Update LearningProgress
-    progress = LearningProgress.query.filter_by(
+    # Update ItemMemoryState
+    progress = ItemMemoryState.query.filter_by(
         user_id=current_user.user_id,
-        item_id=lesson_id,
-        learning_mode=LearningProgress.MODE_COURSE
+        item_id=lesson_id
     ).first()
 
-    mode_data = progress.mode_data or {} if progress else {}
-    previous_percentage = mode_data.get('completion_percentage', 0) if progress else 0
+    current_data = progress.data or {} if progress else {}
+    previous_percentage = current_data.get('completion_percentage', 0)
 
     if progress:
-        if not progress.mode_data:
-            progress.mode_data = {}
-        progress.mode_data['completion_percentage'] = int(percentage)
-        # Cập nhật mastery tương ứng
-        progress.mastery = int(percentage) / 100.0
+        if not progress.data:
+            progress.data = {}
+        progress.data['completion_percentage'] = int(percentage)
+        # Assuming mastery tracking logic is handled via percentage check elsewhere or implicit
         from sqlalchemy.orm.attributes import flag_modified
-        flag_modified(progress, 'mode_data')
+        flag_modified(progress, 'data')
     else:
-        progress = LearningProgress(
+        progress = ItemMemoryState(
             user_id=current_user.user_id,
             item_id=lesson_id,
-            learning_mode=LearningProgress.MODE_COURSE,
-            mastery=int(percentage) / 100.0,
-            mode_data={'completion_percentage': int(percentage)}
+            state=0, # NEW
+            data={'completion_percentage': int(percentage)}
         )
         db.session.add(progress)
 
-    completion_pct = progress.mode_data.get('completion_percentage', 0) if progress.mode_data else 0
+    progress.last_review = func.now()
+
+    completion_pct = progress.data.get('completion_percentage', 0) if progress.data else 0
     lesson_completed = previous_percentage < 100 and completion_pct >= 100
 
-    lesson_score = _get_score_value('LESSON_COMPLETION_SCORE', 10)
+    from mindstack_app.modules.learning.quiz_learning.quiz_logic import _get_score_value # Reuse helper or move it? 
+    # Helper is local in quiz_logic.py. I should use config service directly or reimplement helper.
+    # Reimplementing helper for safety
+    def _get_score_value_local(key, default):
+        from mindstack_app.services.config_service import get_runtime_config
+        try: return int(get_runtime_config(key, default))
+        except: return default
+
+    lesson_score = _get_score_value_local('LESSON_COMPLETION_SCORE', 10)
 
     if lesson_completed:
         if lesson_score:
@@ -196,12 +202,13 @@ def update_lesson_progress(lesson_id):
         ]
 
         if lesson_ids:
-            # Check completion using LearningProgress
-            completed_count = LearningProgress.query.filter(
-                LearningProgress.user_id == current_user.user_id,
-                LearningProgress.learning_mode == LearningProgress.MODE_COURSE,
-                LearningProgress.item_id.in_(lesson_ids),
-                LearningProgress.mastery >= 1.0,  # 100% = 1.0
+            # Check completion using ItemMemoryState
+            # We need to query completion_percentage from data JSON
+            # Using cast for JSON integer comparison
+            completed_count = ItemMemoryState.query.filter(
+                ItemMemoryState.user_id == current_user.user_id,
+                ItemMemoryState.item_id.in_(lesson_ids),
+                db.cast(ItemMemoryState.data['completion_percentage'], db.Integer) >= 100
             ).count()
 
             if completed_count == len(lesson_ids):
@@ -212,7 +219,7 @@ def update_lesson_progress(lesson_id):
                 ).first()
 
                 if not already_logged:
-                    course_score = _get_score_value('COURSE_COMPLETION_SCORE', 50)
+                    course_score = _get_score_value_local('COURSE_COMPLETION_SCORE', 50)
                     if course_score:
                         ScoreService.award_points(
                             user_id=current_user.user_id,
@@ -255,4 +262,3 @@ def toggle_archive_course(course_id):
     
     message = "Đã lưu trữ khóa học." if state.is_archived else "Đã bỏ lưu trữ khóa học."
     return jsonify({'success': True, 'message': message, 'is_archived': state.is_archived})
-

@@ -143,3 +143,42 @@ class FSRSEngine:
         }
         
         return new_card_state, new_card_state.due, log
+
+    def predict_next_intervals(self, card_state: CardStateDTO) -> Dict[int, str]:
+        """
+        Predict next intervals for all 4 ratings without updating state.
+        Returns a dict mapping Rating -> Display String (e.g. '1d').
+        """
+        memory_state = self._to_memory_state(card_state)
+        now = datetime.datetime.now(datetime.timezone.utc)
+        
+        if card_state.last_review:
+            last_review = card_state.last_review
+            if last_review.tzinfo is None:
+                last_review = last_review.replace(tzinfo=datetime.timezone.utc)
+            days_elapsed = (now - last_review).total_seconds() / 86400.0
+        else:
+            days_elapsed = 0.0
+            
+        days_elapsed_rounded = max(0, round(days_elapsed))
+        next_states = self.fsrs.next_states(
+            memory_state,
+            self.desired_retention,
+            days_elapsed_rounded
+        )
+        
+        def _fmt_ivl(days):
+            days = float(days)
+            if days < 1.0:
+                mins = round(days * 1440)
+                return f"{mins}m"
+            if days >= 30.0:
+                return f"{round(days/30.0, 1)}mo"
+            return f"{round(days, 1)}d"
+
+        return {
+            Rating.Again: _fmt_ivl(next_states.again.interval),
+            Rating.Hard: _fmt_ivl(next_states.hard.interval),
+            Rating.Good: _fmt_ivl(next_states.good.interval),
+            Rating.Easy: _fmt_ivl(next_states.easy.interval)
+        }

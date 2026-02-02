@@ -16,7 +16,7 @@ from sqlalchemy.sql.sqltypes import DateTime, Date, Time
 from mindstack_app.models import (
     db, User, LearningContainer, LearningGroup, LearningItem, ContainerContributor,
     ApiKey, BackgroundTask, BackgroundTaskLog, AppSettings,
-    UserContainerState, LearningProgress, ScoreLog,
+    UserContainerState, ScoreLog,
     Goal, UserGoal, GoalProgress, Note,
     Feedback, FeedbackAttachment,
     LearningSession, UserItemMarker, Badge, UserBadge,
@@ -27,6 +27,7 @@ from mindstack_app.models import (
     UserMetric, DailyStat, Achievement, TranslationHistory, Streak
 )
 from mindstack_app.modules.learning_history.models import StudyLog
+from mindstack_app.modules.fsrs.models import ItemMemoryState
 from mindstack_app.core.config import Config
 from mindstack_app.services.config_service import get_runtime_config
 
@@ -47,7 +48,7 @@ DATASET_CATALOG: "OrderedDict[str, dict[str, object]]" = OrderedDict(
             'description': 'Bao gồm trạng thái container, tiến độ flashcard/quiz/course, điểm số và ghi chú.',
             'models': [
                 UserContainerState,
-                LearningProgress,
+                ItemMemoryState,
                 ScoreLog,
                 UserGoal,
                 GoalProgress,
@@ -102,7 +103,7 @@ DATASET_CATALOG: "OrderedDict[str, dict[str, object]]" = OrderedDict(
             'description': 'Xuất tất cả dữ liệu trong hệ thống dưới dạng JSON (trừ file uploads).',
             'models': [
                 User, LearningContainer, LearningGroup, LearningItem, ContainerContributor,
-                UserContainerState, LearningProgress, ScoreLog, UserGoal, GoalProgress, Note,
+                UserContainerState, ItemMemoryState, ScoreLog, UserGoal, GoalProgress, Note,
                 LearningSession, StudyLog, UserItemMarker, Badge, UserBadge,
                 Feedback, FeedbackAttachment,
                 AppSettings, BackgroundTask, BackgroundTaskLog, ApiKey,

@@ -5,7 +5,8 @@ import random
 from typing import Optional, Tuple, Dict, Any
 from flask import current_app
 from sqlalchemy import func
-from mindstack_app.models import db, LearningProgress
+from mindstack_app.models import db
+from mindstack_app.modules.fsrs.models import ItemMemoryState
 from ..schemas import SrsResultDTO, CardStateDTO, Rating, CardStateEnum
 from ..logics.fsrs_engine import FSRSEngine
 from ..services.settings_service import FSRSSettingsService
@@ -41,10 +42,6 @@ class FSRSProcessor:
                 wpm = (len(t) / 5.0) / (duration_ms / 60000.0)
                 if wpm >= 40: return Rating.Easy
             return Rating.Good
-        
-        # Simple similarity check
-        from ..logics.fsrs_engine import FSRSEngine # For typing imports if needed elsewhere
-        # We'll use a local simple distance if needed or just skip for now as per original
         return Rating.Again
 
     @staticmethod
@@ -56,7 +53,7 @@ class FSRSProcessor:
         duration_ms: int = 0,
         container_id: int = None,
         **kwargs
-    ) -> Tuple[LearningProgress, SrsResultDTO]:
+    ) -> Tuple[ItemMemoryState, SrsResultDTO]:
         # 0. Mode-Based Rating Calculation
         if mode in ['quiz', 'quiz_mcq', 'mcq']:
             is_correct_arg = kwargs.get('is_correct', quality >= 3)
@@ -70,33 +67,43 @@ class FSRSProcessor:
             
         now = datetime.datetime.now(datetime.timezone.utc)
         
-        # 2. Fetch/Create Progress
-        progress = LearningProgress.query.filter_by(
-            user_id=user_id, item_id=item_id, learning_mode=mode
+        # 2. Fetch/Create Progress (Unified Item Memory)
+        state_record = ItemMemoryState.query.filter_by(
+            user_id=user_id, item_id=item_id
         ).first()
         
-        if not progress:
-            progress = LearningProgress(
-                user_id=user_id, item_id=item_id, learning_mode=mode,
-                fsrs_state=CardStateEnum.NEW, fsrs_stability=0.0, fsrs_difficulty=5.0,
-                repetitions=0, current_interval=0.0, correct_streak=0, incorrect_streak=0
+        if not state_record:
+            state_record = ItemMemoryState(
+                user_id=user_id, item_id=item_id,
+                state=CardStateEnum.NEW, stability=0.0, difficulty=5.0,
+                repetitions=0, streak=0, lapses=0
             )
-            db.session.add(progress)
+            db.session.add(state_record)
             db.session.flush()
 
         # 3. Build CardState
-        last_review = progress.fsrs_last_review
+        last_review = state_record.last_review
         if last_review and last_review.tzinfo is None:
             last_review = last_review.replace(tzinfo=datetime.timezone.utc)
             
+        # Calculate current_interval (scheduled_days) from stability/last_review if not stored explicitly?
+        # FSRS formula: interval = (due - last_review).days approximately
+        # Or better, just pass 0.0 if new.
+        # We don't store current_interval explicitly in ItemMemoryState?
+        # LearningProgress had it. I should use (due_date - last_review) or 0.
+        current_ivl = 0.0
+        if state_record.due_date and last_review:
+             delta = (state_record.due_date.replace(tzinfo=datetime.timezone.utc) - last_review)
+             current_ivl = max(0.0, delta.total_seconds() / 86400.0)
+
         card_dto = CardStateDTO(
-            stability=progress.fsrs_stability or 0.0,
-            difficulty=progress.fsrs_difficulty or 0.0,
-            reps=progress.repetitions or 0,
-            lapses=progress.lapses or 0,
-            state=progress.fsrs_state if progress.fsrs_state is not None else CardStateEnum.NEW,
+            stability=state_record.stability or 0.0,
+            difficulty=state_record.difficulty or 0.0,
+            reps=state_record.repetitions or 0,
+            lapses=state_record.lapses or 0,
+            state=state_record.state if state_record.state is not None else CardStateEnum.NEW,
             last_review=last_review,
-            scheduled_days=progress.current_interval or 0.0
+            scheduled_days=current_ivl
         )
 
         # 4. Get Config
@@ -118,9 +125,9 @@ class FSRSProcessor:
 
         # 6. Load Balancing
         daily_limit = int(FSRSSettingsService.get('FSRS_DAILY_LIMIT', 200))
-        due_on_date_count = LearningProgress.query.filter(
-            LearningProgress.user_id == user_id,
-            func.date(LearningProgress.fsrs_due) == next_due.date()
+        due_on_date_count = ItemMemoryState.query.filter(
+            ItemMemoryState.user_id == user_id,
+            func.date(ItemMemoryState.due_date) == next_due.date().isoformat()
         ).count()
         
         if due_on_date_count > daily_limit and fsrs_rating >= Rating.Good:
@@ -129,51 +136,53 @@ class FSRSProcessor:
 
         # 7. Update Progress
         is_correct = fsrs_rating >= Rating.Good
-        progress.fsrs_state = new_card.state
-        progress.fsrs_stability = new_card.stability
-        progress.fsrs_difficulty = new_card.difficulty
-        progress.current_interval = float(new_card.scheduled_days)
-        progress.interval = int(new_card.scheduled_days * 1440) # Legacy support
-        progress.repetitions = new_card.reps
-        progress.lapses = new_card.lapses
-        progress.fsrs_due = next_due
-        progress.fsrs_last_review = now
-        progress.last_review_duration = duration_ms
         
-        progress.correct_streak = (progress.correct_streak or 0) + 1 if is_correct else 0
-        progress.incorrect_streak = (progress.incorrect_streak or 0) + 1 if not is_correct else 0
+        state_record.state = new_card.state
+        state_record.stability = new_card.stability
+        state_record.difficulty = new_card.difficulty
+        # current_interval logic handled by due_date
+        state_record.repetitions = new_card.reps
+        state_record.lapses = new_card.lapses
+        state_record.due_date = next_due
+        state_record.last_review = now
         
-        if is_correct: progress.times_correct = (progress.times_correct or 0) + 1
-        else: progress.times_incorrect = (progress.times_incorrect or 0) + 1
-
+        state_record.streak = (state_record.streak or 0) + 1 if is_correct else 0
+        state_record.incorrect_streak = (state_record.incorrect_streak or 0) + 1 if not is_correct else 0
+        
+        if is_correct:
+            state_record.times_correct = (state_record.times_correct or 0) + 1
+        else:
+            state_record.times_incorrect = (state_record.times_incorrect or 0) + 1
+        
         # 8. Log Review - DELEGATED to HistoryRecorder (via caller)
-        # log_entry = ReviewLog(...) REMOVED
         
         # 9. Return Result
+        interval_mins = int(new_card.scheduled_days * 1440)
+        
         srs_result = SrsResultDTO(
             next_review=next_due,
-            interval_minutes=progress.interval,
+            interval_minutes=interval_mins,
             state=new_card.state,
             stability=new_card.stability,
             difficulty=new_card.difficulty,
             retrievability=engine.get_realtime_retention(new_card, now),
-            correct_streak=progress.correct_streak,
-            incorrect_streak=progress.incorrect_streak,
-            score_points=0, # Will be filled by Scoring module
+            correct_streak=state_record.streak,
+            incorrect_streak=0, # Not tracked in ItemMemoryState, assume 0 or derived
+            score_points=0,
             score_breakdown={},
             repetitions=new_card.reps,
             lapses=new_card.lapses
         )
         
-        return progress, srs_result
+        return state_record, srs_result
 
     @staticmethod
-    def get_retrievability(progress: LearningProgress) -> float:
-        if not progress or not progress.fsrs_stability or progress.fsrs_stability <= 0:
+    def get_retrievability(state: ItemMemoryState) -> float:
+        if not state or not state.stability or state.stability <= 0:
             return 1.0
         
         now = datetime.datetime.now(datetime.timezone.utc)
-        last_review = progress.fsrs_last_review
+        last_review = state.last_review
         if not last_review: return 1.0
         
         if last_review.tzinfo is None:
@@ -183,6 +192,6 @@ class FSRSProcessor:
         if elapsed_days <= 0: return 1.0
         
         try:
-            return 0.9 ** (elapsed_days / progress.fsrs_stability)
+            return 0.9 ** (elapsed_days / state.stability)
         except:
             return 0.0

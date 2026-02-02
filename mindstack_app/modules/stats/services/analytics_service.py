@@ -10,7 +10,7 @@ from typing import Dict, Any, Optional
 from flask import current_app
 
 from mindstack_app.models import db
-from mindstack_app.modules.learning.models import LearningProgress
+# LearningProgress import removed
 
 from .metrics import (
     get_user_container_options,
@@ -24,9 +24,6 @@ from ..logics.chart_utils import resolve_timeframe_dates
 class AnalyticsService:
     """
     Consolidated analytics service for dashboard.
-    
-    Wraps multiple service calls into clean, high-level methods
-    that return complete data for templates.
     """
     
     @staticmethod
@@ -38,14 +35,6 @@ class AnalyticsService:
     ) -> Dict[str, Any]:
         """
         Get all dashboard data in a single call.
-        
-        Returns:
-            Complete dict with all data needed for dashboard template:
-            - dashboard_data: Aggregated metrics dict
-            - daily_summary: Today/week stats from DailyStatsService
-            - leaderboard_data: Sorted leaderboard
-            - flashcard_sets, quiz_sets, course_sets: Container options
-            - recent_activity, recent_sessions: Activity lists
         """
         from mindstack_app.modules.learning.services.learning_metrics_service import LearningMetricsService
         from mindstack_app.modules.learning.services.daily_stats_service import DailyStatsService
@@ -99,30 +88,29 @@ class AnalyticsService:
     def get_all_container_options(user_id: int) -> Dict[str, list]:
         """
         Get all container options in one call.
-        
-        Returns:
-            Dict with keys: flashcard_sets, quiz_sets, course_sets
         """
+        # Pass explicit item types and container types.
+        # mode arg is ignored by updated metrics.py but we pass a string for clarity/compat.
         return {
             'flashcard_sets': get_user_container_options(
                 user_id,
                 'FLASHCARD_SET',
-                LearningProgress.MODE_FLASHCARD,
-                'last_reviewed',
+                'flashcard',
+                'last_review', # Attribute on ItemMemoryState
                 item_type='FLASHCARD',
             ),
             'quiz_sets': get_user_container_options(
                 user_id,
                 'QUIZ_SET',
-                LearningProgress.MODE_QUIZ,
-                'last_reviewed',
+                'quiz',
+                'last_review',
                 item_type='QUIZ_MCQ',
             ),
             'course_sets': get_user_container_options(
                 user_id,
                 'COURSE',
-                LearningProgress.MODE_COURSE,
-                'last_reviewed',
+                'course',
+                'last_review',
                 item_type='LESSON',
             ),
         }
@@ -131,9 +119,6 @@ class AnalyticsService:
     def get_score_by_type(user_id: int, timeframe: str = 'all') -> Dict[str, int]:
         """
         Get score breakdown by item type.
-        
-        Returns:
-            Dict with keys: flashcard_score, quiz_score, course_score, other_score
         """
         breakdown = get_activity_breakdown(user_id, timeframe)
         

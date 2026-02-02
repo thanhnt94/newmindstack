@@ -4,7 +4,6 @@ from mindstack_app.utils.template_helpers import render_dynamic_template
 from mindstack_app.modules.learning.services.learning_metrics_service import LearningMetricsService
 from mindstack_app.modules.stats.services.leaderboard_service import LeaderboardService
 from mindstack_app.modules.stats.services.metrics import get_user_container_options
-from mindstack_app.models import LearningProgress
 
 from .. import blueprint as stats_bp
 

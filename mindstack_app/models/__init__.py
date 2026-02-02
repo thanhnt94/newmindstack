@@ -8,12 +8,12 @@ from mindstack_app.modules.learning.models import (
     LearningContainer, 
     LearningGroup, 
     LearningItem, 
-    LearningProgress, 
     LearningSession,
     UserContainerState,
     ContainerContributor,
     UserItemMarker
 )
+from mindstack_app.modules.fsrs.models import ItemMemoryState
 from mindstack_app.modules.learning_history.models import StudyLog
 from mindstack_app.modules.vocab_flashcard.models import (
     FlashcardSet,
@@ -55,7 +55,7 @@ __all__ = [
     'LearningContainer',
     'LearningGroup',
     'LearningItem',
-    'LearningProgress',
+    'ItemMemoryState',
     'LearningSession',
     'UserContainerState',
     'ContainerContributor',

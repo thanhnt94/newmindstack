@@ -2,7 +2,7 @@
 Badge Service
 Logic kiểm tra và cấp phát huy hiệu (Achievements).
 """
-from datetime import datetime
+from datetime import datetime, timezone
 from mindstack_app.models import User
 from mindstack_app.core.extensions import db
 from flask import current_app
@@ -66,7 +66,7 @@ class BadgeService:
                             score_change=badge.reward_points,
                             reason=reward_reason,
                             item_type='BADGE_REWARD',
-                            timestamp=datetime.utcnow()
+                            timestamp=datetime.now(timezone.utc)
                         )
                         db.session.add(log)
                     

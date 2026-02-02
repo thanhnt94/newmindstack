@@ -1,9 +1,9 @@
 # File: mindstack_app/modules/learning/quiz_learning/quiz_logic.py
-# Phiên bản: 3.1
-# MỤC ĐÍCH: Refactor to use HistoryRecorder instead of ReviewLog.
+# Phiên bản: 3.2
+# MỤC ĐÍCH: Refactor to use ItemMemoryState (FSRS) instead of LearningProgress.
 
 from mindstack_app.models import LearningItem, User, db
-from mindstack_app.modules.learning.models import LearningProgress
+from mindstack_app.modules.fsrs.models import ItemMemoryState
 from mindstack_app.modules.gamification.services.scoring_service import ScoreService
 from mindstack_app.modules.learning_history.services import HistoryRecorder
 from sqlalchemy.sql import func
@@ -22,7 +22,7 @@ def _get_score_value(key: str, default: int) -> int:
 def process_quiz_answer(user_id, item_id, user_answer_text, current_user_total_score,
                         session_id=None, container_id=None, mode=None):
     """
-    Xử lý một câu trả lời Quiz của người dùng, cập nhật QuizProgress,
+    Xử lý một câu trả lời Quiz của người dùng, cập nhật ItemMemoryState,
     tính điểm và ghi log điểm số.
     """
     score_change = 0
@@ -55,30 +55,33 @@ def process_quiz_answer(user_id, item_id, user_answer_text, current_user_total_s
 
     is_correct = (user_answer_text == correct_option_char)
 
-    # 1. Lấy hoặc tạo bản ghi LearningProgress (quiz mode)
-    progress = LearningProgress.query.filter_by(
-        user_id=user_id, item_id=item_id, learning_mode='quiz'
+    # 1. Lấy hoặc tạo bản ghi ItemMemoryState
+    # Note: unified state, ignoring 'quiz' mode in query
+    state_record = ItemMemoryState.query.filter_by(
+        user_id=user_id, item_id=item_id
     ).first()
-    if not progress:
+    
+    if not state_record:
         is_first_time = True
-        progress = LearningProgress(
-            user_id=user_id, item_id=item_id, learning_mode='quiz'
+        state_record = ItemMemoryState(
+            user_id=user_id, item_id=item_id,
+            state=0, # NEW
+            data={}
         )
-        db.session.add(progress)
-        progress.first_seen = func.now()
-        progress.fsrs_state = LearningProgress.STATE_LEARNING
+        db.session.add(state_record)
+        state_record.created_at = func.now()
 
     # 2. Cập nhật các chỉ số thống kê cơ bản
-    progress.last_reviewed = func.now()
+    state_record.last_review = func.now()
+    
+    # Update unified counters
     if is_correct:
-        progress.times_correct = (progress.times_correct or 0) + 1
-        progress.correct_streak = (progress.correct_streak or 0) + 1
-        progress.incorrect_streak = 0
+        state_record.times_correct = (state_record.times_correct or 0) + 1
+        state_record.streak = (state_record.streak or 0) + 1
     else:
-        progress.times_incorrect = (progress.times_incorrect or 0) + 1
-        progress.incorrect_streak = (progress.incorrect_streak or 0) + 1
-        progress.correct_streak = 0
-
+        state_record.times_incorrect = (state_record.times_incorrect or 0) + 1
+        state_record.streak = 0
+    
     # 3. Tính toán điểm số
     if is_first_time:
         score_change += _get_score_value('QUIZ_FIRST_TIME_BONUS', 5)
@@ -87,17 +90,18 @@ def process_quiz_answer(user_id, item_id, user_answer_text, current_user_total_s
         score_change += _get_score_value('QUIZ_CORRECT_BONUS', 20)
 
     # 4. Cập nhật trạng thái (status)
-    total_attempts = (progress.times_correct or 0) + (progress.times_incorrect or 0)
-    correct_ratio = (progress.times_correct or 0) / total_attempts if total_attempts > 0 else 0
+    # Legacy heuristic logic ported to new model
+    total_attempts = (state_record.times_correct or 0) + (state_record.times_incorrect or 0)
+    correct_ratio = (state_record.times_correct or 0) / total_attempts if total_attempts > 0 else 0
 
     if total_attempts > 10 and correct_ratio > 0.8:
-        progress.fsrs_state = LearningProgress.STATE_REVIEW
+        state_record.state = 2 # REVIEW
     elif total_attempts > 5 and correct_ratio < 0.5:
-        progress.fsrs_state = LearningProgress.STATE_LEARNING
+        state_record.state = 1 # LEARNING
     elif is_first_time:
-        progress.fsrs_state = LearningProgress.STATE_LEARNING
+        state_record.state = 1 # LEARNING
 
-    # 5. Log to HistoryRecorder (replaces legacy ReviewLog)
+    # 5. Log to HistoryRecorder
     HistoryRecorder.record_interaction(
         user_id=user_id,
         item_id=item_id,
@@ -105,7 +109,7 @@ def process_quiz_answer(user_id, item_id, user_answer_text, current_user_total_s
             'rating': 1 if is_correct else 0, # 1=correct, 0=incorrect for quiz
             'user_answer': user_answer_text,
             'is_correct': is_correct,
-            'review_duration': 0 # Quiz logic here doesn't seem to pass duration? Default 0.
+            'review_duration': 0
         },
         context_data={
             'session_id': session_id,
@@ -113,13 +117,13 @@ def process_quiz_answer(user_id, item_id, user_answer_text, current_user_total_s
             'learning_mode': 'quiz'
         },
         fsrs_snapshot={
-            'state': progress.fsrs_state,
-            'stability': progress.fsrs_stability,
-            'difficulty': progress.fsrs_difficulty
+            'state': state_record.state,
+            'stability': state_record.stability,
+            'difficulty': state_record.difficulty
         },
         game_snapshot={
             'score_change': score_change,
-            'streak_position': progress.correct_streak if is_correct else 0
+            'streak_position': state_record.streak if is_correct else 0
         }
     )
 

@@ -448,7 +448,10 @@ class AudioService:
         log_prefix = f"[AUDIO_SERVICE|Regenerate|Card:{flashcard_id}|Side:{side}]"
         logger.info(f"{log_prefix} Bắt đầu tái tạo audio.")
 
-        card = LearningItem.query.filter_by(item_id=flashcard_id, item_type='FLASHCARD').first()
+        card = LearningItem.query.filter(
+            LearningItem.item_id == flashcard_id,
+            LearningItem.item_type.in_(['FLASHCARD', 'VOCABULARY'])
+        ).first()
         if not card:
             logger.error(f"{log_prefix} Không tìm thấy flashcard.")
             return False, "Không tìm thấy flashcard."

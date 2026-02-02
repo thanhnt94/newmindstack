@@ -530,69 +530,36 @@
 
         const buttons = document.querySelectorAll('.js-rating-btn');
 
-        // Clear previous badges/tooltips first
+        // CLEAR: Clean up title (remove old interval text like "(3d)")
         buttons.forEach(btn => {
-            const existingBadge = btn.querySelector('.fc-time-badge');
-            if (existingBadge) existingBadge.remove();
-
-            // Clean up title (remove old interval text like "(3d)")
             const titleSpan = btn.querySelector('span');
             if (titleSpan) {
-                const baseLabel = btn.getAttribute('data-base-label');
-                if (baseLabel) {
-                    titleSpan.textContent = baseLabel;
-                } else {
-                    // Start fresh if no base label saved yet
-                    const text = titleSpan.textContent;
-                    if (text.includes('(')) {
-                        const clean = text.split('(')[0].trim();
-                        btn.setAttribute('data-base-label', clean);
-                        titleSpan.textContent = clean;
-                    } else {
-                        btn.setAttribute('data-base-label', text);
-                    }
-                }
+                const baseLabel = btn.getAttribute('data-base-label') || titleSpan.textContent.split('(')[0].trim();
+                btn.setAttribute('data-base-label', baseLabel);
+                titleSpan.textContent = baseLabel;
             }
-
-            // Reset tooltip logic
-            btn.onmouseenter = null;
-            btn.onmouseleave = null;
         });
 
-        // Function to update UI with data
-        const applyPreviewData = (previews) => {
+        // OPTIMIZATION: Use local predicted intervals if provided in cardData
+        const localPreviews = (cardData.initial_stats && cardData.initial_stats.predicted_intervals) 
+                             ? cardData.initial_stats.predicted_intervals 
+                             : null;
+
+        if (localPreviews) {
+            console.log('[FSRS Mobile] Using local predicted intervals');
             buttons.forEach(btn => {
-                const rating = btn.dataset.rating; // "1", "2", "3", "4"
-                const info = previews[rating];
-
-                if (info) {
-                    // Update Time Badge/Text
-                    const timeText = info.interval;
-                    const titleSpan = btn.querySelector('span');
-                    if (titleSpan && timeText) {
-                        const baseLabel = btn.getAttribute('data-base-label');
-                        titleSpan.textContent = `${baseLabel} (${timeText})`;
-                        titleSpan.style.whiteSpace = 'nowrap';
-                    }
-
-                    // Setup Tooltip with actual data
-
-                    // [REMOVED] Tooltip disabled by user request (Step 184)
-                    // const handleShowTooltip = () => { ... };
-                    // btn.onmouseenter = handleShowTooltip;
-                    // ...
-
-                    // Clear any existing listeners if needed, but for now just don't add them.
-                    btn.onmouseenter = null;
-                    btn.onmouseleave = null;
+                const rating = btn.dataset.rating;
+                const timeText = localPreviews[rating];
+                const titleSpan = btn.querySelector('span');
+                if (titleSpan && timeText) {
+                    const baseLabel = btn.getAttribute('data-base-label');
+                    titleSpan.textContent = `${baseLabel} (${timeText})`;
                 }
             });
-        };
+            return; // Skip API call
+        }
 
-        // Check Cache first?
-        // Actually, let's just fetch. It's fast.
-
-        // Call Backend API
+        // Call Backend API (Fallback)
         fetch('/learn/vocab-flashcard/api/preview_fsrs', {
             method: 'POST',
             headers: {
