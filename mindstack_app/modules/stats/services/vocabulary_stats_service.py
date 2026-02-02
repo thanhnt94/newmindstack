@@ -309,13 +309,55 @@ class VocabularyStatsService:
         }
 
     @staticmethod
-    def get_course_overview_stats(user_id: int, container_id: int, page: int = 1, per_page: int = 12) -> dict:
+    def get_course_overview_stats(user_id: int, container_id: int, page: int = 1, per_page: int = 12, sort_by: str = 'default') -> dict:
         base_query = LearningItem.query.filter(
             LearningItem.container_id == container_id,
             LearningItem.item_type.in_(['FLASHCARD', 'VOCABULARY'])
         )
+        
+        # [NEW] Sorting Logic
+        if sort_by == 'due_date':
+            # Sort by Next Review (Due Date)
+            # Need to join with LearningProgress (outer join to include unlearned items)
+            base_query = base_query.outerjoin(
+                LearningProgress, 
+                (LearningItem.item_id == LearningProgress.item_id) & 
+                (LearningProgress.user_id == user_id) &
+                (LearningProgress.learning_mode == LearningProgress.MODE_FLASHCARD)
+            ).order_by(
+                # Items with due date (past first) -> Future -> None (New items last)
+                # SQLite/Postgres nulls handling varies, usually nulls last/first.
+                # We want Due (Past) < Due (Future) < Null (New)
+                # asc() puts Null last typically or first? Default is Null First often.
+                # Let's use nulls_last if supported or case statement.
+                # Simpler: order by fsrs_due asc.
+                LearningProgress.fsrs_due.asc().nulls_last(),
+                LearningItem.order_in_container.asc()
+            )
+        elif sort_by == 'mastery':
+            # Sort by Mastery (Retrievability) - High to Low or Low to High?
+            # Usually "Weakest first" is better for learning.
+            base_query = base_query.outerjoin(
+                LearningProgress, 
+                (LearningItem.item_id == LearningProgress.item_id) & 
+                (LearningProgress.user_id == user_id) &
+                (LearningProgress.learning_mode == LearningProgress.MODE_FLASHCARD)
+            ).order_by(
+                # We want Low Retrievability first. (Ascending)
+                # Nulls (New) count as 0 retrievability? Or separate?
+                # Let's treat New as failure? No.
+                # Standard: Weakest -> Strongest -> New
+                # Or New -> Weakest -> Strongest?
+                # User request was "soft theo thoi gian toi han".
+                # Let's stick to just 'due_date' and 'default' for now as requested.
+                LearningItem.order_in_container.asc()
+            )
+        else:
+            # Default: Order by custom order or ID
+            base_query = base_query.order_by(LearningItem.order_in_container.asc(), LearningItem.item_id.asc())
+
         total_items = base_query.count()
-        pagination = base_query.order_by(LearningItem.order_in_container.asc(), LearningItem.item_id.asc()).paginate(
+        pagination = base_query.paginate(
             page=page, per_page=per_page, error_out=False
         )
         if not pagination.items:

@@ -12,6 +12,7 @@ document.addEventListener('DOMContentLoaded', function () {
         let currentStatsPage = 1;
         let currentActiveStep = 'detail';
         let selectedFlashcardMode = null;
+        let currentSort = 'default'; // [NEW] Sort state
 
         // Elements
         const stepDetail = document.getElementById('step-detail');
@@ -53,7 +54,8 @@ document.addEventListener('DOMContentLoaded', function () {
             selectedSetId = setId;
             if (pushState) history.pushState({ setId: setId }, '', '/learn/vocabulary/set/' + setId);
 
-            return fetch('/learn/vocabulary/api/set/' + setId + '?page=1')
+            // [UPDATED] Pass sort param
+            return fetch('/learn/vocabulary/api/set/' + setId + '?page=1&sort=' + currentSort)
                 .then(r => r.json())
                 .then(data => {
                     console.log('API Response for set detail:', data);
@@ -280,8 +282,10 @@ document.addEventListener('DOMContentLoaded', function () {
             if (paginationBars.length > 0 && paginationHtml && paginationHtml.trim().length > 0) {
                 paginationBars.forEach(bar => {
                     bar.innerHTML = paginationHtml;
-                    bar.classList.add('visible');
-                    console.log('Pagination bar updated and shown:', bar.id);
+                    if (bar.classList.contains('vocab-pagination-bar')) {
+                        bar.classList.add('visible');
+                    }
+                    console.log('Pagination bar updated:', bar.id);
                     bar.querySelectorAll('a').forEach(link => {
                         link.onclick = (e) => {
                             e.preventDefault();
@@ -296,12 +300,40 @@ document.addEventListener('DOMContentLoaded', function () {
         function fetchCourseStatsPage(page) {
 
             if (!selectedSetId) return;
-            fetch('/learn/vocabulary/api/set/' + selectedSetId + '?page=' + page)
+            // [UPDATED] Pass sort param
+            fetch('/learn/vocabulary/api/set/' + selectedSetId + '?page=' + page + '&sort=' + currentSort)
                 .then(r => r.json())
                 .then(data => {
                     if (data.success) renderSetDetail(selectedSetData, data.course_stats, false, data.pagination_html);
                 });
         }
+
+
+        // [NEW] Bind Sorting Events
+        document.addEventListener('click', function (e) {
+            if (e.target.classList.contains('js-sort-btn')) {
+                const btn = e.target;
+                const sortType = btn.dataset.sort;
+
+                // Update UI
+                document.querySelectorAll('.js-sort-btn').forEach(b => {
+                    b.classList.remove('active', 'bg-white', 'text-indigo-600', 'shadow-sm');
+                    b.classList.add('text-slate-500');
+                });
+                btn.classList.add('active', 'bg-white', 'text-indigo-600', 'shadow-sm');
+                btn.classList.remove('text-slate-500');
+
+                currentSort = sortType;
+                if (selectedSetId) {
+                    // Start Loading State
+                    const listContainer = document.getElementById('detail-vocab-list');
+                    if (listContainer) {
+                        listContainer.innerHTML = '<div class="text-center py-10 text-slate-400"><i class="fas fa-spinner fa-spin text-2xl"></i><p class="mt-2 text-sm">Đang sắp xếp...</p></div>';
+                    }
+                    loadSetDetail(selectedSetId);
+                }
+            }
+        });
 
         function checkSetActiveSession(setId) {
             const banner = document.getElementById('active-session-banner-detail');

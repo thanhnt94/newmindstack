@@ -225,6 +225,23 @@ render_unified_header with context %}
                             </div>
                         </div>
 
+                        <!-- Sorting Controls -->
+                        <div class="px-4 mb-4 flex items-center justify-between">
+                            <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Danh sách thẻ</span>
+                            <div class="flex bg-slate-100 rounded-lg p-1 gap-1">
+                                <button
+                                    class="px-3 py-1.5 rounded-md text-xs font-bold transition-all js-sort-btn active bg-white text-indigo-600 shadow-sm"
+                                    data-sort="default">
+                                    Mặc định
+                                </button>
+                                <button
+                                    class="px-3 py-1.5 rounded-md text-xs font-bold text-slate-500 hover:text-indigo-600 transition-all js-sort-btn"
+                                    data-sort="due_date">
+                                    Cần ôn tập
+                                </button>
+                            </div>
+                        </div>
+
                         <!-- Vocab List -->
                         <div id="detail-vocab-list" class="js-word-list space-y-4 px-4 pb-24">
                             <!-- Items rendered by JS -->
@@ -240,7 +257,7 @@ render_unified_header with context %}
                         </div>
 
                         <!-- Fixed Pagination for Detail View (Moved inside Tab) -->
-                        <div id="detail-pagination-bar" class="vocab-pagination-bar">
+                        <div id="detail-pagination-bar" class="vocab-pagination-bar md:hidden">
                             <button class="pagination-nav-btn js-detail-prev-page" disabled>
                                 <i class="fas fa-chevron-left"></i>
                             </button>

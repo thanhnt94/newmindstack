@@ -148,7 +148,8 @@ def api_get_set_detail(set_id):
     """API to get detailed info about a vocabulary set."""
     try:
         page = request.args.get('page', 1, type=int)
-        result = VocabularyService.get_set_detail(current_user.user_id, set_id, page=page)
+        sort_by = request.args.get('sort', 'default')
+        result = VocabularyService.get_set_detail(current_user.user_id, set_id, page=page, sort_by=sort_by)
         
         pagination_html = _render_pagination(set_id, result.stats, page)
         
