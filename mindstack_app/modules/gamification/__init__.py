@@ -14,5 +14,6 @@ module_metadata = {
 
 def setup_module(app):
     from . import routes
+    from . import events  # [FIX] Ensure event handlers are registered
     from .services.reward_manager import RewardManager
     RewardManager.init_listeners()

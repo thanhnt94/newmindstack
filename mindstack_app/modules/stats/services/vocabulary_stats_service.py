@@ -1,12 +1,12 @@
 # File: mindstack_app/modules/stats/services/vocabulary_stats_service.py
 from __future__ import annotations
 from datetime import datetime, timezone, timedelta
-from sqlalchemy import func, or_
+from sqlalchemy import func, or_, desc
 from flask import current_app, url_for
 from collections import defaultdict
 from mindstack_app.models import (
     db, LearningItem, ReviewLog, User, ContainerContributor, LearningContainer, 
-    UserItemMarker, LearningProgress
+    UserItemMarker, LearningProgress, ScoreLog
 )
 from mindstack_app.modules.fsrs.interface import FSRSInterface as FsrsService
 from mindstack_app.modules.fsrs.services.hard_item_service import FSRSHardItemService as HardItemService
@@ -14,6 +14,89 @@ from mindstack_app.utils.content_renderer import render_text_field
 
 class VocabularyStatsService:
     """Service for calculating vocabulary-related statistics."""
+
+    @staticmethod
+    def get_container_leaderboard(container_id: int, limit: int = 20, timeframe: str = 'all') -> list:
+        """
+        Lấy bảng xếp hạng người dùng cho một bộ từ vựng cụ thể.
+        Xếp hạng dựa trên ĐIỂM SỐ (từ ScoreLog) và số từ đã thuộc.
+        Hỗ trợ filter theo timeframe: 'day', 'week', 'month', 'all'.
+        """
+
+        # 1. Lấy danh sách item_id trong container để filter ScoreLog
+        item_ids_query = db.session.query(LearningItem.item_id).filter(
+            LearningItem.container_id == container_id
+        ).subquery()
+
+        # 2. Xử lý timeframe
+        start_date = VocabularyStatsService._get_start_date(timeframe)
+        
+        # 3. Query ScoreLog để tính điểm
+        # ScoreLog: user_id, item_id, score_change, timestamp
+        query = db.session.query(
+            User.user_id,
+            User.username,
+            User.avatar_url,
+            func.sum(ScoreLog.score_change).label('total_score'),
+            func.count(ScoreLog.log_id).label('review_count')
+        ).join(
+            ScoreLog, User.user_id == ScoreLog.user_id
+        ).filter(
+            ScoreLog.item_id.in_(item_ids_query)
+        )
+
+        if start_date:
+            # Ensure robustness by converting both to naive if needed, but since we return naive from helper now:
+            query = query.filter(ScoreLog.timestamp >= start_date)
+
+        score_results = (
+            query
+            .group_by(User.user_id, User.username, User.avatar_url)
+            .order_by(desc('total_score'))
+            .limit(limit)
+            .all()
+        )
+
+        # 4. Lấy thêm thông tin Mastered Count (có thể không cần filter theo time cho cái này, 
+        # nhưng để nhất quán thì ta hiển thị mastered hiện tại của user cho set này)
+        # Để đơn giản và hiệu năng, ta query riêng hoặc subquery. 
+        # Ở đây ta sẽ lấy mastered count HIỆN TẠI (trạng thái snapshot) của user đối với set này.
+        user_ids = [r.user_id for r in score_results]
+        mastered_map = {}
+        if user_ids:
+            mastered_data = db.session.query(
+                LearningProgress.user_id,
+                func.count(LearningProgress.item_id)
+            ).filter(
+                 LearningProgress.item_id.in_(item_ids_query),
+                 LearningProgress.user_id.in_(user_ids),
+                 LearningProgress.fsrs_stability >= 21.0
+            ).group_by(LearningProgress.user_id).all()
+            mastered_map = {uid: count for uid, count in mastered_data}
+
+        leaderboard = []
+        for idx, row in enumerate(score_results, start=1):
+            # Logic Avatar
+            avatar_url = None
+            if row.avatar_url:
+                if row.avatar_url.startswith(('http://', 'https://')):
+                    avatar_url = row.avatar_url
+                else:
+                    try:
+                        avatar_url = url_for('media_uploads', filename=row.avatar_url)
+                    except: pass
+            
+            leaderboard.append({
+                'rank': idx,
+                'user_id': row.user_id,
+                'username': row.username,
+                'avatar_url': avatar_url,
+                'total_score': int(row.total_score or 0),
+                'review_count': int(row.review_count or 0),
+                'mastered_count': mastered_map.get(row.user_id, 0)
+            })
+            
+        return leaderboard
 
     @staticmethod
     def get_global_stats(user_id: int) -> dict:
@@ -339,6 +422,22 @@ class VocabularyStatsService:
         if log.is_correct is not None: return log.is_correct
         if log.rating is not None: return log.rating >= 2
         return False
+
+    @staticmethod
+    def _get_start_date(timeframe: str) -> datetime | None:
+        # Use naive utcnow to match SQLite's likely storage format
+        now = datetime.utcnow()
+        if timeframe == 'day':
+            # Start of today (UTC)
+            return now.replace(hour=0, minute=0, second=0, microsecond=0)
+        elif timeframe == 'week':
+            # Start of week (Monday)
+            start = now - timedelta(days=now.weekday())
+            return start.replace(hour=0, minute=0, second=0, microsecond=0)
+        elif timeframe == 'month':
+            # Start of month
+            return now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        return None
 
     @staticmethod
     def _get_relative_time_string(dt: datetime) -> str:

@@ -13,3 +13,15 @@ def get_leaderboard_api():
         'success': True,
         'data': data
     })
+
+@stats_bp.route('/api/leaderboard/container/<int:container_id>')
+@login_required
+def get_container_leaderboard_api(container_id):
+    """Endpoint API cho bảng xếp hạng của một bộ thẻ."""
+    timeframe = request.args.get('timeframe', 'all')
+    from ..services.vocabulary_stats_service import VocabularyStatsService
+    data = VocabularyStatsService.get_container_leaderboard(container_id, timeframe=timeframe)
+    return jsonify({
+        'success': True,
+        'data': data
+    })

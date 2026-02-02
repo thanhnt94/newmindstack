@@ -94,6 +94,13 @@ document.addEventListener('DOMContentLoaded', function () {
                     const progressText = (stats.learned_count || 0) + '/' + (stats.total_count || s.card_count);
                     document.querySelectorAll('.js-progress-count').forEach(el => el.textContent = progressText);
 
+                    // Update Tab Count
+                    const tabCountEl = document.getElementById('tab-list-count');
+                    if (tabCountEl) {
+                        tabCountEl.textContent = progressText;
+                        tabCountEl.classList.remove('hidden');
+                    }
+
                     const progressPercent = stats.total_count ? Math.round((stats.learned_count / stats.total_count) * 100) : 0;
                     document.querySelectorAll('.js-header-progress-percent').forEach(el => el.textContent = progressPercent + '%');
                 }
@@ -168,98 +175,72 @@ document.addEventListener('DOMContentLoaded', function () {
                         const nextReview = item.next_review || '-';
 
                         listHtml += `
-                    <div class="group bg-white border border-slate-200 rounded-2xl hover:border-indigo-300 hover:shadow-xl transition-all duration-300 mb-6 relative overflow-hidden js-item-stats-trigger cursor-pointer" data-item-id="${item.item_id || item.id}">
-                        <!-- Top Bar: Index, ID & FSRS Stats Grid -->
-                        <div class="bg-slate-50/50 border-b border-slate-100 p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                            <div class="flex items-center gap-3">
-                                <span class="w-8 h-8 rounded-lg bg-white border border-slate-200 flex items-center justify-center font-mono font-bold text-slate-500 text-xs shadow-sm">#${index + 1}</span>
-                                <div class="flex flex-col">
-                                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">ID Thẻ</span>
-                                    <span class="font-mono text-xs font-bold text-slate-600">#${item.item_id || item.id}</span>
-                                </div>
-                                <div class="h-6 w-px bg-slate-200 mx-1 hidden sm:block"></div>
-                                <div class="flex flex-col">
-                                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Trạng thái</span>
-                                    <span class="text-xs font-bold text-indigo-600">${fsrsState}</span>
-                                </div>
+                    <div class="group bg-white border border-slate-300 rounded-2xl hover:border-indigo-500 hover:shadow-xl transition-all duration-300 mb-4 relative overflow-hidden js-item-stats-trigger cursor-pointer ring-0 hover:ring-4 hover:ring-indigo-50/50" data-item-id="${item.item_id || item.id}">
+                        <!-- Compact Top Bar -->
+                        <div class="px-3 py-2 bg-slate-50 border-b border-slate-200 flex items-center justify-between gap-2">
+                            <div class="flex items-center gap-2">
+                                <span class="font-mono font-bold text-xs text-slate-500 w-6">#${index + 1}</span>
+                                <span class="px-1.5 py-0.5 bg-white border border-slate-300 rounded text-[10px] text-slate-600 font-mono shadow-sm">ID:${item.item_id || item.id}</span>
+                                <span class="text-[10px] font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-full border border-indigo-200">${fsrsState}</span>
                             </div>
                             
-                            <!-- FSRS Stats Mini-Grid -->
-                            <div class="flex items-center gap-4 bg-white px-3 py-1.5 rounded-lg border border-slate-100 shadow-sm overflow-x-auto">
-                                <div class="flex flex-col items-center min-w-[40px]" title="Khả năng nhớ lại (Retrievability)">
-                                    <span class="text-[10px] text-slate-400 font-bold">R</span>
-                                    <span class="text-xs font-bold text-emerald-600">${retrievability}</span>
+                            <!-- Stats Compact Row -->
+                            <div class="flex items-center gap-3 text-[10px] font-bold text-slate-600">
+                                <div class="flex items-center gap-1" title="Khả năng nhớ (R)">
+                                    <span class="text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">${retrievability}</span>
                                 </div>
-                                <div class="w-px h-6 bg-slate-100"></div>
-                                <div class="flex flex-col items-center min-w-[40px]" title="Độ bền nhớ (Stability)">
-                                    <span class="text-[10px] text-slate-400 font-bold">S</span>
-                                    <span class="text-xs font-bold text-indigo-600">${stability}</span>
+                                <div class="w-px h-3 bg-slate-300"></div>
+                                <div class="flex items-center gap-1" title="Độ bền nhớ (S)">
+                                    <span class="text-indigo-700">S:${stability}</span>
                                 </div>
-                                <div class="w-px h-6 bg-slate-100"></div>
-                                <div class="flex flex-col items-center min-w-[40px]" title="Độ khó (Difficulty)">
-                                    <span class="text-[10px] text-slate-400 font-bold">D</span>
-                                    <span class="text-xs font-bold text-orange-600">${difficulty}</span>
+                                <div class="flex items-center gap-1" title="Độ khó (D)">
+                                    <span class="text-orange-700">D:${difficulty}</span>
                                 </div>
-                                <div class="w-px h-6 bg-slate-100"></div>
-                                <div class="flex flex-col items-center min-w-[40px]" title="Lần học (Repetitions)">
-                                    <span class="text-[10px] text-slate-400 font-bold">Reps</span>
-                                    <span class="text-xs font-bold text-slate-600">${item.repetitions || 0}</span>
+                                <div class="w-px h-3 bg-slate-300"></div>
+                                <div class="flex items-center gap-1" title="Số lần học">
+                                    <span class="text-slate-700">Reps:${item.repetitions || 0}</span>
                                 </div>
                             </div>
                         </div>
 
-                        <div class="p-4">
-                             <div class="flex flex-col gap-4">
+                        <div class="p-3">
+                             <div class="flex flex-col gap-2">
                                 <!-- Main Content Area -->
-                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div class="grid grid-cols-1 gap-2">
                                     <!-- Front Side -->
-                                    <div class="flex flex-col">
-                                        <div class="flex items-center justify-between mb-2">
-                                            <div class="flex items-center gap-2">
-                                                <div class="w-1.5 h-1.5 rounded-full bg-indigo-500"></div>
-                                                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Mặt trước</span>
-                                            </div>
+                                    <div class="flex flex-col relative">
+                                        <div class="absolute top-2 right-2 z-10">
                                             ${statusBadge}
                                         </div>
-                                        <div class="bg-indigo-50/30 border border-indigo-100 rounded-xl p-4 min-h-[80px] flex items-center shadow-sm">
-                                           <div class="text-lg font-bold text-slate-800 leading-relaxed w-full">${item.term}</div>
+                                        <div class="bg-gradient-to-br from-indigo-50/50 to-white border border-indigo-200 rounded-lg p-3 min-h-[50px] flex items-center shadow-sm relative overflow-hidden group-hover:border-indigo-300 transition-colors">
+                                           <div class="w-1 h-full absolute left-0 top-0 bg-indigo-500"></div>
+                                           <div class="text-base font-bold text-slate-900 leading-snug pl-2 w-full pr-14">${item.term}</div>
                                         </div>
                                     </div>
                                     
                                     <!-- Back Side -->
-                                    <div class="flex flex-col">
-                                        <div class="flex items-center justify-between mb-2">
-                                            <div class="flex items-center gap-2">
-                                                <div class="w-1.5 h-1.5 rounded-full bg-amber-500"></div>
-                                                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Mặt sau</span>
-                                            </div>
-                                             ${dueBadge}
+                                    <div class="flex flex-col relative">
+                                        <div class="absolute top-2 right-2 z-10">
+                                            ${dueBadge}
                                         </div>
-                                        <div class="bg-amber-50/30 border border-amber-100 rounded-xl p-4 min-h-[80px] flex items-center shadow-sm">
-                                            <div class="text-sm font-medium text-slate-700 leading-relaxed w-full">${item.definition}</div>
+                                        <div class="bg-amber-50/40 border border-amber-200 rounded-lg p-3 min-h-[50px] flex items-center shadow-sm relative overflow-hidden group-hover:border-amber-300 transition-colors">
+                                            <div class="w-1 h-full absolute left-0 top-0 bg-amber-400"></div>
+                                            <div class="text-sm font-medium text-slate-800 leading-relaxed pl-2 w-full pr-14 line-clamp-3" title="${item.definition}">${item.definition}</div>
                                         </div>
                                     </div>
                                 </div>
 
-                                <!-- Footer Info -->
-                                <div class="flex items-center justify-between pt-2 border-t border-slate-50">
-                                    <div class="flex items-center gap-3">
-                                        <div class="flex items-center gap-2 px-3 py-1 bg-slate-50 rounded-lg border border-slate-100">
-                                            <i class="fas fa-clock text-slate-400 text-xs"></i>
-                                            <span class="text-xs font-medium text-slate-600">Ôn tập: <span class="font-bold text-indigo-600">${nextReview}</span></span>
-                                        </div>
+                                <!-- Compact Footer -->
+                                <div class="flex items-center justify-between mt-1 pt-2 border-t border-slate-200">
+                                    <div class="flex items-center gap-2 text-[10px] text-slate-600">
+                                        <i class="fas fa-history text-slate-400"></i>
+                                        <span>Ôn tập: <span class="font-bold text-slate-800">${nextReview}</span></span>
                                     </div>
 
-                                    <div class="flex items-center gap-2">
-                                        <div class="${iconClass(item.has_ai, 'bg-purple-100 text-purple-600 ring-1 ring-purple-200')}" title="${item.has_ai ? 'Có giải thích AI' : 'Chưa có giải thích AI'}">
-                                            <i class="fas fa-robot text-xs"></i>
-                                        </div>
-                                        <div class="${iconClass(item.has_note, 'bg-yellow-100 text-yellow-600 ring-1 ring-yellow-200')}" title="${item.has_note ? 'Có ghi chú' : 'Không có ghi chú'}">
-                                            <i class="fas fa-sticky-note text-xs"></i>
-                                        </div>
-                                        <div class="${iconClass(item.is_hard, 'bg-red-100 text-red-600 ring-1 ring-red-200')}" title="${item.is_hard ? 'Thẻ khó' : 'Bình thường'}">
-                                            <i class="fas fa-fire text-xs"></i>
-                                        </div>
+                                    <div class="flex items-center gap-1.5">
+                                        ${item.has_ai ? '<i class="fas fa-robot text-purple-600 text-xs bg-purple-100 border border-purple-200 p-1 rounded"></i>' : ''}
+                                        ${item.has_note ? '<i class="fas fa-sticky-note text-yellow-600 text-xs bg-yellow-100 border border-yellow-200 p-1 rounded"></i>' : ''}
+                                        ${item.is_hard ? '<i class="fas fa-fire text-red-600 text-xs bg-red-100 border border-red-200 p-1 rounded"></i>' : ''}
                                     </div>
                                 </div>
                             </div>
@@ -490,5 +471,112 @@ document.addEventListener('DOMContentLoaded', function () {
         }
 
         initialize();
+        // --- Tab Logic ---
+        window.switchDetailTab = function (tabName) {
+            // Update Tab Buttons
+            document.querySelectorAll('#tab-btn-list, #tab-btn-stats').forEach(btn => {
+                if (btn.id === 'tab-btn-' + tabName) {
+                    btn.classList.add('text-indigo-600', 'border-indigo-600');
+                    btn.classList.remove('text-slate-500', 'border-transparent');
+                } else {
+                    btn.classList.remove('text-indigo-600', 'border-indigo-600');
+                    btn.classList.add('text-slate-500', 'border-transparent');
+                }
+            });
+
+            // Update Tab Content
+            document.getElementById('tab-content-list').classList.add('hidden');
+            document.getElementById('tab-content-stats').classList.add('hidden');
+            document.getElementById('tab-content-' + tabName).classList.remove('hidden');
+
+            // Toggle Pagination Visibility
+            const paginations = document.querySelectorAll('#detail-pagination-bar, #detail-pagination-bar-desktop');
+            if (tabName === 'stats') {
+                paginations.forEach(el => el.classList.add('hidden'));
+                if (selectedSetId) {
+                    fetchSetLeaderboard(selectedSetId);
+                }
+            } else {
+                paginations.forEach(el => el.classList.remove('hidden'));
+            }
+        };
+
+        // Global variable for current timeframe
+        let currentLeaderboardTimeframe = 'all';
+
+        function fetchSetLeaderboard(setId, timeframe = null) {
+            if (timeframe) currentLeaderboardTimeframe = timeframe;
+            const tf = currentLeaderboardTimeframe;
+
+            const container = document.getElementById('set-leaderboard-container');
+            container.innerHTML = '<div class="text-center py-8 text-slate-400"><i class="fas fa-spinner fa-spin text-2xl mb-2"></i><p>Đang tải bảng xếp hạng...</p></div>';
+
+            // [FIXED] Added /stats prefix to API call
+            fetch('/stats/api/leaderboard/container/' + setId + '?timeframe=' + tf)
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success && data.data.length > 0) {
+                        let html = '';
+                        data.data.forEach((user, index) => {
+                            let rankBadge = '';
+                            if (user.rank === 1) rankBadge = '<span class="text-xl">🥇</span>';
+                            else if (user.rank === 2) rankBadge = '<span class="text-xl">🥈</span>';
+                            else if (user.rank === 3) rankBadge = '<span class="text-xl">🥉</span>';
+                            else rankBadge = `<span class="font-bold text-slate-400 w-6 text-center">${user.rank}</span>`;
+
+                            const avatar = user.avatar_url ?
+                                `<img src="${user.avatar_url}" class="w-10 h-10 rounded-full object-cover border border-slate-200">` :
+                                `<div class="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold">${user.username.charAt(0).toUpperCase()}</div>`;
+
+                            html += `
+                                <div class="bg-white rounded-xl p-3 border border-slate-100 flex items-center gap-3 shadow-sm">
+                                    <div class="flex items-center justify-center w-8">
+                                        ${rankBadge}
+                                    </div>
+                                    ${avatar}
+                                    <div class="flex-1">
+                                        <div class="font-bold text-slate-800 text-sm">${user.username}</div>
+                                        <div class="text-xs text-slate-500">Điểm: <span class="font-bold text-indigo-600">${user.total_score}</span> • Ôn tập: ${user.review_count} lần</div>
+                                    </div>
+                                    <div class="flex flex-col items-end">
+                                        <span class="text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-full border border-emerald-100">
+                                            ${user.mastered_count} Mastered
+                                        </span>
+                                    </div>
+                                </div>
+                            `;
+                        });
+                        container.innerHTML = html;
+                    } else {
+                        container.innerHTML = `
+                            <div class="text-center py-8 text-slate-400">
+                                <i class="fas fa-trophy text-4xl mb-3 opacity-30"></i>
+                                <p>Chưa có dữ liệu xếp hạng trong khoảng thời gian này.</p>
+                                <p class="text-xs mt-1">Hãy là người đầu tiên chinh phục bảng vàng!</p>
+                            </div>`;
+                    }
+                })
+                .catch(err => {
+                    console.error('Leaderboard error:', err);
+                    container.innerHTML = '<div class="text-center py-4 text-red-500">Lỗi tải dữ liệu.</div>';
+                });
+        }
+
+        // Bind filter events (delegation or direct find)
+        document.addEventListener('click', function (e) {
+            if (e.target.classList.contains('js-lb-filter')) {
+                const btn = e.target;
+                document.querySelectorAll('.js-lb-filter').forEach(b => {
+                    b.classList.remove('active', 'bg-white', 'text-indigo-700', 'shadow-sm');
+                    b.classList.add('text-indigo-100', 'hover:bg-white/10');
+                });
+                btn.classList.add('active', 'bg-white', 'text-indigo-700', 'shadow-sm');
+                btn.classList.remove('text-indigo-100', 'hover:bg-white/10');
+
+                if (selectedSetId) {
+                    fetchSetLeaderboard(selectedSetId, btn.dataset.tf);
+                }
+            }
+        });
     })();
 });

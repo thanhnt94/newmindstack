@@ -612,6 +612,12 @@
     };
 
     // Update stats from custom event dispatched by main script
+    document.addEventListener('flashcardStatsUpdated', function (e) {
+        if (e.detail) {
+            updateMobileStats(e.detail);
+        }
+    });
+
     function updateMobileStats(stats) {
         if (!stats) return;
 
@@ -640,6 +646,15 @@
             const sign = val > 0 ? '+' : '';
             el.textContent = sign + val;
         });
+
+        // [FIX] Update Global Score Header
+        if (typeof window.currentUserTotalScore !== 'undefined') {
+            document.querySelectorAll('.js-fc-score').forEach(el => {
+                // Determine animation or direct set
+                // For now, direct set formatted with commas
+                el.textContent = window.currentUserTotalScore.toLocaleString('en-US');
+            });
+        }
 
         // 4. Secondary Row Stats (Current Card Context)
 
