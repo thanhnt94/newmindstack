@@ -331,7 +331,10 @@ function displayCurrentCard() {
             statistics: {
                 times_reviewed: currentCardData.initial_stats.times_reviewed,
                 current_streak: currentCardData.initial_stats.current_streak,
-                easiness_factor: currentCardData.initial_stats.easiness_factor
+                easiness_factor: currentCardData.initial_stats.easiness_factor,
+                difficulty: currentCardData.initial_stats.difficulty,
+                stability: currentCardData.initial_stats.stability,
+                retrievability: currentCardData.initial_stats.retrievability
             },
             srs_data: {
                 next_review: currentCardData.initial_stats.next_review || null
@@ -371,7 +374,14 @@ function displayCurrentCard() {
         incorrect: sessionStatsLocal.incorrect,
         vague: sessionStatsLocal.vague,
         session_score: sessionScore,
-        current_streak: currentCardData.initial_stats ? (currentCardData.initial_streak || 0) : 0
+        current_streak: currentCardData.initial_stats ? (currentCardData.initial_stats.current_streak || 0) : 0,
+        
+        // [FIX] Add FSRS stats to prevent overwrite with 0s
+        difficulty: currentCardData.initial_stats ? currentCardData.initial_stats.difficulty : 0,
+        stability: currentCardData.initial_stats ? currentCardData.initial_stats.stability : 0,
+        retrievability: currentCardData.initial_stats ? currentCardData.initial_stats.retrievability : 0,
+        times_reviewed: currentCardData.initial_stats ? currentCardData.initial_stats.times_reviewed : 0,
+        status: currentCardData.initial_stats ? (currentCardData.initial_stats.status || 'new') : 'new'
     };
     document.dispatchEvent(new CustomEvent('flashcardStatsUpdated', { detail: window.flashcardSessionStats }));
 }
