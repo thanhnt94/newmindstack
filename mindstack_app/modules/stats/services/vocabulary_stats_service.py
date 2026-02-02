@@ -265,12 +265,68 @@ class VocabularyStatsService:
                 else: status = 'reviewing'
                 is_due = progress.fsrs_due and progress.fsrs_due.replace(tzinfo=timezone.utc) <= now if progress.fsrs_due else False
                 memory_level = progress.memory_level if hasattr(progress, 'memory_level') else 0
+                difficulty = progress.fsrs_difficulty or 0.0
+                repetitions = progress.repetitions or 0
+                has_note = bool((progress.mode_data or {}).get('note'))
+                
+                # Format Next Review
+                if progress.fsrs_due:
+                    due_date = progress.fsrs_due.replace(tzinfo=timezone.utc)
+                    diff = due_date - now
+                    if diff.total_seconds() <= 0:
+                        next_review = "Ngay bây giờ"
+                    elif diff.days > 365:
+                         next_review = f"{diff.days // 365} năm"
+                    elif diff.days > 30:
+                        next_review = f"{diff.days // 30} tháng"
+                    elif diff.days > 0:
+                        next_review = f"{diff.days} ngày"
+                    elif diff.seconds > 3600:
+                        next_review = f"{diff.seconds // 3600} giờ"
+                    else:
+                        next_review = f"{diff.seconds // 60} phút"
+                else:
+                    next_review = "-"
+
+                state_labels = {0: 'Mới (New)', 1: 'Đang học (Learning)', 2: 'Ôn tập (Review)', 3: 'Học lại (Relearning)'}
+                state_label = state_labels.get(state, 'Unknown')
             else:
                 mastery = retrievability = 0
                 status = 'new'
                 is_due = False
                 memory_level = 0
-            result_items.append({'item_id': item.item_id, 'term': term, 'definition': definition, 'mastery': mastery, 'retrievability': retrievability, 'status': status, 'is_due': is_due, 'memory_level': memory_level})
+                difficulty = stability = repetitions = 0
+                has_note = False
+                next_review = "-"
+                state_label = "Mới (New)"
+            
+            # Check for AI explanation existence (check if string is not empty/null)
+            has_ai = bool(item.ai_explanation and item.ai_explanation.strip())
+            
+            # Check if hard
+            is_hard = False
+            if progress:
+                # Simple check compatible with HardItemService logic
+                is_hard = (progress.incorrect_streak or 0) >= 3 or ((progress.repetitions or 0) > 10 and (progress.fsrs_stability or 0) < 7.0)
+
+            result_items.append({
+                'item_id': item.item_id, 
+                'term': term, 
+                'definition': definition, 
+                'mastery': mastery, 
+                'retrievability': retrievability, 
+                'status': status, 
+                'is_due': is_due, 
+                'memory_level': memory_level,
+                'fsrs_stability': stability,
+                'fsrs_difficulty': difficulty,
+                'repetitions': repetitions,
+                'has_ai': has_ai,
+                'has_note': has_note,
+                'is_hard': is_hard,
+                'next_review': next_review,
+                'state_label': state_label
+            })
         
         learned_count = db.session.query(func.count(LearningProgress.progress_id)).join(LearningItem, LearningProgress.item_id == LearningItem.item_id).filter(
             LearningItem.container_id == container_id, LearningProgress.user_id == user_id, LearningProgress.learning_mode == LearningProgress.MODE_FLASHCARD, LearningProgress.fsrs_state != LearningProgress.STATE_NEW

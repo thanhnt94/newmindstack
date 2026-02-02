@@ -327,15 +327,26 @@ render_unified_header with context %}
     /* Grid */
 
     .vocab-grid {
-
         display: grid;
-
         grid-template-columns: repeat(2, 1fr);
-
         gap: 0.75rem;
-
         padding: 1rem;
+    }
 
+    @media (min-width: 768px) {
+        .vocab-grid {
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+        }
+    }
+
+    @media (min-width: 1024px) {
+        .vocab-grid {
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1.25rem;
+            max-width: 1400px;
+            /* margin: 0 auto; removed to align left */
+        }
     }
 
 

@@ -147,48 +147,119 @@ document.addEventListener('DOMContentLoaded', function () {
                         return a.mastery - b.mastery;
                     });
 
-                    sortedItems.forEach(item => {
+                    // Feature Icons helpers (defined once)
+                    const iconClass = (active, colorClass) => `flex items-center justify-center w-7 h-7 rounded-lg transition-colors ${active ? colorClass + ' shadow-sm' : 'bg-slate-50 text-slate-300'}`;
+
+                    sortedItems.forEach((item, index) => {
                         let statusBadge = '';
                         if (item.status === 'new') {
-                            statusBadge = '<span class="px-2 py-1 bg-gradient-to-r from-blue-500 to-blue-600 text-white text-[10px] font-bold uppercase rounded-full tracking-wider shadow-sm">Mới</span>';
+                            statusBadge = '<span class="px-2 py-0.5 bg-blue-50 text-blue-600 text-[10px] font-bold uppercase rounded-md tracking-wider border border-blue-100">Mới</span>';
                         }
 
                         let dueBadge = '';
                         if (item.is_due) {
-                            dueBadge = '<span class="px-2 py-1 bg-gradient-to-r from-red-500 to-red-600 text-white text-[10px] font-bold uppercase rounded-full tracking-wider shadow-sm animate-pulse">Ôn tập</span>';
+                            dueBadge = '<span class="px-2 py-0.5 bg-red-50 text-red-600 text-[10px] font-bold uppercase rounded-md tracking-wider border border-red-100 animate-pulse">Ôn tập</span>';
                         }
 
+                        const stability = item.fsrs_stability ? parseFloat(item.fsrs_stability).toFixed(1) : '-';
+                        const difficulty = item.fsrs_difficulty ? parseFloat(item.fsrs_difficulty).toFixed(1) : '-';
+                        const retrievability = item.retrievability ? Math.round(item.retrievability * 100) + '%' : '-';
+                        const fsrsState = item.state_label || 'New';
+                        const nextReview = item.next_review || '-';
+
                         listHtml += `
-                    <div class="group p-4 bg-white border border-slate-100 rounded-xl hover:border-indigo-200 hover:shadow-lg transition-all duration-300 mb-3 relative overflow-hidden js-item-stats-trigger cursor-pointer" data-item-id="${item.item_id || item.id}">
-                        <div class="absolute inset-0 bg-gradient-to-r from-indigo-50/0 via-indigo-50/50 to-indigo-50/0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
-                        <div class="flex items-start justify-between gap-4 relative z-10">
-                            <div class="flex-1 min-w-0">
-                                <div class="flex items-center gap-2 mb-2">
-                                    <span class="text-base font-bold text-slate-800 truncate">${item.term}</span>
-                                    ${statusBadge}
-                                    ${dueBadge}
+                    <div class="group bg-white border border-slate-200 rounded-2xl hover:border-indigo-300 hover:shadow-xl transition-all duration-300 mb-6 relative overflow-hidden js-item-stats-trigger cursor-pointer" data-item-id="${item.item_id || item.id}">
+                        <!-- Top Bar: Index, ID & FSRS Stats Grid -->
+                        <div class="bg-slate-50/50 border-b border-slate-100 p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                            <div class="flex items-center gap-3">
+                                <span class="w-8 h-8 rounded-lg bg-white border border-slate-200 flex items-center justify-center font-mono font-bold text-slate-500 text-xs shadow-sm">#${index + 1}</span>
+                                <div class="flex flex-col">
+                                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">ID Thẻ</span>
+                                    <span class="font-mono text-xs font-bold text-slate-600">#${item.item_id || item.id}</span>
                                 </div>
-                                <p class="text-sm text-slate-500 leading-relaxed truncate group-hover:text-slate-700 transition-colors">${item.definition}</p>
+                                <div class="h-6 w-px bg-slate-200 mx-1 hidden sm:block"></div>
+                                <div class="flex flex-col">
+                                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Trạng thái</span>
+                                    <span class="text-xs font-bold text-indigo-600">${fsrsState}</span>
+                                </div>
                             </div>
-                            <div class="flex flex-col items-center gap-2 flex-shrink-0">
-                                <div class="relative w-14 h-14">
-                                    <svg class="transform -rotate-90 w-14 h-14">
-                                        <circle cx="28" cy="28" r="24" stroke="#e2e8f0" stroke-width="4" fill="none" />
-                                        <circle cx="28" cy="28" r="24" stroke="url(#gradient-${item.item_id})" stroke-width="4" fill="none" 
-                                            stroke-dasharray="${2 * Math.PI * 24}" 
-                                            stroke-dashoffset="${2 * Math.PI * 24 * (1 - item.mastery / 100)}"
-                                            stroke-linecap="round"
-                                            class="transition-all duration-500" />
-                                        <defs>
-                                            <linearGradient id="gradient-${item.item_id}" x1="0%" y1="0%" x2="100%" y2="100%">
-                                                ${item.mastery >= 80 ? '<stop offset="0%" style="stop-color:#10b981;stop-opacity:1" /><stop offset="100%" style="stop-color:#059669;stop-opacity:1" />' :
-                                item.mastery >= 50 ? '<stop offset="0%" style="stop-color:#f59e0b;stop-opacity:1" /><stop offset="100%" style="stop-color:#d97706;stop-opacity:1" />' :
-                                    '<stop offset="0%" style="stop-color:#ef4444;stop-opacity:1" /><stop offset="100%" style="stop-color:#dc2626;stop-opacity:1" />'}
-                                            </linearGradient>
-                                        </defs>
-                                    </svg>
-                                    <div class="absolute inset-0 flex items-center justify-center">
-                                        <span class="text-xs font-bold ${item.mastery >= 80 ? 'text-green-600' : item.mastery >= 50 ? 'text-yellow-600' : 'text-red-600'}">${item.mastery}%</span>
+                            
+                            <!-- FSRS Stats Mini-Grid -->
+                            <div class="flex items-center gap-4 bg-white px-3 py-1.5 rounded-lg border border-slate-100 shadow-sm overflow-x-auto">
+                                <div class="flex flex-col items-center min-w-[40px]" title="Khả năng nhớ lại (Retrievability)">
+                                    <span class="text-[10px] text-slate-400 font-bold">R</span>
+                                    <span class="text-xs font-bold text-emerald-600">${retrievability}</span>
+                                </div>
+                                <div class="w-px h-6 bg-slate-100"></div>
+                                <div class="flex flex-col items-center min-w-[40px]" title="Độ bền nhớ (Stability)">
+                                    <span class="text-[10px] text-slate-400 font-bold">S</span>
+                                    <span class="text-xs font-bold text-indigo-600">${stability}</span>
+                                </div>
+                                <div class="w-px h-6 bg-slate-100"></div>
+                                <div class="flex flex-col items-center min-w-[40px]" title="Độ khó (Difficulty)">
+                                    <span class="text-[10px] text-slate-400 font-bold">D</span>
+                                    <span class="text-xs font-bold text-orange-600">${difficulty}</span>
+                                </div>
+                                <div class="w-px h-6 bg-slate-100"></div>
+                                <div class="flex flex-col items-center min-w-[40px]" title="Lần học (Repetitions)">
+                                    <span class="text-[10px] text-slate-400 font-bold">Reps</span>
+                                    <span class="text-xs font-bold text-slate-600">${item.repetitions || 0}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="p-4">
+                             <div class="flex flex-col gap-4">
+                                <!-- Main Content Area -->
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <!-- Front Side -->
+                                    <div class="flex flex-col">
+                                        <div class="flex items-center justify-between mb-2">
+                                            <div class="flex items-center gap-2">
+                                                <div class="w-1.5 h-1.5 rounded-full bg-indigo-500"></div>
+                                                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Mặt trước</span>
+                                            </div>
+                                            ${statusBadge}
+                                        </div>
+                                        <div class="bg-indigo-50/30 border border-indigo-100 rounded-xl p-4 min-h-[80px] flex items-center shadow-sm">
+                                           <div class="text-lg font-bold text-slate-800 leading-relaxed w-full">${item.term}</div>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Back Side -->
+                                    <div class="flex flex-col">
+                                        <div class="flex items-center justify-between mb-2">
+                                            <div class="flex items-center gap-2">
+                                                <div class="w-1.5 h-1.5 rounded-full bg-amber-500"></div>
+                                                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Mặt sau</span>
+                                            </div>
+                                             ${dueBadge}
+                                        </div>
+                                        <div class="bg-amber-50/30 border border-amber-100 rounded-xl p-4 min-h-[80px] flex items-center shadow-sm">
+                                            <div class="text-sm font-medium text-slate-700 leading-relaxed w-full">${item.definition}</div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Footer Info -->
+                                <div class="flex items-center justify-between pt-2 border-t border-slate-50">
+                                    <div class="flex items-center gap-3">
+                                        <div class="flex items-center gap-2 px-3 py-1 bg-slate-50 rounded-lg border border-slate-100">
+                                            <i class="fas fa-clock text-slate-400 text-xs"></i>
+                                            <span class="text-xs font-medium text-slate-600">Ôn tập: <span class="font-bold text-indigo-600">${nextReview}</span></span>
+                                        </div>
+                                    </div>
+
+                                    <div class="flex items-center gap-2">
+                                        <div class="${iconClass(item.has_ai, 'bg-purple-100 text-purple-600 ring-1 ring-purple-200')}" title="${item.has_ai ? 'Có giải thích AI' : 'Chưa có giải thích AI'}">
+                                            <i class="fas fa-robot text-xs"></i>
+                                        </div>
+                                        <div class="${iconClass(item.has_note, 'bg-yellow-100 text-yellow-600 ring-1 ring-yellow-200')}" title="${item.has_note ? 'Có ghi chú' : 'Không có ghi chú'}">
+                                            <i class="fas fa-sticky-note text-xs"></i>
+                                        </div>
+                                        <div class="${iconClass(item.is_hard, 'bg-red-100 text-red-600 ring-1 ring-red-200')}" title="${item.is_hard ? 'Thẻ khó' : 'Bình thường'}">
+                                            <i class="fas fa-fire text-xs"></i>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
