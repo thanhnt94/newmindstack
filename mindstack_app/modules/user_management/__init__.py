@@ -15,4 +15,4 @@ module_metadata = {
 
 def setup_module(app):
     # Đăng ký các routes vào blueprint này
-    from . import user_routes
+    from . import routes

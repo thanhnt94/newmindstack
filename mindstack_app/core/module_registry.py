@@ -106,8 +106,8 @@ DEFAULT_MODULES: Iterable[ModuleDefinition] = (
     ModuleDefinition("mindstack_app.modules.gamification", "blueprint", url_prefix="/admin/gamification", display_name="Game hóa (Badges/Scores)"),
     ModuleDefinition("mindstack_app.modules.admin", "admin_bp", url_prefix="/admin", display_name="Quản trị hệ thống"),
     ModuleDefinition(
-        "mindstack_app.modules.user_management.user_routes",
-        "user_management_bp",
+        "mindstack_app.modules.user_management",
+        "blueprint",
         url_prefix="/admin/users",
         display_name="Quản lý người dùng",
     ),
