@@ -19,7 +19,11 @@ from ..engine.algorithms import (
 from ..engine.session_manager import FlashcardSessionManager
 from ..engine.core import FlashcardEngine
 from ..engine.config import FlashcardLearningConfig
-from ..services import AudioService, ImageService, LearningSessionService
+from ..services import CardPresenter
+# External module interfaces
+from mindstack_app.modules.audio.interface import AudioInterface
+from mindstack_app.modules.media.interface import MediaInterface
+from mindstack_app.modules.session.interface import SessionInterface
 from mindstack_app.utils.db_session import safe_commit
 from mindstack_app.utils.media_paths import (
     normalize_media_value_for_storage,
@@ -32,9 +36,7 @@ from mindstack_app.models import (
     UserContainerState,
 )
 from mindstack_app.modules.fsrs.models import ItemMemoryState
-from mindstack_app.modules.fsrs.schemas import CardStateDTO as CardState
-from mindstack_app.modules.fsrs.logics.fsrs_engine import FSRSEngine
-from mindstack_app.modules.fsrs.services.optimizer_service import FSRSOptimizerService
+from mindstack_app.modules.fsrs.interface import FSRSInterface
 from mindstack_app.modules.vocabulary.services.stats_container import VocabularyStatsService
 
 # Helper from views (could be moved to a shared logic file later)
@@ -124,14 +126,15 @@ def api_get_sets():
 def api_get_modes(set_identifier):
     """API lấy các chế độ học với số lượng thẻ."""
     try:
+        context = request.args.get('context', 'vocab')
         if set_identifier == 'all':
-            modes = get_flashcard_mode_counts(current_user.user_id, 'all')
+            modes = get_flashcard_mode_counts(current_user.user_id, 'all', context=context)
         else:
             set_ids = [int(s) for s in set_identifier.split(',') if s]
             if len(set_ids) == 1:
-                modes = get_flashcard_mode_counts(current_user.user_id, set_ids[0])
+                modes = get_flashcard_mode_counts(current_user.user_id, set_ids[0], context=context)
             else:
-                modes = get_flashcard_mode_counts(current_user.user_id, set_ids)
+                modes = get_flashcard_mode_counts(current_user.user_id, set_ids, context=context)
         
         return jsonify({'success': True, 'modes': modes['list']})
     except ValueError:
@@ -373,7 +376,11 @@ def toggle_archive_flashcard(set_id):
 @blueprint.route('/generate-image-from-content', methods=['POST'])
 @login_required
 def generate_image_from_content():
-    """Tự động tìm và lưu ảnh minh họa."""
+    """
+    Generate image from content text.
+    
+    [REFACTORED] Now delegates image search to media.interface.
+    """
     data = request.get_json(silent=True) or {}
     item_id = data.get('item_id')
     side = (data.get('side') or 'front').lower()
@@ -383,16 +390,19 @@ def generate_image_from_content():
         return jsonify({'success': False, 'message': 'Không có quyền.'}), 403
 
     text_source = item.content.get(side)
-    image_service = ImageService()
-    absolute_path, success, message = image_service.get_cached_or_download_image(str(text_source))
+    if not text_source:
+        return jsonify({'success': False, 'message': 'Không có nội dung để tìm ảnh.'}), 400
     
-    if success:
+    # Use MediaInterface for image search
+    result = MediaInterface.search_and_cache_image(str(text_source))
+    
+    if result.status == 'success' and result.file_path:
         container = item.container
         image_folder = _ensure_container_media_folder(container, 'image')
-        filename = os.path.basename(absolute_path)
+        filename = os.path.basename(result.file_path)
         destination = os.path.join(current_app.config['UPLOAD_FOLDER'], image_folder, filename)
         os.makedirs(os.path.dirname(destination), exist_ok=True)
-        shutil.move(absolute_path, destination)
+        shutil.move(result.file_path, destination)
         
         stored_value = normalize_media_value_for_storage(filename, image_folder)
         item.content[f'{side}_img'] = stored_value
@@ -400,34 +410,89 @@ def generate_image_from_content():
         safe_commit(db.session)
         return jsonify({'success': True, 'image_url': url_for('media_uploads', filename=build_relative_media_path(stored_value, image_folder))})
     
-    return jsonify({'success': False, 'message': message}), 500
+    return jsonify({'success': False, 'message': result.error or 'Không tìm thấy ảnh phù hợp.'}), 500
 
 @blueprint.route('/regenerate-audio-from-content', methods=['POST'])
 @login_required
 def api_regenerate_audio_from_content():
-    """Tạo file audio từ văn bản."""
+    """
+    Regenerate audio from text content.
+    
+    [REFACTORED] Now delegates TTS generation to audio.interface.
+    Path management and DB updates remain here (presentation layer responsibility).
+    """
     data = request.get_json()
     item_id, side = data.get('item_id'), data.get('side')
     item = LearningItem.query.get(item_id)
     
-    audio_service = AudioService()
+    if not item or not _user_can_edit_flashcard(item.container_id):
+        return jsonify({'success': False, 'message': 'Không có quyền.'}), 403
+    
+    # 1. Get content to generate audio for
+    if side == 'front':
+        content_to_read = item.content.get('front_audio_content') or item.content.get('front')
+    else:
+        content_to_read = item.content.get('back_audio_content') or item.content.get('back')
+    
+    if not content_to_read or not str(content_to_read).strip():
+        return jsonify({'success': False, 'message': 'Không có nội dung để tạo audio.'}), 400
+    
+    # 2. Determine target directory (must be 'uploads/{folder}' format for get_storage_path)
+    container = item.container
+    audio_folder = _ensure_container_media_folder(container, 'audio')
+    # Prepend 'uploads/' to make it compatible with audio module's get_storage_path
+    target_dir = f"uploads/{audio_folder}"
+    filename = f"{side}_{item.item_id}.mp3"
+    
+    # 3. Generate audio via external AudioInterface
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
     try:
-        stored_value, rel_path, success, msg = loop.run_until_complete(audio_service.get_or_generate_audio_for_item(item, side, force_refresh=True))
-        if success:
+        result = loop.run_until_complete(
+            AudioInterface.generate_audio(
+                text=str(content_to_read),
+                engine='edge',
+                target_dir=target_dir,
+                custom_filename=filename,
+                is_manual=True,  # Force regeneration even if file exists
+                auto_voice_parsing=True
+            )
+        )
+        
+        # Status is 'exists', 'generated', or 'error'
+        if result.status in ('generated', 'exists') and result.url:
+            # 4. Update DB with storage value
+            stored_value = normalize_media_value_for_storage(filename, audio_folder)
             item.content[f'{side}_audio_url'] = stored_value
             flag_modified(item, 'content')
             safe_commit(db.session)
-            return jsonify({'success': True, 'audio_url': url_for('media_uploads', filename=rel_path)})
-        return jsonify({'success': False, 'message': msg}), 500
+            
+            rel_path = build_relative_media_path(stored_value, audio_folder)
+            return jsonify({
+                'success': True, 
+                'audio_url': url_for('media_uploads', filename=rel_path)
+            })
+        
+        return jsonify({
+            'success': False, 
+            'message': result.error or 'Lỗi tạo audio.'
+        }), 500
+    except Exception as e:
+        current_app.logger.error(f'Audio regeneration error: {e}', exc_info=True)
+        return jsonify({'success': False, 'message': str(e)}), 500
     finally:
         loop.close()
+
 
 @blueprint.route('/api/preview_fsrs', methods=['POST'])
 @login_required
 def preview_fsrs():
-    """Calculate FSRS preview data."""
+    """
+    Calculate FSRS preview data.
+    
+    [REFACTORED] Now delegates to FSRSInterface.get_preview_intervals()
+    which handles all state building, engine creation, and error handling.
+    """
     data = request.get_json()
     if not data or 'item_id' not in data:
         return jsonify({'success': False, 'message': 'Missing item_id'}), 400
@@ -437,47 +502,8 @@ def preview_fsrs():
     except (ValueError, TypeError):
         return jsonify({'success': False, 'message': 'Invalid item_id'}), 400
 
-    # MIGRATED: Use ItemMemoryState
-    progress = ItemMemoryState.query.filter_by(user_id=current_user.user_id, item_id=item_id).first()
-    
-    # Calculate interval from due date if available, or 0.0
-    current_ivl = 0.0
-    if progress and progress.due_date and progress.last_review:
-         delta = (progress.due_date.replace(tzinfo=timezone.utc) - progress.last_review.replace(tzinfo=timezone.utc))
-         current_ivl = max(0.0, delta.total_seconds() / 86400.0)
-
-    card_state = CardState(
-        stability=progress.stability if progress else 0.0,
-        difficulty=progress.difficulty if progress else 0.0,
-        reps=progress.repetitions if progress else 0,
-        lapses=progress.lapses if progress else 0,
-        state=progress.state if progress else 0,
-        last_review=progress.last_review if progress else None,
-        scheduled_days=current_ivl
-    )
-
-    weights = FSRSOptimizerService.get_user_parameters(current_user.user_id)
-    engine = FSRSEngine(desired_retention=0.9, custom_weights=weights)
-    now = datetime.datetime.now(datetime.timezone.utc)
-    
-    previews = {}
-    for rating in [1, 2, 3, 4]:
-        try:
-            new_card, _, _ = engine.review_card(card_state, rating, now, enable_fuzz=False)
-            previews[str(rating)] = {
-                'interval': f"{round(new_card.scheduled_days, 1)}d",
-                'stability': round(new_card.stability, 2),
-                'difficulty': round(new_card.difficulty, 2),
-                'retrievability': 100 
-            }
-        except Exception as e:
-            current_app.logger.error(f"FSRS Preview Error for rating {rating}: {str(e)}")
-            previews[str(rating)] = {
-                'interval': 'N/A',
-                'stability': 0,
-                'difficulty': 0,
-                'retrievability': 0
-            }
+    # Use FSRSInterface - all logic is now encapsulated
+    previews = FSRSInterface.get_preview_intervals(current_user.user_id, item_id)
             
     return jsonify({'success': True, 'previews': previews})
 

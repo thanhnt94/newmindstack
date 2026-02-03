@@ -93,7 +93,7 @@ def get_filtered_flashcard_sets(user_id, search_query, search_field, current_fil
 
     return pagination
 
-def get_flashcard_mode_counts(user_id, set_id):
+def get_flashcard_mode_counts(user_id, set_id, context='vocab'):
     """
     Get counts for different modes (new, due, etc.).
     """
@@ -124,20 +124,34 @@ def get_flashcard_mode_counts(user_id, set_id):
     )
     hard = hard_q.count()
     
+    from .vocab_flashcard_mode import get_flashcard_modes
+    mode_list = []
+    registered_modes = get_flashcard_modes(context)
+    
+    for mode in registered_modes:
+        mode_count = 0
+        if mode.id == 'new_only': mode_count = new_count
+        elif mode.id == 'due_only': mode_count = due
+        elif mode.id == 'hard_only': mode_count = hard
+        elif mode.id == 'all_review': mode_count = learned
+        else: mode_count = new_count + due # mixed, sequential
+        
+        mode_list.append({
+            'id': mode.id,
+            'count': mode_count,
+            'label': mode.label,
+            'icon': mode.icon,
+            'color': mode.color,
+            'description': mode.description
+        })
+
     return {
         'total': total,
         'new': new_count,
         'due': due,
         'learned': learned,
         'hard': hard,
-        'list': [
-            {'id': 'new_only', 'count': new_count, 'label': 'Học từ mới', 'icon': 'fa-seedling', 'color': 'blue'},
-            {'id': 'due_only', 'count': due, 'label': 'Ôn tập tới hạn', 'icon': 'fa-clock', 'color': 'emerald'},
-            {'id': 'sequential', 'count': new_count + due, 'label': 'Học tập tuần tự', 'icon': 'fa-list-ol', 'color': 'amber'},
-            {'id': 'hard_only', 'count': hard, 'label': 'Các từ khó', 'icon': 'fa-fire', 'color': 'rose'},
-            {'id': 'mixed_srs', 'count': new_count + due, 'label': 'Học ngẫu nhiên', 'icon': 'fa-random', 'color': 'indigo'},
-            {'id': 'all_review', 'count': learned, 'label': 'Ôn tập tất cả', 'icon': 'fa-layer-group', 'color': 'slate'},
-        ]
+        'list': mode_list
     }
 
 def get_accessible_flashcard_set_ids(user_id):

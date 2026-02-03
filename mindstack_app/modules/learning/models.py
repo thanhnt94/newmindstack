@@ -308,6 +308,8 @@ class LearningSession(db.Model):
     vague_count = db.Column(db.Integer, default=0)
     points_earned = db.Column(db.Integer, default=0)
     processed_item_ids = db.Column(JSON, default=list)
+    current_item_id = db.Column(db.Integer, nullable=True)
+    session_data = db.Column(JSON, nullable=True)
     start_time = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), index=True)
     last_activity = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
     end_time = db.Column(db.DateTime(timezone=True))
@@ -321,6 +323,8 @@ class LearningSession(db.Model):
             'total_items': self.total_items, 'correct_count': self.correct_count,
             'incorrect_count': self.incorrect_count, 'vague_count': self.vague_count,
             'points_earned': self.points_earned, 'processed_item_ids': self.processed_item_ids or [],
+            'current_item_id': self.current_item_id,
+            'session_data': self.session_data or {},
             'start_time': self.start_time.isoformat() if self.start_time else None,
             'last_activity': self.last_activity.isoformat() if self.last_activity else None,
             'end_time': self.end_time.isoformat() if self.end_time else None

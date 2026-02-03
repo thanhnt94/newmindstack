@@ -139,6 +139,10 @@ class LearningSessionService:
                 if points > 0:
                     session.points_earned += points
 
+                # [NEW] Clear current_item_id if it matched the finished item
+                if session.current_item_id == item_id:
+                    session.current_item_id = None
+
                 db.session.add(session)
                 safe_commit(db.session)
                 return True
@@ -163,6 +167,27 @@ class LearningSessionService:
         except Exception as e:
             db.session.rollback()
             current_app.logger.error(f"Error completing session: {e}", exc_info=True)
+            return False
+
+    @staticmethod
+    def cancel_session(session_id):
+        """
+        Cancel a specific session by ID.
+        Used for administrative cleanup or manual session termination.
+        """
+        try:
+            session = db.session.get(LearningSession, session_id)
+            if session and session.status == 'active':
+                session.status = 'cancelled'
+                session.end_time = datetime.now(timezone.utc)
+                session.current_item_id = None
+                db.session.add(session)
+                safe_commit(db.session)
+                return True
+            return False
+        except Exception as e:
+            db.session.rollback()
+            current_app.logger.error(f"Error cancelling session {session_id}: {e}", exc_info=True)
             return False
 
     @staticmethod
@@ -212,3 +237,19 @@ class LearningSessionService:
             LearningSession.user_id == user_id,
             LearningSession.status.in_(['completed', 'cancelled'])
         ).order_by(LearningSession.end_time.desc()).limit(limit).all()
+
+    @staticmethod
+    def set_current_item(session_id, item_id):
+        """Update the active item for a session (for persistence)."""
+        try:
+            session = db.session.get(LearningSession, session_id)
+            if session and session.status == 'active':
+                session.current_item_id = item_id
+                db.session.add(session)
+                safe_commit(db.session)
+                return True
+            return False
+        except Exception as e:
+            db.session.rollback()
+            current_app.logger.error(f"Error setting current item in session: {e}", exc_info=True)
+            return False

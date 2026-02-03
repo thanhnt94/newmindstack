@@ -26,12 +26,12 @@ from ..engine.algorithms import (
     get_flashcard_mode_counts,
     get_accessible_flashcard_set_ids,
 )
+from ..engine.vocab_flashcard_mode import get_flashcard_mode_by_id
 
-# Import từ services module
-from ..services import AudioService, ImageService, LearningSessionService
+# Import external module interfaces
+from mindstack_app.modules.session.interface import SessionInterface
 from mindstack_app.modules.fsrs.interface import FSRSInterface
 from mindstack_app.modules.vocabulary.services.stats_container import VocabularyStatsService
-from mindstack_app.modules.fsrs.services.optimizer_service import FSRSOptimizerService
 from ..engine.core import FlashcardEngine
 
 
@@ -48,8 +48,7 @@ from mindstack_app.utils.media_paths import (
     normalize_media_value_for_storage,
     build_relative_media_path,
 )
-from mindstack_app.modules.fsrs.logics.fsrs_engine import FSRSEngine
-from mindstack_app.modules.fsrs.schemas import CardStateDTO as CardState
+
 
 def _ensure_container_media_folder(container: LearningContainer, media_type: str) -> str:
     """Return the folder for the requested media type, creating a default if missing."""
@@ -174,7 +173,7 @@ def start_flashcard_session_by_id(set_id, mode):
 @login_required
 def flashcard_session_legacy():
     # Attempt to find active session and redirect
-    active_db_session = LearningSessionService.get_active_session(current_user.user_id, learning_mode='flashcard')
+    active_db_session = SessionInterface.get_active_session(current_user.user_id, learning_mode='flashcard')
     if active_db_session:
         return redirect(url_for('vocab_flashcard.flashcard_session', session_id=active_db_session.session_id))
         
@@ -200,7 +199,7 @@ def flashcard_session(session_id):
             should_reload = True
             
     if should_reload:
-        active_db_session = LearningSessionService.get_session_by_id(session_id)
+        active_db_session = SessionInterface.get_session_by_id(session_id)
         
         # Security check: User must own this session
         if not active_db_session or active_db_session.user_id != current_user.user_id:
@@ -208,20 +207,7 @@ def flashcard_session(session_id):
              return redirect(url_for('vocabulary.dashboard'))
              
         # Reconstruct session manager from DB data
-        session_manager = FlashcardSessionManager(
-            user_id=active_db_session.user_id,
-            set_id=active_db_session.set_id_data,
-            mode=active_db_session.mode_config_id,
-            batch_size=1,
-            total_items_in_session=active_db_session.total_items,
-            processed_item_ids=active_db_session.processed_item_ids or [],
-            correct_answers=active_db_session.correct_count,
-            incorrect_answers=active_db_session.incorrect_count,
-            vague_answers=active_db_session.vague_count,
-            start_time=active_db_session.start_time.isoformat() if active_db_session.start_time else None,
-            session_points=active_db_session.points_earned,
-            db_session_id=active_db_session.session_id
-        )
+        session_manager = FlashcardSessionManager.from_db_session(active_db_session)
         session['flashcard_session'] = session_manager.to_dict()
         session.modified = True
         current_app.logger.info(f"Reloaded session {session_id} from DB into Flask session.")
@@ -243,25 +229,9 @@ def flashcard_session(session_id):
     is_autoplay_session = session_mode in ('autoplay_all', 'autoplay_learned')
     autoplay_mode = session_mode if is_autoplay_session else ''
     
-    # Calculate Mode Display Text
-    # [UPDATED] Expanded map to match all modes and shorter labels
-    mode_map = {
-        'new_only': 'Học từ mới',
-        'due_only': 'Ôn tập tới hạn',
-        'hard_only': 'Từ khó',
-        'mixed_srs': 'Học ngẫu nhiên',
-        'preview': 'Xem trước',
-        'all_review': 'Ôn tập tất cả',
-        'autoplay_all': 'Tự động phát tất cả',
-        'autoplay_learned': 'Tự động phát đã học',
-        'pronunciation_practice': 'Luyện phát âm',
-        'writing_practice': 'Luyện viết',
-        'quiz_practice': 'Trắc nghiệm',
-        'essay_practice': 'Tự luận',
-        'listening_practice': 'Luyện nghe',
-        'speaking_practice': 'Luyện nói'
-    }
-    mode_display_text = mode_map.get(session_mode, 'Phiên học')
+    # Calculate Mode Display Text from Registry
+    mode_obj = get_flashcard_mode_by_id(session_mode)
+    mode_display_text = mode_obj.label if mode_obj else 'Phiên học'
     current_app.logger.debug(f"[FLASHCARD] session_mode: {session_mode}, mode_display_text: {mode_display_text}")
     autoplay_mode = session_mode if is_autoplay_session else ''
 
@@ -319,6 +289,7 @@ def setup():
     
     set_ids_str = request.args.get('sets', '')
     mode = request.args.get('mode', 'mixed_srs')
+    context = request.args.get('context', 'vocab')
     
     selected_sets = []
     if set_ids_str:
@@ -350,14 +321,20 @@ def setup():
             
     # Load Mode Counts
     set_identifier = set_id if set_id else (selected_sets if selected_sets else 'all')
-    mode_counts = get_flashcard_mode_counts(current_user.user_id, set_identifier)
+    mode_counts = get_flashcard_mode_counts(current_user.user_id, set_identifier, context=context)
+    
+    # Get mode definitions for UI rendering
+    from ..engine.vocab_flashcard_mode import get_flashcard_modes
+    modes = get_flashcard_modes(context)
 
     # Render standardized template namespace
     return render_dynamic_template('modules/vocab_flashcard/setup.html',
         set_id=set_id or 'all',
         container_title=container_title,
         mode_counts=mode_counts,
-        saved_settings=saved_settings
+        modes=modes,
+        saved_settings=saved_settings,
+        context=context
     )
 
 

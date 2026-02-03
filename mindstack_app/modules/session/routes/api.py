@@ -3,7 +3,7 @@
 from flask import request, jsonify, current_app, url_for
 from flask_login import login_required, current_user
 from .. import blueprint
-from mindstack_app.modules.vocab_flashcard.services.session_service import LearningSessionService
+from ..services.session_service import LearningSessionService
 from mindstack_app.models import LearningContainer, db
 
 def safe_url_for(endpoint, **values):

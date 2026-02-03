@@ -18,6 +18,10 @@ def setup_module(app):
     # Importing routes attaches them to the vocabulary_bp
     from . import routes
     
+    # Register Flashcard Modes for Vocabulary context
+    from .logics.flashcard_modes import register_vocabulary_flashcard_modes
+    register_vocabulary_flashcard_modes()
+
     # Register Signals, Context Processors, etc.
     @app.context_processor
     def inject_vocab_metadata():

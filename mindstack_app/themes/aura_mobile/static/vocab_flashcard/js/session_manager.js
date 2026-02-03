@@ -375,7 +375,7 @@ function displayCurrentCard() {
         vague: sessionStatsLocal.vague,
         session_score: sessionScore,
         current_streak: currentCardData.initial_stats ? (currentCardData.initial_stats.current_streak || 0) : 0,
-        
+
         // [FIX] Add FSRS stats to prevent overwrite with 0s
         difficulty: currentCardData.initial_stats ? currentCardData.initial_stats.difficulty : 0,
         stability: currentCardData.initial_stats ? currentCardData.initial_stats.stability : 0,
@@ -509,7 +509,10 @@ async function submitFlashcardAnswer(itemId, answer) {
             // Include card-specific stats (Box B)
             current_card_history_right: data.statistics ? data.statistics.correct_count : 0,
             current_card_history_wrong: data.statistics ? (data.statistics.incorrect_count + data.statistics.vague_count) : 0,
-            // [CLEANUP] Removed FSRS metrics display as per user request
+            // FSRS metrics (Required for HUD)
+            difficulty: data.statistics ? data.statistics.difficulty : 0,
+            stability: data.statistics ? data.statistics.stability : 0,
+            retrievability: data.statistics ? data.statistics.retrievability : 0,
             status: data.new_progress_status || data.statistics?.status || 'new',
             times_reviewed: data.statistics ? data.statistics.times_reviewed : 0,
             current_streak: data.statistics ? (data.statistics.current_streak || 0) : 0,

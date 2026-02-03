@@ -276,7 +276,7 @@ class QuizSessionManager:
         )
 
         # [NEW] Create session in database
-        from mindstack_app.modules.vocab_flashcard.services.session_service import LearningSessionService
+        from mindstack_app.modules.session.services.session_service import LearningSessionService
         db_session = LearningSessionService.create_session(
             user_id=user_id,
             learning_mode='quiz',
@@ -784,7 +784,7 @@ class QuizSessionManager:
         
         # [NEW] Update database session progress
         if getattr(self, 'db_session_id', None):
-            from mindstack_app.modules.vocab_flashcard.services.session_service import LearningSessionService
+            from mindstack_app.modules.session.services.session_service import LearningSessionService
             # We use process_answer_batch for the whole batch
             # We'll update the session metadata (counts) 
             # and processed_item_ids in bulk via a custom service method or manual update
@@ -826,7 +826,7 @@ class QuizSessionManager:
             result['stats'] = stats
 
             if db_session_id:
-                from mindstack_app.modules.vocab_flashcard.services.session_service import LearningSessionService
+                from mindstack_app.modules.session.services.session_service import LearningSessionService
                 # Always mark as completed if user explicitly ends it, 
                 # or just use complete_session which sets status='completed'
                 LearningSessionService.complete_session(db_session_id)

@@ -395,41 +395,24 @@
             </div>
 
             <div class="mode-grid">
-                <!-- Sequential Learning (Strict Order) -->
-                <div class="mode-card selected" data-value="sequential">
-                    <div class="mode-icon"><i class="fas fa-seedling"></i></div>
+                {% for mode in modes %}
+                {% set mode_count = mode_counts.get(mode.id, 0) %}
+                <div class="mode-card {% if mode_count == 0 %}disabled{% endif %}" data-value="{{ mode.id }}">
+                    <div class="mode-icon"><i class="fas {{ mode.icon }}"></i></div>
                     <div class="mode-info">
-                        <span class="mode-title">Học tập tuần tự</span>
-                        <span class="mode-desc">{{ mode_counts.new }} mới + {{ mode_counts.due }} tới hạn</span>
+                        <span class="mode-title">{{ mode.label }}</span>
+                        <span class="mode-desc">
+                            {% if mode.id == 'mixed_srs' %}
+                            {{ mode_count }} từ cần ôn tập
+                            {% elif mode.description %}
+                            {{ mode.description }}
+                            {% else %}
+                            {{ mode_count }} thẻ
+                            {% endif %}
+                        </span>
                     </div>
                 </div>
-
-                <!-- All Review (All learned items) -->
-                <div class="mode-card {% if mode_counts.learned == 0 %}disabled{% endif %}" data-value="all_review">
-                    <div class="mode-icon"><i class="fas fa-history"></i></div>
-                    <div class="mode-info">
-                        <span class="mode-title">Ôn tập đã học</span>
-                        <span class="mode-desc">{{ mode_counts.learned }} từ đã học</span>
-                    </div>
-                </div>
-
-                <!-- Hard -->
-                <div class="mode-card {% if mode_counts.hard == 0 %}disabled{% endif %}" data-value="hard_only">
-                    <div class="mode-icon"><i class="fas fa-fire-alt"></i></div>
-                    <div class="mode-info">
-                        <span class="mode-title">Từ khó</span>
-                        <span class="mode-desc">{{ mode_counts.hard }} từ hay sai</span>
-                    </div>
-                </div>
-
-                <!-- Random Learning -->
-                <div class="mode-card {% if mode_counts.total == 0 %}disabled{% endif %}" data-value="random">
-                    <div class="mode-icon"><i class="fas fa-random"></i></div>
-                    <div class="mode-info">
-                        <span class="mode-title">Ôn ngẫu nhiên</span>
-                        <span class="mode-desc">{{ mode_counts.total }} từ trong bộ</span>
-                    </div>
-                </div>
+                {% endfor %}
             </div>
         </div>
 

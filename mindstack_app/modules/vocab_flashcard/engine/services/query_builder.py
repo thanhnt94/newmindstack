@@ -87,18 +87,30 @@ class FlashcardQueryBuilder:
         return self
 
     def filter_mixed(self):
-        """Smart mix of Due & New items, excluding those not yet due."""
+        """
+        Smart mix of Due & New items.
+        Logic: 
+        1. Priority to Due cards (R < 90%), shuffled randomly.
+        2. New cards follow in their predefined sequential order.
+        """
         self.filter_available()
         from datetime import datetime, timezone
+        from sqlalchemy import case
         now = datetime.now(timezone.utc)
         
+        # 1. Determine if Due
+        is_due = (ItemMemoryState.due_date <= now)
+        # 2. Determine if New
+        is_new = (or_(ItemMemoryState.state_id.is_(None), ItemMemoryState.state == 0))
+
         self._query = self._query.order_by(
-            # Priority 1: Due items 
-            (ItemMemoryState.due_date <= now).desc(),
-            # Priority 2: New items
-            ItemMemoryState.state == 0, 
-            # Randomize
-            func.random()
+            is_due.desc(), # Priority 1: Due cards first
+            is_new.desc(), # Priority 2: New cards second
+            # Tie-breaker logic:
+            case(
+                (is_due, func.random()),             # Randomize the Due pool
+                else_=LearningItem.order_in_container # Sequential for the New pool (and others)
+            )
         )
         return self
 

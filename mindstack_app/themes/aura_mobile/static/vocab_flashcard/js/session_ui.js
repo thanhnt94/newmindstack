@@ -541,9 +541,9 @@
         });
 
         // OPTIMIZATION: Use local predicted intervals if provided in cardData
-        const localPreviews = (cardData.initial_stats && cardData.initial_stats.predicted_intervals) 
-                             ? cardData.initial_stats.predicted_intervals 
-                             : null;
+        const localPreviews = (cardData.initial_stats && cardData.initial_stats.predicted_intervals)
+            ? cardData.initial_stats.predicted_intervals
+            : null;
 
         if (localPreviews) {
             console.log('[FSRS Mobile] Using local predicted intervals');
@@ -571,7 +571,18 @@
             .then(res => res.json())
             .then(data => {
                 if (data.success && data.previews) {
-                    applyPreviewData(data.previews);
+                    // Apply preview data to rating buttons
+                    buttons.forEach(btn => {
+                        const rating = btn.dataset.rating;
+                        const previewData = data.previews[rating];
+                        const titleSpan = btn.querySelector('span');
+                        if (titleSpan && previewData) {
+                            const baseLabel = btn.getAttribute('data-base-label');
+                            // previewData is an object with {interval, stability, difficulty, retrievability}
+                            const timeText = previewData.interval || previewData;
+                            titleSpan.textContent = `${baseLabel} (${timeText})`;
+                        }
+                    });
                 }
             })
             .catch(err => console.error("Error fetching FSRS preview:", err));
@@ -790,33 +801,44 @@
 
     // [UX-IMMEDIATE] Update specific card stats immediately after rating (before transition)
     window.updateFlashcardStats = function (data) {
-        console.log('[UI] Updating stats immediate:', data);
+        if (!data || !data.statistics) return;
+        console.log('[FSRS UI] Received updated stats:', data.statistics);
 
         // Helper cập nhật text
         const setText = (selector, value) => {
-            document.querySelectorAll(selector).forEach(el => el.innerText = value);
+            document.querySelectorAll(selector).forEach(el => {
+                el.innerText = value;
+                // Add a brief highlight effect to show something changed
+                el.classList.add('stats-updated-flash');
+                setTimeout(() => el.classList.remove('stats-updated-flash'), 1000);
+            });
         };
 
-        if (data.statistics) {
-            // Update both info bar and overlay
-            setText('.js-card-times-reviewed', data.statistics.times_reviewed || 0);
-            setText('.js-card-overlay-times-reviewed', data.statistics.times_reviewed || 0);
+        const stats = data.statistics;
 
-            setText('.js-card-streak', data.statistics.current_streak || 0);
-            setText('.js-card-overlay-streak', data.statistics.current_streak || 0);
+        // Update basic counts
+        setText('.js-card-times-reviewed', stats.times_reviewed || 0);
+        setText('.js-card-overlay-times-reviewed', stats.times_reviewed || 0);
+        setText('.js-card-streak', stats.current_streak || 0);
+        setText('.js-card-overlay-streak', stats.current_streak || 0);
 
-            // Update FSRS metrics in overlay
-            const sVal = data.statistics.stability !== undefined ? parseFloat(data.statistics.stability).toFixed(1) : '0';
-            setText('.js-card-overlay-stability', (sVal === '0.0' || sVal === '0.00') ? '0' : sVal);
+        // Update FSRS metrics (Stability, Difficulty, Retrievability)
+        const sVal = stats.stability !== undefined ? parseFloat(stats.stability).toFixed(1) : '0';
+        setText('.js-card-overlay-stability', (sVal === '0.0' || sVal === '0.00') ? '0' : sVal);
+        setText('.js-fc-stability-days', (sVal === '0.0' || sVal === '0.00') ? '0' : sVal);
 
-            const dVal = data.statistics.difficulty !== undefined ? parseFloat(data.statistics.difficulty).toFixed(1) : '0.0';
-            setText('.js-card-overlay-difficulty', dVal);
+        const dVal = stats.difficulty !== undefined ? parseFloat(stats.difficulty).toFixed(1) : '0.0';
+        setText('.js-card-overlay-difficulty', dVal);
+        setText('.js-fc-difficulty-score', dVal);
 
-            const rVal = data.statistics.retrievability !== undefined ? Math.round(data.statistics.retrievability) : 0;
-            setText('.js-card-overlay-retrievability', rVal);
-        }
+        const rVal = stats.retrievability !== undefined ? Math.round(stats.retrievability) : 0;
+        setText('.js-card-overlay-retrievability', rVal);
+        setText('.js-fc-retention-percent', rVal);
 
-        // FSRS metrics display removed as per user request
+
+        console.log('[FSRS UI] HUD Updated: S=', sVal, 'D=', dVal, 'R=', rVal);
+        // [FIX] Removed premature closure here to include status badge logic below
+
 
         // Cập nhật trạng thái (Badge) - both info bar and overlay
         if (data.new_progress_status) {

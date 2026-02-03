@@ -17,3 +17,4 @@ module_metadata = {
 def setup_module(app):
     """Register routes for the session module."""
     from . import routes
+    from .routes import admin

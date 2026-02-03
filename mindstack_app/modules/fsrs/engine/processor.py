@@ -137,9 +137,15 @@ class FSRSProcessor:
         # 7. Update Progress
         is_correct = fsrs_rating >= Rating.Good
         
+        # [FIX] Ensure stability and difficulty are never exactly zero after review
+        target_stability = max(0.1, float(new_card.stability or 0.1))
+        target_difficulty = max(1.0, min(10.0, float(new_card.difficulty or 5.0)))
+        
+        current_app.logger.info(f"[FSRS PRE-SAVE] Item={item_id} OldReps={card_dto.reps} NewReps={new_card.reps} NewStability={target_stability} NewDiff={target_difficulty}")
+        
         state_record.state = new_card.state
-        state_record.stability = new_card.stability
-        state_record.difficulty = new_card.difficulty
+        state_record.stability = target_stability
+        state_record.difficulty = target_difficulty
         # current_interval logic handled by due_date
         state_record.repetitions = new_card.reps
         state_record.lapses = new_card.lapses
@@ -178,20 +184,31 @@ class FSRSProcessor:
 
     @staticmethod
     def get_retrievability(state: ItemMemoryState) -> float:
-        if not state or not state.stability or state.stability <= 0:
+        """
+        Calculate current retrievability (memory power).
+        Returns 0.0 for new cards that haven't been studied yet.
+        """
+        if not state or state.repetitions == 0:
+            return 0.0
+        
+        # If studied (reps > 0) but stability missing or 0, fallback to 1.0 (just learned)
+        if not state.stability or state.stability <= 0:
             return 1.0
         
         now = datetime.datetime.now(datetime.timezone.utc)
         last_review = state.last_review
-        if not last_review: return 1.0
+        if not last_review: 
+            return 1.0
         
         if last_review.tzinfo is None:
             last_review = last_review.replace(tzinfo=datetime.timezone.utc)
         
         elapsed_days = (now - last_review).total_seconds() / 86400.0
+        # If just reviewed now, retrievability is 1.0 (100%)
         if elapsed_days <= 0: return 1.0
         
         try:
+            # FSRS formula: R = 0.9 ^ (elapsed / stability)
             return 0.9 ** (elapsed_days / state.stability)
-        except:
+        except Exception:
             return 0.0

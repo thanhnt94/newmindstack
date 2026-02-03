@@ -136,3 +136,88 @@ class FSRSInterface:
         """Persist state changes."""
         db.session.add(state)
         db.session.commit()
+
+    @staticmethod
+    def get_preview_intervals(user_id: int, item_id: int) -> Dict[str, Dict[str, Any]]:
+        """
+        Get preview intervals for all ratings (1-4).
+        
+        Returns a dict keyed by rating string with preview data:
+        {
+            "1": {"interval": "1d", "stability": 0.5, "difficulty": 5.0, "retrievability": 100},
+            "2": {"interval": "3d", ...},
+            ...
+        }
+        
+        On error, returns safe fallback values.
+        """
+        import logging
+        from datetime import timezone
+        from .schemas import CardStateDTO, CardStateEnum
+        from .logics.fsrs_engine import FSRSEngine
+        
+        logger = logging.getLogger(__name__)
+        
+        # Safe fallback values
+        FALLBACK = {
+            str(r): {'interval': 'N/A', 'stability': 0, 'difficulty': 0, 'retrievability': 0}
+            for r in range(1, 5)
+        }
+        
+        try:
+            # Get current state
+            state_record = ItemMemoryState.query.filter_by(
+                user_id=user_id, item_id=item_id
+            ).first()
+            
+            # Build CardStateDTO
+            if not state_record:
+                card_dto = CardStateDTO(state=CardStateEnum.NEW)
+            else:
+                # Calculate scheduled_days from due_date
+                scheduled_days = 0.0
+                if state_record.due_date and state_record.last_review:
+                    try:
+                        due = state_record.due_date.replace(tzinfo=timezone.utc)
+                        last = state_record.last_review.replace(tzinfo=timezone.utc)
+                        scheduled_days = max(0.0, (due - last).total_seconds() / 86400.0)
+                    except Exception:
+                        pass
+                
+                card_dto = CardStateDTO(
+                    stability=state_record.stability or 0.0,
+                    difficulty=state_record.difficulty or 0.0,
+                    reps=state_record.repetitions or 0,
+                    lapses=state_record.lapses or 0,
+                    state=state_record.state or CardStateEnum.NEW,
+                    last_review=state_record.last_review,
+                    scheduled_days=scheduled_days
+                )
+            
+            # Get user parameters and create engine
+            effective_weights = FSRSOptimizerService.get_user_parameters(user_id)
+            desired_retention = float(FSRSSettingsService.get('FSRS_DESIRED_RETENTION', 0.9))
+            engine = FSRSEngine(custom_weights=effective_weights, desired_retention=desired_retention)
+            
+            # Calculate preview for each rating
+            now = datetime.datetime.now(datetime.timezone.utc)
+            previews = {}
+            
+            for rating in [1, 2, 3, 4]:
+                try:
+                    new_card, _, _ = engine.review_card(card_dto, rating, now, enable_fuzz=False)
+                    previews[str(rating)] = {
+                        'interval': f"{round(new_card.scheduled_days, 1)}d",
+                        'stability': round(new_card.stability, 2),
+                        'difficulty': round(new_card.difficulty, 2),
+                        'retrievability': round(engine.get_realtime_retention(new_card, now) * 100, 1)
+                    }
+                except Exception as e:
+                    logger.warning(f"FSRS preview calculation failed for rating {rating}: {e}")
+                    previews[str(rating)] = FALLBACK[str(rating)]
+            
+            return previews
+            
+        except Exception as e:
+            logger.error(f"FSRS get_preview_intervals failed for user={user_id}, item={item_id}: {e}")
+            return FALLBACK

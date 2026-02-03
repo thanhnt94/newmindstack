@@ -15,12 +15,12 @@ class FlashcardInterface:
     @staticmethod
     def has_active_session(user_id: int) -> bool:
         """Check if the user has an active flashcard session."""
-        from mindstack_app.modules.learning.services.session_service import LearningSessionService
-        session = LearningSessionService.get_active_session(user_id, learning_mode='flashcard')
+        from mindstack_app.modules.session.interface import SessionInterface
+        session = SessionInterface.get_active_session(user_id, learning_mode='flashcard')
         return session is not None
 
     @staticmethod
-    def get_flashcard_mode_counts(user_id: int, set_id: any) -> dict:
+    def get_flashcard_mode_counts(user_id: int, set_id: any, context: str = 'vocab') -> dict:
         """Get counts for different flashcard modes."""
         from .engine.algorithms import get_flashcard_mode_counts
-        return get_flashcard_mode_counts(user_id, set_id)
+        return get_flashcard_mode_counts(user_id, set_id, context=context)

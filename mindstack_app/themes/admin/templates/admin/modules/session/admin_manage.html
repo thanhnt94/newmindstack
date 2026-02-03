@@ -1,0 +1,151 @@
+{% extends 'admin/modules/admin/admin_layout.html' %}
+
+{% block page_title %}Quản lý Session{% endblock %}
+{% block page_subtitle %}Theo dõi và quản lý các phiên học đang hoạt động trên hệ thống.{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Stats / Header Cards could go here -->
+
+    <!-- Active Sessions List -->
+    <div class="space-y-4">
+        {% if sessions %}
+        {% for session in sessions %}
+        <div id="session-row-{{ session.session_id }}"
+            class="bg-white rounded-xl p-5 shadow-sm border border-slate-200 relative overflow-hidden group hover:shadow-md transition-all">
+            <!-- Status indicator -->
+            <div class="absolute top-0 left-0 w-1 h-full bg-emerald-500"></div>
+
+            <div class="flex justify-between items-start mb-4">
+                <div class="flex items-center space-x-4">
+                    <div
+                        class="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 overflow-hidden border border-slate-200">
+                        {% if session.user.avatar_url %}
+                        <img src="{{ session.user.get_avatar_url() }}" class="w-full h-full object-cover">
+                        {% else %}
+                        <span class="text-xl font-bold">{{ session.user.username[0] | upper }}</span>
+                        {% endif %}
+                    </div>
+                    <div>
+                        <div class="font-bold text-slate-800 text-lg">{{ session.user.username }}</div>
+                        <div class="text-xs text-slate-400 font-mono">ID: {{ session.session_id }}</div>
+                    </div>
+                </div>
+                <div
+                    class="px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-xs font-bold uppercase tracking-wider flex items-center gap-1">
+                    <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                    Active
+                </div>
+            </div>
+
+            <div
+                class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm mb-5 bg-slate-50 rounded-lg p-3 border border-slate-100">
+                <div class="space-y-1">
+                    <div class="text-slate-400 text-xs uppercase font-semibold">Chế độ học</div>
+                    <div class="font-medium text-slate-700 capitalize flex items-center">
+                        <i class="fas fa-layer-group mr-2 text-indigo-500"></i>
+                        {{ session.learning_mode }}
+                    </div>
+                </div>
+                <div class="space-y-1">
+                    <div class="text-slate-400 text-xs uppercase font-semibold">Bắt đầu lúc</div>
+                    <div class="font-medium text-slate-700 flex items-center">
+                        <i class="far fa-clock mr-2 text-slate-400"></i>
+                        {{ session.start_time.strftime('%H:%M %d/%m/%Y') }}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Progress bar -->
+            <div class="mb-5">
+                <div class="flex justify-between text-xs mb-1.5">
+                    <span class="text-slate-500 font-medium">Tiến độ hoàn thành</span>
+                    <span class="text-slate-700 font-bold">{{ session.progress_percentage }}%</span>
+                </div>
+                <div class="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden">
+                    <div class="h-full bg-indigo-500 rounded-full transition-all duration-500"
+                        style="width: {{ session.progress_percentage }}%"></div>
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="flex justify-end pt-3 border-t border-slate-100">
+                <button onclick="clearSession({{ session.session_id }})"
+                    class="px-4 py-2 bg-rose-50 text-rose-600 hover:bg-rose-100 hover:text-rose-700 rounded-lg text-sm font-semibold transition-colors flex items-center">
+                    <i class="fas fa-power-off mr-2"></i>
+                    Buộc dừng phiên (Force Close)
+                </button>
+            </div>
+        </div>
+        {% endfor %}
+        {% else %}
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-12 text-center">
+            <div
+                class="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center text-slate-300 mx-auto mb-4">
+                <i class="fas fa-mug-hot text-3xl"></i>
+            </div>
+            <h3 class="text-lg font-bold text-slate-800">Không có phiên học nào</h3>
+            <p class="text-slate-500 mt-1">Hiện tại hệ thống không ghi nhận người dùng nào đang học.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    async function clearSession(sessionId) {
+        if (!confirm('CẢNH BÁO: Bạn có chắc chắn muốn đóng phiên học này không?\nHành động này sẽ dừng ngay lập tức phiên học của người dùng.')) {
+            return;
+        }
+
+        const btn = event.currentTarget;
+        const originalContent = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-circle-notch fa-spin mr-2"></i> Đang xử lý...';
+
+        try {
+            const response = await fetch(`/session/api/admin/clear-session/${sessionId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                }
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                const row = document.getElementById(`session-row-${sessionId}`);
+                row.style.transition = 'all 0.5s ease-out';
+                row.style.opacity = '0';
+                row.style.transform = 'scale(0.95)';
+
+                // Show toast using admin layout's function if available, or fallback
+                if (window.showFlashMessage) {
+                    window.showFlashMessage(result.message, 'success');
+                } else {
+                    alert(result.message);
+                }
+
+                setTimeout(() => {
+                    row.remove();
+                    if (document.querySelectorAll('[id^="session-row-"]').length === 0) {
+                        location.reload(); // Reload to show empty state
+                    }
+                }, 500);
+            } else {
+                alert('Lỗi: ' + result.message);
+                btn.disabled = false;
+                btn.innerHTML = originalContent;
+            }
+        } catch (error) {
+            console.error('Error clearing session:', error);
+            alert('Đã có lỗi xảy ra khi kết nối máy chủ.');
+            btn.disabled = false;
+            btn.innerHTML = originalContent;
+        }
+    }
+</script>
+{% endblock %}

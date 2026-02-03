@@ -247,7 +247,7 @@ def start_quiz_session_by_id(set_id, mode):
 @blueprint.route('/session')
 @login_required
 def quiz_active_session_redirect():
-    from mindstack_app.modules.vocab_flashcard.services.session_service import LearningSessionService
+    from mindstack_app.modules.session.services.session_service import LearningSessionService
     active_db_session = LearningSessionService.get_active_session(current_user.user_id, learning_mode='quiz')
     if active_db_session:
         return redirect(url_for('quiz.quiz_session', session_id=active_db_session.session_id))
@@ -269,7 +269,7 @@ def quiz_session(session_id):
         should_reload = True
         
     if should_reload:
-        from mindstack_app.modules.vocab_flashcard.services.session_service import LearningSessionService
+        from mindstack_app.modules.session.services.session_service import LearningSessionService
         db_session = LearningSessionService.get_session_by_id(session_id)
         
         if not db_session or db_session.user_id != current_user.user_id:

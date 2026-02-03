@@ -2,7 +2,7 @@
 from flask import request, jsonify, current_app
 from flask_login import login_required, current_user
 from .. import learning_bp as blueprint
-from mindstack_app.modules.vocab_flashcard.services.session_service import LearningSessionService
+from mindstack_app.modules.session.services.session_service import LearningSessionService
 from mindstack_app.models import LearningContainer, db
 from flask import url_for
 

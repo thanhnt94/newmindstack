@@ -3,7 +3,7 @@ from flask import render_template, request, redirect, url_for, flash, abort, cur
 from mindstack_app.utils.template_helpers import render_dynamic_template
 from flask_login import login_required, current_user
 from mindstack_app.models import LearningContainer, LearningItem, db
-from mindstack_app.modules.vocab_flashcard.services.session_service import LearningSessionService
+from ..services.session_service import LearningSessionService
 from mindstack_app.modules.learning_history.models import StudyLog
 from .. import blueprint
 from .api import safe_url_for

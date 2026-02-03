@@ -186,7 +186,7 @@ class FlashcardEngine:
             'correct_rate': 0.0, 'current_streak': 0, 'longest_streak': 0,
             'first_seen': None, 'last_reviewed': None, 'next_review': None,
             'easiness_factor': 0.0, 'difficulty': 0.0, 'stability': 0.0,
-            'retrievability': 100.0, 'retention': 100.0,
+            'retrievability': 0.0, 'retention': 0.0,
             'repetitions': 0, 'interval': 0,
             'status': 'new',
             'preview_count': 0, 'has_real_reviews': False,
@@ -220,8 +220,8 @@ class FlashcardEngine:
             'easiness_factor': round(state_record.difficulty or 0.0, 2), # Legacy support
             'difficulty': round(state_record.difficulty or 0.0, 2),
             'stability': round(state_record.stability or 0.0, 2),
-            'retrievability': round(FSRSInterface.get_retrievability(state_record) * 100, 1) if state_record.stability else 100.0,
-            'retention': round(FSRSInterface.get_retrievability(state_record) * 100, 1) if state_record.stability else 100.0, # Aliases
+            'retrievability': round(FSRSInterface.get_retrievability(state_record) * 100, 1),
+            'retention': round(FSRSInterface.get_retrievability(state_record) * 100, 1), # Aliases
             'repetitions': state_record.repetitions,
             'interval': interval_val,
             'status': {0: 'new', 1: 'learning', 2: 'review', 3: 'relearning'}.get(state_record.state, 'new'),

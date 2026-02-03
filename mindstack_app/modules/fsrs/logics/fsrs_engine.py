@@ -63,10 +63,12 @@ class FSRSEngine:
         )
 
     def get_realtime_retention(self, card_state: CardStateDTO, now: datetime.datetime) -> float:
-        if card_state.state == CardStateEnum.NEW or card_state.stability <= 0:
+        if card_state.state == CardStateEnum.NEW or card_state.reps == 0:
+            return 0.0
+        if card_state.stability <= 0:
             return 1.0
         if not card_state.last_review:
-            return 1.0
+            return 0.0 if card_state.reps == 0 else 1.0
             
         last_review = card_state.last_review
         if last_review.tzinfo is None:
@@ -101,11 +103,20 @@ class FSRSEngine:
             days_elapsed = 0.0
         
         days_elapsed_rounded = max(0, round(days_elapsed))
-        next_states = self.fsrs.next_states(
-            memory_state,
-            self.desired_retention,
-            days_elapsed_rounded
-        )
+        
+        # print(f"[FSRS DEBUG] MemoryState: {memory_state}, Retention: {self.desired_retention}, Elapsed: {days_elapsed_rounded}")
+        try:
+            next_states = self.fsrs.next_states(
+                memory_state,
+                self.desired_retention,
+                days_elapsed_rounded
+            )
+        except Exception as e:
+            current_app.logger.error(f"[FSRS ENGINE] next_states error: {e}")
+            raise e
+        
+        # current_app.logger.info(f"[FSRS DEBUG] Next State Good Stability: {next_states.good.memory.stability if next_states.good else 'N/A'}")
+        
         
         rating_map = {
             Rating.Again: next_states.again,
