@@ -205,6 +205,13 @@ def start_flashcard_session_multi(mode):
     )
     
     if db_sess:
+        # Resolve container name for UI display
+        if len(set_ids) == 1:
+            container = LearningContainer.query.get(set_ids[0])
+            container_name = container.title if container else 'Học tập'
+        else:
+            container_name = f"{len(set_ids)} bộ thẻ"
+        
         session['flashcard_session'] = {
             'user_id': current_user.user_id,
             'set_id': set_ids,
@@ -213,7 +220,8 @@ def start_flashcard_session_multi(mode):
             'total_items_in_session': total_items,
             'processed_item_ids': [], 'correct_answers': 0, 'incorrect_answers': 0, 'vague_answers': 0, 'session_points': 0,
             'start_time': datetime.datetime.now(datetime.timezone.utc).isoformat(),
-            'db_session_id': db_sess.session_id, 'current_item_id': None
+            'db_session_id': db_sess.session_id, 'current_item_id': None,
+            'container_name': container_name
         }
         session.modified = True
         return redirect(url_for('vocab_flashcard.flashcard_session', session_id=db_sess.session_id))
@@ -262,6 +270,10 @@ def start_flashcard_session_by_id(set_id, mode):
     )
     
     if db_sess:
+        # Resolve container name for UI display
+        container = LearningContainer.query.get(set_id)
+        container_name = container.title if container else 'Học tập'
+        
         session['flashcard_session'] = {
             'user_id': current_user.user_id,
             'set_id': set_id,
@@ -270,7 +282,8 @@ def start_flashcard_session_by_id(set_id, mode):
             'total_items_in_session': total_items,
             'processed_item_ids': [], 'correct_answers': 0, 'incorrect_answers': 0, 'vague_answers': 0, 'session_points': 0,
             'start_time': datetime.datetime.now(datetime.timezone.utc).isoformat(),
-            'db_session_id': db_sess.session_id, 'current_item_id': None
+            'db_session_id': db_sess.session_id, 'current_item_id': None,
+            'container_name': container_name
         }
         session.modified = True
         return redirect(url_for('vocab_flashcard.flashcard_session', session_id=db_sess.session_id))
