@@ -65,7 +65,7 @@ def manage_sessions():
                 resume_url = safe_url_for('vocab_speed.speed_session_page', set_id=s.set_id_data)
             else:
                  # Default to Flashcard
-                 resume_url = safe_url_for('vocab_flashcard.flashcard_learning.flashcard_session', session_id=s.session_id)
+                 resume_url = safe_url_for('vocab_flashcard.flashcard_session', session_id=s.session_id)
     
             session_list.append({
                 'session_id': s.session_id,
@@ -73,7 +73,10 @@ def manage_sessions():
                 'container_name': container_name,
                 'done': len(s.processed_item_ids or []),
                 'total': s.total_items,
-                'resume_url': resume_url
+                'total': s.total_items,
+                'resume_url': resume_url,
+                'start_time': s.start_time,
+                'learning_mode': s.learning_mode
             })
         
         history_raw = LearningSessionService.get_session_history(current_user.user_id)
@@ -101,10 +104,10 @@ def manage_sessions():
                 'points': h.points_earned
             })
         
-        return render_dynamic_template('modules/learning/sessions.html', sessions=session_list, history=history_list)
+        return render_template('aura_mobile/modules/learning/sessions.html', sessions=session_list, history=history_list)
     except Exception as e:
         current_app.logger.error(f"Error loading sessions page: {e}", exc_info=True)
-        return render_dynamic_template('errors/500.html', error=e), 500
+        return f"Error loading sessions: {e}", 500
 
 @blueprint.route('/<session_id>/summary')
 @login_required
@@ -152,10 +155,17 @@ def session_summary(session_id):
             item = item_map.get(log.item_id)
             game = log.gamification_snapshot or {}
             
+            score_change = game.get('score_change', 0)
+            if score_change == 0:
+                 # Fallback if gamification_snapshot is missing or 0
+                 if log.rating == 3: score_change = 10
+                 elif log.rating == 4: score_change = 15
+                 elif log.rating == 2: score_change = 5
+
             log_data = {
                 'timestamp': log.timestamp, 
                 'rating': log.rating, 
-                'score_change': game.get('score_change', 0), 
+                'score_change': score_change, 
                 'duration_ms': log.review_duration, 
                 'item_id': log.item_id, 
                 'item_content': f"Item #{log.item_id}"

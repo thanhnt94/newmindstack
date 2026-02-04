@@ -83,7 +83,7 @@ def item_stats_page(item_id):
         abort(404, description="Item not found")
 
     if request.args.get('modal') == 'true':
-        return render_dynamic_template('modules/vocabulary/stats/_item_stats_content.html', stats=stats)
+        return render_dynamic_template('modules/vocabulary/stats/item_stats_modal.html', stats=stats)
         
     return render_dynamic_template('modules/vocabulary/stats/item_detail.html', stats=stats)
 

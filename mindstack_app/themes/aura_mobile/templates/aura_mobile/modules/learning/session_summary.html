@@ -89,20 +89,26 @@
                     </thead>
                     <tbody class="divide-y divide-slate-100">
                         {% for log in logs %}
-                        <tr class="hover:bg-slate-50/50 transition-colors">
-                            <td class="px-6 py-4 text-slate-400 font-medium text-sm">
+                        <tr class="hover:bg-slate-50/50 transition-colors cursor-pointer group"
+                            onclick="window.openModal('{{ url_for('vocabulary.item_stats_page', item_id=log.item_id, modal='true') }}', 'Chi tiết từ vựng')">
+                            <td
+                                class="px-6 py-4 text-slate-400 font-medium text-sm group-hover:text-indigo-500 transition-colors">
                                 {{ (pagination.page - 1) * pagination.per_page + loop.index }}
                             </td>
                             <td class="px-6 py-4">
-                                <div class="font-bold text-slate-700">
+                                <div class="font-bold text-slate-700 text-lg leading-snug">
                                     {% if log.item_content %}
                                     {{ log.item_content | safe }}
                                     {% else %}
                                     <span class="text-red-400 italic">Deleted Item #{{ log.item_id }}</span>
                                     {% endif %}
                                 </div>
-                                <div class="text-xs text-slate-400 mt-0.5">
-                                    {{ log.timestamp.strftime('%H:%M:%S') }}
+                                <div class="text-xs text-slate-400 mt-0.5 flex gap-2 items-center">
+                                    <span>{{ log.timestamp.strftime('%H:%M:%S') }}</span>
+                                    <span
+                                        class="opacity-0 group-hover:opacity-100 transition-opacity text-indigo-500 font-semibold">
+                                        <i class="fas fa-external-link-alt text-[10px]"></i> Xem chi tiết
+                                    </span>
                                 </div>
                             </td>
                             <td class="px-6 py-4 text-center">

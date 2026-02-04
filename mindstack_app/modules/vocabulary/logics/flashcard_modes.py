@@ -5,10 +5,18 @@ VOCAB_MODES = [
     FlashcardMode(
         id='mixed_srs',
         label='Học tập',
-        icon='fa-book-reader',
-        color='blue',
+        icon='fa-brain',
+        color='emerald',
         filter_method='filter_mixed',
-        description='Chế độ học kết hợp từ mới và ôn tập từ cũ.'
+        description='Ưu tiên thẻ cần ôn tập (ngẫu nhiên), sau đó đến thẻ mới.'
+    ),
+    FlashcardMode(
+        id='all_review',
+        label='Ôn tập',
+        icon='fa-rotate',
+        color='blue',
+        filter_method='filter_all_review',
+        description='Ôn lại tất cả các từ đã học (ngẫu nhiên).'
     )
 ]
 

@@ -188,7 +188,7 @@
     <div id="tab-history" class="hidden">
         {% if history %}
         {% for h in history %}
-        <a href="{{ url_for('learning.session_summary', session_id=h.session_id) }}"
+        <a href="{{ url_for('session.session_summary', session_id=h.session_id) }}"
             class="session-card opacity-90 hover:opacity-100 transition cursor-pointer hover:shadow-md block no-underline">
             <div class="session-header">
                 <div class="session-icon"

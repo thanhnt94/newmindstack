@@ -84,6 +84,9 @@ parser.add_simple_formatter('justify', '<div style="text-align: justify;">%(valu
 # strip=True (mặc định) để bỏ \n thừa; replace_links=False để không tự động biến URL trong value thành <a>
 parser.add_formatter('youtube', render_youtube, replace_links=False, strip=True)
 
+# [color=red]...[/color]
+parser.add_simple_formatter('color', '<span style="color:%(value)s;">%(value)s</span>')
+
 # --- Hàm chuyển đổi chính ---
 
 def bbcode_to_html(bbcode_text):

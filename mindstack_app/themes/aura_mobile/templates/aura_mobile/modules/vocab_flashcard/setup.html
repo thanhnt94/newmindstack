@@ -1,605 +1,367 @@
-{# Flashcard Setup Template - Wizard Style #}
+{# Flashcard Setup Template #}
 {% set _v = template_version or 'aura_mobile' %}
 {% extends _v ~ '/layouts/base.html' %}
 {% block title %}Học Flashcard - {{ container_title }}{% endblock %}
-{% from _v ~ '/components/components/dashboard_header.html' import render_dashboard_header %}
+
 {% block head %}
 {{ super() }}
 <style>
-    :root {
-        --primary: #10b981;
-        /* Green 500 */
-        --primary-bg: #ecfdf5;
-        /* Green 50 */
-        --surface: #ffffff;
-        --background: #f8fafc;
-        --text-main: #0f172a;
-        --text-sub: #64748b;
-        --border: #e2e8f0;
-        --radius: 24px;
-        --shadow-sm: 0 4px 6px -1px rgb(0 0 0 / 0.05);
-        --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1);
-    }
-
-    * {
-        box-sizing: border-box;
-    }
-
-    body {
-        background: var(--background);
-        font-family: 'Outfit', 'Inter', sans-serif;
-        margin: 0;
-        padding: 0;
-    }
-
-    .wizard-container {
+    /* Custom polished styling for setup page */
+    .setup-container {
+        padding: 1.5rem;
+        max-width: 600px;
+        margin: 0 auto;
         min-height: 100vh;
+        /* Ensure full height */
         display: flex;
         flex-direction: column;
-        align-items: stretch;
-        background: var(--background);
-        position: relative;
-        overflow-x: hidden;
     }
 
-    /* Minimal Header */
-    .wizard-header {
-        padding: 0.75rem 0.75rem;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        background: var(--surface);
-        border-bottom: 1px solid var(--border);
-        position: fixed;
-        top: 0;
-        left: 0;
-        right: 0;
-        z-index: 100;
-    }
-
-    .nav-btn {
-        width: 40px;
-        height: 40px;
-        border-radius: 12px;
-        background: transparent;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: var(--text-main);
-        font-size: 1.1rem;
-        cursor: pointer;
-        transition: all 0.2s;
-        text-decoration: none;
-        border: 1px solid var(--border);
-        flex-shrink: 0;
-    }
-
-    .nav-btn:hover {
-        background: var(--background);
-    }
-
-    /* Center Info */
-    .header-info {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
+    .setup-header {
+        margin-bottom: 2rem;
         text-align: center;
-        flex: 1;
-        min-width: 0;
     }
 
-    .set-title {
-        font-size: 1rem;
-        font-weight: 700;
-        color: var(--text-main);
-        margin: 0;
-        width: 100%;
-        white-space: nowrap;
+    .mode-card {
+        background: white;
+        border: 2px solid #f1f5f9;
+        border-radius: 1.5rem;
+        padding: 1.5rem;
+        margin-bottom: 1rem;
+        cursor: pointer;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        position: relative;
         overflow: hidden;
-        text-overflow: ellipsis;
     }
 
-    .mode-badge {
-        font-size: 0.7rem;
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-        color: var(--primary);
+    .mode-card.selected {
+        border-color: #10b981;
+        /* Emerald 500 */
+        background: #ecfdf5;
+        /* Emerald 50 */
+        box-shadow: 0 4px 12px rgba(16, 185, 129, 0.15);
+    }
+
+    .mode-card.disabled {
+        opacity: 0.6;
+        background: #f8fafc;
+        cursor: not-allowed;
+        filter: grayscale(0.8);
+    }
+
+    .mode-icon-wrapper {
+        width: 48px;
+        height: 48px;
+        border-radius: 14px;
+        background: #f1f5f9;
+        color: #64748b;
         display: flex;
         align-items: center;
         justify-content: center;
+        font-size: 1.25rem;
+        margin-bottom: 1rem;
+        transition: all 0.3s ease;
+    }
+
+    .mode-card.selected .mode-icon-wrapper {
+        background: #10b981;
+        color: white;
+        transform: scale(1.1);
+    }
+
+    .mode-stats {
+        display: flex;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+        margin-top: 0.75rem;
+    }
+
+    .stat-badge {
+        font-size: 0.75rem;
+        padding: 0.25rem 0.6rem;
+        border-radius: 8px;
+        background: #f1f5f9;
+        color: #64748b;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
         gap: 4px;
     }
 
-    .step-indicator {
+    .mode-card.selected .stat-badge {
+        background: white;
+        color: #059669;
+    }
+
+    .bottom-panel {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: white;
+        padding: 1.5rem;
+        border-top: 1px solid #e2e8f0;
+        box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.05);
+        z-index: 50;
+    }
+
+    .config-toggles {
         display: flex;
-        gap: 6px;
-        width: 40px;
-        justify-content: flex-end;
-        flex-shrink: 0;
+        gap: 1rem;
+        margin-bottom: 1.25rem;
+        justify-content: center;
     }
 
-    .step-dot {
-        width: 8px;
-        height: 8px;
-        border-radius: 50%;
-        background: var(--border);
-        transition: background 0.3s;
-    }
-
-    .step-dot.active {
-        background: var(--primary);
-        width: 16px;
+    .toggle-chip {
+        padding: 0.6rem 1rem;
         border-radius: 12px;
-    }
-
-    /* Steps Content */
-    .wizard-content {
-        flex: 1;
-        padding: 10px 1.25rem 180px 1.25rem;
-        /* Increased bottom padding for larger footer */
-        display: flex !important;
-        flex-direction: column !important;
-        align-items: stretch !important;
-        width: 100% !important;
-        overflow-y: auto;
-    }
-
-    .step-screen {
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: #64748b;
         display: flex;
-        flex-direction: column;
-        align-items: stretch;
-        width: 100% !important;
-        animation: fadeIn 0.4s ease-out;
+        align-items: center;
+        gap: 0.5rem;
+        cursor: pointer;
+        transition: all 0.2s;
     }
 
-    @keyframes fadeIn {
-        from {
-            opacity: 0;
-            transform: translateY(10px);
-        }
+    .toggle-chip.active {
+        background: #eff6ff;
+        border-color: #3b82f6;
+        color: #2563eb;
+    }
 
+    .btn-start {
+        width: 100%;
+        padding: 1rem;
+        border-radius: 1rem;
+        background: #0f172a;
+        color: white;
+        font-weight: 700;
+        font-size: 1.1rem;
+        border: none;
+        transition: transform 0.2s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+    }
+
+    .btn-start:active {
+        transform: scale(0.98);
+    }
+
+    .btn-start:disabled {
+        background: #cbd5e1;
+        cursor: not-allowed;
+        transform: none;
+    }
+
+    /* Animation */
+    .fade-in-up {
+        animation: fadeInUp 0.5s ease-out forwards;
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    @keyframes fadeInUp {
         to {
             opacity: 1;
             transform: translateY(0);
         }
     }
-
-    .title-area {
-        margin-bottom: 2rem;
-        text-align: center;
-        width: 100% !important;
-    }
-
-    .title-area h2 {
-        font-size: 1.75rem;
-        font-weight: 800;
-        color: var(--text-main);
-        margin: 0 0 0.5rem 0;
-        line-height: 1.2;
-    }
-
-    .title-area p {
-        color: var(--text-sub);
-        margin: 0;
-        font-size: 1rem;
-    }
-
-    /* Mode Grid */
-    .mode-grid {
-        display: flex !important;
-        flex-direction: column !important;
-        align-items: stretch !important;
-        gap: 1rem;
-        width: 100% !important;
-    }
-
-    .mode-card {
-        width: 100% !important;
-        background: var(--surface);
-        border: 2px solid transparent;
-        border-radius: 20px;
-        padding: 1.5rem 1.25rem;
-        display: flex !important;
-        align-items: center;
-        gap: 1.25rem;
-        cursor: pointer;
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        box-shadow: var(--shadow-sm);
-        position: relative;
-        overflow: hidden;
-        min-height: 90px;
-    }
-
-    .mode-card:hover:not(.disabled) {
-        transform: translateY(-3px);
-        border-color: var(--primary);
-        box-shadow: var(--shadow-lg);
-    }
-
-    .mode-card.selected {
-        background: var(--primary-bg);
-        border-color: var(--primary);
-        box-shadow: 0 10px 20px -5px rgba(16, 185, 129, 0.2);
-    }
-
-    .mode-card.disabled {
-        opacity: 0.5;
-        filter: grayscale(1);
-        cursor: not-allowed;
-        background: #f1f5f9;
-        border-color: transparent;
-    }
-
-    .mode-icon {
-        width: 56px;
-        height: 56px;
-        border-radius: 18px;
-        background: var(--background);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 1.6rem;
-        color: var(--text-sub);
-        transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        flex-shrink: 0;
-    }
-
-    .mode-card.selected .mode-icon {
-        background: var(--primary);
-        color: white;
-        transform: scale(1.1) rotate(-8deg);
-    }
-
-    .mode-info {
-        flex: 1;
-        min-width: 0;
-    }
-
-    .mode-title {
-        font-weight: 700;
-        font-size: 1.1rem;
-        color: var(--text-main);
-        display: block;
-    }
-
-    .mode-desc {
-        font-size: 0.9rem;
-        color: var(--text-sub);
-        margin-top: 2px;
-        display: block;
-    }
-
-    /* Config Cards */
-    .config-card {
-        background: transparent;
-        border-radius: 0;
-        padding: 0;
-        box-shadow: none;
-        margin-bottom: 0.75rem;
-        border: none;
-    }
-
-    .config-header {
-        font-size: 0.8rem;
-        font-weight: 700;
-        color: var(--text-sub);
-        margin-bottom: 0.5rem;
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-    }
-
-    .config-header i {
-        color: var(--primary);
-        opacity: 0.8;
-    }
-
-    /* Chips */
-    .options-row {
-        display: flex;
-        gap: 0.5rem;
-        overflow-x: auto;
-        padding-bottom: 2px;
-    }
-
-    .option-chip {
-        padding: 0.5rem 0.85rem;
-        border-radius: 12px;
-        border: 1px solid var(--border);
-        background: var(--background);
-        font-size: 0.85rem;
-        font-weight: 600;
-        color: var(--text-sub);
-        cursor: pointer;
-        white-space: nowrap;
-        transition: all 0.2s;
-        display: flex;
-        align-items: center;
-        gap: 6px;
-    }
-
-    .option-chip:hover {
-        background: white;
-        border-color: var(--primary);
-    }
-
-    .option-chip.selected {
-        background: var(--primary);
-        color: white;
-        border-color: var(--primary);
-        box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.3);
-    }
-
-    /* Footer */
-    .wizard-footer {
-        padding: 1.25rem 1.5rem;
-        background: var(--surface);
-        border-top: 1px solid var(--border);
-        position: fixed;
-        bottom: 0;
-        left: 0;
-        right: 0;
-        z-index: 100;
-        box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.03);
-    }
-
-    .action-btn {
-        width: 100%;
-        padding: 1rem;
-        border-radius: 16px;
-        border: none;
-        font-size: 1rem;
-        font-weight: 700;
-        cursor: pointer;
-        transition: all 0.3s;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 0.75rem;
-        box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
-    }
-
-    .btn-primary {
-        background: var(--primary);
-        color: white;
-        box-shadow: 0 8px 16px -4px rgba(37, 99, 235, 0.4);
-    }
-
-    .btn-primary:hover:not(:disabled) {
-        transform: translateY(-2px);
-        box-shadow: 0 12px 20px -4px rgba(37, 99, 235, 0.5);
-    }
-
-    .btn-primary:disabled {
-        opacity: 0.6;
-        cursor: not-allowed;
-    }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="wizard-container">
+<div class="setup-container">
 
-    {% call render_dashboard_header(title=container_title, subtitle='FLASHCARD') %}
-    {% endcall %}
-
-    <div class="wizard-content">
-
-        <div class="step-screen">
-            <div class="title-area">
-                <h2>Chọn chế độ học</h2>
-                <p>Bạn muốn ôn tập theo cách nào?</p>
-            </div>
-
-            <div class="mode-grid">
-                {% for mode in modes %}
-                {% set mode_count = mode_counts.get(mode.id, 0) %}
-                <div class="mode-card {% if mode_count == 0 %}disabled{% endif %}" data-value="{{ mode.id }}">
-                    <div class="mode-icon"><i class="fas {{ mode.icon }}"></i></div>
-                    <div class="mode-info">
-                        <span class="mode-title">{{ mode.label }}</span>
-                        <span class="mode-desc">
-                            {% if mode.id == 'mixed_srs' %}
-                            {{ mode_count }} từ cần ôn tập
-                            {% elif mode.description %}
-                            {{ mode.description }}
-                            {% else %}
-                            {{ mode_count }} thẻ
-                            {% endif %}
-                        </span>
-                    </div>
-                </div>
-                {% endfor %}
-            </div>
+    <!-- Navbar placeholder for spacing if needed or plain header -->
+    <div class="flex items-center gap-4 mb-4">
+        <a href="{{ url_for('vocabulary.dashboard') }}"
+            class="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200 transition-colors">
+            <i class="fa-solid fa-arrow-left"></i>
+        </a>
+        <div class="flex-1 min-w-0">
+            <h1 class="font-bold text-slate-800 truncate">{{ container_title }}</h1>
         </div>
-
     </div>
 
-    <!-- Footer Action -->
-    <div class="wizard-footer">
-        <!-- Visual Settings -->
-        <div class="config-card">
-            <div class="config-header"><i class="fas fa-cog"></i> Cài đặt hiển thị & âm thanh</div>
-            <div class="options-row">
-                <!-- Show Image Toggle -->
-                <label class="option-chip selected" id="show-image-option">
-                    <input type="checkbox" id="show-image-check" style="display:none;" checked />
-                    <i class="fas fa-image"></i> Hiện ảnh
-                </label>
+    <!-- Main Title -->
+    <div class="setup-header fade-in-up" style="animation-delay: 0.1s;">
+        <h2 class="text-2xl font-black text-slate-800 mb-2">Chọn chế độ học</h2>
+        <p class="text-slate-500">Bạn muốn ôn tập theo cách nào hôm nay?</p>
+    </div>
 
-                <!-- Autoplay Toggle -->
-                <label class="option-chip" id="autoplay-option">
-                    <input type="checkbox" id="autoplay-check" style="display:none;" />
-                    <i class="fas fa-volume-up"></i> Tự động phát loa
-                </label>
+    <!-- Modes List -->
+    <div class="flex-1 space-y-4 fade-in-up" style="animation-delay: 0.2s;">
+        {% for mode in modes %}
+        {% set m_count = mode_counts.get(mode.id, 0) %}
+        {% set is_disabled = m_count == 0 %}
+
+        <div class="mode-card {% if is_disabled %}disabled{% endif %}" onclick="selectMode(this, '{{ mode.id }}')"
+            data-id="{{ mode.id }}" data-count="{{ m_count }}">
+
+            <div class="flex items-start justify-between">
+                <div>
+                    <h3 class="text-lg font-bold text-slate-800">{{ mode.label }}</h3>
+                    <p class="text-sm text-slate-500 font-medium leading-snug max-w-[85%] mt-1">
+                        {{ mode.description }}
+                    </p>
+                </div>
+                <div class="mode-icon-wrapper">
+                    <i class="fas {{ mode.icon }}"></i>
+                </div>
+            </div>
+
+            <!-- Custom Stats Display -->
+            <div class="mode-stats">
+                {% if mode.id == 'mixed_srs' %}
+                <span class="stat-badge">
+                    <i class="fas fa-clock text-amber-500"></i> {{ mode_counts.get('due', 0) }} đến hạn
+                </span>
+                <span class="stat-badge">
+                    <i class="fas fa-sparkles text-blue-500"></i> {{ mode_counts.get('new', 0) }} mới
+                </span>
+                {% elif mode.id == 'all_review' %}
+                <span class="stat-badge">
+                    <i class="fas fa-check-circle text-emerald-500"></i> {{ mode_counts.get('learned', 0) }} đã học
+                </span>
+                {% else %}
+                <span class="stat-badge">{{ m_count }} thẻ</span>
+                {% endif %}
             </div>
         </div>
+        {% endfor %}
+    </div>
 
-        <button class="action-btn btn-primary" id="next-btn">
-            Bắt đầu học ngay <i class="fas fa-rocket"></i>
+    <!-- Spacer for fixed footer -->
+    <div class="h-32"></div>
+
+</div>
+
+<!-- Bottom Action Panel -->
+<div class="bottom-panel fade-in-up" style="animation-delay: 0.3s;">
+    <!-- Settings Toggles -->
+    <div class="config-toggles">
+        <button class="toggle-chip active" id="toggle-image" onclick="toggleSetting('image')">
+            <i class="fas fa-image"></i> Hiện ảnh
+        </button>
+        <button class="toggle-chip" id="toggle-audio" onclick="toggleSetting('audio')">
+            <i class="fas fa-volume-up"></i> Tự động phát
         </button>
     </div>
 
+    <button id="start-btn" class="btn-start" onclick="startSession()" disabled>
+        Bắt đầu ngay
+    </button>
 </div>
 {% endblock %}
 
 {% block scripts %}
 {{ super() }}
 <script>
-    (function () {
-        // --- Data ---
-        const setIdStr = "{{ set_id }}";
-        const setId = (setIdStr === 'all' || setIdStr === 'None') ? 'all' : Number(setIdStr);
-        const modeCounts = {{ mode_counts | tojson
+    // Data & State
+    const setIdentifier = "{{ set_id }}";
+    let selectedModeId = null;
+    let settings = {
+        show_image: true,
+        autoplay: false
+    };
+
+    // Load saved settings if any (simple)
+    {% if saved_settings %}
+    try {
+        const saved = {{ saved_settings | tojson
     }};
-    const savedSettings = {{ saved_settings | tojson }} || {};
+    if (saved.show_image !== undefined) settings.show_image = saved.show_image;
+    if (saved.autoplay !== undefined) settings.autoplay = saved.autoplay;
+    } catch (e) { }
+    {% endif %}
 
-    // --- State ---
-    let selectedMode = 'sequential';
+    // Init UI from State
+    function initUI() {
+        const imgBtn = document.getElementById('toggle-image');
+        const audioBtn = document.getElementById('toggle-audio');
 
-    let isAutoplay = false;
-    let isShowImage = true;
+        if (settings.show_image) imgBtn.classList.add('active');
+        else imgBtn.classList.remove('active');
 
-    // --- DOM Elements ---
-    const nextBtn = document.getElementById('next-btn');
-    const backBtn = document.getElementById('header-back-btn');
-    const modeCards = document.querySelectorAll('.mode-card');
-    const dashboardUrl = "{{ url_for('vocabulary.dashboard') }}";
+        if (settings.autoplay) audioBtn.classList.add('active');
+        else audioBtn.classList.remove('active');
 
-    // Config Options
-    const autoplayOption = document.getElementById('autoplay-option');
-    const autoplayCheck = document.getElementById('autoplay-check');
-    const showImageOption = document.getElementById('show-image-option');
-    const showImageCheck = document.getElementById('show-image-check');
-
-    // --- Initialize ---
-
-    // 1. Auto-select mode logic (internal)
-    let firstValidMode = null;
-    modeCards.forEach(card => {
-        if (!card.classList.contains('disabled')) {
-            if (!firstValidMode) firstValidMode = card;
+        // Auto-select first available mode
+        const firstCard = document.querySelector('.mode-card:not(.disabled)');
+        if (firstCard) {
+            firstCard.click();
+        } else {
+            document.getElementById('start-btn').textContent = "Không có từ cần học";
         }
-    });
-
-    if (savedSettings.autoplay !== undefined) {
-        isAutoplay = Boolean(savedSettings.autoplay);
-        autoplayCheck.checked = isAutoplay;
-        if (isAutoplay) autoplayOption.classList.add('selected');
-        else autoplayOption.classList.remove('selected');
     }
 
-    if (savedSettings.show_image !== undefined) {
-        isShowImage = Boolean(savedSettings.show_image);
-        showImageCheck.checked = isShowImage;
-        if (isShowImage) showImageOption.classList.add('selected');
-        else showImageOption.classList.remove('selected');
-    }
-
-    if (firstValidMode) {
-        selectMode(firstValidMode);
-    } else {
-        nextBtn.disabled = true;
-        nextBtn.innerHTML = "Không có từ nào";
-    }
-
-    // --- Event Listeners ---
-
-    // Mode Selection
-    modeCards.forEach(card => {
-        if (card.classList.contains('disabled')) return;
-        card.addEventListener('click', () => selectMode(card));
-    });
-
-    function selectMode(cardElement) {
-        modeCards.forEach(c => c.classList.remove('selected'));
-        cardElement.classList.add('selected');
-        selectedMode = cardElement.dataset.value;
-    }
-
-    // Autoplay Toggle
-    autoplayOption.addEventListener('click', (e) => {
-        if (e.target.tagName !== 'INPUT') {
-            e.preventDefault();
-            autoplayCheck.checked = !autoplayCheck.checked;
+    // Toggle Settings
+    window.toggleSetting = function (type) {
+        if (type === 'image') {
+            settings.show_image = !settings.show_image;
+            document.getElementById('toggle-image').classList.toggle('active');
+        } else if (type === 'audio') {
+            settings.autoplay = !settings.autoplay;
+            document.getElementById('toggle-audio').classList.toggle('active');
         }
-        isAutoplay = autoplayCheck.checked;
-        if (isAutoplay) autoplayOption.classList.add('selected');
-        else autoplayOption.classList.remove('selected');
-    });
+    }
 
-    // Show Image Toggle
-    showImageOption.addEventListener('click', (e) => {
-        if (e.target.tagName !== 'INPUT') {
-            e.preventDefault();
-            showImageCheck.checked = !showImageCheck.checked;
-        }
-        isShowImage = showImageCheck.checked;
-        if (isShowImage) showImageOption.classList.add('selected');
-        else showImageOption.classList.remove('selected');
-    });
+    // Select Mode
+    window.selectMode = function (el, modeId) {
+        if (el.classList.contains('disabled')) return;
 
-    // Navigation Logic
-    nextBtn.addEventListener('click', () => {
-        startSession();
-    });
+        // Visual selection
+        document.querySelectorAll('.mode-card').forEach(c => c.classList.remove('selected'));
+        el.classList.add('selected');
 
-    backBtn.addEventListener('click', (e) => {
-        e.preventDefault();
-        window.location.href = dashboardUrl;
-    });
+        selectedModeId = modeId;
 
-    // --- Start Session ---
-    function startSession() {
-        const settingsPayload = {
-            set_id: setId,
-            visual_settings: {
-                autoplay: isAutoplay,
-                show_image: isShowImage
-            }
-        };
+        // Enable button
+        const btn = document.getElementById('start-btn');
+        btn.disabled = false;
+        btn.innerHTML = `<i class="fas fa-play"></i> Bắt đầu ${el.querySelector('h3').innerText}`;
+    }
 
-        nextBtn.disabled = true;
-        nextBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang khởi tạo...';
+    // Start Session
+    window.startSession = function () {
+        if (!selectedModeId) return;
 
+        const btn = document.getElementById('start-btn');
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Đang tải...';
+
+        // 1. Save settings
         fetch("{{ url_for('vocab_flashcard.api_save_flashcard_settings') }}", {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'X-CSRFToken': '{{ csrf_token() }}'
             },
-            body: JSON.stringify(settingsPayload)
-        })
-            .then(r => r.json())
-            .then(data => {
-                if (data.success) {
-                    let url = `{{ url_for('vocab_flashcard.start_flashcard_session_by_id', set_id=set_id, mode='placeholder') }}`.replace('placeholder', selectedMode);
-
-                    // Pass settings as URL params to ensure resolve_flashcard_session_config picks them up
-                    const params = new URLSearchParams();
-                    params.set('autoplay', isAutoplay ? 'true' : 'false');
-                    params.set('show_image', isShowImage ? 'true' : 'false');
-
-                    url += (url.includes('?') ? '&' : '?') + params.toString();
-
-                    window.location.href = url;
-                } else {
-                    alert('Lỗi lưu cài đặt: ' + data.message);
-                    nextBtn.disabled = false;
-                    nextBtn.innerHTML = 'Bắt đầu học ngay <i class="fas fa-rocket"></i>';
-                }
+            body: JSON.stringify({
+                set_id: (setIdentifier === 'all') ? 'all' : Number(setIdentifier),
+                visual_settings: settings
             })
-            .catch(err => {
-                console.error(err);
-                alert('Lỗi kết nối máy chủ');
-                nextBtn.disabled = false;
-                nextBtn.innerHTML = 'Bắt đầu học ngay <i class="fas fa-rocket"></i>';
-            });
+        }).finally(() => {
+            // 2. Redirect
+            let url = "{{ url_for('vocab_flashcard.start_flashcard_session_by_id', set_id=0, mode='MODE') }}"
+                .replace('0', setIdentifier)
+                .replace('MODE', selectedModeId);
+
+            // Append explicit params
+            url += `?autoplay=${settings.autoplay}&show_image=${settings.show_image}`;
+
+            window.location.href = url;
+        });
     }
 
-    }) ();
+    // Run Init
+    document.addEventListener('DOMContentLoaded', initUI);
+
 </script>
 {% endblock %}

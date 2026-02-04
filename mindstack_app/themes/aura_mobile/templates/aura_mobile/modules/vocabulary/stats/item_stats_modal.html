@@ -1,0 +1,78 @@
+{% set _v = template_version or 'aura_mobile' %}
+{% extends _v ~ '/layouts/base.html' %}
+
+{% block title %}Chi tiết từ vựng{% endblock %}
+
+{% block content %}
+<div class="h-screen w-full bg-white p-0 m-0">
+    {% include _v ~ '/modules/vocabulary/stats/_item_stats_content.html' %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Tab Logic for Item Stats
+    window.toggleSubTabs = function (isContentTab) {
+        // Simple tab switching logic matching the template's data-tab attributes
+        const tabs = document.querySelectorAll('.tab-btn');
+        const contents = document.querySelectorAll('.tab-content');
+
+        // This simple implementation relies on the onclick passing a boolean, 
+        // but the template uses data-tab. Let's fix the behavior.
+        // Actually the template calls toggleSubTabs(true/false) which seems to imply
+        // switching between "Content" (true) and "Others" (false)?
+        // BUT the buttons also have data-tab="content", "notes", etc.
+
+        // Let's implement a robust tab switcher based on the clicked element
+        const event = window.event;
+        if (!event || !event.currentTarget) return;
+
+        const targetBtn = event.currentTarget;
+        const targetTabId = targetBtn.dataset.tab;
+
+        // Update Buttons
+        tabs.forEach(t => t.classList.remove('active'));
+        targetBtn.classList.add('active');
+
+        // Update Content
+        contents.forEach(c => c.style.display = 'none');
+        const targetContent = document.getElementById('tab-' + targetTabId);
+        if (targetContent) {
+            targetContent.style.display = 'block';
+            targetContent.classList.add('active');
+        }
+
+        // Toggle Sub-nav visibility (Only show for content tab)
+        const subNav = document.getElementById('header-sub-tabs');
+        if (subNav) {
+            subNav.style.display = targetTabId === 'content' ? 'flex' : 'none';
+        }
+    };
+
+    window.switchSubTab = function (subTabId) {
+        // Switch between Flashcard / AI
+        const subTabs = document.querySelectorAll('.sub-tab-content');
+        const subBtns = document.querySelectorAll('.sub-tab-btn');
+
+        // Update Buttons
+        subBtns.forEach(btn => btn.classList.remove('active'));
+        if (event && event.currentTarget) event.currentTarget.classList.add('active');
+
+        // Update Content
+        subTabs.forEach(t => t.style.display = 'none');
+        const target = document.getElementById(subTabId);
+        if (target) {
+            target.style.display = 'block';
+            target.classList.add('active');
+        }
+    };
+
+    // Auto-init: Show first tab
+    document.addEventListener('DOMContentLoaded', () => {
+        const firstTab = document.querySelector('.tab-btn.active');
+        if (firstTab && firstTab.onclick) {
+            // Let it be, default state is set in HTML
+        }
+    });
+</script>
+{% endblock %}

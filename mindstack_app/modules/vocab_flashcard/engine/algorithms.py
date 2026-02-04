@@ -145,7 +145,7 @@ def get_flashcard_mode_counts(user_id, set_id, context='vocab'):
             'description': mode.description
         })
 
-    return {
+    result = {
         'total': total,
         'new': new_count,
         'due': due,
@@ -153,6 +153,12 @@ def get_flashcard_mode_counts(user_id, set_id, context='vocab'):
         'hard': hard,
         'list': mode_list
     }
+    
+    # Flatten mode counts for direct access by ID
+    for m in mode_list:
+        result[m['id']] = m['count']
+        
+    return result
 
 def get_accessible_flashcard_set_ids(user_id):
     query = LearningContainer.query.filter(

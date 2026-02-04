@@ -15,7 +15,7 @@ from .. import blueprint as flashcard_learning_bp
 
 
 # Import từ engine module
-from ..engine.session_manager import FlashcardSessionManager
+from ..engine.services.query_builder import FlashcardQueryBuilder
 from ..engine.config import FlashcardLearningConfig
 from ..engine.algorithms import (
     get_new_only_items,
@@ -112,11 +112,52 @@ def start_flashcard_session_all(mode):
     if ui_pref:
         session['flashcard_ui_pref'] = ui_pref
 
-    success, message, session_id = FlashcardSessionManager.start_new_flashcard_session(set_ids, mode)
-    if success:
-        return redirect(url_for('vocab_flashcard.flashcard_learning.flashcard_session', session_id=session_id))
+    # [REFACTORED] Stateless Session Start
+    from ..engine.services.query_builder import FlashcardQueryBuilder
+    
+    qb = FlashcardQueryBuilder(current_user.user_id)
+    accessible_ids = get_accessible_flashcard_set_ids(current_user.user_id)
+    qb.filter_by_containers(accessible_ids)
+    
+    mode_obj = get_flashcard_mode_by_id(mode)
+    if mode_obj and hasattr(qb, mode_obj.filter_method):
+        getattr(qb, mode_obj.filter_method)()
     else:
-        flash(message, 'warning')
+        qb.filter_mixed()
+        
+    total_items = qb.count()
+    if total_items == 0:
+        flash('Không có thẻ nào cho chế độ này.', 'warning')
+        return redirect(url_for('vocabulary.dashboard'))
+
+    # Create DB Session
+    db_sess = SessionInterface.create_session(
+        user_id=current_user.user_id,
+        learning_mode='flashcard',
+        mode_config_id=mode,
+        set_id_data='all',
+        total_items=total_items
+    )
+    
+    if db_sess:
+        # Set Cookie
+        session['flashcard_session'] = {
+            'user_id': current_user.user_id,
+            'set_id': 'all',
+            'mode': mode,
+            'batch_size': 1, 
+            'total_items_in_session': total_items, # Use DB count
+            'processed_item_ids': [],
+            'correct_answers': 0, 'incorrect_answers': 0, 'vague_answers': 0,
+            'session_points': 0,
+            'start_time': datetime.datetime.now(datetime.timezone.utc).isoformat(),
+            'db_session_id': db_sess.session_id,
+            'current_item_id': None
+        }
+        session.modified = True
+        return redirect(url_for('vocab_flashcard.flashcard_session', session_id=db_sess.session_id))
+    else:
+        flash('Lỗi khởi tạo phiên học.', 'danger')
         return redirect(url_for('vocabulary.dashboard'))
 
 
@@ -138,11 +179,46 @@ def start_flashcard_session_multi(mode):
         flash('Lỗi: Định dạng ID bộ thẻ không hợp lệ.', 'danger')
         return redirect(url_for('vocabulary.dashboard'))
 
-    success, message, session_id = FlashcardSessionManager.start_new_flashcard_session(set_ids, mode)
-    if success:
-        return redirect(url_for('vocab_flashcard.flashcard_session', session_id=session_id))
+    # [REFACTORED] Stateless Session Start (Multi)
+    # ... (Simplified logic similar to 'all' but with specific set list)
+    from ..engine.services.query_builder import FlashcardQueryBuilder
+    qb = FlashcardQueryBuilder(current_user.user_id)
+    qb.filter_by_containers(set_ids)
+    
+    mode_obj = get_flashcard_mode_by_id(mode)
+    if mode_obj and hasattr(qb, mode_obj.filter_method):
+        getattr(qb, mode_obj.filter_method)()
     else:
-        flash(message, 'warning')
+        qb.filter_mixed()
+        
+    total_items = qb.count()
+    if total_items == 0:
+        flash('Không có thẻ nào cho chế độ này.', 'warning')
+        return redirect(url_for('vocabulary.dashboard'))
+
+    db_sess = SessionInterface.create_session(
+        user_id=current_user.user_id,
+        learning_mode='flashcard',
+        mode_config_id=mode,
+        set_id_data=set_ids, # List of ints
+        total_items=total_items
+    )
+    
+    if db_sess:
+        session['flashcard_session'] = {
+            'user_id': current_user.user_id,
+            'set_id': set_ids,
+            'mode': mode,
+            'batch_size': 1,
+            'total_items_in_session': total_items,
+            'processed_item_ids': [], 'correct_answers': 0, 'incorrect_answers': 0, 'vague_answers': 0, 'session_points': 0,
+            'start_time': datetime.datetime.now(datetime.timezone.utc).isoformat(),
+            'db_session_id': db_sess.session_id, 'current_item_id': None
+        }
+        session.modified = True
+        return redirect(url_for('vocab_flashcard.flashcard_session', session_id=db_sess.session_id))
+    else:
+        flash('Lỗi khởi tạo phiên học.', 'danger')
         return redirect(url_for('vocabulary.dashboard'))
 
 
@@ -161,11 +237,45 @@ def start_flashcard_session_by_id(set_id, mode):
     session['flashcard_visual_settings'] = config['visual_settings']
 
         
-    success, message, session_id = FlashcardSessionManager.start_new_flashcard_session(set_id, mode)
-    if success:
-        return redirect(url_for('vocab_flashcard.flashcard_session', session_id=session_id))
+    # [REFACTORED] Stateless Session Start (Single ID)
+    from ..engine.services.query_builder import FlashcardQueryBuilder
+    qb = FlashcardQueryBuilder(current_user.user_id)
+    qb.filter_by_containers([set_id])
+    
+    mode_obj = get_flashcard_mode_by_id(mode)
+    if mode_obj and hasattr(qb, mode_obj.filter_method):
+        getattr(qb, mode_obj.filter_method)()
     else:
-        flash(message, 'warning')
+        qb.filter_mixed()
+        
+    total_items = qb.count()
+    if total_items == 0:
+        flash('Không có thẻ nào cho chế độ này.', 'warning')
+        return redirect(url_for('vocabulary.dashboard'))
+
+    db_sess = SessionInterface.create_session(
+        user_id=current_user.user_id,
+        learning_mode='flashcard',
+        mode_config_id=mode,
+        set_id_data=set_id, # Int
+        total_items=total_items
+    )
+    
+    if db_sess:
+        session['flashcard_session'] = {
+            'user_id': current_user.user_id,
+            'set_id': set_id,
+            'mode': mode,
+            'batch_size': 1,
+            'total_items_in_session': total_items,
+            'processed_item_ids': [], 'correct_answers': 0, 'incorrect_answers': 0, 'vague_answers': 0, 'session_points': 0,
+            'start_time': datetime.datetime.now(datetime.timezone.utc).isoformat(),
+            'db_session_id': db_sess.session_id, 'current_item_id': None
+        }
+        session.modified = True
+        return redirect(url_for('vocab_flashcard.flashcard_session', session_id=db_sess.session_id))
+    else:
+        flash('Lỗi khởi tạo phiên học.', 'danger')
         return redirect(url_for('vocabulary.dashboard'))
 
 
@@ -189,28 +299,44 @@ def flashcard_session(session_id):
     Sử dụng TemplateService để chọn template version từ admin settings.
     """
     
-    # [NEW] Check if session matches URL ID
+    # [REFACTORED] Re-load session from DB (Stateless approach)
     should_reload = False
     if 'flashcard_session' not in session:
         should_reload = True
     else:
-        current_session_data = session['flashcard_session']
-        if current_session_data.get('db_session_id') != session_id:
+        # Verify if cookie matches URL
+        cookie_data = session['flashcard_session']
+        if cookie_data.get('db_session_id') != session_id:
             should_reload = True
             
     if should_reload:
         active_db_session = SessionInterface.get_session_by_id(session_id)
         
-        # Security check: User must own this session
+        # Security check
         if not active_db_session or active_db_session.user_id != current_user.user_id:
              flash('Phiên học không tồn tại hoặc bạn không có quyền truy cập.', 'error')
              return redirect(url_for('vocabulary.dashboard'))
              
-        # Reconstruct session manager from DB data
-        session_manager = FlashcardSessionManager.from_db_session(active_db_session)
-        session['flashcard_session'] = session_manager.to_dict()
+        # Reconstruct session dict directly from DB model
+        session['flashcard_session'] = {
+            'user_id': active_db_session.user_id,
+            'set_id': active_db_session.set_id_data,
+            'mode': active_db_session.mode_config_id,
+            'batch_size': 1,
+            'total_items_in_session': active_db_session.total_items,
+            'processed_item_ids': active_db_session.processed_item_ids or [],
+            'correct_answers': active_db_session.correct_count,
+            'incorrect_answers': active_db_session.incorrect_count,
+            'vague_answers': active_db_session.vague_count,
+            'session_points': active_db_session.points_earned,
+            'start_time': active_db_session.start_time.isoformat() if active_db_session.start_time else None,
+            'db_session_id': active_db_session.session_id,
+            'current_item_id': active_db_session.current_item_id,
+            # UI display fields
+            'container_name': 'Đang tải...' # Can be resolved later or in template
+        }
         session.modified = True
-        current_app.logger.info(f"Reloaded session {session_id} from DB into Flask session.")
+        current_app.logger.info(f"Reloaded session {session_id} from DB (Stateless).")
 
 
 
@@ -282,7 +408,7 @@ def flashcard_session(session_id):
 
 @flashcard_learning_bp.route('/setup')
 @login_required
-def setup():
+def flashcard_setup():
     """Trang thiết lập trước khi bắt đầu phiên luyện tập."""
     from mindstack_app.modules.vocabulary.interface import VocabularyInterface
     from mindstack_app.modules.learning.services.settings_service import LearningSettingsService
@@ -360,12 +486,50 @@ def start():
         flash('Vui lòng chọn ít nhất một bộ thẻ.', 'warning')
         return redirect(url_for('vocabulary.dashboard'))
     
-    # Bắt đầu session sử dụng flashcard engine
-    success, message, session_id = FlashcardSessionManager.start_new_flashcard_session(set_ids, mode)
-    if success:
-        return redirect(url_for('.flashcard_session', session_id=session_id))
+    # [REFACTORED] Stateless Session Start (Generic)
+    # Using 'set_ids' from request (parsed above)
+    from ..engine.services.query_builder import FlashcardQueryBuilder
+    qb = FlashcardQueryBuilder(current_user.user_id)
+    
+    if set_ids == 'all':
+        accessible = get_accessible_flashcard_set_ids(current_user.user_id)
+        qb.filter_by_containers(accessible)
     else:
-        flash(message, 'warning')
+        # set_ids is list of ints
+        qb.filter_by_containers(set_ids)
+        
+    mode_obj = get_flashcard_mode_by_id(mode)
+    if mode_obj and hasattr(qb, mode_obj.filter_method):
+        getattr(qb, mode_obj.filter_method)()
+    else:
+        qb.filter_mixed()
+        
+    total_items = qb.count()
+    if total_items == 0:
+        flash('Không có thẻ nào.', 'warning')
+        return redirect(url_for('vocabulary.dashboard'))
+
+    db_sess = SessionInterface.create_session(
+        user_id=current_user.user_id,
+        learning_mode='flashcard',
+        mode_config_id=mode,
+        set_id_data=set_ids,
+        total_items=total_items
+    )
+    
+    if db_sess:
+        session['flashcard_session'] = {
+            'user_id': current_user.user_id, 
+            'set_id': set_ids,
+            'mode': mode, 'batch_size': 1, 'total_items_in_session': total_items,
+            'processed_item_ids': [], 'correct_answers': 0, 'incorrect_answers': 0, 'vague_answers': 0, 'session_points': 0,
+            'start_time': datetime.datetime.now(datetime.timezone.utc).isoformat(),
+            'db_session_id': db_sess.session_id, 'current_item_id': None
+        }
+        session.modified = True
+        return redirect(url_for('.flashcard_session', session_id=db_sess.session_id))
+    else:
+        flash('Lỗi khởi tạo.', 'danger')
         return redirect(url_for('vocabulary.dashboard'))
 
 
@@ -376,5 +540,12 @@ def start():
 def dashboard_home():
     """Redirect to vocabulary dashboard as this module now serves vocabulary directly."""
     return redirect(url_for('vocabulary.dashboard'))
+
+
+@flashcard_learning_bp.route('/summary/<int:session_id>')
+@login_required
+def session_summary(session_id):
+    """View summary of a completed session (Redirects to generic session summary)."""
+    return redirect(url_for('session.session_summary', session_id=session_id))
 
 

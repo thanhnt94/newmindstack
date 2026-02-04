@@ -16,7 +16,7 @@ from ..engine.algorithms import (
     get_flashcard_mode_counts,
     get_accessible_flashcard_set_ids
 )
-from ..engine.session_manager import FlashcardSessionManager
+
 from ..engine.core import FlashcardEngine
 from ..engine.config import FlashcardLearningConfig
 from ..services import CardPresenter
@@ -214,42 +214,62 @@ def api_get_flashcard_batch():
     if 'flashcard_session' not in session:
         return jsonify({'message': 'Phiên học không hợp lệ hoặc đã kết thúc.'}), 404
 
-    session_manager = FlashcardSessionManager.from_dict(session['flashcard_session'])
+    session_data = session['flashcard_session']
+    db_id = session_data.get('db_session_id')
+    
+    # 1. Fetch DB Session for latest state
+    db_sess = SessionInterface.get_session_by_id(db_id)
+    if not db_sess or db_sess.status != 'active':
+        return jsonify({'message': 'Phiên học đã kết thúc.'}), 404
+
     batch_size = request.args.get('batch_size', default=10, type=int)
     
     try:
-        flashcard_batch = session_manager.get_next_batch(batch_size=batch_size)
-        session['flashcard_session'] = session_manager.to_dict()
-        session.modified = True
+        # 2. Get Next Batch using Stateless Engine
+        items_data = FlashcardEngine.get_next_batch(
+            user_id=current_user.user_id,
+            set_id=session_data.get('set_id'),
+            mode=session_data.get('mode'),
+            processed_ids=db_sess.processed_item_ids or [],
+            db_session_id=db_id,
+            batch_size=batch_size,
+            current_db_item_id=db_sess.current_item_id
+        )
 
-        if flashcard_batch is None:
-            session_manager.end_flashcard_session()
+        if items_data is None:
+            # End session automatically if no items left
+            SessionInterface.complete_session(db_id)
             return jsonify({'message': 'Bạn đã hoàn thành tất cả các thẻ trong phiên học này!'}), 404
         
-        flashcard_batch['session_correct_answers'] = session_manager.correct_answers
-        flashcard_batch['session_incorrect_answers'] = session_manager.incorrect_answers
-        flashcard_batch['session_vague_answers'] = session_manager.vague_answers
-        flashcard_batch['session_total_answered'] = session_manager.correct_answers + session_manager.incorrect_answers + session_manager.vague_answers
-        flashcard_batch['session_points'] = session_manager.session_points
-        flashcard_batch['session_total_items'] = session_manager.total_items_in_session
-        answered_count = session_manager.correct_answers + session_manager.incorrect_answers + session_manager.vague_answers
-        flashcard_batch['session_processed_count'] = answered_count + 1
+        # 3. Update active item helper (Engine does this if current_db_item_id passed? No, Engine is stateless. 
+        # But wait, FlashcardSessionManager did: SessionInterface.set_current_item(..., item.item_id). 
+        # I need to do that here to preserve "resume" capability for the *first* item in batch.
+        if items_data:
+             # The first item in the batch is technically the "current" one being looked at first
+             # This assumes sequential viewing.
+             first_item_id = items_data[0]['item_id']
+             SessionInterface.set_current_item(db_id, first_item_id)
+
+        # 4. Construct Response
+        # Recalculate stats from DB session to ensure sync
+        processed_count = len(db_sess.processed_item_ids or [])
+        total_items = db_sess.total_items
         
-        container_name = 'Bộ thẻ'
-        set_id = session_manager.set_id
-        if set_id == 'all':
-            container_name = 'Tất cả bộ thẻ'
-        elif isinstance(set_id, (int, str)):
-            try:
-                numeric_id = int(set_id)
-                container = LearningContainer.query.get(numeric_id)
-                if container:
-                    container_name = container.title or ''
-            except (ValueError, TypeError):
-                pass
+        response = {
+            'items': items_data,
+            'total_items_in_session': total_items,
+            'session_processed_count': processed_count,
+            # Stats for HUD
+            'session_correct_answers': db_sess.correct_count,
+            'session_incorrect_answers': db_sess.incorrect_count,
+            'session_vague_answers': db_sess.vague_count,
+            'session_total_answered': db_sess.correct_count + db_sess.incorrect_count + db_sess.vague_count,
+            'session_points': db_sess.points_earned,
+            'session_total_items': total_items,
+            'container_name': session_data.get('container_name', 'Học tập') # Or fetch fresh
+        }
         
-        flashcard_batch['container_name'] = container_name
-        return jsonify(flashcard_batch)
+        return jsonify(response)
     except Exception as e:
         import traceback
         error_msg = traceback.format_exc()
@@ -270,22 +290,23 @@ def api_submit_flashcard_answer():
     if 'flashcard_session' not in session:
         return jsonify({'message': 'Phiên học không hợp lệ hoặc đã kết thúc.'}), 400
 
-    session_manager = FlashcardSessionManager.from_dict(session['flashcard_session'])
+    session_data = session['flashcard_session']
+    db_id = session_data.get('db_session_id')
     
-    # Update last accessed
-    set_ids = session_manager.set_id
-    if not isinstance(set_ids, list):
-        set_ids = [set_ids] if set_ids != 'all' else []
-    
-    for s_id in set_ids:
-        if isinstance(s_id, int):
-            ucs = UserContainerState.query.filter_by(user_id=current_user.user_id, container_id=s_id).first()
-            if not ucs:
-                ucs = UserContainerState(user_id=current_user.user_id, container_id=s_id)
-                db.session.add(ucs)
-            ucs.last_accessed = func.now()
-    safe_commit(db.session)
+    # 1. Access Update (Misc)
+    set_ids = session_data.get('set_id')
+    if set_ids:
+        s_list = set_ids if isinstance(set_ids, list) else ([set_ids] if set_ids != 'all' else [])
+        for s_id in s_list:
+            if isinstance(s_id, int):
+                ucs = UserContainerState.query.filter_by(user_id=current_user.user_id, container_id=s_id).first()
+                if not ucs:
+                    ucs = UserContainerState(user_id=current_user.user_id, container_id=s_id)
+                    db.session.add(ucs)
+                ucs.last_accessed = func.now()
+        safe_commit(db.session)
 
+    # 2. Determine Quality
     user_button_count = 4
     if 'flashcard_button_count_override' in session:
         user_button_count = session.get('flashcard_button_count_override')
@@ -302,34 +323,76 @@ def api_submit_flashcard_answer():
     user_answer_quality = quality_map.get(normalized_answer, 3)
     duration_ms = data.get('duration_ms', 0)
     
-    result = session_manager.process_flashcard_answer(item_id, user_answer_quality, duration_ms=duration_ms, user_answer_text=user_answer)
-    session['flashcard_session'] = session_manager.to_dict()
+    # 3. Call Stateless Engine
+    score_change, new_total, result_type, new_status, item_stats, srs_data = FlashcardEngine.process_answer(
+        user_id=current_user.user_id,
+        item_id=item_id,
+        quality=user_answer_quality,
+        current_user_total_score=current_user.total_score,
+        mode=session_data.get('mode'),
+        update_srs=True,
+        duration_ms=duration_ms,
+        user_answer_text=user_answer,
+        session_id=db_id,
+        container_id=None,
+        learning_mode='flashcard'
+    )
+
+    # 4. Update DB Session
+    SessionInterface.update_progress(db_id, item_id, result_type, score_change)
+    
+    # 5. Fetch updated session stats for response
+    # (Since SessionInterface commits, we can query or just increment local vars if we trust logic)
+    # Let's query db_sess again for accuracy or maintain local if perf critical. Query is safer for stateless.
+    db_sess = SessionInterface.get_session_by_id(db_id)
+    
+    # 6. Update Cookie Stats (Optional but good for fallback reading)
+    session_data['session_points'] = db_sess.points_earned
+    session_data['correct_answers'] = db_sess.correct_count
+    session_data['incorrect_answers'] = db_sess.incorrect_count
+    session_data['vague_answers'] = db_sess.vague_count
+    session.modified = True
 
     return jsonify({
         'success': True,
-        'score_change': result.get('score_change'),
-        'updated_total_score': result.get('updated_total_score'),
-        'is_correct': result.get('is_correct'),
-        'new_progress_status': result.get('new_progress_status'),
-        'statistics': result.get('statistics'),
-        'srs_data': result.get('srs_data'),
-        'session_correct_answers': session_manager.correct_answers,
-        'session_incorrect_answers': session_manager.incorrect_answers,
-        'session_vague_answers': session_manager.vague_answers,
-        'session_total_answered': session_manager.correct_answers + session_manager.incorrect_answers + session_manager.vague_answers,
-        'session_points': result.get('session_points', session_manager.session_points)
+        'score_change': score_change,
+        'updated_total_score': new_total,
+        'is_correct': result_type == 'correct',
+        'new_progress_status': new_status,
+        'statistics': item_stats,
+        'srs_data': srs_data,
+        'session_correct_answers': db_sess.correct_count,
+        'session_incorrect_answers': db_sess.incorrect_count,
+        'session_vague_answers': db_sess.vague_count,
+        'session_total_answered': db_sess.correct_count + db_sess.incorrect_count + db_sess.vague_count,
+        'session_points': score_change # Providing 'delta' here, generic 'session_points' is total
     })
 
 @blueprint.route('/end_session_flashcard', methods=['POST'])
 @login_required
 def api_end_session_flashcard():
     """Kết thúc phiên học Flashcard hiện tại."""
-    db_session_id = None
+    result = {'message': 'Phiên học kết thúc', 'stats': {}}
+    
     if 'flashcard_session' in session:
-        db_session_id = session['flashcard_session'].get('db_session_id')
-    result = FlashcardSessionManager.end_flashcard_session()
-    if db_session_id:
-        result['session_id'] = db_session_id
+        session_data = session['flashcard_session']
+        db_id = session_data.get('db_session_id')
+        
+        if db_id:
+            SessionInterface.complete_session(db_id)
+            # Fetch final stats
+            db_sess = SessionInterface.get_session_by_id(db_id)
+            if db_sess:
+                result['stats'] = {
+                    'correct': db_sess.correct_count,
+                    'incorrect': db_sess.incorrect_count,
+                    'vague': db_sess.vague_count,
+                    'points': db_sess.points_earned
+                }
+                result['session_id'] = db_id
+        
+        session.pop('flashcard_session', None)
+        
     return jsonify(result)
 
 @blueprint.route('/save_flashcard_settings', methods=['POST'])

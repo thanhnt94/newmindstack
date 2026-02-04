@@ -5,13 +5,8 @@ from .engine.algorithms import (
     get_flashcard_mode_counts
 )
 
-class FlashcardInterface:
-    @staticmethod
-    def get_user_stats(user_id: int):
-        """Get flashcard learning statistics for a user."""
-        from .engine.session_manager import FlashcardSessionManager
-        return FlashcardSessionManager.get_user_stats(user_id)
 
+class FlashcardInterface:
     @staticmethod
     def has_active_session(user_id: int) -> bool:
         """Check if the user has an active flashcard session."""

@@ -1,0 +1,120 @@
+{# Summary Template for Vocab Flashcard Session #}
+{% set _v = template_version or 'aura_mobile' %}
+{% extends _v ~ '/layouts/base.html' %}
+
+{% block title %}Tổng kết phiên học{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-slate-50 flex flex-col p-4 pb-32">
+
+    <!-- Header -->
+    <div class="text-center mb-6 mt-4">
+        <h1 class="text-2xl font-black text-slate-800">Kết quả phiên học</h1>
+        <p class="text-slate-500 text-sm">Bạn đã hoàn thành phiên ôn tập này.</p>
+    </div>
+
+    <!-- Main Score Card -->
+    <div class="bg-slate-900 rounded-3xl shadow-xl overflow-hidden mb-6 relative">
+        <!-- Background Decoration -->
+        <div class="absolute top-0 right-0 p-4 opacity-10">
+            <i class="fas fa-trophy text-8xl text-white"></i>
+        </div>
+
+        <div class="p-8 text-center relative z-10">
+            <p class="text-slate-400 text-xs font-bold uppercase tracking-widest mb-2">TỔNG ĐIỂM</p>
+            <div class="text-6xl font-black text-white flex items-center justify-center gap-2 mb-2">
+                <span class="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-teal-300">
+                    +{{ session.points_earned }}
+                </span>
+            </div>
+
+            <div class="flex justify-center gap-8 mt-6 pt-6 border-t border-slate-700/50">
+                <div class="text-center">
+                    <div class="text-xs text-slate-400 font-bold uppercase mb-1">Số thẻ</div>
+                    <div class="text-2xl font-bold text-white">{{ reviews|length }}</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-xs text-slate-400 font-bold uppercase mb-1">Chính xác</div>
+                    {% set total_reviews = reviews|length %}
+                    {% set good_reviews = reviews|selectattr('rating', 'ge', 3)|list|length %}
+                    <div class="text-2xl font-bold text-emerald-400">
+                        {{ ((good_reviews / total_reviews * 100) | int) if total_reviews > 0 else 0 }}%
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Detailed Review List -->
+    <h3 class="font-bold text-slate-700 mb-4 px-1 flex items-center gap-2">
+        <i class="fas fa-list-ul text-slate-400"></i> Chi tiết đánh giá
+    </h3>
+
+    <div class="space-y-3">
+        {% for review in reviews %}
+        <div class="group bg-white rounded-2xl p-4 shadow-sm border border-slate-100 flex items-center gap-4 cursor-pointer hover:shadow-md transition-all active:scale-[0.98]"
+            onclick="window.openModal('{{ url_for('vocabulary.item_stats_page', item_id=review.item_id, modal='true') }}', 'Chi tiết từ vựng')">
+
+            <!-- Item Icon/State -->
+            <div class="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 font-bold text-xl
+                {% if review.rating == 4 %} bg-blue-50 text-blue-500
+                {% elif review.rating == 3 %} bg-emerald-50 text-emerald-500
+                {% elif review.rating == 2 %} bg-orange-50 text-orange-500
+                {% else %} bg-rose-50 text-rose-500 {% endif %}">
+
+                {% if review.rating == 4 %} <i class="fas fa-laugh-beam"></i>
+                {% elif review.rating == 3 %} <i class="fas fa-smile"></i>
+                {% elif review.rating == 2 %} <i class="fas fa-meh"></i>
+                {% else %} <i class="fas fa-frown"></i> {% endif %}
+            </div>
+
+            <div class="flex-1 min-w-0">
+                <!-- Word Content (Supports BBCode HTML) -->
+                <h4 class="font-bold text-slate-800 text-base leading-snug break-words">
+                    {{ review.front | safe }}
+                </h4>
+
+                <div class="flex items-center gap-2 mt-1.5">
+                    <span class="text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wide
+                        {% if review.rating == 4 %} bg-blue-100 text-blue-600
+                        {% elif review.rating == 3 %} bg-emerald-100 text-emerald-600
+                        {% elif review.rating == 2 %} bg-orange-100 text-orange-600
+                        {% else %} bg-rose-100 text-rose-600 {% endif %}">
+                        {{ review.rating_label }}
+                    </span>
+                    <span class="text-xs font-bold text-slate-400 flex items-center gap-1">
+                        <i class="fas fa-star text-amber-400 text-[10px]"></i> +{{ review.points }}
+                    </span>
+                    <span class="ml-auto text-xs text-slate-300 group-hover:text-slate-500 transition-colors">
+                        <i class="fas fa-chart-bar"></i> Stats
+                    </span>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+
+        {% if not reviews %}
+        <div class="text-center py-12 text-slate-400 bg-white rounded-3xl border border-dashed border-slate-200">
+            <i class="fas fa-clipboard-list text-4xl mb-3 opacity-30"></i>
+            <p>Không có dữ liệu chi tiết.</p>
+        </div>
+        {% endif %}
+    </div>
+
+</div>
+
+<!-- Fixed Bottom Actions -->
+<div
+    class="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 p-4 shadow-[0_-4px_20px_rgba(0,0,0,0.05)] z-50 flex gap-3 safe-area-bottom">
+    <a href="{{ url_for('vocab_flashcard.dashboard_home') }}"
+        class="flex-1 py-4 rounded-2xl font-bold text-center text-slate-600 bg-slate-50 hover:bg-slate-100 transition-colors border border-slate-200">
+        <i class="fas fa-home"></i> Trang chủ
+    </a>
+
+    <a href="{{ url_for('vocab_flashcard.setup', set_ids=session.set_id_data if session.set_id_data else 'all') }}"
+        class="flex-[2] py-4 rounded-2xl font-bold text-center text-white bg-slate-900 shadow-xl shadow-slate-900/20 hover:bg-slate-800 transition-transform active:scale-95 flex items-center justify-center gap-2">
+        <span>Học tiếp</span> <i class="fas fa-arrow-right"></i>
+    </a>
+</div>
+
+{% endblock %}

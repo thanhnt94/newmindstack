@@ -319,8 +319,13 @@ MỤC ĐÍCH: Giao diện thống kê phiên học tối ưu cho Mobile (App-lik
                     method: 'POST',
                     headers: config.csrfHeaders
                 })
-                    .then(() => {
-                        window.location.href = config.vocabDashboardUrl;
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.session_id) {
+                            window.location.href = "{{ url_for('vocab_flashcard.session_summary', session_id=0) }}".replace('0', data.session_id);
+                        } else {
+                            window.location.href = config.vocabDashboardUrl;
+                        }
                     })
                     .catch(err => {
                         console.error('Error ending session:', err);

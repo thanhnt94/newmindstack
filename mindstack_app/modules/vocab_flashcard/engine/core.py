@@ -10,11 +10,110 @@ from mindstack_app.modules.fsrs.interface import FSRSInterface
 from mindstack_app.modules.learning_history.services import HistoryRecorder
 from mindstack_app.modules.learning_history.models import StudyLog
 
+from mindstack_app.services.config_service import get_runtime_config
+from mindstack_app.utils.content_renderer import render_content_dict
+from mindstack_app.utils.media_paths import build_relative_media_path
+from .services.query_builder import FlashcardQueryBuilder
+from .algorithms import get_accessible_flashcard_set_ids
+from .vocab_flashcard_mode import get_flashcard_mode_by_id
+from flask import url_for, current_app
+
 class FlashcardEngine:
     """
     Centralized engine for Flashcard learning logic.
     Handles answer processing, scoring, and statistics retrieval.
     """
+
+    @staticmethod
+    def get_next_batch(user_id, set_id, mode, processed_ids, 
+                      db_session_id=None, batch_size=1, current_db_item_id=None):
+        """
+        Stateless fetching of next flashcard items.
+        Handles resume logic (if db_session_id provided) and standard query building.
+        """
+        # 1. RESUME LOGIC
+        items = []
+        if current_db_item_id and current_db_item_id not in processed_ids:
+            # The session has a pending item stored in DB
+            item = LearningItem.query.get(current_db_item_id)
+            if item:
+                items = [item]
+                # logging provided by caller if needed
+
+        # 2. FETCH LOGIC
+        if not items:
+            qb = FlashcardQueryBuilder(user_id)
+            
+            # Resolve Set IDs
+            if set_id == 'all':
+                accessible_ids = get_accessible_flashcard_set_ids(user_id)
+                qb.filter_by_containers(accessible_ids)
+            else:
+                s_ids = set_id if isinstance(set_id, list) else [int(set_id)]
+                qb.filter_by_containers(s_ids)
+
+            # Apply Mode Filter
+            mode_obj = get_flashcard_mode_by_id(mode)
+            if mode_obj and hasattr(qb, mode_obj.filter_method):
+                filter_func = getattr(qb, mode_obj.filter_method)
+                filter_func()
+            else:
+                qb.filter_mixed()
+            
+            # Exclude processed
+            qb.exclude_items(processed_ids)
+            
+            items = qb.get_query().limit(batch_size).all()
+        
+        if not items:
+            return None
+
+        # 3. FORMAT RESPONSE
+        items_data = []
+        user_role = getattr(User.query.get(user_id), 'user_role', 'user') # Optimized lookup usually cached
+
+        for item in items:
+            # Check permission
+            can_edit = False
+            if item.container:
+                can_edit = (item.container.creator_user_id == user_id or user_role == 'admin')
+            
+            edit_url = ''
+            if can_edit:
+                edit_url = url_for('content_management.edit_flashcard_item', set_id=item.container_id, item_id=item.item_id)
+
+            # Initial Stats
+            initial_stats = FlashcardEngine.get_item_statistics(user_id, item.item_id)
+            
+            # First Time Check
+            # check stats for 'first_seen' or status 'new'
+            is_first_time_card = (initial_stats.get('status') == 'new' and initial_stats.get('times_reviewed') == 0)
+
+            item_content = render_content_dict(item.content) if item.content else {}
+
+            # Audio Path Resolution
+            media_folder = item.container.media_audio_folder if item.container else None
+            for field in ['front_audio_url', 'back_audio_url']:
+                val = item_content.get(field)
+                if val and not val.startswith(('http://', 'https://', '/')):
+                    rel_path = build_relative_media_path(val, media_folder)
+                    if rel_path:
+                        item_content[field] = f"/media/{rel_path}"
+
+            item_dict = {
+                'item_id': item.item_id,
+                'container_id': item.container_id,
+                'content': item_content,
+                'ai_explanation': item.ai_explanation,
+                'can_edit': can_edit,
+                'edit_url': edit_url,
+                'initial_stats': initial_stats,
+                'initial_streak': initial_stats.get('current_streak', 0),
+                'is_first_time_card': is_first_time_card
+            }
+            items_data.append(item_dict)
+
+        return items_data
 
     @staticmethod
     def _get_config_score(key: str, default: int) -> int:
