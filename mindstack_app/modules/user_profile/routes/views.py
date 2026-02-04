@@ -13,7 +13,6 @@ def profile_required():
     pass
 
 @blueprint.route('/')
-@blueprint.route('/view')
 def view_profile():
     from mindstack_app.models import UserBadge
     badges = UserBadge.query.filter_by(user_id=current_user.user_id).join(UserBadge.badge).all()

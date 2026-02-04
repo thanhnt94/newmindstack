@@ -7,6 +7,7 @@ module_metadata = {
     'name': 'Hồ sơ cá nhân',
     'icon': 'user',
     'category': 'System',
+    'url_prefix': '/profile',
     'enabled': True
 }
 
