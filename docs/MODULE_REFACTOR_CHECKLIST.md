@@ -68,12 +68,15 @@ Checklist này được xây dựng dựa trên kiến trúc **Modular Monolith 
 
 ---
 
-## 7. 🌐 Giao diện & API
-- [ ] **Validation:** API Endpoint sử dụng `schemas.py` để validate request body.
-- [ ] **Paths Update:**
-    * Template: `themes/{theme}/templates/{theme}/modules/{module_name}/`
-    * Static: `static/{module_name}/`
-- [ ] **Url_for:** Cập nhật toàn bộ link trong file HTML/JS sang endpoint mới.
+### 7. 🌐 Giao diện & API
+- [ ] **Validation:** Đảm bảo mọi API Endpoint sử dụng `schemas.py` để validate request body trước khi xử lý.
+- [ ] **Template Sync (QUAN TRỌNG):**
+    - [ ] Kiểm tra toàn bộ các file `.html` liên quan trong thư mục `themes/`.
+    - [ ] Đảm bảo các biến Jinja2 (ví dụ: `{{ user.full_name }}`) khớp hoàn toàn với Model hoặc Schema mới.
+    - [ ] Nếu đổi tên hàm View, phải cập nhật lại toàn bộ các lời gọi `url_for('module.view_func')`.
+- [ ] **Paths:**
+    * **Template:** `themes/{theme}/templates/{theme}/modules/{module_name}/`
+    * **Static:** `static/{module_name}/`
 
 ---
 
