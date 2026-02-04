@@ -515,6 +515,34 @@
     });
 
     // [REFACTOR] Update rating buttons with FSRS intervals via Backend API
+
+    // Helper: Format interval for human-readable display
+    function formatInterval(rawText) {
+        if (!rawText) return '';
+        // Extract minutes from format like "377M" or just number
+        const match = String(rawText).match(/^(\d+(?:\.\d+)?)\s*M?$/i);
+        if (!match) return rawText; // Return as-is if not matching expected format
+
+        const minutes = parseFloat(match[1]);
+
+        if (minutes < 60) {
+            // Under 60 minutes: show minutes
+            return Math.round(minutes) + 'm';
+        } else if (minutes < 60 * 24) {
+            // Under 24 hours: show hours
+            const hours = minutes / 60;
+            return hours >= 10 ? Math.round(hours) + 'h' : hours.toFixed(1).replace(/\.0$/, '') + 'h';
+        } else if (minutes < 60 * 24 * 30) {
+            // Under 30 days: show days
+            const days = minutes / (60 * 24);
+            return days >= 10 ? Math.round(days) + 'd' : days.toFixed(1).replace(/\.0$/, '') + 'd';
+        } else {
+            // 30+ days: show months
+            const months = minutes / (60 * 24 * 30);
+            return months >= 10 ? Math.round(months) + 'mo' : months.toFixed(1).replace(/\.0$/, '') + 'mo';
+        }
+    }
+
     window.updateRatingButtonEstimates = function (cardData) {
         // console.log('[FSRS Mobile] updateRatingButtonEstimates called', cardData);
         if (!cardData) return;
@@ -549,7 +577,7 @@
             console.log('[FSRS Mobile] Using local predicted intervals');
             buttons.forEach(btn => {
                 const rating = btn.dataset.rating;
-                const timeText = localPreviews[rating];
+                const timeText = formatInterval(localPreviews[rating]);
                 const titleSpan = btn.querySelector('span');
                 if (titleSpan && timeText) {
                     const baseLabel = btn.getAttribute('data-base-label');
@@ -579,7 +607,8 @@
                         if (titleSpan && previewData) {
                             const baseLabel = btn.getAttribute('data-base-label');
                             // previewData is an object with {interval, stability, difficulty, retrievability}
-                            const timeText = previewData.interval || previewData;
+                            const rawInterval = previewData.interval || previewData;
+                            const timeText = formatInterval(rawInterval);
                             titleSpan.textContent = `${baseLabel} (${timeText})`;
                         }
                     });
