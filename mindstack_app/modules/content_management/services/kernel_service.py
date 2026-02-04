@@ -74,6 +74,24 @@ class ContentKernelService:
             
         db.session.add(item)
         db.session.commit()
+        
+        # Emit signal
+        try:
+            from ..signals import content_created
+            container = LearningContainer.query.get(container_id)
+            user_id = container.creator_user_id if container else None
+            
+            content_created.send(
+                item,
+                item_id=item.item_id,
+                item_type=item_type,
+                container_id=container_id,
+                user_id=user_id
+            )
+        except Exception as e:
+            # Don't fail the operation if signal fails
+            pass
+            
         return item
 
     @staticmethod
@@ -83,29 +101,72 @@ class ContentKernelService:
         if not item:
             return None
         
+        changes = {}
         if content is not None:
             item.content = content
             flag_modified(item, 'content')
+            changes['content'] = True
         if order is not None:
             item.order_in_container = order
+            changes['order'] = True
         if custom_data is not None:
             item.custom_data = custom_data
             flag_modified(item, 'custom_data')
+            changes['custom_data'] = True
         if ai_explanation is not None:
             item.ai_explanation = ai_explanation
+            changes['ai_explanation'] = True
             
         if hasattr(item, 'update_search_text'):
             item.update_search_text()
             
         db.session.commit()
+        
+        # Emit signal
+        try:
+            from ..signals import content_updated
+            container = item.container
+            user_id = container.creator_user_id if container else None
+            
+            content_updated.send(
+                item,
+                item_id=item.item_id,
+                item_type=item.item_type,
+                changes=changes,
+                container_id=item.container_id,
+                user_id=user_id
+            )
+        except Exception:
+            pass
+            
         return item
 
     @staticmethod
     def delete_item(item_id: int) -> bool:
         item = LearningItem.query.get(item_id)
         if item:
+            # Capture data for signal before deletion
+            item_type = item.item_type
+            container_id = item.container_id
+            container = item.container
+            user_id = container.creator_user_id if container else None
+            
             db.session.delete(item)
             db.session.commit()
+            
+            # Emit signal
+            try:
+                from ..signals import content_deleted
+                content_deleted.send(
+                    None,  # Sender is None because object is deleted
+                    item_id=item_id,
+                    item_type=item_type,
+                    container_id=container_id,
+                    user_id=user_id
+                )
+            except Exception:
+                pass
+                
             return True
         return False
 
