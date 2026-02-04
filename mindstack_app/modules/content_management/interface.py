@@ -15,15 +15,52 @@ class ContentInterface:
     """Public API for Content Management module."""
     
     @staticmethod
-    def _resolve_media_url(path: str) -> str:
-        """Ensure media path is absolute URL."""
+    def _resolve_media_url(path: str, container: Optional[LearningContainer] = None) -> str:
+        """Ensure media path is absolute URL, resolving via container settings if needed."""
         if not path:
             return ""
         if path.startswith('http') or path.startswith('//'):
             return path
+            
+        # Try to resolve relative to container folders using strict logic
+        try:
+            from mindstack_app.utils.media_paths import build_relative_media_path
+            
+            media_folders = {}
+            if container:
+                # Logic copied from CardPresenter for consistency
+                media_folders = dict(getattr(container, 'media_folders', {}) or {})
+                if not media_folders:
+                    settings_payload = container.ai_settings or {}
+                    if isinstance(settings_payload, dict):
+                        media_folders = dict(settings_payload.get('media_folders') or {})
+            
+            # Determine type based on extension or assumption? 
+            # build_relative_media_path takes the specific folder.
+            # We don't verify type here easily, so we try generic resolution if path is relative.
+            
+            # Simple heuristic: if likely audio/image, look in respective folders
+            folder = None
+            lower_path = path.lower()
+            if lower_path.endswith(('.mp3', '.wav', '.ogg', '.m4a')):
+                folder = media_folders.get('audio')
+            elif lower_path.endswith(('.jpg', '.jpeg', '.png', '.gif', '.webp')):
+                folder = media_folders.get('image')
+                
+            relative_path = build_relative_media_path(path, folder)
+            
+            if relative_path:
+                if relative_path.startswith(('http://', 'https://')):
+                    return relative_path
+                return url_for('media_uploads', filename=relative_path.lstrip('/'), _external=True)
+                
+        except Exception:
+            pass
+            
+        # Fallback to static if resolution fails but it looks like a path
         if not path.startswith('/'):
             path = '/' + path
-        if not path.startswith('/static'):
+        if not path.startswith('/static') and not path.startswith('/media'):
             path = '/static' + path
         return path
 
@@ -70,8 +107,12 @@ class ContentInterface:
                 standardized.update({
                     "front": raw_content.get('front', ''),
                     "back": raw_content.get('back', ''),
-                    "audio": ContentInterface._resolve_media_url(raw_content.get('audio', '')),
-                    "image": ContentInterface._resolve_media_url(raw_content.get('image', '')),
+                    "front_audio": ContentInterface._resolve_media_url(raw_content.get('front_audio_url', ''), item.container),
+                    "back_audio": ContentInterface._resolve_media_url(raw_content.get('back_audio_url', ''), item.container),
+                    "front_image": ContentInterface._resolve_media_url(raw_content.get('front_img', ''), item.container),
+                    "back_image": ContentInterface._resolve_media_url(raw_content.get('back_img', ''), item.container),
+                    "front_audio_content": raw_content.get('front_audio_content', ''),
+                    "back_audio_content": raw_content.get('back_audio_content', ''),
                     "explanation": item.ai_explanation or raw_content.get('explanation', '')
                 })
                 

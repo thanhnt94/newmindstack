@@ -17,7 +17,7 @@ from .query_builder import FlashcardQueryBuilder
 from .permission_service import FlashcardPermissionService, get_accessible_flashcard_set_ids
 from .item_service import FlashcardItemService
 from .flashcard_config_service import FlashcardConfigService
-from .card_presenter import CardPresenter, get_audio_url_for_item, get_image_url_for_item
+from .card_presenter import CardPresenter
 from .flashcard_service import FlashcardService
 
 __all__ = [
@@ -31,7 +31,5 @@ __all__ = [
     # Config/Presentation
     'FlashcardConfigService',
     'CardPresenter',
-    'get_audio_url_for_item',
-    'get_image_url_for_item',
 ]
 
