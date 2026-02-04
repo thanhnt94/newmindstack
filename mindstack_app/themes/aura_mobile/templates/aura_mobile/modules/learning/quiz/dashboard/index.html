@@ -751,7 +751,7 @@
             sets: "{{ url_for('quiz.api_get_quiz_sets') }}",
             detail: "{{ url_for('quiz.api_get_quiz_set_detail', set_id=0) }}",
             start: "{{ url_for('quiz.start_quiz_session_by_id', set_id=0, mode='MODE') }}",
-            edit: "{{ url_for('content_management.content_management_quizzes.edit_quiz_set', set_id=0) }}"
+            edit: "{{ url_for('content_management.edit_container', container_id=0) }}"
         };
 
         const state = {

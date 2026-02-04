@@ -541,6 +541,59 @@ def api_get_quiz_sets():
     })
 
 
+@blueprint.route('/api/sets/<int:set_id>/detail')
+@login_required
+def api_get_quiz_set_detail(set_id):
+    """API to get detailed info about a specific quiz set."""
+    from ..logics.algorithms import get_quiz_mode_counts
+    
+    container = LearningContainer.query.get_or_404(set_id)
+    
+    # Get questions
+    questions = LearningItem.query.filter(
+        LearningItem.container_id == set_id,
+        LearningItem.item_type.in_(['QUESTION', 'FLASHCARD', 'QUIZ_MCQ'])
+    ).order_by(LearningItem.order_index).all()
+    
+    question_count = len(questions)
+    
+    # Get creator info
+    creator = User.query.get(container.creator_user_id)
+    
+    # Get user access count
+    user_state = UserContainerState.query.filter_by(
+        user_id=current_user.user_id,
+        container_id=set_id
+    ).first()
+    access_count = 1 if user_state and user_state.last_accessed else 0
+    
+    # Get available modes
+    try:
+        modes = get_quiz_mode_counts(current_user.user_id, set_id)
+    except:
+        modes = [
+            {'id': 'all', 'name': 'Tất cả'},
+            {'id': 'new_only', 'name': 'Câu mới'},
+            {'id': 'due_only', 'name': 'Ôn tập'},
+        ]
+    
+    return jsonify({
+        'success': True,
+        'set': {
+            'id': container.container_id,
+            'title': container.title,
+            'description': container.description or '',
+            'question_count': question_count,
+            'creator_name': creator.username if creator else 'Unknown',
+            'access_count': access_count,
+        },
+        'questions': [
+            {'id': q.item_id, 'content': q.content or {}}
+            for q in questions
+        ],
+        'modes': modes
+    })
+
 @blueprint.route('/api/item/<int:item_id>/generate-ai', methods=['POST'])
 @login_required
 def api_generate_quiz_ai_explanation(item_id):
