@@ -85,7 +85,14 @@ parser.add_simple_formatter('justify', '<div style="text-align: justify;">%(valu
 parser.add_formatter('youtube', render_youtube, replace_links=False, strip=True)
 
 # [color=red]...[/color]
-parser.add_simple_formatter('color', '<span style="color:%(value)s;">%(value)s</span>')
+def render_color(tag_name, value, options, parent, context):
+    """Render [color=X]...[/color] with proper color option handling."""
+    color = options.get('color', options.get(tag_name, 'inherit'))
+    if color and value:
+        return f'<span style="color:{color};">{value}</span>'
+    return value or ''
+
+parser.add_formatter('color', render_color)
 
 # --- Hàm chuyển đổi chính ---
 

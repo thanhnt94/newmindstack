@@ -316,6 +316,24 @@ def flashcard_session(session_id):
         if not active_db_session or active_db_session.user_id != current_user.user_id:
              flash('Phiên học không tồn tại hoặc bạn không có quyền truy cập.', 'error')
              return redirect(url_for('vocabulary.dashboard'))
+        
+        # Resolve container name from DB
+        resolved_container_name = 'Học tập'
+        set_id_data = active_db_session.set_id_data
+        try:
+            if isinstance(set_id_data, int):
+                container = LearningContainer.query.get(set_id_data)
+                if container:
+                    resolved_container_name = container.title
+            elif isinstance(set_id_data, list) and len(set_id_data) > 0:
+                if len(set_id_data) == 1:
+                    container = LearningContainer.query.get(set_id_data[0])
+                    if container:
+                        resolved_container_name = container.title
+                else:
+                    resolved_container_name = f"{len(set_id_data)} bộ thẻ"
+        except Exception as e:
+            current_app.logger.warning(f"Error resolving container name: {e}")
              
         # Reconstruct session dict directly from DB model
         session['flashcard_session'] = {
@@ -333,7 +351,7 @@ def flashcard_session(session_id):
             'db_session_id': active_db_session.session_id,
             'current_item_id': active_db_session.current_item_id,
             # UI display fields
-            'container_name': 'Đang tải...' # Can be resolved later or in template
+            'container_name': resolved_container_name
         }
         session.modified = True
         current_app.logger.info(f"Reloaded session {session_id} from DB (Stateless).")
