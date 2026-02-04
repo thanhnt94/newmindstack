@@ -1,11 +1,10 @@
 Tài liệu này định nghĩa cấu trúc thư mục chuẩn và các quy tắc phụ thuộc (**dependency rules**) nghiêm ngặt để đảm bảo khả năng mở rộng (scalability) và bảo trì (maintainability) của hệ thống MindStack.
 
----
-
 ## 📁 1. Cấu trúc Thư mục Chuẩn (Standard Directory Tree)
 
 Mỗi module trong hệ thống (ví dụ: `auth`, `fsrs`, `gamification`) **PHẢI** tuân thủ cấu trúc thư mục sau:
 
+```text
 mindstack_app/modules/{module_name}/
 ├── __init__.py           # Khởi tạo module, đăng ký Blueprint & Event Listeners
 ├── config.py             # Cấu hình mặc định (Default Config) & Hằng số
