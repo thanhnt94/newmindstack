@@ -129,3 +129,45 @@ def on_user_registered(sender, user, **kwargs):
     except Exception as e:
         current_app.logger.error(f"Error granting welcome bonus: {e}")
 
+
+# NEW: Listen for flashcard session completion (from vocab_flashcard module)
+try:
+    from mindstack_app.modules.vocab_flashcard.signals import flashcard_session_completed
+
+    @flashcard_session_completed.connect
+    def on_flashcard_session_completed(sender, **kwargs):
+        """
+        Handle flashcard session completion for badge and streak updates.
+        
+        Expected kwargs:
+            - user_id: int
+            - session_id: int
+            - stats: dict with keys like 'correct', 'incorrect', 'points'
+        """
+        from .services.badges_service import BadgeService
+        from .services.streak_service import StreakService
+        
+        user_id = kwargs.get('user_id')
+        stats = kwargs.get('stats', {})
+        
+        if not user_id:
+            return
+        
+        try:
+            # Update streak on session completion
+            StreakService.update_streak(user_id)
+            
+            # Check for session-related badges
+            BadgeService.check_and_award_badges(user_id, 'SESSION')
+            
+            current_app.logger.debug(
+                f"[Gamification] Flashcard session completed: user={user_id}, stats={stats}"
+            )
+        except Exception as e:
+            current_app.logger.error(
+                f"[Gamification] Error handling flashcard session: {e}", exc_info=True
+            )
+except ImportError:
+    # vocab_flashcard module not available - skip this listener
+    pass
+
