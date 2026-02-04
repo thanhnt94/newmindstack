@@ -1,3 +1,4 @@
+# File: mindstack_app/modules/ops/models.py
 """System and administration related models."""
 
 from __future__ import annotations
@@ -5,11 +6,8 @@ from __future__ import annotations
 from sqlalchemy import event
 from sqlalchemy.inspection import inspect
 from sqlalchemy.sql import func
-from sqlalchemy.types import JSON
 
 from mindstack_app.core.extensions import db
-
-# SystemSetting class REMOVED - replaced by AppSettings in app_settings.py
 
 
 class BackgroundTask(db.Model):
@@ -46,7 +44,6 @@ class BackgroundTaskLog(db.Model):
     created_at = db.Column(db.DateTime(timezone=True), server_default=func.now())
 
 
-
 def _task_has_state_changes(target: BackgroundTask) -> bool:
     """Check whether tracked fields have changed to decide if a log should be created."""
 
@@ -70,16 +67,14 @@ def _insert_task_log(connection, target: BackgroundTask) -> None:
 
 
 @event.listens_for(BackgroundTask, 'after_insert')
-def create_log_after_insert(mapper, connection, target):  # pylint: disable=unused-argument
+def create_log_after_insert(mapper, connection, target):
     """Capture initial state when a task record is created."""
-
     _insert_task_log(connection, target)
 
 
 @event.listens_for(BackgroundTask, 'after_update')
-def create_log_after_update(mapper, connection, target):  # pylint: disable=unused-argument
+def create_log_after_update(mapper, connection, target):
     """Persist a log entry whenever a tracked field changes."""
-
     if not _task_has_state_changes(target):
         return
     _insert_task_log(connection, target)

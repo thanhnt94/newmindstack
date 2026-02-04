@@ -1,6 +1,7 @@
+# File: mindstack_app/modules/learning_history/services/history_recorder.py
 from typing import Dict, Any, Optional
 from mindstack_app.core.extensions import db
-from .models import StudyLog
+from ..models import StudyLog
 
 class HistoryRecorder:
     """

@@ -1,8 +1,9 @@
+# File: mindstack_app/modules/telegram_bot/routes/api.py
 from flask import request
-from . import blueprint
-from .services import process_update, send_telegram_message
+from .. import blueprint
+from ..services import process_update, send_telegram_message
 from mindstack_app.models import User
-from ...core.error_handlers import error_response, success_response
+from mindstack_app.core.error_handlers import error_response, success_response
 
 @blueprint.route('/webhook', methods=['POST'])
 def webhook():

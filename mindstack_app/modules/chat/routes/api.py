@@ -1,3 +1,4 @@
+# File: mindstack_app/modules/chat/routes/api.py
 """Generic chat endpoints shared across collaborative room types."""
 
 from __future__ import annotations
@@ -17,8 +18,8 @@ from mindstack_app.models import (
     QuizBattleParticipant,
     QuizBattleRoom,
 )
-from . import blueprint
-from .service import create_chat_message, get_recent_messages, serialize_chat_message
+from .. import blueprint
+from ..services import create_chat_message, get_recent_messages, serialize_chat_message
 
 
 @dataclass(frozen=True)

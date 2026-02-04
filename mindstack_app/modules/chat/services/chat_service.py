@@ -1,3 +1,4 @@
+# File: mindstack_app/modules/chat/services/chat_service.py
 """Reusable chat helpers for collaborative rooms."""
 
 from __future__ import annotations

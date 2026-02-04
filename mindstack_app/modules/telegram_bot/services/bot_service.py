@@ -1,3 +1,4 @@
+# File: mindstack_app/modules/telegram_bot/services/bot_service.py
 import requests
 from mindstack_app.models import AppSettings, User, db
 
@@ -56,7 +57,7 @@ def process_update(update):
             token = parts[1]
             try:
                 s = get_serializer()
-                user_id = s.loads(token, salt='telegram-connect', max_age=3600) # Valid for 1 hour
+                user_id = s.loads(token, salt='telegram-connect', max_age=3600)
                 
                 user = User.query.get(user_id)
                 if user:

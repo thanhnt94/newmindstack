@@ -1,4 +1,4 @@
-# File: mindstack_app/modules/learning/collab/routes.py
+# File: mindstack_app/modules/collab/routes/views.py
 # Collab Module Routes
 # Unified entry point for collaborative learning modes.
 
@@ -6,7 +6,7 @@ from flask import render_template, redirect, url_for
 from mindstack_app.utils.template_helpers import render_dynamic_template
 from flask_login import login_required
 
-from . import blueprint
+from .. import blueprint
 
 
 @blueprint.route('/')

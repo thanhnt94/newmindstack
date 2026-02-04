@@ -43,9 +43,9 @@ from mindstack_app.modules.notification.models import Notification, PushSubscrip
 from mindstack_app.modules.feedback.models import Feedback, FeedbackAttachment
 from mindstack_app.modules.notes.models import Note
 
-# Core models (Legacy or shared)
-from .course import Course, Lesson
-from .system import BackgroundTask, BackgroundTaskLog
+# Module-based models (formerly in models/)
+from mindstack_app.modules.course.models import Course, Lesson
+from mindstack_app.modules.ops.models import BackgroundTask, BackgroundTaskLog
 from .app_settings import AppSettings
 
 __all__ = [
