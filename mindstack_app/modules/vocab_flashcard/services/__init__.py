@@ -5,6 +5,7 @@ Vocab Flashcard Services
 Service layer for flashcard functionality (only layer that can access DB).
 
 Contains:
+- FlashcardService: High-level orchestration facade
 - FlashcardQueryBuilder: Query construction
 - FlashcardPermissionService: Access control
 - FlashcardItemService: Item retrieval
@@ -17,8 +18,11 @@ from .permission_service import FlashcardPermissionService, get_accessible_flash
 from .item_service import FlashcardItemService
 from .flashcard_config_service import FlashcardConfigService
 from .card_presenter import CardPresenter, get_audio_url_for_item, get_image_url_for_item
+from .flashcard_service import FlashcardService
 
 __all__ = [
+    # Orchestration
+    'FlashcardService',
     # Query/DB services
     'FlashcardQueryBuilder',
     'FlashcardPermissionService',
