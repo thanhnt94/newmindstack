@@ -32,6 +32,8 @@ mindstack_app/modules/{module_name}/
     ├── test_engine.py    # Test logic tính toán (Không cần DB)
     └── test_flows.py     # Test luồng service/api (Cần DB)
 
+```
+
 ## 🔍 2. Giải thích Chi tiết Vai trò & Quy tắc
 
 ### A. Tầng Lõi (Core Logic - Inner Layers)
