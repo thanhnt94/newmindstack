@@ -1,16 +1,15 @@
-# File: mindstack_app/modules/fsrs/interface.py
 from typing import Optional, Tuple, List, Dict, Any
-import datetime
-from sqlalchemy import func
-from mindstack_app.models import db
 from mindstack_app.modules.fsrs.models import ItemMemoryState
-from .engine.processor import FSRSProcessor
-from .services.settings_service import FSRSSettingsService
+from mindstack_app.modules.fsrs.services.scheduler_service import SchedulerService
 from mindstack_app.modules.fsrs.services.optimizer_service import FSRSOptimizerService
-from .schemas import SrsResultDTO, CardStateDTO
+from mindstack_app.modules.fsrs.services.settings_service import FSRSSettingsService
+from mindstack_app.modules.fsrs.schemas import SrsResultDTO
 
 class FSRSInterface:
-    """Public API for FSRS module."""
+    """
+    Public API (Gatekeeper) for FSRS module.
+    Delegates all logic to Services.
+    """
     
     @staticmethod
     def process_review(
@@ -23,7 +22,7 @@ class FSRSInterface:
         **kwargs
     ) -> Tuple[ItemMemoryState, SrsResultDTO]:
         """Process a learning interaction and return updated state and result."""
-        return FSRSProcessor.process_review(
+        return SchedulerService.process_review(
             user_id=user_id,
             item_id=item_id,
             quality=quality,
@@ -39,35 +38,40 @@ class FSRSInterface:
     @staticmethod
     def get_retrievability(state: ItemMemoryState) -> float:
         """Calculate current retrievability (memory power)."""
-        return FSRSProcessor.get_retrievability(state)
+        # Currently, this requires reinstantiating the engine or just using the formula.
+        # Since this was a static method on Processor, we should delegate or reimplement simply.
+        # For now, let's use the SchedulerService if possible or move logic here?
+        # Better: Add a helper in SchedulerService or just calculate it if simple.
+        # Given the instruction to be thin, we'll instantiate engine momentarily.
+        
+        # NOTE: This method signature takes an ItemMemoryState.
+        # Ideally, we should move this to SchedulerService as well.
+        from mindstack_app.modules.fsrs.engine.core import FSRSEngine
+        from datetime import datetime, timezone
+        
+        if not state.last_review:
+            return 0.0
+            
+        dto = SchedulerService._model_to_dto(state)
+        engine = FSRSEngine() # Defaults are fine for pure R calculation usually
+        return engine.get_realtime_retention(dto, datetime.now(timezone.utc))
 
     @staticmethod
     def predict_next_intervals(user_id: int, item_id: int) -> Dict[int, str]:
-        """Predict next intervals for an item."""
-        state_record = ItemMemoryState.query.filter_by(user_id=user_id, item_id=item_id).first()
+        """Predict next intervals for an item. Legacy format (int keys)."""
+        # The new SchedulerService.get_preview_intervals returns str keys ("1", "2").
+        # We adapt it here for backward compatibility if needed, or update SchedulerService.
+        # The existing interface returned Dict[int, str].
         
-        # Build CardStateDTO from model
-        from .schemas import CardStateDTO, CardStateEnum
-        from .services.settings_service import FSRSSettingsService
-        from .logics.fsrs_engine import FSRSEngine
-        
-        if not state_record:
-            card_dto = CardStateDTO(state=CardStateEnum.NEW)
-        else:
-            card_dto = CardStateDTO(
-                stability=state_record.stability or 0.0,
-                difficulty=state_record.difficulty or 0.0,
-                reps=state_record.repetitions or 0,
-                lapses=state_record.lapses or 0,
-                state=state_record.state or CardStateEnum.NEW,
-                last_review=state_record.last_review
-            )
-            
-        effective_weights = FSRSOptimizerService.get_user_parameters(user_id)
-        desired_retention = float(FSRSSettingsService.get('FSRS_DESIRED_RETENTION', 0.9))
-        
-        engine = FSRSEngine(custom_weights=effective_weights, desired_retention=desired_retention)
-        return engine.predict_next_intervals(card_dto)
+        # Let's map SchedulerService output back to this format.
+        previews = SchedulerService.get_preview_intervals(user_id, item_id)
+        result = {}
+        for k, v in previews.items():
+            try:
+                result[int(k)] = v['interval']
+            except ValueError:
+                pass
+        return result
 
     @staticmethod
     def train_user_parameters(user_id: int) -> Optional[List[float]]:
@@ -97,8 +101,8 @@ class FSRSInterface:
         # Default mapping: Correct=Good(3), Incorrect=Again(1)
         quality = 3 if is_correct else 1
         
-        # Forward to processor
-        state, srs_result = FSRSInterface.process_review(
+        # Forward to service
+        state, srs_result = SchedulerService.process_review(
             user_id=user_id,
             item_id=item_id,
             quality=quality,
@@ -115,8 +119,6 @@ class FSRSInterface:
             'state': srs_result.state
         }
 
-    # === New Phase 2 Methods ===
-
     @staticmethod
     def get_item_state(user_id: int, item_id: int) -> Optional[ItemMemoryState]:
         """Get the memory state for a specific item."""
@@ -125,7 +127,8 @@ class FSRSInterface:
     @staticmethod
     def get_due_items(user_id: int, limit: int = 100) -> List[ItemMemoryState]:
         """Get items due for review."""
-        now = datetime.datetime.now(datetime.timezone.utc)
+        from datetime import datetime, timezone
+        now = datetime.now(timezone.utc)
         return ItemMemoryState.query.filter(
             ItemMemoryState.user_id == user_id,
             ItemMemoryState.due_date <= now
@@ -134,90 +137,11 @@ class FSRSInterface:
     @staticmethod
     def update_item_state(state: ItemMemoryState):
         """Persist state changes."""
+        from mindstack_app.core.extensions import db
         db.session.add(state)
         db.session.commit()
 
     @staticmethod
     def get_preview_intervals(user_id: int, item_id: int) -> Dict[str, Dict[str, Any]]:
-        """
-        Get preview intervals for all ratings (1-4).
-        
-        Returns a dict keyed by rating string with preview data:
-        {
-            "1": {"interval": "1d", "stability": 0.5, "difficulty": 5.0, "retrievability": 100},
-            "2": {"interval": "3d", ...},
-            ...
-        }
-        
-        On error, returns safe fallback values.
-        """
-        import logging
-        from datetime import timezone
-        from .schemas import CardStateDTO, CardStateEnum
-        from .logics.fsrs_engine import FSRSEngine
-        
-        logger = logging.getLogger(__name__)
-        
-        # Safe fallback values
-        FALLBACK = {
-            str(r): {'interval': 'N/A', 'stability': 0, 'difficulty': 0, 'retrievability': 0}
-            for r in range(1, 5)
-        }
-        
-        try:
-            # Get current state
-            state_record = ItemMemoryState.query.filter_by(
-                user_id=user_id, item_id=item_id
-            ).first()
-            
-            # Build CardStateDTO
-            if not state_record:
-                card_dto = CardStateDTO(state=CardStateEnum.NEW)
-            else:
-                # Calculate scheduled_days from due_date
-                scheduled_days = 0.0
-                if state_record.due_date and state_record.last_review:
-                    try:
-                        due = state_record.due_date.replace(tzinfo=timezone.utc)
-                        last = state_record.last_review.replace(tzinfo=timezone.utc)
-                        scheduled_days = max(0.0, (due - last).total_seconds() / 86400.0)
-                    except Exception:
-                        pass
-                
-                card_dto = CardStateDTO(
-                    stability=state_record.stability or 0.0,
-                    difficulty=state_record.difficulty or 0.0,
-                    reps=state_record.repetitions or 0,
-                    lapses=state_record.lapses or 0,
-                    state=state_record.state or CardStateEnum.NEW,
-                    last_review=state_record.last_review,
-                    scheduled_days=scheduled_days
-                )
-            
-            # Get user parameters and create engine
-            effective_weights = FSRSOptimizerService.get_user_parameters(user_id)
-            desired_retention = float(FSRSSettingsService.get('FSRS_DESIRED_RETENTION', 0.9))
-            engine = FSRSEngine(custom_weights=effective_weights, desired_retention=desired_retention)
-            
-            # Calculate preview for each rating
-            now = datetime.datetime.now(datetime.timezone.utc)
-            previews = {}
-            
-            for rating in [1, 2, 3, 4]:
-                try:
-                    new_card, _, _ = engine.review_card(card_dto, rating, now, enable_fuzz=False)
-                    previews[str(rating)] = {
-                        'interval': f"{round(new_card.scheduled_days, 1)}d",
-                        'stability': round(new_card.stability, 2),
-                        'difficulty': round(new_card.difficulty, 2),
-                        'retrievability': round(engine.get_realtime_retention(new_card, now) * 100, 1)
-                    }
-                except Exception as e:
-                    logger.warning(f"FSRS preview calculation failed for rating {rating}: {e}")
-                    previews[str(rating)] = FALLBACK[str(rating)]
-            
-            return previews
-            
-        except Exception as e:
-            logger.error(f"FSRS get_preview_intervals failed for user={user_id}, item={item_id}: {e}")
-            return FALLBACK
+        """Get rich preview intervals."""
+        return SchedulerService.get_preview_intervals(user_id, item_id)

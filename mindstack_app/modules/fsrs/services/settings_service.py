@@ -4,7 +4,7 @@ from typing import Any, Dict, List, Optional
 from flask import current_app
 from mindstack_app.models import AppSettings, db
 from mindstack_app.core.defaults import DEFAULT_APP_CONFIGS
-from ..config import FSRSDefaultConfig
+from ..config import DefaultConfig
 
 class FSRSSettingsService:
     """Service for managing FSRS configuration."""
@@ -14,10 +14,10 @@ class FSRSSettingsService:
     DEFAULTS: Dict[str, Any] = {
         'HARD_ITEM_MIN_INCORRECT_STREAK': DEFAULT_APP_CONFIGS.get('HARD_ITEM_MIN_INCORRECT_STREAK', 3),
         'HARD_ITEM_MAX_REPETITIONS': DEFAULT_APP_CONFIGS.get('HARD_ITEM_MAX_REPETITIONS', 10),
-        'FSRS_DESIRED_RETENTION': DEFAULT_APP_CONFIGS.get('FSRS_DESIRED_RETENTION', FSRSDefaultConfig.FSRS_DESIRED_RETENTION),
-        'FSRS_MAX_INTERVAL': DEFAULT_APP_CONFIGS.get('FSRS_MAX_INTERVAL', FSRSDefaultConfig.FSRS_MAX_INTERVAL),
-        'FSRS_ENABLE_FUZZ': DEFAULT_APP_CONFIGS.get('FSRS_ENABLE_FUZZ', FSRSDefaultConfig.FSRS_ENABLE_FUZZ),
-        'FSRS_GLOBAL_WEIGHTS': DEFAULT_APP_CONFIGS.get('FSRS_GLOBAL_WEIGHTS', FSRSDefaultConfig.FSRS_GLOBAL_WEIGHTS),
+        'FSRS_DESIRED_RETENTION': DEFAULT_APP_CONFIGS.get('FSRS_DESIRED_RETENTION', DefaultConfig.FSRS_DESIRED_RETENTION),
+        'FSRS_MAX_INTERVAL': DEFAULT_APP_CONFIGS.get('FSRS_MAX_INTERVAL', DefaultConfig.FSRS_MAX_INTERVAL),
+        'FSRS_ENABLE_FUZZ': DEFAULT_APP_CONFIGS.get('FSRS_ENABLE_FUZZ', DefaultConfig.FSRS_ENABLE_FUZZ),
+        'FSRS_GLOBAL_WEIGHTS': DEFAULT_APP_CONFIGS.get('FSRS_GLOBAL_WEIGHTS', DefaultConfig.FSRS_GLOBAL_WEIGHTS),
         'QUIZ_RATING_EASY_MS': 3000,
         'QUIZ_RATING_GOOD_MS': 10000,
         'FSRS_DAILY_LIMIT': 200,
