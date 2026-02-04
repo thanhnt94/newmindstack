@@ -15,7 +15,7 @@ from .. import blueprint as flashcard_learning_bp
 
 
 # Import từ engine module
-from ..engine.services.query_builder import FlashcardQueryBuilder
+from ..services.query_builder import FlashcardQueryBuilder
 from ..engine.config import FlashcardLearningConfig
 from ..engine.algorithms import (
     get_new_only_items,
@@ -113,7 +113,7 @@ def start_flashcard_session_all(mode):
         session['flashcard_ui_pref'] = ui_pref
 
     # [REFACTORED] Stateless Session Start
-    from ..engine.services.query_builder import FlashcardQueryBuilder
+    from ..services.query_builder import FlashcardQueryBuilder
     
     qb = FlashcardQueryBuilder(current_user.user_id)
     accessible_ids = get_accessible_flashcard_set_ids(current_user.user_id)
@@ -181,7 +181,7 @@ def start_flashcard_session_multi(mode):
 
     # [REFACTORED] Stateless Session Start (Multi)
     # ... (Simplified logic similar to 'all' but with specific set list)
-    from ..engine.services.query_builder import FlashcardQueryBuilder
+    from ..services.query_builder import FlashcardQueryBuilder
     qb = FlashcardQueryBuilder(current_user.user_id)
     qb.filter_by_containers(set_ids)
     
@@ -246,7 +246,7 @@ def start_flashcard_session_by_id(set_id, mode):
 
         
     # [REFACTORED] Stateless Session Start (Single ID)
-    from ..engine.services.query_builder import FlashcardQueryBuilder
+    from ..services.query_builder import FlashcardQueryBuilder
     qb = FlashcardQueryBuilder(current_user.user_id)
     qb.filter_by_containers([set_id])
     
@@ -519,7 +519,7 @@ def start():
     
     # [REFACTORED] Stateless Session Start (Generic)
     # Using 'set_ids' from request (parsed above)
-    from ..engine.services.query_builder import FlashcardQueryBuilder
+    from ..services.query_builder import FlashcardQueryBuilder
     qb = FlashcardQueryBuilder(current_user.user_id)
     
     if set_ids == 'all':

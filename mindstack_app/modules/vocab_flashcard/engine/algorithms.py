@@ -167,7 +167,8 @@ def get_accessible_flashcard_set_ids(user_id):
     )
     return [c.container_id for c in query.all()]
 
-from .services.query_builder import FlashcardQueryBuilder
+# Import from services layer (correct location per architecture)
+from ..services.query_builder import FlashcardQueryBuilder
 
 def get_new_only_items(user_id, set_id, limit=None):
     qb = FlashcardQueryBuilder(user_id)

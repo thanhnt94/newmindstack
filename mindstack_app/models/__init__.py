@@ -15,25 +15,32 @@ from mindstack_app.modules.learning.models import (
 )
 from mindstack_app.modules.fsrs.models import ItemMemoryState
 from mindstack_app.modules.learning_history.models import StudyLog
+
+# Core learning models (without collab)
 from mindstack_app.modules.vocab_flashcard.models import (
     FlashcardSet,
     Flashcard,
-    FlashcardCollabAnswer,
-    FlashcardCollabMessage,
-    FlashcardCollabParticipant,
-    FlashcardCollabRoom,
-    FlashcardCollabRound,
-    FlashcardRoomProgress,
 )
 from mindstack_app.modules.quiz.models import (
     QuizSet, 
     QuizMCQ,
+)
+
+# Collab models (centralized in collab module)
+from mindstack_app.modules.collab.models import (
+    FlashcardCollabRoom,
+    FlashcardCollabParticipant,
+    FlashcardCollabMessage,
+    FlashcardCollabRound,
+    FlashcardCollabAnswer,
+    FlashcardRoomProgress,
+    QuizBattleRoom,
+    QuizBattleParticipant,
+    QuizBattleRound,
     QuizBattleAnswer,
     QuizBattleMessage,
-    QuizBattleParticipant,
-    QuizBattleRoom,
-    QuizBattleRound,
 )
+
 from mindstack_app.modules.AI.models import ApiKey, AiTokenLog, AiCache
 from mindstack_app.modules.goals.models import Goal, UserGoal, GoalProgress
 from mindstack_app.modules.gamification.models import Badge, UserBadge, ScoreLog, Streak

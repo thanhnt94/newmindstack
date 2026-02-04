@@ -1352,6 +1352,22 @@ render_unified_header with context %}
 
 
 
+    /* Hide mobile pagination bar on desktop even if 'visible' class is added by JS */
+    @media (min-width: 1024px) {
+        .vocab-pagination-bar.visible {
+            display: none !important;
+        }
+    }
+
+    /* Standard visible style for mobile */
+    @media (max-width: 1023px) {
+        .vocab-pagination-bar.visible {
+            display: flex !important;
+        }
+    }
+
+
+
     .pagination-nav-btn {
 
         width: 40px;
@@ -2542,7 +2558,7 @@ render_unified_header with context %}
 
         <!-- Active Sessions Removed -->
 
-        <div class="vocab-scroll" style="padding-bottom: 80px;">
+        <div class="vocab-scroll" style="padding-bottom: 40px;">
 
             <div id="mobile-sets-grid" class="vocab-grid js-sets-grid">
 
@@ -2552,6 +2568,20 @@ render_unified_header with context %}
 
                 </div>
 
+            </div>
+
+            <!-- Pagination Desktop for Grid (Closer to content) -->
+            <div class="hidden lg:flex justify-center py-4 js-vocab-pagination-bar-desktop"
+                id="vocab-pagination-bar-desktop">
+                <button class="pagination-nav-btn js-vocab-prev-page" disabled>
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+                <div class="pagination-pages js-vocab-page-numbers">
+                    <span class="page-num active">1</span>
+                </div>
+                <button class="pagination-nav-btn js-vocab-next-page" disabled>
+                    <i class="fas fa-chevron-right"></i>
+                </button>
             </div>
 
         </div>
@@ -2641,13 +2671,18 @@ render_unified_header with context %}
                     </div>
                 </div>
 
-                <!-- Word List -->
                 <h3 class="font-bold text-slate-700 mb-3 mt-6">Danh sách từ vựng</h3>
                 <div class="js-word-list">
                     <!-- Loading spinner initially -->
                     <div class="py-12 flex justify-center">
                         <i class="fas fa-spinner fa-spin text-2xl text-indigo-500"></i>
                     </div>
+                </div>
+
+                <!-- Pagination Desktop (Closer to content) -->
+                <div class="hidden lg:flex justify-center py-4 js-detail-pagination-bar-desktop"
+                    id="detail-pagination-bar-desktop">
+                    <!-- Pagination rendered by JS here -->
                 </div>
             </div>
         </div>
@@ -3209,7 +3244,7 @@ render_unified_header with context %}
 
                 const continueBtn = document.querySelector('.js-mode-continue');
 
-                const paginationBars = document.querySelectorAll('#vocab-pagination-bar, #mobile-pagination-bar');
+                const paginationBars = document.querySelectorAll('#vocab-pagination-bar, #mobile-pagination-bar, #vocab-pagination-bar-desktop');
 
                 const prevPageBtns = document.querySelectorAll('.js-vocab-prev-page');
 
@@ -3901,55 +3936,43 @@ render_unified_header with context %}
 
 
 
-            // Render page numbers
+            // Render page numbers - updated for multiple containers
+            var pageContainers = document.querySelectorAll('.js-vocab-page-numbers');
 
-            var pageContainer = document.querySelector('.js-vocab-page-numbers');
-
-            if (pageContainer) {
-
+            if (pageContainers.length > 0) {
                 var html = '';
 
-
-
                 for (var i = 1; i <= totalPages; i++) {
-
                     if (i === 1 || i === totalPages ||
-
                         (i >= page - 1 && i <= page + 1)) {
-
                         html += '<span class="page-num' + (i === page ? ' active' : '') + '" data-page="' + i + '">' + i + '</span>';
-
                     } else if (i === 2 && page > 3) {
-
                         html += '<span class="page-num dots">...</span>';
-
                     } else if (i === totalPages - 1 && page < totalPages - 2) {
-
                         html += '<span class="page-num dots">...</span>';
-
                     }
-
                 }
 
+                pageContainers.forEach(container => {
+                    container.innerHTML = html;
+                });
+            }
 
 
-                pageContainer.innerHTML = html;
 
+            pageContainer.querySelectorAll('.page-num:not(.dots)').forEach(function (el) {
 
+                el.addEventListener('click', function () {
 
-                pageContainer.querySelectorAll('.page-num:not(.dots)').forEach(function (el) {
+                    var p = parseInt(el.dataset.page);
 
-                    el.addEventListener('click', function () {
-
-                        var p = parseInt(el.dataset.page);
-
-                        if (p !== currentPage) loadSets(p);
-
-                    });
+                    if (p !== currentPage) loadSets(p);
 
                 });
 
-            }
+            });
+
+        }
 
         }
 
@@ -4444,44 +4467,32 @@ render_unified_header with context %}
 
 
 
-                // Pagination Controls - Target fixed pagination bar
+                // Pagination Controls - Target both fixed (mobile) and inline (desktop) bars
+                const detailPaginators = document.querySelectorAll('#detail-pagination-bar, #detail-pagination-bar-desktop');
 
-                const detailPaginationBar = document.querySelector('#detail-pagination-bar');
+                if (detailPaginators.length > 0 && paginationHtml) {
+                    detailPaginators.forEach(bar => {
+                        // Inject pagination HTML
+                        bar.innerHTML = paginationHtml;
 
-                if (detailPaginationBar && paginationHtml) {
+                        // Add visible class specifically for the mobile-style bar (controlled by CSS)
+                        if (bar.classList.contains('vocab-pagination-bar')) {
+                            bar.classList.add('visible');
+                        }
 
-                    // Inject pagination HTML into fixed bar
-
-                    detailPaginationBar.innerHTML = paginationHtml;
-
-                    detailPaginationBar.classList.add('visible');
-
-
-
-                    // Re-bind events for the new HTML links
-
-                    detailPaginationBar.querySelectorAll('a').forEach(link => {
-
-                        link.addEventListener('click', function (e) {
-
-                            e.preventDefault();
-
-                            const url = new URL(this.href);
-
-                            const page = url.searchParams.get('page');
-
-                            if (page) fetchCourseStatsPage(page);
-
+                        // Re-bind events for the new HTML links
+                        bar.querySelectorAll('a').forEach(link => {
+                            link.addEventListener('click', function (e) {
+                                e.preventDefault();
+                                const url = new URL(this.href);
+                                const page = url.searchParams.get('page');
+                                if (page) fetchCourseStatsPage(page);
+                            });
                         });
-
                     });
-
-                } else if (detailPaginationBar && stats.pagination && stats.pagination.pages <= 1) {
-
+                } else if (detailPaginators.length > 0 && stats.pagination && stats.pagination.pages <= 1) {
                     // Hide if only 1 page
-
-                    detailPaginationBar.classList.remove('visible');
-
+                    detailPaginators.forEach(bar => bar.classList.remove('visible'));
                 }
 
 

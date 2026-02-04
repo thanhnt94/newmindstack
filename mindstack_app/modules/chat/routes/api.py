@@ -10,7 +10,8 @@ from flask import abort, jsonify, request
 from flask_login import current_user, login_required
 
 from mindstack_app.core.extensions import db
-from mindstack_app.models import (
+# Import collab models from the collab module (Gatekeeper pattern)
+from mindstack_app.modules.collab.interface import (
     FlashcardCollabMessage,
     FlashcardCollabParticipant,
     FlashcardCollabRoom,

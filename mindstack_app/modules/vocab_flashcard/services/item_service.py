@@ -1,3 +1,4 @@
+# File: mindstack_app/modules/vocab_flashcard/services/item_service.py
 """
 FlashcardItemService - Service for retrieving flashcard items
 

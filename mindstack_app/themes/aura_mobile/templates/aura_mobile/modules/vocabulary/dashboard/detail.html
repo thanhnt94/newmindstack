@@ -85,9 +85,18 @@ render_unified_header with context %}
         padding: 0.75rem;
     }
 
-    /* Override 'visible' class if it was doing display: flex */
-    .vocab-pagination-bar.visible {
-        display: flex !important;
+    /* Hide mobile pagination bar on desktop even if 'visible' class is added by JS */
+    @media (min-width: 1024px) {
+        .vocab-pagination-bar.visible {
+            display: none !important;
+        }
+    }
+
+    /* Standard visible style for mobile */
+    @media (max-width: 1023px) {
+        .vocab-pagination-bar.visible {
+            display: flex !important;
+        }
     }
 
     .vocab-footer {
@@ -269,8 +278,8 @@ render_unified_header with context %}
                             </button>
                         </div>
 
-                        <!-- Pagination Desktop -->
-                        <div class="hidden md:flex justify-center py-6 border-t border-slate-100 js-detail-pagination-bar-desktop"
+                        <!-- Pagination Desktop (Closer to content) -->
+                        <div class="hidden md:flex justify-center py-4 js-detail-pagination-bar-desktop"
                             id="detail-pagination-bar-desktop">
                             <!-- Pagination rendered by JS here -->
                         </div>

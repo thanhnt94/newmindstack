@@ -13,7 +13,8 @@ from mindstack_app.modules.learning_history.models import StudyLog
 from mindstack_app.services.config_service import get_runtime_config
 from mindstack_app.utils.content_renderer import render_content_dict
 from mindstack_app.utils.media_paths import build_relative_media_path
-from .services.query_builder import FlashcardQueryBuilder
+# Import from services layer (correct location per architecture)
+from ..services.query_builder import FlashcardQueryBuilder
 from .algorithms import get_accessible_flashcard_set_ids
 from .vocab_flashcard_mode import get_flashcard_mode_by_id
 from flask import url_for, current_app

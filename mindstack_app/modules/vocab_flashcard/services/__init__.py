@@ -2,21 +2,32 @@
 """
 Vocab Flashcard Services
 ========================
-Orchestration layer for flashcard functionality.
-Delegates to external modules for audio (audio), images (media), and sessions (session).
+Service layer for flashcard functionality (only layer that can access DB).
+
+Contains:
+- FlashcardQueryBuilder: Query construction
+- FlashcardPermissionService: Access control
+- FlashcardItemService: Item retrieval
+- FlashcardConfigService: Configuration management
+- CardPresenter: Card presentation logic
 """
 
+from .query_builder import FlashcardQueryBuilder
+from .permission_service import FlashcardPermissionService, get_accessible_flashcard_set_ids
+from .item_service import FlashcardItemService
 from .flashcard_config_service import FlashcardConfigService
 from .card_presenter import CardPresenter, get_audio_url_for_item, get_image_url_for_item
 
-# Legacy imports - redirect to proper modules
-# from mindstack_app.modules.audio.interface import AudioInterface
-# from mindstack_app.modules.media.interface import MediaInterface
-# from mindstack_app.modules.session.interface import SessionInterface
-
 __all__ = [
+    # Query/DB services
+    'FlashcardQueryBuilder',
+    'FlashcardPermissionService',
+    'FlashcardItemService',
+    'get_accessible_flashcard_set_ids',
+    # Config/Presentation
     'FlashcardConfigService',
     'CardPresenter',
     'get_audio_url_for_item',
     'get_image_url_for_item',
 ]
+

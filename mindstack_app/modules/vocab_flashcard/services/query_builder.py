@@ -1,4 +1,4 @@
-# File: flashcard/engine/services/query_builder.py
+# File: mindstack_app/modules/vocab_flashcard/services/query_builder.py
 # FlashcardQueryBuilder - Helper for constructing SQLAlchemy queries for flashcards.
 
 from sqlalchemy import func, or_, and_

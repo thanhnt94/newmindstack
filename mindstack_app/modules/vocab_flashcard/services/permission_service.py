@@ -1,8 +1,8 @@
+# File: mindstack_app/modules/vocab_flashcard/services/permission_service.py
 """
 FlashcardPermissionService - Access Control for Flashcard Containers
 
 Handles permission checking and access control logic for flashcard sets.
-Extracted from algorithms.py for better separation of concerns.
 """
 from typing import Set, List, Union
 from flask import current_app
@@ -151,6 +151,5 @@ class FlashcardPermissionService:
 
 
 # Backward compatibility alias
-get_accessible_flashcard_set_ids = lambda user_id: list(
-    FlashcardPermissionService.get_accessible_set_ids(user_id)
-)
+def get_accessible_flashcard_set_ids(user_id: int) -> List[int]:
+    return list(FlashcardPermissionService.get_accessible_set_ids(user_id))
