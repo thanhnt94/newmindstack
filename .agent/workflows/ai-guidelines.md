@@ -11,7 +11,7 @@ Khi hệ thống nhận yêu cầu **"refactor"**, **"review code"**, hoặc **"
 ### 1. 🔍 Retrieve Context (Truy xuất ngữ cảnh)
 Trước khi đưa ra bất kỳ đề xuất sửa đổi nào, AI cần:
 * **Đọc file:** `docs/MODULE_STRUCTURE.md` để nắm vững kiến trúc Hexagonal và các quy tắc phụ thuộc.
-* **Đọc file:** `docs/MODULE_REFACTOR_CHECKLIST_V3_REVISED.md` để lấy danh sách kiểm tra (checklist) nghiệm thu.
+* **Đọc file:** `docs/MODULE_REFACTOR_CHECKLIST.md` để lấy danh sách kiểm tra (checklist) nghiệm thu.
 
 ### 2. 🛡️ Strict Compliance Check (Kiểm tra tuân thủ)
 Thực hiện đối soát mã nguồn hiện tại:
