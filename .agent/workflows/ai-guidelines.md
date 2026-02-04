@@ -2,4 +2,33 @@
 description: AI Guidelines - Quy tắc bắt buộc khi AI làm việc với MindStack project
 ---
 
-Tài liệu này quy định các tiêu chuẩn thiết kế Backend, tập trung vào tính module hóa toàn diện và hỗ trợ kiến trúc đa giao diện (Multi-theme).1. Cấu trúc Hạt nhân (Kernel) vs ModuleA. Hệ thống lõi (Kernel - Ngoài Module)/core/: Hạ tầng Flask (Bootstrap, Registry, Signals). bootstrap.py cấu hình định tuyến cho cả Theme Assets và Media Uploads./models/: Định nghĩa Database tập trung, đặt tên theo module (ví dụ: audio.py) để tránh import vòng./logics/: Thuật toán thuần túy (Stateless)./services/: Quản lý tài nguyên hệ thống (ví dụ: template_service.py để chọn theme từ DB)./utils/: Công cụ kỹ thuật (Excel parser, Sanitizer).B. Cấu trúc Module (/modules/)routes.py: Chỉ sử dụng đường dẫn template tương đối (ví dụ: auth/login.html).services/: Tương tác DB và điều phối logic.logics/: Xử lý nghiệp vụ đặc thù của module.2. Quản lý Tài nguyên (Storage Architecture)Hệ thống phân biệt rõ 2 loại tài nguyên:A. Theme Assets (Tài nguyên giao diện)Bản chất: Là một phần của mã nguồn (Stateless).Vị trí: templates/[theme_name]/assets/ (Chứa JS, CSS, Favicon, Logo).Phục vụ: Qua route /theme-assets/[theme]/....B. Media Uploads (Dữ liệu người dùng)Bản chất: Dữ liệu sinh ra hoặc upload (Audio TTS, Ảnh thẻ, Avatar).Vị trí: Folder /uploads/ nằm ngoài mã nguồn để đảm bảo an toàn khi cập nhật code.Phục vụ: Qua route /media/....3. Quy trình xử lý Dữ liệu sinh ra (Persistence)Kiểm tra link trong Database (ví dụ: card.audio_url).Nếu trống -> Gọi Service sinh file mới.Lưu file vào /uploads/.Cập nhật link mới vào Database và Commit.Tài liệu này định hình cách Backend cung cấp dữ liệu cho Frontend một cách sạch sẽ nhất.
+# 🚀 Refactoring Protocol (Giao thức Tái cấu trúc)
+
+Khi hệ thống nhận yêu cầu **"refactor"**, **"review code"**, hoặc **"cấu trúc lại module"**, AI **BẮT BUỘC** phải thực hiện các bước sau theo thứ tự nghiêm ngặt:
+
+---
+
+### 1. 🔍 Retrieve Context (Truy xuất ngữ cảnh)
+Trước khi đưa ra bất kỳ đề xuất sửa đổi nào, AI cần:
+* **Đọc file:** `docs/MODULE_STRUCTURE.md` để nắm vững kiến trúc Hexagonal và các quy tắc phụ thuộc.
+* **Đọc file:** `docs/MODULE_REFACTOR_CHECKLIST_V3_REVISED.md` để lấy danh sách kiểm tra (checklist) nghiệm thu.
+
+### 2. 🛡️ Strict Compliance Check (Kiểm tra tuân thủ)
+Thực hiện đối soát mã nguồn hiện tại:
+* So sánh code thực tế với cấu trúc chuẩn trong `MODULE_STRUCTURE.md`.
+* **Báo lỗi ngay lập tức** nếu phát hiện vi phạm các quy tắc cốt lõi:
+    * **Engine Isolation:** Engine import DB hoặc Framework.
+    * **Service Orchestration:** Service xử lý logic nghiệp vụ thuần túy thay vì gọi Engine.
+
+### 3. 🛠️ Refactor Execution (Thực thi)
+Khi thực hiện viết code mới hoặc tái cấu trúc:
+* Phải tuân thủ nghiêm ngặt bảng phân loại trong `MODULE_REFACTOR_CHECKLIST_V3_REVISED.md` (**Mục 2 - Bảng Quyết định**).
+* **Nguyên tắc "Pay as you go":** * *Ví dụ:* Nếu là module CRUD đơn giản, **KHÔNG ĐƯỢC** tạo file `engine/core.py` để tránh dư thừa mã nguồn.
+
+### 4. 📝 Final Output (Đầu ra)
+Kết quả phản hồi phải đảm bảo:
+* Luôn trích dẫn quy tắc cụ thể nào đang được áp dụng từ hệ thống tài liệu `docs/`.
+* Liệt kê các thay đổi dưới dạng checklist tương ứng với các bước trong `REFACTOR_CHECKLIST` để người dùng dễ dàng theo dõi và nghiệm thu.
+
+---
+*Giao thức này đảm bảo mọi module trong MindStack v2.0 luôn đồng nhất về kiến trúc và chất lượng.*
