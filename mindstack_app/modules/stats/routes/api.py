@@ -25,3 +25,49 @@ def get_container_leaderboard_api(container_id):
         'success': True,
         'data': data
     })
+
+@stats_bp.route('/api/summary')
+@login_required
+def api_get_stats_summary():
+    """
+    Get unified dashboard statistics from all modules.
+    
+    Uses StatsAggregator to fetch data via interfaces (not direct DB queries).
+    Returns aggregated stats from FSRS, Gamification, and Activity modules.
+    """
+    from ..services.stats_aggregator import StatsAggregator
+    
+    try:
+        data = StatsAggregator.get_user_dashboard_stats(current_user.user_id)
+        return jsonify({
+            'success': True,
+            'data': data
+        })
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@stats_bp.route('/api/container/<int:container_id>/summary')
+@login_required
+def api_get_container_summary(container_id):
+    """
+    Get stats summary for a specific container.
+    
+    Uses StatsAggregator to fetch FSRS stats via interface.
+    """
+    from ..services.stats_aggregator import StatsAggregator
+    
+    try:
+        data = StatsAggregator.get_container_summary(current_user.user_id, container_id)
+        return jsonify({
+            'success': True,
+            'data': data
+        })
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
