@@ -2860,18 +2860,20 @@ render_unified_header with context %}
             // Filter modes based on container capabilities
             (function () {
                 {% if container_capabilities is defined %}
-                const capabilities = {{ container_capabilities| tojson | safe
+                const capabilities = {{ container_capabilities | tojson | safe
             }};
-            const modeCards = document.querySelectorAll('.mode-select-card[data-capability]');
+            {% else %}
+            const capabilities = [];
+            {% endif %}
 
+            const modeCards = document.querySelectorAll('.mode-select-card[data-capability]');
             modeCards.forEach(card => {
                 const requiredCapability = card.getAttribute('data-capability');
                 if (requiredCapability && !capabilities.includes(requiredCapability)) {
                     card.style.display = 'none';
                 }
             });
-            {% endif %}
-    }) ();
+            }) ();
         </script>
 
         {# Bottom Action Bar #}
@@ -3378,12 +3380,9 @@ render_unified_header with context %}
                 // Global State for Responsive Step Tracking - MUST be declared before showStep calls
                 let currentActiveStep = 'browser';
 
-                // Check for active set ID and step from server template
                 const activeSetId = {{ active_set_id|default ('null')
             }};
-
         const activeStep = '{{ active_step|default("browser") }}';
-
         console.log("Deep Link Check:", activeSetId, "Step:", activeStep);
 
 
@@ -3955,33 +3954,20 @@ render_unified_header with context %}
 
                 pageContainers.forEach(container => {
                     container.innerHTML = html;
+
+                    // Bind click for each container
+                    container.querySelectorAll('.page-num:not(.dots)').forEach(function (el) {
+                        el.addEventListener('click', function () {
+                            var p = parseInt(el.dataset.page);
+                            if (p !== currentPage) loadSets(p);
+                        });
+                    });
                 });
             }
-
-
-
-            pageContainer.querySelectorAll('.page-num:not(.dots)').forEach(function (el) {
-
-                el.addEventListener('click', function () {
-
-                    var p = parseInt(el.dataset.page);
-
-                    if (p !== currentPage) loadSets(p);
-
-                });
-
-            });
-
         }
-
-        }
-
-
 
         function hidePagination() {
-
             paginationBars.forEach(bar => bar.classList.remove('visible'));
-
         }
 
 
@@ -5680,7 +5666,8 @@ render_unified_header with context %}
                 }
 
                 // Update close button to use function
-                document.querySelector('.edit-modal-close').onclick = closeModal;
+                const closeBtn = document.querySelector('.aura-modal-close') || document.querySelector('.edit-modal-close');
+                if (closeBtn) closeBtn.onclick = closeModal;
             }
         });
     </script>

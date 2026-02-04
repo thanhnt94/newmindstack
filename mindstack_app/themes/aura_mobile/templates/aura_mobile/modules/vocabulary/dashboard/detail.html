@@ -138,8 +138,8 @@ render_unified_header with context %}
         margin-bottom: 0 !important;
     }
 </style>
-<link rel="stylesheet" href="{{ url_for('static', filename='aura_mobile/vocabulary/css/dashboard.css') }}">
-<link rel="stylesheet" href="{{ url_for('static', filename='aura_mobile/vocabulary/css/dashboard_detail.css') }}">
+<link rel="stylesheet" href="{{ url_for('aura_mobile.static', filename='vocabulary/css/dashboard.css') }}">
+<link rel="stylesheet" href="{{ url_for('aura_mobile.static', filename='vocabulary/css/dashboard_detail.css') }}">
 {% endblock %}
 
 
@@ -408,5 +408,5 @@ render_unified_header with context %}
 {% block scripts %}
 {{ super() }}
 {# Stats components need their own scripts often or global helpers #}
-<script src="{{ url_for('static', filename='aura_mobile/vocabulary/js/dashboard_detail.js') }}"></script>
+<script src="{{ url_for('aura_mobile.static', filename='vocabulary/js/dashboard_detail.js') }}"></script>
 {% endblock %}

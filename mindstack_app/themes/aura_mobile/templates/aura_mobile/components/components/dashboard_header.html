@@ -67,11 +67,16 @@ hide_default_actions=False) %}
         </button>
         {% else %}
         <div
-            class="w-11 h-11 rounded-full flex-shrink-0 flex items-center justify-center border-2 border-white shadow-sm overflow-hidden">
+            class="w-11 h-11 rounded-full flex-shrink-0 flex items-center justify-center border-2 border-white shadow-sm overflow-hidden bg-indigo-50">
             {% if current_user.avatar_url %}
-            <img src="{{ current_user.get_avatar_url() }}" class="w-full h-full object-cover">
+            <img src="{{ current_user.get_avatar_url() }}" class="w-full h-full object-cover"
+                onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+            <div class="w-full h-full flex items-center justify-center text-indigo-600 font-bold text-lg"
+                style="display:none">
+                {{ current_user.username[0] | upper }}
+            </div>
             {% else %}
-            <div class="w-full h-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold text-lg">
+            <div class="w-full h-full flex items-center justify-center text-indigo-600 font-bold text-lg">
                 {{ current_user.username[0] | upper }}
             </div>
             {% endif %}
