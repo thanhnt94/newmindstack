@@ -121,8 +121,13 @@ class ContentInterface:
                     "question": raw_content.get('question', ''),
                     "options": raw_content.get('options', {}),
                     "correct_option": raw_content.get('correct_option', ''),
+                    "correct_answer": raw_content.get('correct_answer', ''),
                     "explanation": item.ai_explanation or raw_content.get('explanation', ''),
-                    "image": ContentInterface._resolve_media_url(raw_content.get('image', ''))
+                    "image": ContentInterface._resolve_media_url(raw_content.get('image') or raw_content.get('question_image_file'), item.container),
+                    "audio": ContentInterface._resolve_media_url(raw_content.get('audio') or raw_content.get('question_audio_file'), item.container),
+                    "audio_transcript": raw_content.get('audio_transcript', ''),
+                    "pre_question_text": raw_content.get('pre_question_text', ''),
+                    "passage_text": raw_content.get('passage_text', '')
                 })
                 
             # Default fallback for unknown types

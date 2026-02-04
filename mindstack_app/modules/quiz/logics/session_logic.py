@@ -410,6 +410,11 @@ class QuizSessionManager:
             current_app.logger.debug("Không chọn được nhóm câu hỏi nào để thêm.")
             return None
 
+        # [REFACTORED] Bulk fetch items via ContentInterface
+        from mindstack_app.modules.content_management.interface import ContentInterface
+        new_item_ids = [i.item_id for i in new_items_to_add_to_session]
+        content_map = ContentInterface.get_items_content(new_item_ids)
+
         items_data = []
         newly_processed_item_ids = []
         next_main_number = self.processed_question_count + 1
@@ -423,6 +428,17 @@ class QuizSessionManager:
         for item in new_items_to_add_to_session:
             # Lấy ghi chú cho câu hỏi này
             note = Note.query.filter_by(user_id=self.user_id, reference_type='item', reference_id=item.item_id).first()
+            
+            # std_content from interface (contains absolute media URLs)
+            std_content = content_map.get(item.item_id) or {}
+            
+            # Reconstruct content expected by frontend/logic
+            # Start with std_content
+            content_copy = dict(std_content)
+            
+            # Normalize keys to what this module expects (legacy compat)
+            if 'image' in content_copy: content_copy['question_image_file'] = content_copy.pop('image')
+            if 'audio' in content_copy: content_copy['question_audio_file'] = content_copy.pop('audio')
 
             group_details = None
             group_key = None
@@ -464,8 +480,6 @@ class QuizSessionManager:
 
             main_numbers_in_batch.append(main_number)
 
-            # Create a clean copy of content and filter options
-            content_copy = dict(item.content or {})
             raw_options = content_copy.get('options') or {}
             # Filter out empty options (e.g. for questions with only 2 or 3 answers)
             content_copy['options'] = {
@@ -473,10 +487,8 @@ class QuizSessionManager:
                 if k in ('A', 'B', 'C', 'D') and v not in (None, '')
             }
 
-
             item_dict = {
                 'item_id': item.item_id,
-                # THAY ĐỔI: Thêm container_id để có thể tạo URL chỉnh sửa
                 'container_id': item.container_id,
                 'content': render_content_dict(content_copy),  # BBCode rendering
                 'ai_explanation': render_text_field(item.ai_explanation),
@@ -494,9 +506,7 @@ class QuizSessionManager:
                 # Convert LearningItem to QuizEngine-compatible dict format
                 all_items_pool = []
                 # Fetch minimal data for distractors (optimize later to cache in session if needed)
-                # For now, fetch all items in container (similar to legacy behavior)
-                # Limit to 200 random items to avoid performance hit on huge sets
-                # We do this query on EVERY batch. Optimizable but functional.
+                # Keep direct query for distractors for now as they are internal logic
                 distractor_items = LearningItem.query.filter_by(
                     container_id=item.container_id, 
                     item_type='FLASHCARD'
@@ -504,7 +514,6 @@ class QuizSessionManager:
                 
                 for d_item in distractor_items:
                     d_content = d_item.content or {}
-                    # Normalize format for QuizEngine
                     formatted_d = {
                         'item_id': d_item.item_id,
                         'prompt': d_content.get('front'), 
@@ -517,16 +526,18 @@ class QuizSessionManager:
                     
                     all_items_pool.append(formatted_d)
                 
-                # Format current item
+                # Format current item using std_content from interface (mapped back)
+                # Need raw values for QuizEngine? std_content has absolute URLs but text fields should be fine.
+                # However, Flashcard needs 'front'/'back'.
+                # Interface returns 'front', 'back' for FLASHCARD type.
                 current_item_dict = next((i for i in all_items_pool if i['item_id'] == item.item_id), None)
                 if not current_item_dict:
-                    # If not in limited pool, add it manually
-                    c_content = item.content or {}
+                    # If not in limited pool, use std_content
                     current_item_dict = {
                         'item_id': item.item_id,
-                        'prompt': c_content.get('front'),
-                        'answers': [c_content.get('back')],
-                        'content': c_content
+                        'prompt': std_content.get('front'),
+                        'answers': [std_content.get('back')],
+                        'content': std_content # Use std_content for extended fields
                     }
                 
                 generated_question = QuizEngine.generate_question(
@@ -540,33 +551,17 @@ class QuizSessionManager:
                 item_dict['content'].update({
                     'question': generated_question['prompt'],
                     'options': dict(zip(['A', 'B', 'C', 'D'], generated_question['choices'])),
-                    'correct_answer': generated_question['correct_answer'], # Should be hidden? Frontend needs it?
-                    # Note: Legacy QuizFrontend might check correct_answer in HTML for debug or immediate feedback?
-                    # Usually better to verify on server.
-                    # But QuizSessionManager returns 'content' which includes options.
+                    'correct_answer': generated_question['correct_answer'], 
                 })
-                # Hide answer from direct content if strictly server-side check, 
-                # but legacy logic might rely on it being present (though insecure).
-                # New quiz logic checks on server.
-                # However, generated_question includes 'audio_url'. Update if needed.
                 if generated_question.get('audio_url'):
-                    # Override/Set audio
                      item_dict['content']['question_audio_file'] = generated_question['audio_url']
 
             # Capture options mapping for validation
             if item_dict['content'].get('options'):
                 self.batch_options_mappings[str(item.item_id)] = item_dict['content']['options']
 
-            # Media URL resolution (Existing logic)
-            if item_dict['content'].get('question_image_file'):
-                item_dict['content']['question_image_file'] = self._get_media_absolute_url(
-                    item_dict['content']['question_image_file'], 'image', container=container_obj
-                )
-            if item_dict['content'].get('question_audio_file'):
-                item_dict['content']['question_audio_file'] = self._get_media_absolute_url(
-                    item_dict['content']['question_audio_file'], 'audio', container=container_obj
-                )
-
+            # NO MORE MANUAL MEDIA RESOLUTION NEEDED (handled by Interface + mapping above)
+            
             # [NEW] Fetch markers for this item
             try:
                 markers = db.session.query(UserItemMarker.marker_type).filter_by(
@@ -578,9 +573,6 @@ class QuizSessionManager:
                 item_dict['markers'] = []
 
             # Calculate User Stats for this question
-            # Note: This might cause N+1 query issue if batch is large. For generic batch size (10-20) it's acceptable.
-            # Optimization: could query stats for all items in batch in one go, but keeping it simple for now.
-            # Get User Stats for this question using ItemMemoryState
             state_record = ItemMemoryState.query.filter_by(
                 user_id=self.user_id,
                 item_id=item.item_id
@@ -592,7 +584,7 @@ class QuizSessionManager:
                 times_answered = correct_count + incorrect_count
                 accuracy = round((correct_count / times_answered * 100), 1) if times_answered > 0 else 0
                     
-                recent_history = [] # History moved to StudyLog table, skipped for performance
+                recent_history = [] 
                     
                 last_reviewed_str = state_record.last_review.strftime("%d/%m %H:%M") if state_record.last_review else "--"
 
@@ -617,6 +609,7 @@ class QuizSessionManager:
                     'last_reviewed': '--',
                     'recent_history': []
                 }
+
 
             # Determine can_edit
             can_edit = False
@@ -670,63 +663,46 @@ class QuizSessionManager:
         current_user_obj = User.query.get(self.user_id)
         current_user_total_score = current_user_obj.total_score if current_user_obj else 0
 
+        # [REFACTORED] Bulk fetch content for answers
+        from mindstack_app.modules.content_management.interface import ContentInterface
+        answer_item_ids = [a.get('item_id') for a in answers if a.get('item_id')]
+        content_map = ContentInterface.get_items_content(answer_item_ids)
+
         for answer in answers:
             item_id = answer.get('item_id')
             user_answer_text = answer.get('user_answer')
             duration_ms = answer.get('duration_ms', 0)
 
-            # --- INTEGRATION: Use QuizEngine for checking answer ---
-            # Try to get existing answer logic from QuizEngine
-            # We need to discern between 'Quiz Set Item' (QUIZ_MCQ) and 'Flashcard Item' (FLASHCARD)
+            # Get raw item for container_id context (needed for stats/permissions)
             item = LearningItem.query.get(item_id)
+            std_content = content_map.get(item_id) or {}
+            
             explanation = ""
-            correct_option_char = "" # Need to determine this
+            correct_option_char = "" 
             
             if item:
                 # Need explanation
-                explanation = item.content.get('explanation') or item.ai_explanation or ""
+                explanation = std_content.get('explanation') or item.ai_explanation or ""
                 
                 # Resolve User Answer Text from Key (A/B/C/D) via batch_options_mappings
                 options_mapping = self.batch_options_mappings.get(str(item_id)) or {}
-                # Also check item content directly if not in mapping (fallback for legacy sets)
-                if not options_mapping and item.content and item.content.get('options'):
-                     options_mapping = item.content.get('options')
+                # Also check content directly if not in mapping (fallback)
+                if not options_mapping and std_content.get('options'):
+                     options_mapping = std_content.get('options')
 
                 user_answer_val = options_mapping.get(user_answer_text) 
-                
-                # If no mapping, assume user_answer_text IS the value? (Unlikely for A/B keys)
-                # But legacy process_quiz_answer used the KEY.
-                # QuizEngine expects TEXT for Flashcards (generated).
-                
                 check_val = user_answer_val if user_answer_val else user_answer_text
-                
-                # Special handling for QUIZ_MCQ legacy logic via QuizEngine?
-                # If item is QUIZ_MCQ, QuizEngine.check_answer will look for 'correct_answer' in content.
-                # If 'correct_answer' in content is "A" (key) or "Text"?
-                # Legacy: `correct_answer` is Text. 
-                # `process_quiz_answer` logic: 
-                #    correct_answer_text = item.content.get('correct_answer')
-                #    find char where options[char] == correct_answer_text.
-                #    compare user_char == char.
-                
-                # So Legacy validated KEYS.
-                # QuizEngine validates VALUES (Text).
-                
-                # If we pass TEXT (user_answer_val) to QuizEngine.check_answer:
-                # QuizEngine checks if `user_answer.lower() in [correct_answers...]`.
-                # If `correct_answers` are TEXT values, then passing `user_answer_val` is CORRECT.
                 
                 result = QuizEngine.check_answer(
                     item_id=item_id,
                     user_answer=check_val, 
                     user_id=self.user_id,
                     duration_ms=duration_ms,
-                    user_answer_key=user_answer_text,  # Pass original key (A/B/C/D) for ReviewLog
-                    # Session context fields for ReviewLog
+                    user_answer_key=user_answer_text,
                     session_id=getattr(self, 'db_session_id', None),
                     container_id=item.container_id if item else None,
                     mode=self.mode,
-                    streak_position=0  # Will be calculated inside check_answer
+                    streak_position=0 
                 )
                 
             is_correct = result.get('correct', False)
@@ -734,17 +710,14 @@ class QuizSessionManager:
             correct_option_char = None
             
             if item:
-                # Need explanation
-                explanation = item.content.get('explanation') or item.ai_explanation or ""
+                # Need explanation (again?) - already got it above
+                pass
                 
                 # Resolve User Answer Text from Key (A/B/C/D) via batch_options_mappings
-                options_mapping = self.batch_options_mappings.get(str(item_id)) or {}
-                # Also check item content directly if not in mapping (fallback for legacy sets)
-                if not options_mapping and item.content and item.content.get('options'):
-                     options_mapping = item.content.get('options')
+                # (Already got mapping above)
 
                 # Find correct option char
-                correct_text = result.get('correct_answer')
+                correct_text = result.get('correct_answer') # Text from Engine
                 if correct_text and options_mapping:
                     c_text_normalized = str(correct_text).strip().lower()
                     for k, v in options_mapping.items():
@@ -753,8 +726,10 @@ class QuizSessionManager:
                             break
                 
                 if not correct_option_char:
-                    current_app.logger.warning(f"SessionManager: Không tìm thấy key cho đáp án '{correct_text}' trong options_mapping cho item {item_id}")
-                    current_app.logger.debug(f"Mapping hiện tại: {options_mapping}")
+                    # Provide text if key not found (fallback)
+                    # correct_option_char = correct_text 
+                    # But frontend expects A/B/C... keep as None or handle logic mismatch
+                    pass
 
             item_stats = get_quiz_item_statistics(self.user_id, item_id)
             

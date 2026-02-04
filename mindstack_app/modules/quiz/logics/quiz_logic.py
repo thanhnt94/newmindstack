@@ -33,10 +33,15 @@ def process_quiz_answer(user_id, item_id, user_answer_text, current_user_total_s
     if not item:
         return 0, current_user_total_score, False, None, "Lỗi: Không tìm thấy câu hỏi."
 
+    # [REFACTORED] Use ContentInterface
+    from mindstack_app.modules.content_management.interface import ContentInterface
+    content_map = ContentInterface.get_items_content([item_id])
+    std_content = content_map.get(item_id) or {}
+
     # Lấy đáp án đúng (dạng văn bản) và các lựa chọn
-    correct_answer_text_from_db = item.content.get('correct_answer')
-    options = item.content.get('options', {})
-    explanation = item.content.get('explanation') or item.ai_explanation
+    correct_answer_text_from_db = std_content.get('correct_answer')
+    options = std_content.get('options', {})
+    explanation = std_content.get('explanation') # Interface handles fallback to ai_explanation
 
     # XÁC ĐỊNH KÝ TỰ CỦA ĐÁP ÁN ĐÚNG DỰA TRÊN NỘI DUNG VĂN BẢN
     correct_option_char = None

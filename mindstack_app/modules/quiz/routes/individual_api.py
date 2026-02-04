@@ -50,9 +50,32 @@ def _build_absolute_media_url(file_path, media_folder: Optional[str] = None):
 
 
 def _serialize_quiz_learning_item(item, user_id):
-    content_copy = copy.deepcopy(item.content or {})
+    from mindstack_app.modules.content_management.interface import ContentInterface
+    
+    # 1. Get standardized content (handles media URLs)
+    content_map = ContentInterface.get_items_content([item.item_id])
+    std_content = content_map.get(item.item_id) or {}
+    
+    # 2. Re-construct content copy for frontend compatibility
+    # Frontend expects: options (A, B, C, D keys), question_image_file, question_audio_file
+    
+    # ContentInterface maps: 
+    # image -> question_image_file
+    # audio -> question_audio_file
+    # options -> options
+    
+    content_copy = dict(std_content)
+    
+    # Map back standardized keys to frontend legacy keys
+    # Note: std_content has 'image', 'audio'. Frontend might expect 'question_image_file'.
+    if 'image' in content_copy:
+        content_copy['question_image_file'] = content_copy.pop('image')
+    if 'audio' in content_copy:
+        content_copy['question_audio_file'] = content_copy.pop('audio')
+        
+    # Ensure options are clean (already handled by interface if it just copied raw, but interface is just a filtered pass)
+    # Actually Interface just returns what's in DB for options.
     options = content_copy.get('options') or {}
-
     valid_options = {}
     for key in ['A', 'B', 'C', 'D']:
         val = options.get(key)
@@ -60,20 +83,10 @@ def _serialize_quiz_learning_item(item, user_id):
             valid_options[key] = val
     content_copy['options'] = valid_options
 
-    media_folders = _get_media_folders_from_container(item.container if item else None)
-    image_folder = media_folders.get('image')
-    audio_folder = media_folders.get('audio')
-
-    image_path = content_copy.get('question_image_file')
-    if image_path:
-        content_copy['question_image_file'] = _build_absolute_media_url(image_path, image_folder)
-
-    audio_path = content_copy.get('question_audio_file')
-    if audio_path:
-        content_copy['question_audio_file'] = _build_absolute_media_url(audio_path, audio_folder)
-
+    # Fetch Note
     note = Note.query.filter_by(user_id=user_id, reference_type='item', reference_id=item.item_id).first()
 
+    # Permissions (Container based)
     can_edit = False
     if current_user.is_authenticated and current_user.user_role == User.ROLE_ADMIN:
         can_edit = True
@@ -556,7 +569,19 @@ def api_get_quiz_set_detail(set_id):
     ).order_by(LearningItem.order_index).all()
     
     question_count = len(questions)
-    
+
+    # [REFACTORED] Use ContentInterface
+    from mindstack_app.modules.content_management.interface import ContentInterface
+    q_ids = [q.item_id for q in questions]
+    content_map = ContentInterface.get_items_content(q_ids)
+
+    # Helper to map std content to legacy frontend expected format
+    def format_content(std_c):
+        c = dict(std_c or {})
+        if 'image' in c: c['question_image_file'] = c.pop('image')
+        if 'audio' in c: c['question_audio_file'] = c.pop('audio')
+        return c
+
     # Get creator info
     creator = User.query.get(container.creator_user_id)
     
@@ -588,7 +613,7 @@ def api_get_quiz_set_detail(set_id):
             'access_count': access_count,
         },
         'questions': [
-            {'id': q.item_id, 'content': q.content or {}}
+            {'id': q.item_id, 'content': format_content(content_map.get(q.item_id))}
             for q in questions
         ],
         'modes': modes

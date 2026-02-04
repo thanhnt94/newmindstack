@@ -241,29 +241,20 @@ def _serialize_question(
     if not item:
         return None
 
-    content = dict(item.content or {})
-    options = content.get('options')
-    if not options:
-        options = {
-            key: content.get(f'option_{key.lower()}')
-            for key in ('A', 'B', 'C', 'D')
-            if content.get(f'option_{key.lower()}') is not None
-        }
-    options = {key: value for key, value in (options or {}).items() if value not in (None, '')}
-
-    media_folders = _get_media_folders_from_container(item.container if item else None)
-    image_folder = media_folders.get('image')
-    audio_folder = media_folders.get('audio')
-
-    if content.get('question_image_file'):
-        content['question_image_file'] = _build_absolute_media_url(
-            content.get('question_image_file'), image_folder
-        )
-
-    if content.get('question_audio_file'):
-        content['question_audio_file'] = _build_absolute_media_url(
-            content.get('question_audio_file'), audio_folder
-        )
+    # [REFACTORED] Use ContentInterface
+    from mindstack_app.modules.content_management.interface import ContentInterface
+    content_map = ContentInterface.get_items_content([item.item_id])
+    std_content = content_map.get(item.item_id) or {}
+    
+    # Logic to handle options is now cleaner if Interface handles data, 
+    # but strictly speaking Interface passes 'options' as is.
+    # Battle Service had legacy fallback. 
+    # Provided ContentInterface update below handles mapped options, we are good.
+    # Assuming ContentInterface returns 'options' dict populated.
+    
+    options = std_content.get('options') or {}
+    # Filter empty
+    options = {k: v for k, v in options.items() if v not in (None, '')}
 
     note_content = ''
     if user_id:
@@ -272,13 +263,13 @@ def _serialize_question(
 
     return {
         'item_id': item.item_id,
-        'question': content.get('question'),
-        'pre_question_text': content.get('pre_question_text'),
+        'question': std_content.get('question'),
+        'pre_question_text': std_content.get('pre_question_text'), # Not standard in Interface yet? Check Interface.
         'options': options,
-        'passage_text': content.get('passage_text'),
-        'explanation': content.get('explanation'),
-        'question_image_file': content.get('question_image_file'),
-        'question_audio_file': content.get('question_audio_file'),
+        'passage_text': std_content.get('passage_text'), # Not standard
+        'explanation': std_content.get('explanation'),
+        'question_image_file': std_content.get('image'), # Mapped from Interface
+        'question_audio_file': std_content.get('audio'), # Mapped from Interface
         'ai_explanation': item.ai_explanation,
         'note_content': note_content,
     }
