@@ -5,17 +5,21 @@ Learning Module Interface
 Public API for accessing Learning capabilities:
 - Evaluation (Grading) of submissions
 - Progress Tracking (Course completion stats)
+- Metrics & Analytics (Delegated)
 
-This interface decouples consumers (Quiz, Typing, etc.) from the internal logic.
+This interface decouples consumers (Quiz, Typing, Stats, etc.) from the internal logic.
 """
 
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, List
 from mindstack_app.modules.learning.logics.marker import compare_text, evaluate_multiple_choice
 from mindstack_app.modules.learning.services.progress_service import ProgressService
 from mindstack_app.modules.learning.services.learning_metrics_service import LearningMetricsService
+from mindstack_app.modules.learning.services.daily_stats_service import DailyStatsService
 
 class LearningInterface:
     """Public Facade for Learning Module."""
+    
+    # === METRICS & ANALYTICS ===
     
     @staticmethod
     def get_score_breakdown(user_id):
@@ -24,7 +28,29 @@ class LearningInterface:
     @staticmethod
     def get_weekly_active_days_count(user_id):
         return LearningMetricsService.get_weekly_active_days_count(user_id)
+        
+    @staticmethod
+    def get_leaderboard(timeframe: str = 'all_time', sort_by: str = 'total_score', limit: int = 50, viewer_user = None) -> List[Dict]:
+        return LearningMetricsService.get_leaderboard(timeframe=timeframe, sort_by=sort_by, limit=limit, viewer_user=viewer_user)
+
+    @staticmethod
+    def get_user_learning_summary(user_id: int) -> Dict[str, Any]:
+        """Get high-level summary for dashboard."""
+        return LearningMetricsService.get_user_learning_summary(user_id)
+
+    @staticmethod
+    def get_daily_summary(user_id: int) -> Dict[str, Any]:
+        """Get daily stats summary."""
+        return DailyStatsService.get_summary(user_id)
+
+    @staticmethod
+    def get_recent_activity(user_id: int, limit: int = 6) -> List[Dict[str, Any]]:
+        return LearningMetricsService.get_recent_activity(user_id, limit)
     
+    @staticmethod
+    def get_recent_sessions(user_id: int, limit: int = 10) -> List[Dict[str, Any]]:
+        return LearningMetricsService.get_recent_sessions(user_id, limit)
+
     # === EVALUATION ===
     
     @staticmethod
@@ -50,15 +76,6 @@ class LearningInterface:
         """
         Get high-level progress statistics for a course/container.
         Delegates to ProgressService to calculate completion rates.
-        
-        Returns:
-            dict: {
-                'total_items': int,
-                'items_completed': int,
-                'completion_percentage': float (0-100),
-                'mastery_percentage': float (0-100),
-                'status': str ('new', 'in_progress', 'completed')
-            }
         """
         return ProgressService.get_container_stats(user_id, container_id)
 
@@ -67,6 +84,4 @@ class LearningInterface:
         """
         Explicitly mark a course as completed (if applicable).
         """
-        # Logic to mark completion in UserContainerState?
-        # For now, just return False as implementation depends on specific requirements
         return False

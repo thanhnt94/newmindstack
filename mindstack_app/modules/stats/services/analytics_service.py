@@ -36,18 +36,18 @@ class AnalyticsService:
         """
         Get all dashboard data in a single call.
         """
-        from mindstack_app.modules.learning.services.learning_metrics_service import LearningMetricsService
-        from mindstack_app.modules.learning.services.daily_stats_service import DailyStatsService
+        # REFACTORED: Use LearningInterface
+        from mindstack_app.modules.learning.interface import LearningInterface
         
         # 1. Get leaderboard
-        leaderboard_data = LearningMetricsService.get_leaderboard(
+        leaderboard_data = LearningInterface.get_leaderboard(
             sort_by=sort_by,
             timeframe=timeframe or 'all_time',
             viewer_user=viewer_user
         )
         
         # 2. Get learning summary
-        summary = LearningMetricsService.get_user_learning_summary(user_id)
+        summary = LearningInterface.get_user_learning_summary(user_id)
         
         # 3. Get container options
         containers = AnalyticsService.get_all_container_options(user_id)
@@ -59,7 +59,8 @@ class AnalyticsService:
         
         # 5. Get daily summary
         try:
-            daily_summary = DailyStatsService.get_summary(user_id)
+            # REFACTORED: Use LearningInterface
+            daily_summary = LearningInterface.get_daily_summary(user_id)
             if daily_summary and 'streak' in daily_summary:
                 dashboard_data['current_learning_streak'] = daily_summary['streak']['current_streak']
                 dashboard_data['longest_learning_streak'] = daily_summary['streak']['longest_streak']
@@ -68,8 +69,9 @@ class AnalyticsService:
             daily_summary = AnalyticsService._get_fallback_daily_summary()
         
         # 6. Get recent activity
-        recent_activity = LearningMetricsService.get_recent_activity(user_id)
-        recent_sessions = LearningMetricsService.get_recent_sessions(user_id)
+        # REFACTORED: Use LearningInterface
+        recent_activity = LearningInterface.get_recent_activity(user_id)
+        recent_sessions = LearningInterface.get_recent_sessions(user_id)
         
         return {
             'leaderboard_data': leaderboard_data,
@@ -90,13 +92,12 @@ class AnalyticsService:
         Get all container options in one call.
         """
         # Pass explicit item types and container types.
-        # mode arg is ignored by updated metrics.py but we pass a string for clarity/compat.
         return {
             'flashcard_sets': get_user_container_options(
                 user_id,
                 'FLASHCARD_SET',
                 'flashcard',
-                'last_review', # Attribute on ItemMemoryState
+                'last_review', 
                 item_type='FLASHCARD',
             ),
             'quiz_sets': get_user_container_options(
