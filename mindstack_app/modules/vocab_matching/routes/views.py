@@ -24,10 +24,10 @@ def matching_session_page(set_id):
     if not game_data:
         abort(400, description="Cần ít nhất 4 thẻ để chơi ghép đôi")
     
-    from mindstack_app.modules.session.services.session_service import LearningSessionService
+    from mindstack_app.modules.session.interface import SessionInterface
     db_session_id = None
     try:
-        db_session = LearningSessionService.create_session(
+        db_session = SessionInterface.create_session(
             user_id=current_user.user_id,
             learning_mode='matching',
             mode_config_id='matching_game',
@@ -62,10 +62,10 @@ def matching_api_new_game(set_id):
     if not game_data:
         return jsonify({'success': False, 'message': 'Not enough items'}), 400
     
-    from mindstack_app.modules.session.services.session_service import LearningSessionService
+    from mindstack_app.modules.session.interface import SessionInterface
     db_session_id = None
     try:
-        db_session = LearningSessionService.create_session(
+        db_session = SessionInterface.create_session(
             user_id=current_user.user_id,
             learning_mode='matching',
             mode_config_id='matching_game',
@@ -97,7 +97,7 @@ def matching_api_new_game(set_id):
 @login_required
 def matching_api_check_match():
     """API to check if a match is correct."""
-    from mindstack_app.modules.session.services.session_service import LearningSessionService
+    from mindstack_app.modules.session.interface import SessionInterface
 
     data = request.get_json()
     left_item_id = data.get('left_item_id')
@@ -141,7 +141,7 @@ def matching_api_check_match():
     db_session_id = session_data.get('db_session_id')
     
     if db_session_id and is_correct:
-        LearningSessionService.update_progress(
+        SessionInterface.update_progress(
             session_id=db_session_id,
             item_id=left_item_id,
             result_type='correct',
@@ -157,14 +157,14 @@ def matching_api_check_match():
 @login_required
 def matching_end_session():
     """End the matching session."""
-    from mindstack_app.modules.session.services.session_service import LearningSessionService
+    from mindstack_app.modules.session.interface import SessionInterface
     
     try:
         session_data = session.get('matching_game', {})
         db_session_id = session_data.get('db_session_id')
         
         if db_session_id:
-            LearningSessionService.complete_session(db_session_id)
+            SessionInterface.complete_session(db_session_id)
             return jsonify({'success': True, 'session_id': db_session_id})
             
         return jsonify({'success': True})

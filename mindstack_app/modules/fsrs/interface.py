@@ -9,7 +9,13 @@ def get_due_counts(user_id: int) -> Dict[str, int]:
     """Get count of due items per type for a user."""
     return FSRSInterface.get_due_counts(user_id)
 
+from .schemas import Rating, CardStateDTO
+
 class FSRSInterface:
+    # Re-export Enums/DTOs for external access
+    Rating = Rating
+    CardStateDTO = CardStateDTO
+
     """
     Public API (Gatekeeper) for FSRS module.
     Delegates all logic to Services.
@@ -84,6 +90,29 @@ class FSRSInterface:
     def get_item_state(user_id: int, item_id: int) -> Optional[ItemMemoryState]:
         """Get the memory state for a specific item."""
         return ItemMemoryState.query.filter_by(user_id=user_id, item_id=item_id).first()
+        
+    @staticmethod
+    def get_memory_state(user_id: int, item_id: int) -> Optional[ItemMemoryState]:
+        """Alias for get_item_state (per architecture guidelines)."""
+        return FSRSInterface.get_item_state(user_id, item_id)
+        
+    @staticmethod
+    def batch_get_memory_states(user_id: int, item_ids: List[int]) -> Dict[int, ItemMemoryState]:
+        """
+        Get memory states for a list of items.
+        Returns a dictionary mapping item_id -> ItemMemoryState.
+        """
+        if not item_ids: return {}
+        states = ItemMemoryState.query.filter(
+            ItemMemoryState.user_id == user_id,
+            ItemMemoryState.item_id.in_(item_ids)
+        ).all()
+        return {s.item_id: s for s in states}
+        
+    @staticmethod
+    def get_memory_states(user_id: int, item_ids: List[int]) -> Dict[int, ItemMemoryState]:
+        """Alias for batch_get_memory_states."""
+        return FSRSInterface.batch_get_memory_states(user_id, item_ids)
 
     @staticmethod
     def get_due_items(user_id: int, limit: int = 100) -> List[ItemMemoryState]:
@@ -398,3 +427,436 @@ class FSRSInterface:
 
 
 
+    @staticmethod
+    def get_items_for_practice(user_id: int, mode: str = 'new', limit: int = 10, item_type: str = 'FLASHCARD') -> List[Any]:
+        """
+        Get items for practice based on mode.
+        Supported modes: 'review', 'mixed', 'hard', 'new'.
+        Returns list of LearningItem objects.
+        """
+        from datetime import datetime, timezone
+        from sqlalchemy import func
+        from mindstack_app.models import LearningItem, db
+        from mindstack_app.modules.fsrs.models import ItemMemoryState
+        
+        base_query = LearningItem.query.filter(
+            LearningItem.item_type == item_type
+        )
+        
+        now = datetime.now(timezone.utc)
+        items = []
+        
+        if mode == 'review':
+            items = base_query.join(ItemMemoryState).filter(
+                ItemMemoryState.user_id == user_id,
+                ItemMemoryState.due_date <= now
+            ).order_by(ItemMemoryState.due_date).limit(limit).all()
+            
+        elif mode == 'mixed':
+            items = base_query.join(ItemMemoryState).filter(
+                ItemMemoryState.user_id == user_id,
+                ItemMemoryState.state != 0
+            ).order_by(func.random()).limit(limit).all()
+            
+        elif mode == 'hard':
+            items = base_query.join(ItemMemoryState).filter(
+                ItemMemoryState.user_id == user_id,
+                ItemMemoryState.difficulty >= 7.5
+            ).limit(limit).all()
+            
+        elif mode == 'new':
+            items = base_query.outerjoin(ItemMemoryState, (ItemMemoryState.item_id == LearningItem.item_id) & (ItemMemoryState.user_id == user_id)).filter(
+                (ItemMemoryState.state == None) | (ItemMemoryState.state == 0)
+            ).limit(limit).all()
+            
+        return items
+
+    @staticmethod
+    def get_hard_items(user_id: int, limit: int = 10) -> List[Any]:
+        """
+        Get items classified as 'hard'.
+        """
+        from mindstack_app.models import LearningItem, db
+        from mindstack_app.modules.fsrs.models import ItemMemoryState
+        
+        return LearningItem.query.join(ItemMemoryState).filter(
+            ItemMemoryState.user_id == user_id,
+            ItemMemoryState.difficulty >= 7.5
+        ).limit(limit).all()
+
+    @staticmethod
+    def get_review_aggregated_stats(user_id: int, start_date=None, end_date=None) -> Dict[str, int]:
+        """
+        Get aggregated review stats for DailyStatsService.
+        """
+        from sqlalchemy import func, and_, extract, case
+        from mindstack_app.modules.fsrs.models import ItemMemoryState
+        from mindstack_app.models import db
+        
+        query = db.session.query(
+            func.count(ItemMemoryState.item_id).label('total_items'),
+            func.sum(case((ItemMemoryState.state == 0, 1), else_=0)).label('new_items')
+        ).filter(ItemMemoryState.user_id == user_id)
+
+        if start_date:
+            query = query.filter(ItemMemoryState.last_review >= start_date)
+        if end_date:
+            query = query.filter(ItemMemoryState.last_review <= end_date)
+            
+        result = query.one()
+        return {
+            'total_items': result.total_items or 0,
+            'new_items': result.new_items or 0
+        }
+
+    @staticmethod
+    def get_daily_new_items_count(user_id: int, start_date, end_date) -> int:
+        from mindstack_app.modules.fsrs.models import ItemMemoryState
+        return ItemMemoryState.query.filter(
+            ItemMemoryState.user_id == user_id,
+            ItemMemoryState.created_at >= start_date,
+            ItemMemoryState.created_at <= end_date
+        ).count()
+
+    @staticmethod
+    def get_daily_reviewed_items_count(user_id: int, start_date, end_date) -> int:
+        from mindstack_app.modules.fsrs.models import ItemMemoryState
+        from sqlalchemy import and_
+        return ItemMemoryState.query.filter(
+            ItemMemoryState.user_id == user_id,
+            ItemMemoryState.last_review >= start_date,
+            ItemMemoryState.last_review <= end_date,
+            ~and_(
+                ItemMemoryState.created_at >= start_date,
+                ItemMemoryState.created_at <= end_date
+            )
+        ).count()
+
+    @staticmethod
+    def apply_memory_filter(query, user_id: int, filter_type: str):
+        """
+        Apply complex FSRS-based filters to a SQLAlchemy query.
+        Used by FlashcardQueryBuilder to avoid direct model access.
+        """
+        from sqlalchemy import func, or_, and_
+        from mindstack_app.modules.fsrs.models import ItemMemoryState
+        from mindstack_app.models import LearningItem, db
+        from datetime import datetime, timezone
+        
+        # Helper to join if not already joined? 
+        # QueryBuilder manages joins, but here we assume we can add join or filter directly.
+        # Ideally, we pass the query object and return modified query.
+        
+        # We need to know if ItemMemoryState is already joined.
+        # SQLAlchemy's outerjoin is idempotent-ish if done correctly, but let's be careful.
+        
+        # Check if query already has ItemMemoryState? Hard to do reliably.
+        # Strategy: Always outerjoin.
+        
+        query = query.outerjoin(
+            ItemMemoryState,
+            (ItemMemoryState.item_id == LearningItem.item_id) &
+            (ItemMemoryState.user_id == user_id)
+        )
+        
+        now = datetime.now(timezone.utc)
+        
+        if filter_type == 'new':
+            return query.filter(
+                or_(
+                    ItemMemoryState.state_id.is_(None),
+                    ItemMemoryState.state == 0
+                )
+            ).order_by(LearningItem.order_in_container.asc())
+            
+        elif filter_type == 'due':
+            return query.filter(
+                ItemMemoryState.state != 0,
+                ItemMemoryState.due_date <= now
+            ).order_by(ItemMemoryState.due_date.asc())
+            
+        elif filter_type == 'hard':
+            return query.filter(
+                ItemMemoryState.difficulty >= 7.0
+            )
+
+        elif filter_type == 'review':
+             return query.filter(
+                ItemMemoryState.state != 0
+            ).order_by(func.random())
+
+        elif filter_type == 'available': # New or Due
+             return query.filter(
+                or_(
+                    ItemMemoryState.state_id.is_(None),
+                    ItemMemoryState.state == 0,
+                    and_(
+                        ItemMemoryState.state != 0,
+                        ItemMemoryState.due_date <= now
+                    )
+                )
+            )
+        
+        elif filter_type == 'mixed':
+            # Priority 1: Due cards first (R < 90%), shuffled
+            # Priority 2: New cards second (Sequential)
+            is_due = (ItemMemoryState.due_date <= now)
+            is_new = (or_(ItemMemoryState.state_id.is_(None), ItemMemoryState.state == 0))
+            
+            # Apply filter (available items only)
+            query = query.filter(
+                or_(
+                    ItemMemoryState.state_id.is_(None),
+                    ItemMemoryState.state == 0,
+                    and_(
+                        ItemMemoryState.state != 0,
+                        ItemMemoryState.due_date <= now
+                    )
+                )
+            )
+            
+            # Import case for sorting
+            from sqlalchemy import case
+            
+            return query.order_by(
+                is_due.desc(),
+                is_new.desc(),
+                case(
+                    (is_due, func.random()),
+                    else_=LearningItem.order_in_container
+                )
+            )
+             
+        return query
+    @staticmethod
+    def get_hard_count(user_id: int, container_id: int) -> int:
+        """Get count of hard items in a container."""
+        from mindstack_app.modules.fsrs.models import ItemMemoryState
+        from mindstack_app.models import LearningItem, db
+        
+        return db.session.query(func.count(ItemMemoryState.item_id)).join(
+            LearningItem, LearningItem.item_id == ItemMemoryState.item_id
+        ).filter(
+            ItemMemoryState.user_id == user_id,
+            LearningItem.container_id == container_id,
+            ItemMemoryState.difficulty >= 7.5
+        ).scalar() or 0
+
+    @staticmethod
+    def get_leaderboard_mastery(user_ids: List[int], item_ids_subquery) -> Dict[int, int]:
+        """
+        Get mastered count for use in leaderboards.
+        Returns {user_id: mastered_count}.
+        """
+        from mindstack_app.modules.fsrs.models import ItemMemoryState
+        from sqlalchemy import func
+        from mindstack_app.core.extensions import db
+        
+        mastered_data = db.session.query(
+            ItemMemoryState.user_id, 
+            func.count(ItemMemoryState.item_id)
+        ).filter(
+             ItemMemoryState.item_id.in_(item_ids_subquery), 
+             ItemMemoryState.user_id.in_(user_ids), 
+             ItemMemoryState.stability >= 21.0
+        ).group_by(ItemMemoryState.user_id).all()
+        
+        return {uid: count for uid, count in mastered_data}
+
+    @staticmethod
+    def apply_ordering(query, user_id: int, order_type: str):
+        """
+        Apply ordering based on FSRS state without direct model access.
+        """
+        from mindstack_app.modules.fsrs.models import ItemMemoryState
+        from mindstack_app.models import LearningItem
+        
+        # Ensure join
+        query = query.outerjoin(
+            ItemMemoryState,
+            (ItemMemoryState.item_id == LearningItem.item_id) &
+            (ItemMemoryState.user_id == user_id)
+        )
+        
+        if order_type == 'due_date':
+            return query.order_by(ItemMemoryState.due_date.asc().nulls_last(), LearningItem.order_in_container.asc())
+        elif order_type == 'mastery':
+            return query.order_by(ItemMemoryState.stability.desc().nulls_last())
+        
+        return query
+
+    @staticmethod
+    def get_learned_count(user_id: int, container_id: int) -> int:
+        """
+        Get count of learned items (state != 0) in a container.
+        Optimized SQL query.
+        """
+        from mindstack_app.modules.fsrs.models import ItemMemoryState
+        from mindstack_app.models import LearningItem, db
+        
+        return db.session.query(func.count(ItemMemoryState.state_id)).join(
+            LearningItem, LearningItem.item_id == ItemMemoryState.item_id
+        ).filter(
+            LearningItem.container_id == container_id,
+            ItemMemoryState.user_id == user_id,
+            ItemMemoryState.state != 0
+        ).scalar() or 0
+
+    @staticmethod
+    def get_initial_state(user_id: int, item_id: int):
+        """
+        Create a new initial ItemMemoryState (not persisted).
+        """
+        from mindstack_app.modules.fsrs.models import ItemMemoryState
+        from datetime import datetime, timezone
+        return ItemMemoryState(
+            user_id=user_id, item_id=item_id,
+            state=0, # NEW
+            created_at=datetime.now(timezone.utc)
+        )
+
+    @staticmethod
+    def get_detailed_container_stats(user_id: int, container_ids: Optional[List[int]] = None, item_type: str = 'FLASHCARD') -> Dict[int, Dict]:
+        """
+        Get detailed aggregated stats for containers (attempted, correct, streaks, etc).
+        Returns {container_id: {attempted, correct, incorrect, avg_streak, best_streak, ...}}
+        """
+        from mindstack_app.modules.fsrs.models import ItemMemoryState
+        from mindstack_app.models import LearningItem, db
+        from sqlalchemy import func, case
+        
+        query = (
+            db.session.query(
+                LearningItem.container_id,
+                func.count(ItemMemoryState.state_id).label('attempted'),
+                func.sum(ItemMemoryState.times_correct).label('correct'),
+                func.sum(ItemMemoryState.times_incorrect).label('incorrect'),
+                func.avg(ItemMemoryState.streak).label('avg_streak'),
+                func.max(ItemMemoryState.streak).label('best_streak'),
+                func.sum(case((ItemMemoryState.stability >= (21.0 if item_type == 'FLASHCARD' else 5.0), 1), else_=0)).label('mastered')
+            )
+            .join(LearningItem, LearningItem.item_id == ItemMemoryState.item_id)
+            .filter(
+                ItemMemoryState.user_id == user_id,
+                LearningItem.item_type == item_type
+            )
+        )
+        
+        if container_ids is not None:
+            query = query.filter(LearningItem.container_id.in_(container_ids))
+            
+        rows = query.group_by(LearningItem.container_id).all()
+        
+        result = {}
+        for r in rows:
+            result[r.container_id] = {
+                'attempted': int(r.attempted or 0),
+                'correct': int(r.correct or 0),
+                'incorrect': int(r.incorrect or 0),
+                'avg_streak': float(r.avg_streak or 0),
+                'best_streak': int(r.best_streak or 0),
+                'mastered': int(r.mastered or 0)
+            }
+        return result
+
+    @staticmethod
+    def get_course_container_stats(user_id: int, container_ids: Optional[List[int]] = None) -> Dict[int, Dict]:
+        """
+        Get aggregated stats for course containers (using LESSON items).
+        """
+        from mindstack_app.modules.fsrs.models import ItemMemoryState
+        from mindstack_app.models import LearningItem, db
+        from sqlalchemy import func, case
+        
+        query = (
+            db.session.query(
+                LearningItem.container_id,
+                func.count(ItemMemoryState.state_id).label('started'),
+                func.sum(case((db.cast(ItemMemoryState.data['completion_percentage'], db.Integer) >= 100, 1), else_=0)).label('completed'),
+                func.avg(db.cast(ItemMemoryState.data['completion_percentage'], db.Integer)).label('avg_completion'),
+                func.max(ItemMemoryState.last_review).label('last_activity')
+            )
+            .join(LearningItem, LearningItem.item_id == ItemMemoryState.item_id)
+            .filter(
+                ItemMemoryState.user_id == user_id,
+                LearningItem.item_type == 'LESSON'
+            )
+        )
+        
+        if container_ids is not None:
+             query = query.filter(LearningItem.container_id.in_(container_ids))
+            
+        rows = query.group_by(LearningItem.container_id).all()
+        
+        result = {}
+        for r in rows:
+            result[r.container_id] = {
+                'started': int(r.started or 0),
+                'completed': int(r.completed or 0),
+                'avg_completion': float(r.avg_completion or 0),
+                'last_activity': r.last_activity
+            }
+        return result
+
+    @staticmethod
+    def get_all_memory_states_query():
+        """Returns the base query object for ItemMemoryState (for backup/export)."""
+        from .models import ItemMemoryState
+        return ItemMemoryState.query
+
+    @staticmethod
+    def get_parameters(user_id: int):
+        """Returns FSRS parameters for a user."""
+        from .services.settings_service import FSRSSettingsService
+        # Note: Current SettingsService implementation doesn't use user_id yet, but interface allows it.
+        return FSRSSettingsService.get_parameters()
+
+    @staticmethod
+    def save_lesson_progress(user_id: int, item_id: int, percentage: int):
+        """
+        Updates or creates lesson progress in ItemMemoryState.data.
+        """
+        from .models import ItemMemoryState
+        from mindstack_app.models import db
+        from sqlalchemy import func
+        from sqlalchemy.orm.attributes import flag_modified
+        
+        progress = ItemMemoryState.query.filter_by(
+            user_id=user_id,
+            item_id=item_id
+        ).first()
+
+        if progress:
+            if not progress.data:
+                progress.data = {}
+            progress.data['completion_percentage'] = int(percentage)
+            flag_modified(progress, 'data')
+        else:
+            progress = ItemMemoryState(
+                user_id=user_id,
+                item_id=item_id,
+                state=0, # NEW
+                data={'completion_percentage': int(percentage)}
+            )
+            db.session.add(progress)
+
+        progress.last_review = func.now()
+        # Note: DB commit is NOT handled here to allow transaction grouping in routes.
+        return progress
+
+    @staticmethod
+    def get_batch_memory_states(user_id: int, item_ids: List[int]) -> Dict[int, Any]:
+        """
+        Efficiently fetches memory states for multiple items.
+        Returns mapping {item_id: state_record}
+        """
+        from .models import ItemMemoryState
+        if not item_ids:
+            return {}
+            
+        records = ItemMemoryState.query.filter(
+            ItemMemoryState.user_id == user_id,
+            ItemMemoryState.item_id.in_(item_ids)
+        ).all()
+        
+        return {r.item_id: r for r in records}

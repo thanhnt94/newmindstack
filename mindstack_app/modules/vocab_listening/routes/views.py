@@ -3,9 +3,10 @@ from flask import render_template, request, redirect, url_for, flash, abort, cur
 from mindstack_app.utils.template_helpers import render_dynamic_template
 from flask_login import login_required, current_user
 from mindstack_app.models import LearningContainer, UserContainerState, LearningItem, db
-from mindstack_app.modules.fsrs.models import ItemMemoryState
+# REFAC: Remove ItemMemoryState
 from .. import blueprint
 from ..logics.listening_logic import get_listening_items
+from mindstack_app.modules.fsrs.interface import FSRSInterface as FsrsInterface
 import random
 from datetime import datetime, timezone
 
@@ -26,24 +27,12 @@ def listening_dashboard():
 def listening_session_page():
     """Trang phiên học luyện nghe."""
     # Logic thống kê sơ bộ để hiển thị (số lượng thẻ cần ôn)
-    # Lấy tất cả item có thể nghe
-    now = datetime.now(timezone.utc)
-    base_query = LearningItem.query.filter(
-        LearningItem.item_type == 'FLASHCARD'
-    )
+    # REFAC: Use FsrsInterface to retrieve stats
+    stats = FsrsInterface.get_memory_stats_by_type(current_user.user_id, 'FLASHCARD')
     
-    # join với ItemMemoryState
-    # Count due: due_date <= now
-    count_review = base_query.join(ItemMemoryState).filter(
-        ItemMemoryState.user_id == current_user.user_id,
-        ItemMemoryState.due_date <= now
-    ).count()
-    
-    # Count learned: state != NEW (0)
-    count_learned = base_query.join(ItemMemoryState).filter(
-        ItemMemoryState.user_id == current_user.user_id,
-        ItemMemoryState.state != 0
-    ).count()
+    count_review = stats.get('due', 0)
+    # learned = total - new (includes reviewing, learning, mastered) or just use 'total' - 'new'
+    count_learned = stats.get('total', 0) - stats.get('new', 0)
     
     return render_dynamic_template('modules/learning/vocab_listening/session/index.html',
         stats={

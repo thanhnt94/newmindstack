@@ -3,12 +3,13 @@
 
 from sqlalchemy import func, or_, and_
 from mindstack_app.models import LearningItem, LearningContainer, db
-from mindstack_app.modules.fsrs.models import ItemMemoryState
+# REFAC: Remove ItemMemoryState import
+from mindstack_app.modules.fsrs.interface import FSRSInterface as FsrsInterface
 
 class FlashcardQueryBuilder:
     """
     Builder pattern for constructing complex Flashcard item queries.
-    Uses ItemMemoryState for FSRS logic.
+    Uses generic FSRS Interface for filtering.
     """
 
     def __init__(self, user_id):
@@ -19,17 +20,6 @@ class FlashcardQueryBuilder:
         )
         self._joined_progress = False
 
-    def _join_progress(self):
-        """Internal: Join ItemMemoryState table if not already joined."""
-        if not self._joined_progress:
-            # Join condition: Item matches, User matches.
-            self._query = self._query.outerjoin(
-                ItemMemoryState,
-                (ItemMemoryState.item_id == LearningItem.item_id) &
-                (ItemMemoryState.user_id == self.user_id)
-            )
-            self._joined_progress = True
-
     def filter_by_containers(self, container_ids):
         """Filter items by a list of container IDs."""
         if not container_ids:
@@ -39,94 +29,41 @@ class FlashcardQueryBuilder:
         return self
 
     def filter_new_only(self):
-        """Filter for NEW items (State=0 or NULL)."""
-        self._join_progress()
-        self._query = self._query.filter(
-            or_(
-                ItemMemoryState.state_id.is_(None),
-                ItemMemoryState.state == 0
-            )
-        )
-        self._query = self._query.order_by(LearningItem.order_in_container.asc())
+        """Filter for NEW items."""
+        self._query = FsrsInterface.apply_memory_filter(self._query, self.user_id, 'new')
         return self
 
     def filter_due_only(self):
-        """Filter for DUE items (State!=0 AND Due<=Now)."""
-        from datetime import datetime, timezone
-        self._join_progress()
-        self._query = self._query.filter(
-            ItemMemoryState.state != 0,
-            ItemMemoryState.due_date <= datetime.now(timezone.utc)
-        )
-        self._query = self._query.order_by(ItemMemoryState.due_date.asc())
+        """Filter for DUE items."""
+        self._query = FsrsInterface.apply_memory_filter(self._query, self.user_id, 'due')
         return self
 
     def filter_hard_only(self):
-        """Filter for HARD items (Difficulty >= 7.0)."""
-        self._join_progress()
-        self._query = self._query.filter(
-            ItemMemoryState.difficulty >= 7.0
-        )
+        """Filter for HARD items."""
+        self._query = FsrsInterface.apply_memory_filter(self._query, self.user_id, 'hard')
         return self
 
     def filter_available(self):
         """Filter for items that should be studied (NEW or DUE)."""
-        from datetime import datetime, timezone
-        self._join_progress()
-        now = datetime.now(timezone.utc)
-        self._query = self._query.filter(
-            or_(
-                ItemMemoryState.state_id.is_(None), # Never seen
-                ItemMemoryState.state == 0,         # Explicitly New
-                and_(
-                    ItemMemoryState.state != 0,     # Reviewed
-                    ItemMemoryState.due_date <= now # But due (R <= desired_retention)
-                )
-            )
-        )
+        self._query = FsrsInterface.apply_memory_filter(self._query, self.user_id, 'available')
         return self
 
     def filter_mixed(self):
-        """
-        Smart mix of Due & New items.
-        Logic: 
-        1. Priority to Due cards (R < 90%), shuffled randomly.
-        2. New cards follow in their predefined sequential order.
-        """
-        self.filter_available()
-        from datetime import datetime, timezone
-        from sqlalchemy import case
-        now = datetime.now(timezone.utc)
-        
-        # 1. Determine if Due
-        is_due = (ItemMemoryState.due_date <= now)
-        # 2. Determine if New
-        is_new = (or_(ItemMemoryState.state_id.is_(None), ItemMemoryState.state == 0))
-
-        self._query = self._query.order_by(
-            is_due.desc(), # Priority 1: Due cards first
-            is_new.desc(), # Priority 2: New cards second
-            # Tie-breaker logic:
-            case(
-                (is_due, func.random()),             # Randomize the Due pool
-                else_=LearningItem.order_in_container # Sequential for the New pool (and others)
-            )
-        )
+        """Smart mix of Due & New items."""
+        self._query = FsrsInterface.apply_memory_filter(self._query, self.user_id, 'mixed')
         return self
 
     def filter_sequential(self):
         """Sequential order for available (due/new) items."""
-        self.filter_available()
+        # Reuse 'available' filter but override ordering
+        self._query = FsrsInterface.apply_memory_filter(self._query, self.user_id, 'available')
+        # Re-apply ordering to ensure sequential (override FSRS default if any)
         self._query = self._query.order_by(LearningItem.order_in_container.asc())
         return self
 
     def filter_all_review(self):
-        """Filter for all reviewed items (State!=0)."""
-        self._join_progress()
-        self._query = self._query.filter(
-            ItemMemoryState.state != 0
-        )
-        self._query = self._query.order_by(func.random())
+        """Filter for all reviewed items."""
+        self._query = FsrsInterface.apply_memory_filter(self._query, self.user_id, 'review')
         return self
 
     def exclude_items(self, item_ids):

@@ -53,3 +53,17 @@ def get_user_progress(user_id: int) -> Dict[str, Any]:
         'level': max(1, level),
     }
 
+def get_leaderboard(limit: int = 10, period: str = 'all_time') -> List[Dict[str, Any]]:
+    """
+    Get leaderboard data.
+    Delegates to ScoreService.
+    """
+    return ScoreService.get_leaderboard(limit, period)
+
+
+def get_user_score(user_id: int) -> int:
+    """Get total score for a user."""
+    from mindstack_app.models import User
+    user = User.query.get(user_id)
+    return user.total_score if user else 0
+

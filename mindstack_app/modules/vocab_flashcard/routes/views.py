@@ -35,7 +35,7 @@ from mindstack_app.modules.vocabulary.services.stats_container import Vocabulary
 from ..engine.core import FlashcardEngine
 
 
-from mindstack_app.models import LearningContainer, UserContainerState, ItemMemoryState, db
+from mindstack_app.models import LearningContainer, UserContainerState, db
 from sqlalchemy.sql import func
 from sqlalchemy.exc import OperationalError
 import asyncio
@@ -465,9 +465,9 @@ def flashcard_setup():
     
     if set_id:
         # Use VocabularyInterface instead of direct DB query
-        set_details = VocabularyInterface.get_set_details(set_id)
+        set_details = VocabularyInterface.get_set_detail(current_user.user_id, set_id)
         if set_details:
-            container_title = set_details.title
+            container_title = set_details.set_info.title
         saved_settings = LearningSettingsService.get_container_settings(current_user.user_id, set_id)
     else:
         # Default settings if multiple sets or 'all'

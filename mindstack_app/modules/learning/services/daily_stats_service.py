@@ -13,7 +13,8 @@ from typing import List, Dict, Optional
 from sqlalchemy import func, and_, extract
 
 from mindstack_app.models import db, LearningSession
-from mindstack_app.modules.fsrs.models import ItemMemoryState
+# REFAC: Remove ItemMemoryState
+from mindstack_app.modules.fsrs.interface import FSRSInterface as FsrsInterface
 
 
 class DailyStatsService:
@@ -52,23 +53,12 @@ class DailyStatsService:
         items_studied = len(all_processed_ids)
         
         # 2. New items (created_at on this date)
-        new_items_count = ItemMemoryState.query.filter(
-            ItemMemoryState.user_id == user_id,
-            ItemMemoryState.created_at >= day_start,
-            ItemMemoryState.created_at <= day_end
-        ).count()
+        # REFAC: Use FsrsInterface
+        new_items_count = FsrsInterface.get_daily_new_items_count(user_id, day_start, day_end)
         
         # 3. Reviewed items (last_review on this date, excluding new items)
-        reviewed_items_count = ItemMemoryState.query.filter(
-            ItemMemoryState.user_id == user_id,
-            ItemMemoryState.last_review >= day_start,
-            ItemMemoryState.last_review <= day_end,
-            # Exclude items first seen today
-            ~and_(
-                ItemMemoryState.created_at >= day_start,
-                ItemMemoryState.created_at <= day_end
-            )
-        ).count()
+        # REFAC: Use FsrsInterface
+        reviewed_items_count = FsrsInterface.get_daily_reviewed_items_count(user_id, day_start, day_end)
         
         # 4. Learning modes breakdown
         mode_breakdown = {}

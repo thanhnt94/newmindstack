@@ -1,7 +1,7 @@
 from mindstack_app.models import (
     db, LearningContainer, LearningItem, User, UserContainerState
 )
-# REMOVED: from mindstack_app.modules.fsrs.models import ItemMemoryState
+
 from mindstack_app.modules.fsrs.interface import FSRSInterface as FsrsInterface
 from sqlalchemy import or_, func
 from flask import current_app

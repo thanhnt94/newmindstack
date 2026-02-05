@@ -132,8 +132,8 @@ class MCQSessionManager:
         
         # [NEW] Create DB Session via Service
         try:
-            from mindstack_app.modules.session.services.session_service import LearningSessionService
-            db_session = LearningSessionService.create_session(
+            from mindstack_app.modules.session.interface import SessionInterface
+            db_session = SessionInterface.create_session(
                 user_id=self.user_id,
                 learning_mode='mcq',
                 mode_config_id=mode,
@@ -181,14 +181,14 @@ class MCQSessionManager:
         # [NEW] Update DB Session Progress
         if self.db_session_id:
             try:
-                from mindstack_app.modules.session.services.session_service import LearningSessionService
+                from mindstack_app.modules.session.interface import SessionInterface
                 
                 # Assume item_id is stored in the question object. 
                 # If not, we might need to adjust generate_mcq_question, 
                 # but typically MCQ questions retain item_id reference.
                 item_id = question.get('item_id') 
                 
-                LearningSessionService.update_progress(
+                SessionInterface.update_progress(
                     session_id=self.db_session_id,
                     item_id=item_id,
                     result_type='correct' if is_correct else 'incorrect',
@@ -197,7 +197,7 @@ class MCQSessionManager:
                 
                 # Check for completion
                 if self.currentIndex >= len(self.questions) - 1:
-                    LearningSessionService.complete_session(self.db_session_id)
+                    SessionInterface.complete_session(self.db_session_id)
                     
             except Exception as e:
                 print(f"Error updating DB session for MCQ: {e}")

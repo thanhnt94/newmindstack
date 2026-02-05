@@ -35,7 +35,7 @@ from mindstack_app.models import (
     LearningContainer, 
     UserContainerState,
 )
-from mindstack_app.modules.fsrs.models import ItemMemoryState
+# REFAC: Removed ItemMemoryState import
 from mindstack_app.modules.fsrs.interface import FSRSInterface
 from mindstack_app.modules.vocabulary.services.stats_container import VocabularyStatsService
 

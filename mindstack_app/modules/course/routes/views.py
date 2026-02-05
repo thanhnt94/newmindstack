@@ -18,7 +18,7 @@ from mindstack_app.models import (
     Note,
     db,
 )
-from mindstack_app.modules.fsrs.models import ItemMemoryState
+from mindstack_app.modules.fsrs.interface import FSRSInterface as FsrsInterface
 from mindstack_app.modules.gamification.services.scoring_service import ScoreService
 
 from .. import blueprint
@@ -88,10 +88,7 @@ def course_session(lesson_id):
         return redirect(url_for('.course_learning_dashboard'))
     
     # Get ItemMemoryState
-    progress = ItemMemoryState.query.filter_by(
-        user_id=current_user.user_id,
-        item_id=lesson_id
-    ).first()
+    progress = FsrsInterface.get_item_state(current_user.user_id, lesson_id)
     
     data = progress.data or {} if progress else {}
     current_percentage = data.get('completion_percentage', 0)
@@ -146,32 +143,12 @@ def update_lesson_progress(lesson_id):
         db.session.add(user_container_state)
     user_container_state.last_accessed = func.now()
 
-    # Update ItemMemoryState
-    progress = ItemMemoryState.query.filter_by(
-        user_id=current_user.user_id,
-        item_id=lesson_id
-    ).first()
+    # Get ItemMemoryState
+    progress = FsrsInterface.get_item_state(current_user.user_id, lesson_id)
+    previous_percentage = (progress.data or {}).get('completion_percentage', 0) if progress else 0
 
-    current_data = progress.data or {} if progress else {}
-    previous_percentage = current_data.get('completion_percentage', 0)
-
-    if progress:
-        if not progress.data:
-            progress.data = {}
-        progress.data['completion_percentage'] = int(percentage)
-        # Assuming mastery tracking logic is handled via percentage check elsewhere or implicit
-        from sqlalchemy.orm.attributes import flag_modified
-        flag_modified(progress, 'data')
-    else:
-        progress = ItemMemoryState(
-            user_id=current_user.user_id,
-            item_id=lesson_id,
-            state=0, # NEW
-            data={'completion_percentage': int(percentage)}
-        )
-        db.session.add(progress)
-
-    progress.last_review = func.now()
+    # Update ItemMemoryState via Interface
+    progress = FsrsInterface.save_lesson_progress(current_user.user_id, lesson_id, int(percentage))
 
     completion_pct = progress.data.get('completion_percentage', 0) if progress.data else 0
     lesson_completed = previous_percentage < 100 and completion_pct >= 100
@@ -202,14 +179,14 @@ def update_lesson_progress(lesson_id):
         ]
 
         if lesson_ids:
-            # Check completion using ItemMemoryState
-            # We need to query completion_percentage from data JSON
-            # Using cast for JSON integer comparison
-            completed_count = ItemMemoryState.query.filter(
-                ItemMemoryState.user_id == current_user.user_id,
-                ItemMemoryState.item_id.in_(lesson_ids),
-                db.cast(ItemMemoryState.data['completion_percentage'], db.Integer) >= 100
-            ).count()
+            # Check completion using FsrsInterface (already implemented similar logic in get_course_container_stats)
+            # But here we need specific IDs count. 
+            # We can use a custom query helper or just delegate to Interface.
+            # For now, let's stick to the Interface principle.
+            # I'll use get_batch_memory_states and count locally or add a new method.
+            # Actually, get_batch_memory_states is fine.
+            states_map = FsrsInterface.get_batch_memory_states(current_user.user_id, lesson_ids)
+            completed_count = sum(1 for p in states_map.values() if (p.data or {}).get('completion_percentage', 0) >= 100)
 
             if completed_count == len(lesson_ids):
                 already_logged = ScoreLog.query.filter_by(

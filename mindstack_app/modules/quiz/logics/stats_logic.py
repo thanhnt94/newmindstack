@@ -3,17 +3,15 @@
 # MỤC ĐÍCH: Cập nhật để đọc từ StudyLog và ItemMemoryState.
 
 from mindstack_app.modules.learning_history.models import StudyLog
-from mindstack_app.modules.fsrs.models import ItemMemoryState
+# REFAC: Remove ItemMemoryState import
+from mindstack_app.modules.fsrs.interface import FSRSInterface
 import datetime
 
 def get_quiz_item_statistics(user_id, item_id):
     """
     Lấy các thống kê chi tiết về tiến độ của người dùng đối với một câu hỏi Quiz cụ thể.
     """
-    state_record = ItemMemoryState.query.filter_by(
-        user_id=user_id, 
-        item_id=item_id
-    ).first()
+    state_record = FSRSInterface.get_item_state(user_id, item_id)
 
     if not state_record:
         return None

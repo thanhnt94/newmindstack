@@ -2,7 +2,7 @@
 from flask import request, jsonify, current_app
 from flask_login import login_required, current_user
 from .. import learning_bp as blueprint
-from mindstack_app.modules.session.services.session_service import LearningSessionService
+from mindstack_app.modules.session.interface import SessionInterface
 from mindstack_app.models import LearningContainer, db
 from flask import url_for
 
@@ -29,7 +29,7 @@ def get_mode_description(session):
 @login_required
 def api_get_active_sessions():
     try:
-        active_sessions = LearningSessionService.get_active_sessions(current_user.user_id)
+        active_sessions = SessionInterface.get_active_sessions(current_user.user_id)
         results = []
         for s in active_sessions:
             container_name = "Bộ học tập"
@@ -70,7 +70,7 @@ def api_get_active_sessions():
 @blueprint.route('/api/check_active_vocab_session/<int:set_id>')
 @login_required
 def check_active_vocab_session(set_id):
-    active_session = LearningSessionService.get_any_active_vocabulary_session(current_user.user_id, set_id)
+    active_session = SessionInterface.get_any_active_vocabulary_session(current_user.user_id, set_id)
     if active_session:
         resume_url = '#'
         mode = active_session.learning_mode

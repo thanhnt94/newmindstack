@@ -840,162 +840,81 @@ def get_quiz_set_metrics(user_id, container_id=None, status=None, page=1, per_pa
     memory_states = FsrsService.get_memory_states(user_id, all_item_ids)
     
     # 4. Aggregate
-    result = {}
+    # 4. Aggregate via FSRS Interface
+    # REFAC: Use FsrsInterface
+    stats_map = FsrsService.get_detailed_container_stats(user_id, container_ids, item_type='QUIZ_MCQ')
     
-    for cid in container_ids:
-        c_items = container_items_map[cid]
-        total = len(c_items)
-        
-        count_completed = 0
-        sum_score = 0
-        total_attempts = 0 # sum of times correct + incorrect
-        
-        # Original query checked:
-        # - studied_cards (state exists)
-        # - learned_cards (stability >= 21.0 - wait, quiz has diff threshold? Original code used >= 5.0 in filters but >= 21.0 in some places? 
-        # Check original get_quiz_set_metrics... wait it wasn't visible in my view? 
-        # I assumed structure. Let's check typical quiz metrics:
-        # Often: Top Score, Attempts, Accuracy.
-        # FSRS doesn't track "Top Score" natively in state. It tracks times_correct/incorrect.
-        # I will compute "Avg Accuracy" from times_correct/incorrect.
-        
-        total_correct = 0
-        total_incorrect = 0
-        
-        for iid in c_items:
-            state = memory_states.get(iid)
-            if state:
-                count_completed += 1
-                total_correct += (state.times_correct or 0)
-                total_incorrect += (state.times_incorrect or 0)
-        
-        total_attempts = total_correct + total_incorrect
-        accuracy = round((total_correct / total_attempts) * 100, 1) if total_attempts > 0 else 0
-        
-        items_payload = paginate_quiz_items(user_id, container_id=cid, status=status, page=page, per_page=per_page)
-
-        result[cid] = {
-            'container_id': cid, 'container_title': container_map[cid],
-            'total_items': total,
-            'completed_items': count_completed,
-            'accuracy': accuracy,
-            'items': items_payload
-        }
-        
-    return result
-
-    container_ids = [row.container_id for row in containers]
-    title_map = {row.container_id: row.title for row in containers}
-
-    total_questions_map = dict(
-        db.session.query(LearningItem.container_id, func.count(LearningItem.item_id).label('total_questions'))
-        .filter(LearningItem.item_type == 'QUIZ_MCQ', LearningItem.container_id.in_(container_ids))
-        .group_by(LearningItem.container_id).all()
-    )
-
-    progress_rows = (
-        db.session.query(
-            LearningItem.container_id.label('container_id'),
-            func.count(ItemMemoryState.state_id).label('attempted_questions'),
-            func.sum(ItemMemoryState.times_correct).label('total_correct'),
-            func.sum(ItemMemoryState.times_incorrect).label('total_incorrect'),
-            func.avg(ItemMemoryState.streak).label('avg_correct_streak'),
-            func.max(ItemMemoryState.streak).label('best_correct_streak'),
-        )
-        .join(LearningItem, LearningItem.item_id == ItemMemoryState.item_id)
-        .filter(ItemMemoryState.user_id == user_id, LearningItem.container_id.in_(container_ids))
-        .group_by(LearningItem.container_id).all()
-    )
-
-    progress_map = {row.container_id: row for row in progress_rows}
-    items_payload_map = {}
-    target_ids = container_ids if container_id is None else [container_id]
-    for target_id in target_ids:
-        items_payload_map[target_id] = paginate_quiz_items(user_id, container_id=target_id, status=status, page=page, per_page=per_page)
-
     result = {}
     for container_id in container_ids:
-        progress = progress_map.get(container_id)
-        total_questions = int(total_questions_map.get(container_id, 0) or 0)
-        attempted = int(progress.attempted_questions or 0) if progress else 0
-        total_correct = int(progress.total_correct or 0) if progress else 0
-        total_incorrect = int(progress.total_incorrect or 0) if progress else 0
+        progress = stats_map.get(container_id, {})
+        total_items = len(container_items_map[container_id])
+        
+        # Calculate derived stats
+        total_correct = progress.get('correct', 0)
+        total_incorrect = progress.get('incorrect', 0)
         total_attempts = total_correct + total_incorrect
-        accuracy_percent = round((total_correct / total_attempts) * 100, 1) if total_attempts > 0 else None
-        avg_streak = float(progress.avg_correct_streak or 0) if progress and progress.avg_correct_streak else 0.0
-        best_streak = int(progress.best_correct_streak or 0) if progress else 0
-
+        accuracy_percent = round((total_correct / total_attempts) * 100, 1) if total_attempts > 0 else 0.0
+        
+        items_payload = paginate_quiz_items(user_id, container_id=container_id, status=status, page=page, per_page=per_page)
+        
         result[container_id] = {
-            'container_id': container_id, 'container_title': title_map.get(container_id),
-            'total_questions': total_questions, 'attempted_questions': attempted,
-            'total_correct': total_correct, 'total_incorrect': total_incorrect, 'accuracy_percent': accuracy_percent,
-            'avg_correct_streak': round(avg_streak, 1), 'best_correct_streak': best_streak,
-            'items': items_payload_map.get(container_id, {'status': status or 'all', 'page': page, 'per_page': per_page, 'total': 0, 'records': []}),
+            'container_id': container_id, 'container_title': container_map.get(container_id, ""),
+            'total_questions': total_items,
+            'attempted_questions': progress.get('attempted', 0),
+            'total_correct': total_correct, 
+            'total_incorrect': total_incorrect,
+            'accuracy_percent': accuracy_percent,
+            'avg_correct_streak': round(progress.get('avg_streak', 0.0), 1),
+            'best_correct_streak': progress.get('best_streak', 0),
+            'items': items_payload
         }
+    
     return result
 
 
 def get_course_metrics(user_id, container_id=None, status=None, page=1, per_page=10):
     """Aggregate course metrics."""
-    container_query = (
+    # REFAC: Use FsrsInterface
+    # Original logic only showed ACTIVE courses (joined ItemMemoryState).
+    # So we fetch stats first (which implies activity), then fetch headers.
+    
+    # 1. Get stats for active courses (or specific one)
+    target_ids = [container_id] if container_id else None
+    stats_map = FsrsService.get_course_container_stats(user_id, target_ids)
+    
+    active_container_ids = list(stats_map.keys())
+    if not active_container_ids:
+        return {}
+        
+    # 2. Fetch Container Titles for active ones
+    containers = (
         db.session.query(LearningContainer.container_id, LearningContainer.title)
-        .join(LearningItem, LearningItem.container_id == LearningContainer.container_id)
-        .join(ItemMemoryState, ItemMemoryState.item_id == LearningItem.item_id)
-        .filter(
-            ItemMemoryState.user_id == user_id,
-            LearningContainer.container_type == 'COURSE',
-            LearningItem.item_type == 'LESSON',
-        )
+        .filter(LearningContainer.container_id.in_(active_container_ids))
+        .all()
     )
-
-    if container_id is not None:
-        container_query = container_query.filter(LearningContainer.container_id == container_id)
-
-    containers = container_query.group_by(LearningContainer.container_id, LearningContainer.title).all()
-    if not containers: return {}
-
-    container_ids = [row.container_id for row in containers]
-    title_map = {row.container_id: row.title for row in containers}
-
+    title_map = {c.container_id: c.title for c in containers}
+    
+    # 3. Fetch Total Lessons for active ones
     total_lessons_map = dict(
         db.session.query(LearningItem.container_id, func.count(LearningItem.item_id).label('total_lessons'))
-        .filter(LearningItem.item_type == 'LESSON', LearningItem.container_id.in_(container_ids))
+        .filter(LearningItem.item_type == 'LESSON', LearningItem.container_id.in_(active_container_ids))
         .group_by(LearningItem.container_id).all()
     )
-
-    progress_rows = (
-        db.session.query(
-            LearningItem.container_id.label('container_id'),
-            func.count(ItemMemoryState.state_id).label('lessons_started'),
-            func.sum(case((db.cast(ItemMemoryState.data['completion_percentage'], db.Integer) >= 100, 1), else_=0)).label('lessons_completed'),
-            func.avg(db.cast(ItemMemoryState.data['completion_percentage'], db.Integer)).label('avg_completion'),
-            func.max(ItemMemoryState.last_review).label('last_activity'),
-        )
-        .join(LearningItem, LearningItem.item_id == ItemMemoryState.item_id)
-        .filter(ItemMemoryState.user_id == user_id, LearningItem.container_id.in_(container_ids))
-        .group_by(LearningItem.container_id).all()
-    )
-
-    progress_map = {row.container_id: row for row in progress_rows}
-    items_payload_map = {}
-    target_ids = container_ids if container_id is None else [container_id]
-    for target_id in target_ids:
-        items_payload_map[target_id] = paginate_course_items(user_id, container_id=target_id, status=status, page=page, per_page=per_page)
 
     result = {}
-    for container_id in container_ids:
-        progress = progress_map.get(container_id)
-        total_lessons = int(total_lessons_map.get(container_id, 0) or 0)
-        lessons_started = int(progress.lessons_started or 0) if progress else 0
-        lessons_completed = int(progress.lessons_completed or 0) if progress else 0
-        avg_completion = float(progress.avg_completion or 0) if progress and progress.avg_completion is not None else 0.0
-        last_activity_value = progress.last_activity.isoformat() if progress and progress.last_activity else None
+    for cid in active_container_ids:
+        progress = stats_map.get(cid, {})
+        total_lessons = int(total_lessons_map.get(cid, 0) or 0)
+        
+        items_payload = paginate_course_items(user_id, container_id=cid, status=status, page=page, per_page=per_page)
 
-        result[container_id] = {
-            'container_id': container_id, 'container_title': title_map.get(container_id),
-            'total_lessons': total_lessons, 'lessons_started': lessons_started,
-            'lessons_completed': lessons_completed, 'avg_completion_percent': round(avg_completion, 1),
-            'last_activity': last_activity_value,
-            'items': items_payload_map.get(container_id, {'status': status or 'all', 'page': page, 'per_page': per_page, 'total': 0, 'records': []}),
+        result[cid] = {
+            'container_id': cid, 'container_title': title_map.get(cid, ""),
+            'total_lessons': total_lessons, 
+            'lessons_started': progress.get('started', 0),
+            'lessons_completed': progress.get('completed', 0), 
+            'avg_completion_percent': round(progress.get('avg_completion', 0.0), 1),
+            'last_activity': progress.get('last_activity').isoformat() if progress.get('last_activity') else None,
+            'items': items_payload
         }
     return result

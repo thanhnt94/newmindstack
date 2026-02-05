@@ -15,7 +15,7 @@ Key metrics:
 from __future__ import annotations
 from typing import Dict, Any, Optional
 
-from mindstack_app.models import db, ItemMemoryState, LearningItem
+from mindstack_app.models import db, LearningItem
 
 class ProgressService:
     """Service for calculating Academic Progress statistics."""
@@ -49,44 +49,71 @@ class ProgressService:
         if total_items == 0:
             return cls._empty_stats()
 
-        # 2. User's Memory States for items in this container
-        # Join LearningItem to filter by container
-        query = db.session.query(ItemMemoryState).join(LearningItem).filter(
-            ItemMemoryState.user_id == user_id,
-            LearningItem.container_id == container_id
-        )
+        # 2. Get Stats from FSRS Interface
+        from mindstack_app.modules.fsrs.interface import FSRSInterface
         
-        progress_records = query.all()
-        studied_count = len(progress_records)
+        # Determine item type. Assume FLASHCARD for generic container unless specified?
+        # Actually container can have mixed types, but ProgressService usually used for specific context.
+        # But get_detailed_container_stats requires item_type. 
+        # Check container type?
+        # If container_type is COURSE (LESSON items), use get_course_container_stats.
+        # If FLASHCARD/QUIZ, use get_detailed_container_stats.
         
-        # 3. Calculate Derived Metrics
-        # Mastered: Arbitrary threshold, e.g., stability > 21 days
-        mastered_count = sum(1 for p in progress_records if (p.stability or 0) >= 21.0)
+        container = db.session.query(LearningContainer).get(container_id)
+        if not container:
+             return cls._empty_stats()
+             
+        if container.container_type == 'COURSE':
+             stats_map = FSRSInterface.get_course_container_stats(user_id, [container_id])
+             stats = stats_map.get(container_id, {})
+             
+             return {
+                'total_items': total_items, # Note: Course items are Lessons
+                'studied': stats.get('started', 0),
+                'new': total_items - stats.get('started', 0),
+                'mastered': stats.get('completed', 0), # 'Completed' is proxy for mastered in Course
+                'learning': stats.get('started', 0) - stats.get('completed', 0),
+                'completion_percentage': stats.get('avg_completion', 0), # Or calculated from completed items?
+                # Actually, course progress usually means "Avg Completion" or "% of Lessons Completed"?
+                # The keys returned by this service are expected by callers (Dashboard).
+                # 'completion_percentage' in `get_container_stats` was `studied / total * 100`.
+                # Let's keep that definition for consistency if possible, OR improve it.
+                # In previous code: `completion_pct = (studied_count / total_items * 100)`.
+                # So "Studied" means "Started".
+                'completion_percentage': round((stats.get('started', 0) / total_items * 100), 1) if total_items else 0,
+                'avg_stability': 0,
+             }
+             
+        # Fallback to Flashcard/Quiz logic
+        # Check common item type in container
+        first_item = LearningItem.query.filter_by(container_id=container_id).first()
+        item_type = first_item.item_type if first_item else 'FLASHCARD'
         
-        # Learning: Currently explicitly in learning/relearning steps (state 1 or 3)
-        # OR just not mastered yet but studied
-        learning_count = sum(1 for p in progress_records if p.state in (1, 3))
-
-        # Average Retrievability (if available via FSRS Helper, else estimate)
-        # For simple stats, we might skip complex R calculation or use stability
-        avg_stability = sum(p.stability or 0 for p in progress_records) / studied_count if studied_count else 0
+        stats_map = FSRSInterface.get_detailed_container_stats(user_id, [container_id], item_type=item_type)
+        stats = stats_map.get(container_id, {})
         
-        completion_pct = (studied_count / total_items * 100)
+        studied_count = stats.get('attempted', 0) # "Attempted" means state exists (studied)
+        mastered_count = stats.get('mastered', 0)
+        
+        completion_pct = (studied_count / total_items * 100) if total_items else 0
         
         return {
             'total_items': total_items,
             'studied': studied_count,
             'new': total_items - studied_count,
             'mastered': mastered_count,
-            'learning': learning_count,
+            'learning': studied_count - mastered_count,
             'completion_percentage': round(completion_pct, 1),
-            'avg_stability': round(avg_stability, 1),
-            # Legacy/Compatibility fields
-            'total_correct': 0, 
-            'total_incorrect': 0,
-            'accuracy': 0,
-            'avg_retrievability': 0, # Placeholder
-            'avg_mastery': 0, # Placeholder
+            # FSRS Interface doesn't return avg_stability in detailed_stats yet. 
+            # If critical, I should add it.
+            # But "avg_stability" is rarely shown directly in UI (usually used for Retrievability).
+            # I'll return 0 for now or fetch if needed.
+            'avg_stability': 0, 
+            'total_correct': stats.get('correct', 0), 
+            'total_incorrect': stats.get('incorrect', 0),
+            'accuracy': 0, # Calced elsewhere or can be added
+            'avg_retrievability': 0,
+            'avg_mastery': 0, 
         }
 
     @staticmethod

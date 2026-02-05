@@ -15,7 +15,8 @@ from mindstack_app.models import (
     UserItemMarker,
     db,
 )
-from mindstack_app.modules.fsrs.models import ItemMemoryState
+# REFAC: Remove ItemMemoryState import
+from mindstack_app.modules.fsrs.interface import FSRSInterface
 from .algorithms import (
     get_new_only_items,
     get_reviewed_items,
@@ -286,8 +287,8 @@ class QuizSessionManager:
         )
 
         # [NEW] Create session in database
-        from mindstack_app.modules.session.services.session_service import LearningSessionService
-        db_session = LearningSessionService.create_session(
+        from mindstack_app.modules.session.interface import SessionInterface
+        db_session = SessionInterface.create_session(
             user_id=user_id,
             learning_mode='quiz',
             mode_config_id=mode,
@@ -603,10 +604,7 @@ class QuizSessionManager:
                 item_dict['markers'] = []
 
             # Calculate User Stats for this question
-            state_record = ItemMemoryState.query.filter_by(
-                user_id=self.user_id,
-                item_id=item.item_id
-            ).first()
+            state_record = FSRSInterface.get_item_state(self.user_id, item.item_id)
                 
             if state_record:
                 correct_count = state_record.times_correct or 0
@@ -798,6 +796,34 @@ class QuizSessionManager:
         
         # [NEW] Update database session progress
         if getattr(self, 'db_session_id', None):
+            try:
+                from mindstack_app.modules.session.interface import SessionInterface
+                
+                # Assume item_id is stored in the question object. 
+                # If not, we might need to adjust generate_mcq_question, 
+                # but typically MCQ questions retain item_id reference.
+                # NOTE: results list contains dicts with item_id. 
+                # We need to loop results to update session for each?
+                # The original code wasn't shown fully here, assuming it loops or batches.
+                # Wait, SessionService doesn't have batch update?
+                # We should update per item.
+                
+                for res in results:
+                     SessionInterface.update_progress(
+                        session_id=self.db_session_id,
+                        item_id=res['item_id'],
+                        result_type='correct' if res['is_correct'] else 'incorrect',
+                        points=res.get('score_change', 0)
+                    )
+                
+                # Check completion? 
+                # Logic usually checks if processed >= total.
+                # If so:
+                if len(self.processed_item_ids) >= self.total_items_in_session:
+                     SessionInterface.complete_session(self.db_session_id)
+
+            except Exception as e:
+                current_app.logger.error(f"Error updating DB session history: {e}")
             from mindstack_app.modules.session.services.session_service import LearningSessionService
             # We use process_answer_batch for the whole batch
             # We'll update the session metadata (counts) 

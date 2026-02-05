@@ -4,7 +4,7 @@ from collections import defaultdict
 from datetime import datetime, timedelta, date, timezone
 from typing import Dict, Any, List, Optional, Tuple
 
-from sqlalchemy import func, distinct
+from sqlalchemy import func, distinct, case
 from mindstack_app.models import (
     db, User, ScoreLog, LearningContainer, LearningItem
 )

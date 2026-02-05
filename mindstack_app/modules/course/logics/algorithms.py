@@ -10,7 +10,7 @@ from mindstack_app.models import (
     UserContainerState,
     User,
 )
-from mindstack_app.modules.fsrs.models import ItemMemoryState
+from mindstack_app.modules.fsrs.interface import FSRSInterface
 from flask_login import current_user
 from sqlalchemy import func, and_, not_, or_
 from flask import current_app
@@ -102,13 +102,10 @@ def get_filtered_course_sets(user_id, search_query, search_field, current_filter
         if total_lessons > 0:
             lesson_ids = [lesson.item_id for lesson in lessons]
             
-            # Get progress using ItemMemoryState
-            progress_records = ItemMemoryState.query.filter(
-                ItemMemoryState.user_id == user_id,
-                ItemMemoryState.item_id.in_(lesson_ids)
-            ).all()
+            # Get progress using FSRSInterface
+            progress_map = FSRSInterface.get_batch_memory_states(user_id, lesson_ids)
             
-            for progress in progress_records:
+            for item_id, progress in progress_map.items():
                 data = progress.data or {}
                 total_completion_percentage += data.get('completion_percentage', 0)
             
@@ -145,14 +142,9 @@ def get_lessons_for_course(user_id, course_id):
 
     lesson_ids = [lesson.item_id for lesson in lessons]
     
-    # Get progress using ItemMemoryState
-    progress_map = {}
-    for p in ItemMemoryState.query.filter(
-        ItemMemoryState.user_id == user_id,
-        ItemMemoryState.item_id.in_(lesson_ids)
-    ):
-        data = p.data or {}
-        progress_map[p.item_id] = data.get('completion_percentage', 0)
+    # Get progress using FSRSInterface
+    progress_map_raw = FSRSInterface.get_batch_memory_states(user_id, lesson_ids)
+    progress_map = {item_id: (p.data or {}).get('completion_percentage', 0) for item_id, p in progress_map_raw.items()}
 
     for lesson in lessons:
         lesson.completion_percentage = progress_map.get(lesson.item_id, 0)

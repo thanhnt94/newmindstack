@@ -312,9 +312,9 @@ def mcq_end_session():
 
         manager = MCQSessionManager.load_from_db(current_user.user_id, set_id)
         if manager:
-            from mindstack_app.modules.session.services.session_service import LearningSessionService
+            from mindstack_app.modules.session.interface import SessionInterface
             if manager.db_session_id:
-                LearningSessionService.complete_session(manager.db_session_id)
+                SessionInterface.complete_session(manager.db_session_id)
                 return jsonify({'success': True, 'session_id': manager.db_session_id})
             
         return jsonify({'success': True})

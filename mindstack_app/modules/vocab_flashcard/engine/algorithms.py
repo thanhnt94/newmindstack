@@ -2,7 +2,8 @@
 # Flashcard Algorithms - High level algorithms for set selection and mode counts.
 
 from mindstack_app.models import LearningContainer, LearningItem, User, ContainerContributor, UserContainerState, db
-from mindstack_app.modules.fsrs.models import ItemMemoryState
+# REFAC: Removed ItemMemoryState import
+from mindstack_app.modules.fsrs.interface import FSRSInterface as FsrsInterface
 from flask_login import current_user
 from sqlalchemy import func, or_, and_, case
 from datetime import datetime, timezone
@@ -76,13 +77,10 @@ def get_filtered_flashcard_sets(user_id, search_query, search_field, current_fil
             LearningItem.item_type.in_(['FLASHCARD', 'VOCABULARY'])
         ).count()
         
+        # REFAC: Use FsrsInterface
         learned_count = 0
         if total_items > 0:
-            learned_count = db.session.query(func.count(ItemMemoryState.state_id)).join(LearningItem, LearningItem.item_id == ItemMemoryState.item_id).filter(
-                LearningItem.container_id == container.container_id,
-                ItemMemoryState.user_id == user_id,
-                ItemMemoryState.state != 0
-            ).scalar() or 0
+            learned_count = FsrsInterface.get_learned_count(user_id, container.container_id)
             
         container.total_items = total_items
         container.completion_percentage = (learned_count / total_items * 100) if total_items > 0 else 0
@@ -104,25 +102,31 @@ def get_flashcard_mode_counts(user_id, set_id, context='vocab'):
             else: q = q.filter(LearningItem.container_id == s_id)
         return q
 
+    # 1. Total
     base_q = _base_item_query(set_id)
     total = base_q.count()
-    learned_q = base_q.join(ItemMemoryState, (ItemMemoryState.item_id == LearningItem.item_id) & (ItemMemoryState.user_id == user_id)).filter(
-        ItemMemoryState.state != 0
-    )
-    learned = learned_q.count()
+    
+    # 2. Learned (Review)
+    # REFAC: Use apply_memory_filter 'review'
+    # Use distinct query objects
+    q_learned = _base_item_query(set_id)
+    q_learned = FsrsInterface.apply_memory_filter(q_learned, user_id, 'review')
+    learned = q_learned.count()
+    
+    # 3. New
     new_count = total - learned
     
-    now = datetime.now(timezone.utc)
-    due_q = base_q.join(ItemMemoryState, (ItemMemoryState.item_id == LearningItem.item_id) & (ItemMemoryState.user_id == user_id)).filter(
-        ItemMemoryState.state != 0,
-        ItemMemoryState.due_date <= now
-    )
-    due = due_q.count()
+    # 4. Due
+    # REFAC: Use apply_memory_filter 'due'
+    q_due = _base_item_query(set_id)
+    q_due = FsrsInterface.apply_memory_filter(q_due, user_id, 'due')
+    due = q_due.count()
     
-    hard_q = base_q.join(ItemMemoryState, (ItemMemoryState.item_id == LearningItem.item_id) & (ItemMemoryState.user_id == user_id)).filter(
-        ItemMemoryState.difficulty >= 7.0
-    )
-    hard = hard_q.count()
+    # 5. Hard
+    # REFAC: Use apply_memory_filter 'hard'
+    q_hard = _base_item_query(set_id)
+    q_hard = FsrsInterface.apply_memory_filter(q_hard, user_id, 'hard')
+    hard = q_hard.count()
     
     from .vocab_flashcard_mode import get_flashcard_modes
     mode_list = []

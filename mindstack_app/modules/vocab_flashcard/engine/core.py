@@ -3,7 +3,7 @@
 
 from datetime import datetime, timezone
 from mindstack_app.models import db, User, LearningItem
-from mindstack_app.modules.fsrs.models import ItemMemoryState
+# REFAC: Remove ItemMemoryState dependency
 from mindstack_app.core.signals import card_reviewed
 from mindstack_app.utils.db_session import safe_commit
 from mindstack_app.modules.fsrs.interface import FSRSInterface
@@ -203,17 +203,13 @@ class FlashcardEngine:
         else:
             # No SRS update (Collab or All Review)
             # Fetch existing state without updating
-            state_record = ItemMemoryState.query.filter_by(
-                user_id=user_id, item_id=item_id
-            ).first()
+            # REFAC: Use FSRSInterface
+            state_record = FSRSInterface.get_item_state(user_id, item_id)
+            
             if not state_record:
                 # Temporary progress object for stats (not committed unless needed)
-                # But ItemMemoryState has required fields.
-                # Just create dummy
-                state_record = ItemMemoryState(
-                    user_id=user_id, item_id=item_id, 
-                    state=0
-                )
+                # REFAC: Use FSRSInterface to create initial state
+                state_record = FSRSInterface.get_initial_state(user_id, item_id)
                 # db.session.add(progress) # Don't add if we don't want to persist?
 
             # Scoring for Collab/No-SRS
@@ -277,9 +273,8 @@ class FlashcardEngine:
         Get detailed statistics for a flashcard item.
         Mirroring logic from legacy stats_logic.py
         """
-        state_record = ItemMemoryState.query.filter_by(
-            user_id=user_id, item_id=item_id
-        ).first()
+        # REFAC: Use FSRSInterface
+        state_record = FSRSInterface.get_item_state(user_id, item_id)
         
         base_stats = {
             'times_reviewed': 0, 'correct_count': 0, 'incorrect_count': 0, 'vague_count': 0,

@@ -2,10 +2,11 @@
 # Vocabulary Container Statistics Service
 # Provides comprehensive learning statistics for vocabulary sets
 
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
+from collections import defaultdict
 from sqlalchemy import func
 from mindstack_app.models import LearningItem, LearningContainer
-from mindstack_app.modules.fsrs.models import ItemMemoryState
+# REFAC: Remove ItemMemoryState
 from mindstack_app.modules.learning_history.models import StudyLog
 from mindstack_app.modules.fsrs.interface import FSRSInterface as FsrsService
 
@@ -29,6 +30,8 @@ class VocabularyContainerStats:
         ).count()
         
         # 2. Total Cards
+        # Could potentially be optimized via FSRS service if it had a "count by type" method, 
+        # but this is container-specific logic, so keeping LearningContainer query is fine.
         total_cards = LearningItem.query.join(
             LearningContainer, LearningItem.container_id == LearningContainer.container_id
         ).filter(
@@ -37,25 +40,14 @@ class VocabularyContainerStats:
             LearningItem.item_type.in_(['FLASHCARD', 'VOCABULARY'])
         ).count()
         
-        # 3. Mastered & Due (from ItemMemoryState)
-        now = datetime.now(timezone.utc)
-        
-        # Mastered: stability >= 21.0
-        mastered = ItemMemoryState.query.filter(
-            ItemMemoryState.user_id == user_id,
-            ItemMemoryState.stability >= 21.0
-        ).count()
-        
-        due = ItemMemoryState.query.filter(
-            ItemMemoryState.user_id == user_id,
-            ItemMemoryState.due_date <= now
-        ).count()
+        # 3. Mastered & Due (Delegated to FSRS)
+        fsrs_stats = FsrsService.get_global_stats(user_id)
         
         return {
             'total_sets': total_sets,
-            'total_cards': total_cards,
-            'mastered': mastered,
-            'due': due
+            'total_cards': total_cards, # Keeping our count as it filters by container type differently than global FSRS
+            'mastered': fsrs_stats.get('mastered_count', 0),
+            'due': fsrs_stats.get('due_count', 0)
         }
     
     @staticmethod
@@ -74,13 +66,9 @@ class VocabularyContainerStats:
         if not item_ids:
             return VocabularyContainerStats._empty_stats()
         
-        # Get progress records
-        progress_records = ItemMemoryState.query.filter(
-            ItemMemoryState.user_id == user_id,
-            ItemMemoryState.item_id.in_(item_ids)
-        ).all()
+        # REFAC: Use FsrsService to get states
+        progress_map = FsrsService.get_memory_states(user_id, item_ids)
         
-        progress_map = {p.item_id: p for p in progress_records}
         now = datetime.now(timezone.utc)
         
         # Calculate counts
@@ -125,13 +113,13 @@ class VocabularyContainerStats:
                     if not last_reviewed or progress.last_review > last_reviewed:
                         last_reviewed = progress.last_review
         
-        learned_count = len(progress_records)
+        learned_count = len(progress_map)
         completion_pct = (learned_count / total * 100) if total > 0 else 0
         retrievability_avg = (total_retrievability / learned_count) if learned_count > 0 else 0
         accuracy_pct = (total_correct / (total_correct + total_incorrect) * 100) if (total_correct + total_incorrect) > 0 else 0
         
-        from mindstack_app.modules.fsrs.services.hard_item_service import FSRSHardItemService as HardItemService
-        hard_count = HardItemService.get_hard_count(user_id, container_id)
+        # REFAC: Use FsrsService directly
+        hard_count = FsrsService.get_hard_count(user_id, container_id)
         
         return {
             'total': total,
@@ -174,12 +162,8 @@ class VocabularyContainerStats:
             'random': stats['total']
         }
     
-    
     @staticmethod
     def get_chart_data(user_id: int, container_id: int) -> dict:
-        from datetime import timedelta
-        from collections import defaultdict
-        
         items = LearningItem.query.filter(
             LearningItem.container_id == container_id,
             LearningItem.item_type.in_(['FLASHCARD', 'VOCABULARY'])
@@ -189,13 +173,11 @@ class VocabularyContainerStats:
         if not item_ids:
             return {'distribution': {'weak': 0, 'medium': 0, 'strong': 0}, 'timeline': {'dates': [], 'values': []}}
         
-        progress_records = ItemMemoryState.query.filter(
-            ItemMemoryState.user_id == user_id,
-            ItemMemoryState.item_id.in_(item_ids)
-        ).all()
+        # REFAC: Use FsrsService
+        progress_map = FsrsService.get_memory_states(user_id, item_ids)
         
         weak_count = medium_count = strong_count = 0
-        for progress in progress_records:
+        for progress in progress_map.values():
             retrievability = FsrsService.get_retrievability(progress)
             if retrievability < 0.7: weak_count += 1
             elif retrievability < 0.9: medium_count += 1
@@ -236,7 +218,7 @@ class VocabularyContainerStats:
     
     @staticmethod
     def get_hard_count(user_id: int, container_id: int) -> int:
-        stats = VocabularyContainerStats.get_full_stats(user_id, container_id)
-        return stats['hard']
+        # REFAC: Direct call
+        return FsrsService.get_hard_count(user_id, container_id)
 
 VocabularyStatsService = VocabularyContainerStats

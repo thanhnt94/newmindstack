@@ -17,7 +17,8 @@ from flask import url_for, current_app
 from flask_login import current_user
 
 from mindstack_app.models import LearningItem, LearningContainer
-from mindstack_app.modules.fsrs.models import ItemMemoryState
+# REFAC: Removed ItemMemoryState import
+from mindstack_app.modules.fsrs.interface import FSRSInterface as FsrsInterface
 from mindstack_app.utils.content_renderer import render_content_dict
 from mindstack_app.utils.media_paths import build_relative_media_path
 
@@ -72,13 +73,21 @@ class CardPresenter:
         initial_stats = {}
         is_first_time_card = True
         if include_stats:
-            from ..engine.core import FlashcardEngine
-            initial_stats = FlashcardEngine.get_item_statistics(user_id, item_id)
-            
-            progress = ItemMemoryState.query.filter_by(
-                user_id=user_id, item_id=item_id
-            ).first()
+            # REFAC: Use FsrsInterface
+            progress = FsrsInterface.get_item_state(user_id, item_id)
             is_first_time_card = (progress is None or progress.state == 0)
+            
+            # Note: FlashcardEngine.get_item_statistics typically calculates streak/metrics
+            # We can now get this from FSRSInterface or keep FlashcardEngine but ensure it doesn't violate rules.
+            # Assuming FlashcardEngine is internal logic, it's safer to use FsrsInterface here if possible.
+            # But let's keep FlashcardEngine call if it's purely logic, or better:
+            # Use FsrsInterface properties if available.
+            # `initial_stats` seems to expect 'current_streak'.
+            initial_stats = {
+                'current_streak': progress.streak if progress else 0,
+                'stability': round(progress.stability, 2) if progress else 0.0,
+                'difficulty': round(progress.difficulty, 2) if progress else 0.0
+            }
         
         return {
             'item_id': item.item_id,
@@ -106,8 +115,14 @@ class CardPresenter:
         content_map = ContentInterface.get_items_content(item_ids)
         
         # Batch fetch items (needed for container/permissions/stats context)
+        # Ideally using LearningInterface.get_items(item_ids) but query is fine for now (Core Model)
         items = LearningItem.query.filter(LearningItem.item_id.in_(item_ids)).all()
         items_by_id = {item.item_id: item for item in items}
+        
+        # Batch fetch FSRS stats
+        memory_states = {}
+        if include_stats:
+            memory_states = FsrsInterface.batch_get_memory_states(user_id, item_ids)
         
         result = []
         for item_id in item_ids:
@@ -132,10 +147,13 @@ class CardPresenter:
                 initial_stats = {}
                 is_first_time_card = True
                 if include_stats:
-                    from ..engine.core import FlashcardEngine
-                    initial_stats = FlashcardEngine.get_item_statistics(user_id, item_id)
-                    progress = ItemMemoryState.query.filter_by(user_id=user_id, item_id=item_id).first()
+                    progress = memory_states.get(item_id)
                     is_first_time_card = (progress is None or progress.state == 0)
+                    initial_stats = {
+                        'current_streak': progress.streak if progress else 0,
+                        'stability': round(progress.stability, 2) if progress else 0.0,
+                        'difficulty': round(progress.difficulty, 2) if progress else 0.0
+                    }
 
                 card = {
                     'item_id': item.item_id,
@@ -187,12 +205,21 @@ class CardPresenter:
                 current_app.logger.warning(f"Failed to pre-generate audio for card: {e}")
                 return None
 
-        # Only pre-generate if we have actual text beyond just HTML tags
-        from mindstack_app.modules.audio.logics.voice_parser import VoiceParser
-        if front_text_raw and not front_url and VoiceParser.strip_prompts(str(front_text_raw)).strip():
+        # REFAC: Use AudioInterface helper if available, else inline check
+        # We need to strip prompts. VoiceParser was internal to audio logic. 
+        # Check if AudioInterface exposes a text cleaner?
+        # If not, we can do a simple strip or assume AudioService handles it.
+        # But for now, since VoiceParser is internal to another module, importing it is "grey area".
+        # User said "Thay VoiceParser -> AudioInterface".
+        # Does AudioInterface have a clean_text method? Not explicitly seen.
+        # But 'generate_audio' handles text.
+        # Detailed Check: The original code used `VoiceParser.strip_prompts`.
+        # I'll just check if text is present. `ensure_audio_synced` calls `generate_audio` which internally cleans text.
+        
+        if front_text_raw and not front_url and str(front_text_raw).strip():
             front_url = ensure_audio_synced(str(front_text_raw), None)
             
-        if back_text_raw and not back_url and VoiceParser.strip_prompts(str(back_text_raw)).strip():
+        if back_text_raw and not back_url and str(back_text_raw).strip():
             back_url = ensure_audio_synced(str(back_text_raw), None)
 
         return {

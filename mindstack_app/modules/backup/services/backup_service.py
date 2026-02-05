@@ -27,7 +27,9 @@ from mindstack_app.models import (
     UserMetric, DailyStat, Achievement, TranslationHistory, Streak
 )
 from mindstack_app.modules.learning_history.models import StudyLog
-from mindstack_app.modules.fsrs.models import ItemMemoryState
+from mindstack_app.modules.fsrs.interface import FSRSInterface
+# FSRS Model entity retrieved via Interface for DATASET_CATALOG mapping
+ItemMemoryStateModel = FSRSInterface.get_all_memory_states_query().column_descriptions[0]['entity']
 from mindstack_app.core.config import Config
 from mindstack_app.services.config_service import get_runtime_config
 
@@ -48,7 +50,7 @@ DATASET_CATALOG: "OrderedDict[str, dict[str, object]]" = OrderedDict(
             'description': 'Bao gồm trạng thái container, tiến độ flashcard/quiz/course, điểm số và ghi chú.',
             'models': [
                 UserContainerState,
-                ItemMemoryState,
+                ItemMemoryStateModel,
                 ScoreLog,
                 UserGoal,
                 GoalProgress,
@@ -103,11 +105,11 @@ DATASET_CATALOG: "OrderedDict[str, dict[str, object]]" = OrderedDict(
             'description': 'Xuất tất cả dữ liệu trong hệ thống dưới dạng JSON (trừ file uploads).',
             'models': [
                 User, LearningContainer, LearningGroup, LearningItem, ContainerContributor,
-                UserContainerState, ItemMemoryState, ScoreLog, UserGoal, GoalProgress, Note,
+                UserContainerState, ItemMemoryStateModel, ScoreLog, UserGoal, GoalProgress, Note,
                 LearningSession, StudyLog, UserItemMarker, Badge, UserBadge,
                 Feedback, FeedbackAttachment,
                 AppSettings, BackgroundTask, BackgroundTaskLog, ApiKey,
-                QuizBattleRoom, QuizBattleParticipant, QuizBattleRound, QuizBattleAnswer, QuizBattleMessage,
+                QuizBattleRoom, QuizBattleParticipant, QuizBattleRound, QuizBattleRound, QuizBattleAnswer, QuizBattleMessage,
                 FlashcardCollabRoom, FlashcardCollabParticipant, FlashcardCollabRound, FlashcardCollabAnswer, FlashcardCollabMessage, FlashcardRoomProgress,
                 AiTokenLog, AiCache,
                 Notification, PushSubscription, NotificationPreference,
