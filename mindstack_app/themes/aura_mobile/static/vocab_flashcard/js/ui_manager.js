@@ -570,6 +570,17 @@ function renderCard(data) {
 
     const visibleContainer = getVisibleFlashcardContentDiv();
     const card = visibleContainer ? visibleContainer.querySelector('.js-flashcard-card') : document.querySelector('.js-flashcard-card');
+
+    // [NEW] Conditional visibility for Image Toggle button
+    const imageToggleOverlay = document.querySelector('.js-fc-image-toggle-overlay');
+    if (imageToggleOverlay) {
+        if (c.front_img || c.back_img) {
+            imageToggleOverlay.classList.remove('hidden');
+        } else {
+            imageToggleOverlay.classList.add('hidden');
+        }
+    }
+
     const actions = visibleContainer ? visibleContainer.querySelector('.js-internal-actions') : document.querySelector('.js-internal-actions');
     // Fix: Handle both internal card button (Desktop) and external footer button (Mobile)
     const internalFlipBtn = visibleContainer ? visibleContainer.querySelector('.js-flip-card-btn') : null;

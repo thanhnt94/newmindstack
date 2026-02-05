@@ -63,8 +63,17 @@
                         </div>
                     </div>
 
-                    {# Top-Right: Audio Button #}
-                    <div class="absolute top-3 right-3 pointer-events-auto">
+                    {# Top-Right: Stats Detail Button #}
+                    <div class="absolute top-3 right-3 pointer-events-auto z-30">
+                        <button
+                            class="js-fc-stats-detail-overlay w-10 h-10 rounded-full bg-indigo-600/90 backdrop-blur-sm text-white flex items-center justify-center hover:bg-indigo-700 transition-all shadow-lg hover:scale-110"
+                            title="Chi tiết thống kê">
+                            <i class="fas fa-chart-pie text-sm"></i>
+                        </button>
+                    </div>
+
+                    {# Bottom-Left: Audio Button #}
+                    <div class="absolute bottom-3 left-3 pointer-events-auto">
                         <div class="relative group/audio">
                             <button
                                 class="js-fc-audio-btn-overlay w-10 h-10 rounded-full bg-blue-500/90 backdrop-blur-sm text-white flex items-center justify-center hover:bg-blue-600 transition-all shadow-lg hover:scale-110"
@@ -78,15 +87,6 @@
                                 <i class="fas fa-play text-[7px] text-white translate-x-[0.5px]"></i>
                             </div>
                         </div>
-                    </div>
-
-                    {# Bottom-Left: Stats Detail Button #}
-                    <div class="absolute bottom-3 left-3 pointer-events-auto z-30">
-                        <button
-                            class="js-fc-stats-detail-overlay w-10 h-10 rounded-full bg-indigo-600/90 backdrop-blur-sm text-white flex items-center justify-center hover:bg-indigo-700 transition-all shadow-lg hover:scale-110"
-                            title="Chi tiết thống kê">
-                            <i class="fas fa-chart-pie text-sm"></i>
-                        </button>
                     </div>
 
                     {# Bottom-Right: Image Toggle Button #}
