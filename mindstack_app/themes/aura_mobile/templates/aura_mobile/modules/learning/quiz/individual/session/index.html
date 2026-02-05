@@ -434,8 +434,8 @@
 
     function init() {
         loadQuizTitleFromStorage();
-        // Always fetch from server, do not use client-side storage
-        getNextQuestionBatch();
+        // Always fetch from server, default to current state (forceNext=false)
+        getNextQuestionBatch(false);
     }
 
     function loadQuizTitleFromStorage() {
@@ -509,14 +509,16 @@
         updateProgressCard();
     }
 
-    async function getNextQuestionBatch() {
+    async function getNextQuestionBatch(forceNext = false) {
         setHtml('.js-quiz-content', `<div class="flex flex-col items-center justify-center h-full text-blue-500 min-h-[300px]"><i class="fas fa-spinner fa-spin text-4xl mb-3"></i><p>Đang tải câu hỏi...</p></div>`);
         toggleControlButtons('loading');
 
         try {
             // Add timestamp to prevent caching
-            const bustCacheUrl = getQuestionBatchUrl + (getQuestionBatchUrl.includes('?') ? '&' : '?') + 't=' + new Date().getTime();
-            const response = await fetch(bustCacheUrl, {
+            let url = getQuestionBatchUrl + (getQuestionBatchUrl.includes('?') ? '&' : '?') + 't=' + new Date().getTime();
+            url += `&force_next=${forceNext}`;
+
+            const response = await fetch(url, {
                 headers: {
                     'X-Requested-With': 'XMLHttpRequest',
                     'Cache-Control': 'no-cache, no-store, must-revalidate',
@@ -589,6 +591,29 @@
 
         // Allow DOM to settle then trigger scroll check
         setTimeout(handleScroll, 500);
+
+        // Restore submitted state if reloading
+        if (batchData.submitted_results) {
+            isBatchSubmitted = true;
+            toggleControlButtons('submitted');
+
+            // Restore answers map
+            Object.values(batchData.submitted_results).forEach(res => {
+                userAnswers[res.item_id] = res.user_answer; // Assuming 'user_answer' key in result or imply key
+            });
+
+            // Re-render feedback
+            Object.values(batchData.submitted_results).forEach(result => {
+                // Ensure user answer is set if missing in simplified result
+                if (!userAnswers[result.item_id] && result.user_answer_key) {
+                    userAnswers[result.item_id] = result.user_answer_key;
+                }
+                renderFeedbackForQuestion(result);
+            });
+
+            // Re-render nav to show correct/incorrect colors
+            renderQuickNav();
+        }
     }
 
     function renderQuickNav() {
@@ -866,7 +891,6 @@
             const qIdx = currentQuestionBatch.findIndex(q => q.item_id == activeHubItemId);
             if (qIdx !== -1) {
                 currentQuestionBatch[qIdx].ai_explanation = content;
-                saveState();
             }
         } catch (err) {
             if (contentDiv) contentDiv.innerHTML = '<span class="text-red-500 text-xs">Lỗi tải AI.</span>';
@@ -899,7 +923,6 @@
             const qIdx = currentQuestionBatch.findIndex(q => q.item_id == activeHubItemId);
             if (qIdx !== -1) {
                 currentQuestionBatch[qIdx].note_content = content;
-                saveState();
             }
             updateNoteUI(content);
             alert("Đã lưu ghi chú.");
@@ -920,7 +943,6 @@
         userAnswers[questionId] = selectedOption;
         document.querySelectorAll(`.option-button[data-question-id="${questionId}"]`).forEach(b => b.classList.remove('selected'));
         document.querySelectorAll(`.option-button[data-question-id="${questionId}"][data-option="${selectedOption}"]`).forEach(b => b.classList.add('selected'));
-        saveState();
         updateQuickNavState(questionId);
         checkCompletionStatus();
     }
@@ -1000,7 +1022,6 @@
 
             updateSessionSummary(responseData.session_correct_answers, responseData.session_total_answered);
             toggleControlButtons('submitted');
-            saveState();
 
         } catch (error) {
             console.error(error);
@@ -1379,7 +1400,6 @@
         try {
             const res = await fetch(endSessionUrl, { method: 'POST', headers: { 'Content-Type': 'application/json', ...csrfHeaders }, body: JSON.stringify({}) });
             const data = await res.json();
-            clearState();
 
             if (data.stats) {
                 // Hide modal first
@@ -1398,7 +1418,7 @@
         const btn = e.target.closest('button');
         if (!btn) return;
         if (btn.classList.contains('js-submit-batch-btn')) submitAnswerBatch();
-        if (btn.classList.contains('js-next-batch-btn')) getNextQuestionBatch();
+        if (btn.classList.contains('js-next-batch-btn')) getNextQuestionBatch(true);
         // End session handled by specific handler attachment or onclick
     });
 

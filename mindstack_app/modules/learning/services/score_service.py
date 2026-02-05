@@ -1,5 +1,8 @@
 """
 Learning Score Service
+[DEPRECATED]
+This service is deprecated. Please use `gamification` module services directly
+for awarding points/XP. `learning` module is now focused on Academic Progress.
 
 Service layer that connects ScoringEngine (pure logic) with 
 Gamification module (database operations).

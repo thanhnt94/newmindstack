@@ -45,7 +45,8 @@ class QuizSessionManager:
                  correct_answers, incorrect_answers, start_time, common_pre_question_text_global,
                  *, total_question_groups_in_session=None,
                  processed_question_count=0, group_numbering=None, group_sub_counters=None, 
-                 custom_pairs=None, batch_options_mappings=None, db_session_id=None):
+                 custom_pairs=None, batch_options_mappings=None, batch_correct_answers=None, 
+                 current_batch_cache=None, db_session_id=None):
         """
         Khởi tạo một phiên QuizSessionManager.
         """
@@ -64,7 +65,10 @@ class QuizSessionManager:
         self.group_numbering = group_numbering or {}
         self.group_sub_counters = group_sub_counters or {}
         self.custom_pairs = custom_pairs or []
+        self.custom_pairs = custom_pairs or []
         self.batch_options_mappings = batch_options_mappings or {} 
+        self.batch_correct_answers = batch_correct_answers or {}
+        self.current_batch_cache = current_batch_cache
         self.db_session_id = db_session_id
         self._media_folders_cache: Optional[dict[str, str]] = None
         current_app.logger.debug(f"QuizSessionManager: Instance được khởi tạo/tải. User: {self.user_id}, Set: {self.set_id}, Mode: {self.mode}")
@@ -91,6 +95,8 @@ class QuizSessionManager:
             group_sub_counters=session_dict.get('group_sub_counters') or {},
             custom_pairs=session_dict.get('custom_pairs') or [],
             batch_options_mappings=session_dict.get('batch_options_mappings') or {},
+            batch_correct_answers=session_dict.get('batch_correct_answers') or {},
+            current_batch_cache=session_dict.get('current_batch_cache'),
             db_session_id=session_dict.get('db_session_id')
         )
         instance._media_folders_cache = None
@@ -118,6 +124,8 @@ class QuizSessionManager:
             'group_sub_counters': self.group_sub_counters,
             'custom_pairs': self.custom_pairs,
             'batch_options_mappings': self.batch_options_mappings,
+            'batch_correct_answers': self.batch_correct_answers,
+            'current_batch_cache': self.current_batch_cache,
             'db_session_id': self.db_session_id
         }
 
@@ -272,6 +280,8 @@ class QuizSessionManager:
             group_sub_counters={},
             custom_pairs=custom_pairs,
             batch_options_mappings={},
+            batch_correct_answers={},
+            current_batch_cache=None,
             db_session_id=None
         )
 
@@ -338,13 +348,20 @@ class QuizSessionManager:
         return {}
 
 
-    def get_next_batch(self, requested_batch_size):
+    def get_next_batch(self, requested_batch_size, force_next=False):
         """
         Lấy dữ liệu của nhóm câu hỏi tiếp theo trong phiên học.
+        If force_next=False and cache exists, return cached batch (Reload support).
         """
-        current_app.logger.debug(f"SessionManager: Lấy nhóm câu hỏi: Đã xử lý {len(self.processed_item_ids)}/{self.total_items_in_session}, requested_batch_size={requested_batch_size}")
+        current_app.logger.debug(f"SessionManager: Lấy nhóm câu hỏi: Đã xử lý {len(self.processed_item_ids)}/{self.total_items_in_session}, size={requested_batch_size}, force={force_next}")
         
+        if not force_next and self.current_batch_cache:
+            current_app.logger.debug("SessionManager: Returning cached batch (Reload Detected).")
+            return self.current_batch_cache
+
         if len(self.processed_item_ids) >= self.total_items_in_session:
+            self.current_batch_cache = None # Clear cache provided end
+            session[self.SESSION_KEY] = self.to_dict()
             current_app.logger.debug("SessionManager: Hết câu hỏi trong phiên. Đã hiển thị đủ số lượng.")
             return None
 
@@ -424,6 +441,7 @@ class QuizSessionManager:
         
         # Reset mappings for new batch
         self.batch_options_mappings = {}
+        self.batch_correct_answers = {}
 
         for item in new_items_to_add_to_session:
             # Lấy ghi chú cho câu hỏi này
@@ -567,6 +585,10 @@ class QuizSessionManager:
             # Capture options mapping for validation
             if item_dict['content'].get('options'):
                 self.batch_options_mappings[str(item.item_id)] = item_dict['content']['options']
+            
+            # Capture dynamic correct answer (especially for Flashcards)
+            if item_dict['content'].get('correct_answer'):
+                 self.batch_correct_answers[str(item.item_id)] = item_dict['content']['correct_answer']
 
             # NO MORE MANUAL MEDIA RESOLUTION NEEDED (handled by Interface + mapping above)
             
@@ -645,10 +667,8 @@ class QuizSessionManager:
         self.group_numbering = group_numbering
         if main_numbers_in_batch:
             self.processed_question_count = max(self.processed_question_count, max(main_numbers_in_batch))
-        session[self.SESSION_KEY] = self.to_dict()
-        session.modified = True
-
-        return {
+        
+        result_batch = {
             'items': items_data,
             'common_pre_question_text_global': self.common_pre_question_text_global,
             'start_index': len(self.processed_item_ids) - len(items_data),
@@ -659,6 +679,11 @@ class QuizSessionManager:
             'session_correct_answers': self.correct_answers,
             'session_total_answered': self.correct_answers + self.incorrect_answers
         }
+        
+        self.current_batch_cache = result_batch
+        session[self.SESSION_KEY] = self.to_dict()
+        session.modified = True
+        return result_batch
 
     def process_answer_batch(self, answers):
         """
@@ -710,6 +735,7 @@ class QuizSessionManager:
                     session_id=getattr(self, 'db_session_id', None),
                     container_id=item.container_id if item else None,
                     mode=self.mode,
+                    correct_answer_override=self.batch_correct_answers.get(str(item_id)),
                     streak_position=0 
                 )
                 
@@ -734,10 +760,13 @@ class QuizSessionManager:
                             break
                 
                 if not correct_option_char:
-                    # Provide text if key not found (fallback)
-                    # correct_option_char = correct_text 
-                    # But frontend expects A/B/C... keep as None or handle logic mismatch
-                    pass
+                    # Fallback: Return the text itself if we can't map it to A/B/C/D
+                    # This prevents "null" from showing in UI
+                    correct_option_char = correct_text
+                    
+                    if not correct_option_char:
+                        # If even correct_text is empty, try to get from content directly
+                        correct_option_char = std_content.get('correct_answer') or std_content.get('correct_answer_text') or "N/A"
 
             item_stats = get_quiz_item_statistics(self.user_id, item_id)
             
@@ -754,6 +783,8 @@ class QuizSessionManager:
                 'explanation': explanation,
                 'statistics': item_stats,
                 'score_change': score_change,
+                'user_answer': check_val, # Add user answer for state restoration
+                'user_answer_key': user_answer_text # Add original key if needed
             }
             # Add SRS fields if available
             for field in ['mastery_delta', 'new_mastery_pct', 'points_breakdown', 'srs_result']:
@@ -786,6 +817,12 @@ class QuizSessionManager:
 
         print(f">>> SESSION_MANAGER: Nhóm đáp án đã xử lý. Đã xử lý tổng cộng: {len(self.processed_item_ids)} câu. <<<")
 
+        if self.current_batch_cache:
+            self.current_batch_cache['submitted_results'] = results
+            # Update session with new cache state
+            session[self.SESSION_KEY] = self.to_dict()
+            session.modified = True
+            
         return results
 
     @classmethod

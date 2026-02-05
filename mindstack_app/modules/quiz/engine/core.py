@@ -36,7 +36,7 @@ class QuizEngine:
     @classmethod
     def check_answer(cls, item_id, user_answer, user_id, duration_ms=0, 
                     user_answer_key=None, session_id=None, container_id=None, 
-                    mode=None, streak_position=0):
+                    mode=None, streak_position=0, correct_answer_override=None):
         """
         Process a quiz answer and return results for the UI.
         Delegates to quiz_logic for state updates and scoring.
@@ -54,7 +54,8 @@ class QuizEngine:
             current_user_total_score=current_score,
             session_id=session_id,
             container_id=container_id,
-            mode=mode
+            mode=mode,
+            correct_answer_override=correct_answer_override
         )
         
         # Build result dictionary matching QuizSessionManager expectations

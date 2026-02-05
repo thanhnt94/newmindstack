@@ -20,7 +20,7 @@ def _get_score_value(key: str, default: int) -> int:
         return default
 
 def process_quiz_answer(user_id, item_id, user_answer_text, current_user_total_score,
-                        session_id=None, container_id=None, mode=None):
+                        session_id=None, container_id=None, mode=None, correct_answer_override=None):
     """
     Xử lý một câu trả lời Quiz của người dùng, cập nhật ItemMemoryState,
     tính điểm và ghi log điểm số.
@@ -40,6 +40,11 @@ def process_quiz_answer(user_id, item_id, user_answer_text, current_user_total_s
 
     # Lấy đáp án đúng (dạng văn bản) và các lựa chọn
     correct_answer_text_from_db = std_content.get('correct_answer')
+    
+    # [NEW] Override correct answer if provided (for dynamic items like Flashcards)
+    if correct_answer_override:
+        correct_answer_text_from_db = correct_answer_override
+        
     correct_option_from_db = std_content.get('correct_option')
     options = std_content.get('options', {})
     explanation = std_content.get('explanation')
@@ -49,8 +54,10 @@ def process_quiz_answer(user_id, item_id, user_answer_text, current_user_total_s
     
     # 1. Try matching text content
     if correct_answer_text_from_db:
+        # Normalize for comparison
+        correct_text_norm = str(correct_answer_text_from_db).strip().lower()
         for key, value in options.items():
-            if value == correct_answer_text_from_db:
+            if str(value).strip().lower() == correct_text_norm:
                 correct_option_char = key
                 break
                 
@@ -62,12 +69,25 @@ def process_quiz_answer(user_id, item_id, user_answer_text, current_user_total_s
     if correct_option_char is None and correct_option_from_db in ['A', 'B', 'C', 'D']:
         correct_option_char = correct_option_from_db
     
-    if correct_option_char is None:
-        current_app.logger.error(f"Lỗi dữ liệu: Không tìm thấy ký tự lựa chọn cho đáp án đúng '{correct_answer_text_from_db}' của item_id={item_id}. Options: {options}")
-        is_correct = False
-        return score_change, current_user_total_score, is_correct, correct_option_char, explanation
+    # [NEW] Check correctness (Direct Text Match or Key Match)
+    is_correct = False
+    is_direct_text_match = False
+    
+    if user_answer_text and correct_answer_text_from_db:
+         if str(user_answer_text).strip().lower() == str(correct_answer_text_from_db).strip().lower():
+             is_correct = True
+             is_direct_text_match = True
+             
+    if not is_correct and correct_option_char:
+        is_correct = (user_answer_text == correct_option_char)
 
-    is_correct = (user_answer_text == correct_option_char)
+    if correct_option_char is None:
+        if is_direct_text_match:
+             # Allowed case: Dynamic item where we have text match but no options A/B/C loaded here
+             correct_option_char = correct_answer_text_from_db # Return text as fallback
+        else:
+            current_app.logger.error(f"Lỗi dữ liệu: Không tìm thấy ký tự lựa chọn cho đáp án đúng '{correct_answer_text_from_db}' của item_id={item_id}. Options: {options}")
+            return score_change, current_user_total_score, is_correct, correct_option_char, explanation
 
     # 1. Lấy hoặc tạo bản ghi ItemMemoryState
     # Note: unified state, ignoring 'quiz' mode in query

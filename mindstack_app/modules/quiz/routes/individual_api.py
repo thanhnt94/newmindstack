@@ -150,8 +150,11 @@ def get_question_batch():
 
     session_manager = QuizSessionManager.from_dict(session['quiz_session'])
     batch_size = session_manager.batch_size
+    
+    force_next = request.args.get('force_next', 'false').lower() == 'true'
+    
     try:
-        question_batch = session_manager.get_next_batch(batch_size)
+        question_batch = session_manager.get_next_batch(batch_size, force_next=force_next)
         session['quiz_session'] = session_manager.to_dict()
 
         if question_batch is None:

@@ -1,5 +1,9 @@
 """
 Scoring Engine - Gamification Points Calculation
+[DEPRECATED]
+This module is deprecated. Logic for XP, Points, and Badges should be moved
+to the `gamification` module. The `learning` module now focuses solely on
+Academic Evaluation (Grading) and Progress Tracking.
 
 Pure logic for calculating points from learning activities.
 No database access - only calculations based on inputs.

@@ -2,164 +2,23 @@
 Unified Progress Service
 ========================
 
-Provides a single interface for all learning progress operations,
-migrated to use ItemMemoryState (FSRS).
+Service for tracking Academic Progress (Course Completion).
+
+This service calculates how much of a course/container a user has completed.
+It does NOT handle Spaced Repetition (SRS) scheduling or memory states (handled by FSRS module).
+
+Key metrics:
+- Completion %: Items studied at least once / Total items.
+- Mastery %: Items with high stability / Total items.
 """
 
 from __future__ import annotations
+from typing import Dict, Any, Optional
 
-from datetime import datetime, timezone
-from typing import Optional, List, Dict, Any
-
-from sqlalchemy.sql import func
-
-from mindstack_app.models import db
-from mindstack_app.modules.fsrs.models import ItemMemoryState
-from ..schemas import LearningProgressSchema
+from mindstack_app.models import db, ItemMemoryState, LearningItem
 
 class ProgressService:
-    """Unified service for all learning progress operations."""
-    
-    # === Core CRUD Operations ===
-    
-    @classmethod
-    def get_or_create(
-        cls,
-        user_id: int,
-        item_id: int,
-        mode: str # mode is now context/ignored for retrieval
-    ) -> tuple[ItemMemoryState, bool]:
-        """Get existing memory state or create new record."""
-        state = ItemMemoryState.query.filter_by(
-            user_id=user_id,
-            item_id=item_id
-        ).first()
-        
-        if state:
-            return state, False
-        
-        state = ItemMemoryState(
-            user_id=user_id,
-            item_id=item_id,
-            state=0, # NEW
-            created_at=func.now()
-        )
-        db.session.add(state)
-        # Flush to get ID if needed
-        db.session.flush()
-        return state, True
-    
-    @classmethod
-    def get_progress(
-        cls,
-        user_id: int,
-        item_id: int,
-        mode: str
-    ) -> Optional[LearningProgressSchema]:
-        """Get progress record if exists."""
-        state = ItemMemoryState.query.filter_by(
-            user_id=user_id,
-            item_id=item_id
-        ).first()
-        if not state:
-            return None
-            
-        # Map ItemMemoryState to LearningProgressSchema for compatibility
-        return cls._map_to_schema(state, mode)
-    
-    @classmethod
-    def _map_to_schema(cls, state: ItemMemoryState, mode: str) -> LearningProgressSchema:
-        # Compatibility mapper
-        return LearningProgressSchema(
-            progress_id=state.state_id,
-            user_id=state.user_id,
-            item_id=state.item_id,
-            learning_mode=mode, # Fake mode
-            fsrs_state=state.state or 0,
-            fsrs_stability=state.stability or 0.0,
-            fsrs_difficulty=state.difficulty or 0.0,
-            fsrs_due=state.due_date,
-            fsrs_last_review=state.last_review,
-            first_seen=state.created_at,
-            lapses=state.lapses or 0,
-            repetitions=state.repetitions or 0,
-            times_correct=0, # Dropped
-            times_incorrect=0, # Dropped
-            correct_streak=state.streak or 0,
-            mode_data=state.data
-        )
-
-    @classmethod
-    def get_all_progress_for_user(
-        cls,
-        user_id: int,
-        mode: Optional[str] = None,
-        container_id: Optional[int] = None
-    ) -> List[LearningProgressSchema]:
-        """Get all progress records for a user."""
-        query = ItemMemoryState.query.filter_by(user_id=user_id)
-        
-        if container_id:
-            from mindstack_app.models import LearningItem
-            query = query.join(LearningItem).filter(
-                LearningItem.container_id == container_id
-            )
-        
-        results = query.all()
-        return [cls._map_to_schema(s, mode or 'unknown') for s in results]
-    
-    # === SRS Operations ===
-    
-    @classmethod
-    def get_due_items(
-        cls,
-        user_id: int,
-        mode: str,
-        container_id: Optional[int] = None,
-        limit: int = 100
-    ) -> List[LearningProgressSchema]:
-        """Get items due for review."""
-        now = datetime.now(timezone.utc)
-        
-        query = ItemMemoryState.query.filter(
-            ItemMemoryState.user_id == user_id,
-            ItemMemoryState.due_date <= now
-        )
-        
-        if container_id:
-            from mindstack_app.models import LearningItem
-            query = query.join(LearningItem).filter(
-                LearningItem.container_id == container_id
-            )
-        
-        results = query.order_by(ItemMemoryState.due_date).limit(limit).all()
-        return [cls._map_to_schema(s, mode) for s in results]
-    
-    @classmethod
-    def get_new_items(
-        cls,
-        user_id: int,
-        mode: str,
-        container_id: int,
-        limit: int = 20
-    ) -> List[int]:
-        """Get item IDs that user hasn't studied yet."""
-        from mindstack_app.models import LearningItem
-        
-        # Get items user already has state for
-        studied_items = db.session.query(ItemMemoryState.item_id).filter(
-            ItemMemoryState.user_id == user_id
-        ).subquery()
-        
-        # Get items from container not yet studied
-        new_items = LearningItem.query.filter(
-            LearningItem.container_id == container_id,
-            ~LearningItem.item_id.in_(studied_items)
-        ).order_by(LearningItem.order_in_container).limit(limit).all()
-        
-        return [item.item_id for item in new_items]
-    
-    # === Statistics ===
+    """Service for calculating Academic Progress statistics."""
     
     @classmethod
     def get_container_stats(
@@ -168,112 +27,74 @@ class ProgressService:
         container_id: int,
         mode: Optional[str] = None
     ) -> Dict[str, Any]:
-        """Get learning statistics for a container."""
-        from mindstack_app.models import LearningItem
+        """
+        Get learning statistics for a container (Course/Deck).
         
+        Returns:
+            dict: {
+                'total_items': int,
+                'studied': int,
+                'new': int,
+                'mastered': int,
+                'learning': int,
+                'completion_percentage': float,
+                'avg_retrievability': float,
+            }
+        """
+        # 1. Total Items in Container
         total_items = LearningItem.query.filter_by(
             container_id=container_id
         ).count()
         
-        # Progress query
+        if total_items == 0:
+            return cls._empty_stats()
+
+        # 2. User's Memory States for items in this container
+        # Join LearningItem to filter by container
         query = db.session.query(ItemMemoryState).join(LearningItem).filter(
             ItemMemoryState.user_id == user_id,
             LearningItem.container_id == container_id
         )
         
         progress_records = query.all()
+        studied_count = len(progress_records)
         
-        studied = len(progress_records)
-        # Mastered: stability >= 21
-        mastered = sum(1 for p in progress_records if (p.stability or 0) >= 21.0)
-        # Learning: state 1 or 3
-        learning = sum(1 for p in progress_records if p.state in (1, 3))
+        # 3. Calculate Derived Metrics
+        # Mastered: Arbitrary threshold, e.g., stability > 21 days
+        mastered_count = sum(1 for p in progress_records if (p.stability or 0) >= 21.0)
         
-        total_correct = 0 # Not tracking aggregate correct/incorrect in ItemMemoryState
-        total_incorrect = 0
+        # Learning: Currently explicitly in learning/relearning steps (state 1 or 3)
+        # OR just not mastered yet but studied
+        learning_count = sum(1 for p in progress_records if p.state in (1, 3))
+
+        # Average Retrievability (if available via FSRS Helper, else estimate)
+        # For simple stats, we might skip complex R calculation or use stability
+        avg_stability = sum(p.stability or 0 for p in progress_records) / studied_count if studied_count else 0
         
-        from mindstack_app.modules.fsrs.interface import FSRSInterface as FsrsService
-        avg_retrievability = (
-            sum(FsrsService.get_retrievability(p) for p in progress_records) / studied
-            if studied > 0 else 0
-        )
+        completion_pct = (studied_count / total_items * 100)
         
         return {
             'total_items': total_items,
-            'studied': studied,
-            'new': total_items - studied,
-            'mastered': mastered,
-            'learning': learning,
-            'total_correct': total_correct,
-            'total_incorrect': total_incorrect,
-            'accuracy': 0, # Cannot calc from ItemMemoryState
-            'avg_retrievability': avg_retrievability,
-            'avg_mastery': avg_retrievability,
-            'completion_percentage': (studied / total_items * 100) if total_items > 0 else 0,
+            'studied': studied_count,
+            'new': total_items - studied_count,
+            'mastered': mastered_count,
+            'learning': learning_count,
+            'completion_percentage': round(completion_pct, 1),
+            'avg_stability': round(avg_stability, 1),
+            # Legacy/Compatibility fields
+            'total_correct': 0, 
+            'total_incorrect': 0,
+            'accuracy': 0,
+            'avg_retrievability': 0, # Placeholder
+            'avg_mastery': 0, # Placeholder
         }
-    
-    # === Mode-Specific Methods (Delegates to FSRS Interface) ===
-    
-    @classmethod
-    def update_flashcard_progress(
-        cls,
-        user_id: int,
-        item_id: int,
-        quality: int,
-        **srs_updates
-    ) -> LearningProgressSchema:
-        """Update flashcard progress."""
-        from mindstack_app.modules.fsrs.interface import FSRSInterface
-        # This seems to duplicate logic if FSRSInterface.process_review was used.
-        # But if this is called manually, we should use FSRSInterface.
-        # However, FSRSInterface.process_review handles the logic.
-        # Let's assume this method is legacy or used by simple updates.
-        
-        state, result = FSRSInterface.process_review(
-            user_id=user_id,
-            item_id=item_id,
-            quality=quality,
-            mode='flashcard'
-        )
-        db.session.commit()
-        return cls._map_to_schema(state, 'flashcard')
-    
-    @classmethod
-    def update_quiz_progress(
-        cls,
-        user_id: int,
-        item_id: int,
-        is_correct: bool
-    ) -> LearningProgressSchema:
-        """Update quiz progress."""
-        from mindstack_app.modules.fsrs.interface import FSRSInterface
-        quality = 3 if is_correct else 1
-        
-        state, result = FSRSInterface.process_review(
-            user_id=user_id,
-            item_id=item_id,
-            quality=quality,
-            mode='quiz'
-        )
-        db.session.commit()
-        return cls._map_to_schema(state, 'quiz')
-    
-    @classmethod
-    def update_memrise_progress(
-        cls,
-        user_id: int,
-        item_id: int,
-        is_correct: bool,
-        duration_ms: int = 0
-    ) -> LearningProgressSchema:
-        from mindstack_app.modules.fsrs.interface import FSRSInterface
-        quality = 3 if is_correct else 1
-        state, result = FSRSInterface.process_review(
-            user_id=user_id,
-            item_id=item_id,
-            quality=quality,
-            mode='memrise',
-            duration_ms=duration_ms
-        )
-        db.session.commit()
-        return cls._map_to_schema(state, 'memrise')
+
+    @staticmethod
+    def _empty_stats() -> Dict[str, Any]:
+        return {
+            'total_items': 0, 'studied': 0, 'new': 0,
+            'mastered': 0, 'learning': 0,
+            'completion_percentage': 0, 'avg_stability': 0,
+            'total_correct': 0, 'total_incorrect': 0,
+            'accuracy': 0, 'avg_retrievability': 0, 'avg_mastery': 0
+        }
