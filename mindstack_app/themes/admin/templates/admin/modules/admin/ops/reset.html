@@ -8,11 +8,12 @@
 {% block content %}
 <div class="p-6">
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-        
+
         <!-- Reset Learning Progress -->
         <div class="bg-white rounded-xl border border-orange-200 shadow-sm overflow-hidden">
             <div class="p-6">
-                <div class="w-12 h-12 rounded-lg bg-orange-100 text-orange-600 flex items-center justify-center text-xl mb-4">
+                <div
+                    class="w-12 h-12 rounded-lg bg-orange-100 text-orange-600 flex items-center justify-center text-xl mb-4">
                     <i class="fas fa-history"></i>
                 </div>
                 <h3 class="text-lg font-bold text-slate-800 mb-2">Đặt lại Tiến độ Học tập</h3>
@@ -20,8 +21,47 @@
                     Xóa toàn bộ lịch sử ôn tập (FSRS), trạng thái hoàn thành bài học và điểm số của TẤT CẢ người dùng.
                     <br><strong>Dữ liệu không thể khôi phục.</strong>
                 </p>
-                <button onclick="confirmReset('learning')" class="w-full py-2.5 rounded-lg border border-orange-200 text-orange-700 font-semibold hover:bg-orange-50 transition">
+                <button onclick="confirmReset('learning')"
+                    class="w-full py-2.5 rounded-lg border border-orange-200 text-orange-700 font-semibold hover:bg-orange-50 transition">
                     Xóa Tiến độ
+                </button>
+            </div>
+        </div>
+
+        <!-- Selective Reset -->
+        <div class="bg-white rounded-xl border border-blue-200 shadow-sm overflow-hidden">
+            <div class="p-6">
+                <div
+                    class="w-12 h-12 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center text-xl mb-4">
+                    <i class="fas fa-user-slash"></i>
+                </div>
+                <h3 class="text-lg font-bold text-slate-800 mb-2">Xóa Tiến độ Theo cụm</h3>
+                <p class="text-sm text-slate-500 mb-4">
+                    Xóa tiến độ của một NGƯỜI DÙNG tại một BỘ HỌC TẬP cụ thể.
+                </p>
+
+                <div class="space-y-3 mb-6">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-500 uppercase mb-1">Chọn Người dùng</label>
+                        <select id="selective_user_select"
+                            class="w-full px-3 py-1.5 rounded-lg border border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none text-sm bg-white">
+                            <option value="">-- Đang tải người dùng... --</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-500 uppercase mb-1">Chọn Bộ Học tập
+                            (Set/Course)</label>
+                        <select id="selective_container_select" disabled
+                            class="w-full px-3 py-1.5 rounded-lg border border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none text-sm bg-slate-50">
+                            <option value="">-- Chọn người dùng trước --</option>
+                        </select>
+                        <p id="container_count_hint" class="text-[10px] text-slate-400 mt-1"></p>
+                    </div>
+                </div>
+
+                <button id="btn_selective_reset" onclick="selectiveReset()" disabled
+                    class="w-full py-2.5 rounded-lg bg-slate-300 text-white font-semibold cursor-not-allowed transition">
+                    Xóa Tiến độ Theo cụm
                 </button>
             </div>
         </div>
@@ -37,7 +77,8 @@
                     Xóa toàn bộ Khóa học, Flashcards, Quiz trong hệ thống.
                     <br><strong>Cảnh báo:</strong> Tiến độ học tập liên quan cũng sẽ bị xóa.
                 </p>
-                <button onclick="confirmReset('content')" class="w-full py-2.5 rounded-lg border border-red-200 text-red-700 font-semibold hover:bg-red-50 transition">
+                <button onclick="confirmReset('content')"
+                    class="w-full py-2.5 rounded-lg border border-red-200 text-red-700 font-semibold hover:bg-red-50 transition">
                     Xóa Nội dung
                 </button>
             </div>
@@ -49,7 +90,8 @@
                 <i class="fas fa-radiation"></i>
             </div>
             <div class="p-6 relative z-10">
-                <div class="w-12 h-12 rounded-lg bg-slate-800 text-red-500 flex items-center justify-center text-xl mb-4 border border-slate-700">
+                <div
+                    class="w-12 h-12 rounded-lg bg-slate-800 text-red-500 flex items-center justify-center text-xl mb-4 border border-slate-700">
                     <i class="fas fa-biohazard"></i>
                 </div>
                 <h3 class="text-lg font-bold text-white mb-2">Factory Reset</h3>
@@ -57,7 +99,8 @@
                     Xóa sạch dữ liệu (Nội dung, User, Tiến độ) đưa hệ thống về trạng thái ban đầu.
                     <br><strong>Chỉ giữ lại tài khoản Admin.</strong>
                 </p>
-                <button onclick="confirmReset('factory')" class="w-full py-2.5 rounded-lg bg-red-600 hover:bg-red-700 text-white font-bold transition shadow-lg shadow-red-900/50">
+                <button onclick="confirmReset('factory')"
+                    class="w-full py-2.5 rounded-lg bg-red-600 hover:bg-red-700 text-white font-bold transition shadow-lg shadow-red-900/50">
                     FACTORY RESET
                 </button>
             </div>
@@ -70,7 +113,7 @@
     async function confirmReset(type) {
         let message = '';
         let url = '';
-        
+
         if (type === 'learning') {
             message = 'Bạn có CHẮC CHẮN muốn xóa toàn bộ TIẾN ĐỘ HỌC TẬP? Hành động này không thể hoàn tác.';
             url = "{{ url_for('ops.reset_learning') }}";
@@ -101,7 +144,7 @@
                 }
             });
             const data = await response.json();
-            
+
             if (data.success) {
                 alert('Thành công: ' + data.message);
                 window.location.reload();
@@ -111,6 +154,151 @@
         } catch (e) {
             alert('Lỗi kết nối: ' + e);
         }
+    }
+
+    async function selectiveReset() {
+        const userId = document.getElementById('selective_user_select').value;
+        const containerId = document.getElementById('selective_container_select').value;
+
+        if (!userId || !containerId) {
+            alert('Vui lòng chọn đầy đủ Người dùng và Bộ học tập');
+            return;
+        }
+
+        const userText = document.getElementById('selective_user_select').options[document.getElementById('selective_user_select').selectedIndex].text;
+        const containerText = document.getElementById('selective_container_select').options[document.getElementById('selective_container_select').selectedIndex].text;
+
+        if (!confirm(`CẢNH BÁO: Bạn có chắc muốn xóa TOÀN BỘ TIẾN ĐỘ của:\n- Người dùng: ${userText}\n- Bộ học tập: ${containerText}?\nHành động này không thể hoàn tác.`)) return;
+
+        try {
+            const response = await fetch("{{ url_for('ops.reset_user_container') }}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': "{{ csrf_token() }}"
+                },
+                body: JSON.stringify({
+                    user_id: parseInt(userId),
+                    container_id: parseInt(containerId)
+                })
+            });
+            const data = await response.json();
+
+            if (data.success) {
+                alert('Thành công: ' + data.message);
+                window.location.reload();
+            } else {
+                alert('Lỗi: ' + data.message);
+            }
+        } catch (e) {
+            alert('Lỗi kết nối: ' + e);
+        }
+    }
+
+    // Discovery Logic
+    document.addEventListener('DOMContentLoaded', async () => {
+        await loadDiscoveryUsers();
+
+        document.getElementById('selective_user_select').addEventListener('change', async (e) => {
+            const userId = e.target.value;
+            if (userId) {
+                await loadDiscoveryContainers(userId);
+            } else {
+                resetContainerSelect();
+            }
+        });
+
+        document.getElementById('selective_container_select').addEventListener('change', () => {
+            const containerId = document.getElementById('selective_container_select').value;
+            const btn = document.getElementById('btn_selective_reset');
+            if (containerId) {
+                btn.disabled = false;
+                btn.classList.remove('bg-slate-300', 'cursor-not-allowed');
+                btn.classList.add('bg-blue-600', 'hover:bg-blue-700');
+            } else {
+                btn.disabled = true;
+                btn.classList.add('bg-slate-300', 'cursor-not-allowed');
+                btn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
+            }
+        });
+    });
+
+    async function loadDiscoveryUsers() {
+        const select = document.getElementById('selective_user_select');
+        try {
+            const response = await fetch("{{ url_for('ops.discovery_users') }}");
+            const data = await response.json();
+
+            select.innerHTML = '<option value="">-- Chọn người dùng --</option>';
+            if (data.success && data.users.length > 0) {
+                data.users.forEach(u => {
+                    const opt = document.createElement('option');
+                    opt.value = u.user_id;
+                    opt.textContent = `${u.username} (${u.email})`;
+                    select.appendChild(opt);
+                });
+            } else {
+                select.innerHTML = '<option value="">-- Không tìm thấy user có tiến độ --</option>';
+            }
+        } catch (e) {
+            console.error('Lỗi tải người dùng:', e);
+            select.innerHTML = '<option value="">-- Lỗi tải dữ liệu --</option>';
+        }
+    }
+
+    async function loadDiscoveryContainers(userId) {
+        const select = document.getElementById('selective_container_select');
+        const btn = document.getElementById('btn_selective_reset');
+        const hint = document.getElementById('container_count_hint');
+
+        select.disabled = true;
+        select.innerHTML = '<option value="">-- Đang tải bộ học tập... --</option>';
+        select.classList.add('bg-slate-50');
+        hint.textContent = '';
+
+        try {
+            const response = await fetch(`/admin/ops/discovery/containers/${userId}`);
+            const data = await response.json();
+
+            select.innerHTML = '<option value="">-- Chọn bộ học tập --</option>';
+            if (data.success && data.containers.length > 0) {
+                data.containers.forEach(c => {
+                    const opt = document.createElement('option');
+                    opt.value = c.container_id;
+                    opt.textContent = `[${c.type}] ${c.title}`;
+                    select.appendChild(opt);
+                });
+                select.disabled = false;
+                select.classList.remove('bg-slate-50');
+                hint.textContent = `Tìm thấy ${data.containers.length} bộ đã học.`;
+            } else {
+                select.innerHTML = '<option value="">-- Người dùng chưa học bộ nào --</option>';
+                hint.textContent = 'Người dùng này chưa có tiến độ ghi nhận.';
+            }
+        } catch (e) {
+            console.error('Lỗi tải bộ học tập:', e);
+            select.innerHTML = '<option value="">-- Lỗi tải dữ liệu --</option>';
+        }
+
+        // Always ensure button is disabled when user or container selection changes
+        btn.disabled = true;
+        btn.classList.add('bg-slate-300', 'cursor-not-allowed');
+        btn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
+    }
+
+    function resetContainerSelect() {
+        const select = document.getElementById('selective_container_select');
+        const btn = document.getElementById('btn_selective_reset');
+        const hint = document.getElementById('container_count_hint');
+
+        select.disabled = true;
+        select.innerHTML = '<option value="">-- Chọn người dùng trước --</option>';
+        select.classList.add('bg-slate-50');
+        hint.textContent = '';
+
+        btn.disabled = true;
+        btn.classList.add('bg-slate-300', 'cursor-not-allowed');
+        btn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
     }
 </script>
 {% endblock %}
