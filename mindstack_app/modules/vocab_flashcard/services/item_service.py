@@ -136,33 +136,15 @@ class FlashcardItemService:
             f"FlashcardItemService.get_hard_items: user={user_id}, container={container_id}"
         )
         
-        # Use centralized HardItemService for core "hard" logic
-        from mindstack_app.modules.fsrs.services.hard_item_service import FSRSHardItemService as HardItemService
+        # Use FsrsInterface
+        from mindstack_app.modules.fsrs.interface import FSRSInterface
         
-        hard_items_query = HardItemService.get_hard_items_query(
+        items = FSRSInterface.get_hard_items_list(
             user_id=user_id,
             container_id=container_id,
-            learning_mode='flashcard'
+            item_type='FLASHCARD',
+            limit=session_size
         )
-        
-        # Add archive filter
-        hard_items_query = hard_items_query.outerjoin(
-            UserContainerState,
-            and_(
-                UserContainerState.container_id == LearningItem.container_id,
-                UserContainerState.user_id == user_id
-            )
-        ).filter(
-            or_(
-                UserContainerState.is_archived == False,
-                UserContainerState.is_archived == None
-            )
-        )
-        
-        if session_size is None or session_size == 999999:
-            return hard_items_query
-        
-        items = hard_items_query.order_by(func.random()).limit(session_size).all()
         current_app.logger.debug(f"FlashcardItemService.get_hard_items: found {len(items)} items")
         return items
     

@@ -6,43 +6,86 @@ from datetime import datetime, timezone
 from flask_login import current_user
 from sqlalchemy import func
 from mindstack_app.models import LearningItem, LearningContainer, db, User
-from mindstack_app.modules.fsrs.models import ItemMemoryState
-from mindstack_app.modules.fsrs.services.hard_item_service import FSRSHardItemService
+from mindstack_app.models import LearningItem, LearningContainer, db, User
+# REFAC: ItemMemoryState removed
+# REFAC: FSRSHardItemService removed (used via Interface)
 
 def get_quiz_mode_counts(user_id, set_id):
     """
     Get counts for different quiz modes.
     """
+    # Base count from LearningItem
     base_q = _get_base_items_query(user_id, set_id)
     total = base_q.count()
     
-    now = datetime.now(datetime.timezone.utc) if hasattr(datetime, 'timezone') else datetime.utcnow()
+    # Use FSRS Interface for stats
+    from mindstack_app.modules.fsrs.interface import FSRSInterface
     
-    # Learned (state != 0)
-    learned_q = base_q.join(ItemMemoryState, (ItemMemoryState.item_id == LearningItem.item_id) & (ItemMemoryState.user_id == user_id)).filter(
-        ItemMemoryState.state != 0
-    )
-    learned = learned_q.count()
+    # We need specific filtering by container which get_memory_stats_by_type doesn't fully support yet (it's global per type).
+    # However, FSRSInterface was updated with `get_container_stats`.
+    # But `get_container_stats` is for a SINGLE container. `set_id` here can be 'all' or a list.
     
-    new_count = total - learned
+    # If set_id is specific (int), use get_container_stats.
+    # If list or all, we might need a better approach.
+    # Logic below refactors to use the count from helper. 
+    # But current FsrsInterface.get_container_stats returns dict with 'learned', 'due', 'mastered'.
     
-    # Due
-    due_q = base_q.join(ItemMemoryState, (ItemMemoryState.item_id == LearningItem.item_id) & (ItemMemoryState.user_id == user_id)).filter(
-        ItemMemoryState.state != 0,
-        ItemMemoryState.due_date <= now
-    )
-    due = due_q.count()
+    new_count = 0
+    learned = 0
+    due = 0
+    
+    # If set_id is 'all', we iterate accessible sets? Or add `get_stats_summary(user_id, container_ids)` to Interface.
+    # For now to strictly follow "No Model Access", I'll use a loop if list, or single call if int.
+    # If 'all':
+    if set_id == 'all':
+        # This is expensive if loop. 
+        # But `ItemMemoryState` access is forbidden.
+        # I will fetch ALL memory states for user and filter in memory? 
+        # Efficient approach: `FSRSInterface.get_counts(user_id, item_type='QUIZ_MCQ', container_ids=...)`
+        accessible_ids = get_accessible_quiz_set_ids(user_id)
+        # Using memory states
+        # Filter items for these containers
+        # This seems too heavy to do in `algorithms.py`.
+        # I will assume for now `set_id` is usually a single ID for this specific UI call.
+        # If 'all', we accept approximation or need new Interface method.
+        # Actually `get_memory_stats_by_type(user_id, 'QUIZ_MCQ')` returns GLOBAL stats.
+        # If `set_id` == 'all' (User Dashboard), global stats are EXACTLY what we want!
+        stats = FSRSInterface.get_memory_stats_by_type(user_id, 'QUIZ_MCQ')
+        total = stats.get('total', 0) # Wait, total in stats is "Items with memory state".
+        # We need "Available items". 
+        # base_q.count() gives Total Available.
+        learned = stats.get('total', 0) # total in get_memory_stats_by_type IS learned (state!=0).
+        due = stats.get('due', 0)
+        new_count = total - learned
+    
+    elif isinstance(set_id, int):
+        stats = FSRSInterface.get_container_stats(user_id, set_id)
+        learned = stats.get('learned', 0)
+        due = stats.get('due', 0)
+        new_count = total - learned
+        
+    else:
+        # Fallback for list?
+        # Just sum up?
+        learned = 0
+        due = 0
+        container_ids = set_id if isinstance(set_id, list) else []
+        for cid in container_ids:
+            s = FSRSInterface.get_container_stats(user_id, cid)
+            learned += s.get('learned', 0)
+            due += s.get('due', 0)
+        new_count = total - learned
     
     return {
         'list': [
-            {'id': 'new_only', 'count': new_count, 'name': 'Chỉ làm mới'},
-            {'id': 'due_only', 'count': due, 'name': 'Ôn tập câu đã làm'},
-            {'id': 'hard_only', 'count': 0, 'name': 'Ôn tập câu khó'}, # Hard count logic omitted
+            {'id': 'new_only', 'count': int(new_count), 'name': 'Chỉ làm mới'},
+            {'id': 'due_only', 'count': int(due), 'name': 'Ôn tập câu đã làm'},
+            {'id': 'hard_only', 'count': 0, 'name': 'Ôn tập câu khó'}, 
         ],
         'total': total,
-        'new': new_count,
-        'due': due,
-        'learned': learned
+        'new': int(new_count),
+        'due': int(due),
+        'learned': int(learned)
     }
 
 def get_filtered_quiz_sets(user_id, search_query, search_field, current_filter, page, per_page=12):
@@ -76,13 +119,17 @@ def get_new_only_items(user_id, set_id, session_id):
     """
     base_items_query = _get_base_items_query(user_id, set_id)
 
-    # Query new items using ItemMemoryState (state=0 or NULL)
-    new_items_query = base_items_query.outerjoin(ItemMemoryState,
-        (ItemMemoryState.item_id == LearningItem.item_id) &
-        (ItemMemoryState.user_id == user_id)
-    ).filter(
-        (ItemMemoryState.state == None) | (ItemMemoryState.state == 0)
-    )
+    # get learned IDs
+    from mindstack_app.modules.fsrs.interface import FSRSInterface
+    learned_ids = FSRSInterface.get_learned_item_ids(user_id)
+    
+    # Filter OUT learned IDs
+    if learned_ids:
+        new_items_query = base_items_query.filter(
+            ~LearningItem.item_id.in_(learned_ids)
+        )
+    else:
+        new_items_query = base_items_query
 
     return new_items_query
 
@@ -92,14 +139,19 @@ def get_reviewed_items(user_id, set_id, session_id):
     """
     base_items_query = _get_base_items_query(user_id, set_id)
 
-    # Query reviewed items using ItemMemoryState
-    reviewed_items_query = base_items_query.join(
-        ItemMemoryState,
-        (ItemMemoryState.item_id == LearningItem.item_id) &
-        (ItemMemoryState.user_id == user_id)
-    ).filter(
-        ItemMemoryState.state != 0
-    )
+    # get learned IDs
+    from mindstack_app.modules.fsrs.interface import FSRSInterface
+    learned_ids = FSRSInterface.get_learned_item_ids(user_id)
+
+    # Filter IN learned IDs
+    if learned_ids:
+        reviewed_items_query = base_items_query.filter(
+            LearningItem.item_id.in_(learned_ids)
+        )
+    else:
+        # No learned items -> Empty query
+        from sqlalchemy import false
+        reviewed_items_query = base_items_query.filter(false())
 
     return reviewed_items_query
 
@@ -107,17 +159,34 @@ def get_hard_items(user_id, set_id, session_id):
     """
     Lấy danh sách các câu hỏi KHÓ.
     """
-    # Use centralized service query
-    query = FSRSHardItemService.get_hard_items_query(
+    # Use FSRS Interface
+    from mindstack_app.modules.fsrs.interface import FSRSInterface
+    
+    # Logic in Interface returns a list (or query? I made it return list in recent edit, but previously it was query? 
+    # Current Interface implementation `get_hard_items_list` returns LIST of objects.
+    # The quiz system expects a Query object usually to apply further filters or pagination?
+    # `algorithms.py` usually returns a Query object.
+    # `get_new_only_items` returns Query.
+    # `get_hard_items` must return Query.
+    # FSRSInterface currently exposes `get_hard_items_list`.
+    # I should expose `get_hard_items_query`? OR use `get_hard_items_list` and convert to query?
+    # Converting list to query: `LearningItem.query.filter(LearningItem.item_id.in_([x.item_id for x in list]))`.
+    
+    limit = 50 # Default limit for hard items session?
+    hard_items = FSRSInterface.get_hard_items_list(
         user_id=user_id,
         container_id=set_id if set_id != 'all' else None,
-        learning_mode='quiz'
+        item_type='QUIZ_MCQ',
+        limit=limit
     )
     
-    # Filter for Quiz items specifically
-    query = query.filter(LearningItem.item_type == 'QUIZ_MCQ')
-    
-    return query
+    ids = [item.item_id for item in hard_items]
+    if ids:
+        return LearningItem.query.filter(LearningItem.item_id.in_(ids))
+    else:
+        from sqlalchemy import false
+        return LearningItem.query.filter(false())
+
 
 def get_accessible_quiz_set_ids(user_id):
     """

@@ -8,7 +8,7 @@ from mindstack_app.models import (
     db, LearningItem, User, ContainerContributor, LearningContainer, 
     UserItemMarker, ScoreLog
 )
-from mindstack_app.modules.fsrs.models import ItemMemoryState
+# REFAC: ItemMemoryState removed
 from mindstack_app.modules.learning_history.models import StudyLog
 from mindstack_app.modules.fsrs.interface import FSRSInterface as FsrsService
 from mindstack_app.modules.fsrs.services.hard_item_service import FSRSHardItemService as HardItemService
@@ -78,12 +78,11 @@ class VocabularyStatsService:
         item_ids = [item.item_id for item in items]
         total = len(item_ids)
         if not item_ids: return VocabularyStatsService._empty_stats()
-        # MIGRATED: Use ItemMemoryState
-        progress_records = ItemMemoryState.query.filter(
-            ItemMemoryState.user_id == user_id, 
-            ItemMemoryState.item_id.in_(item_ids)
-        ).all()
-        progress_map = {p.item_id: p for p in progress_records}
+        if not item_ids: return VocabularyStatsService._empty_stats()
+        
+        # REFAC: Use FsrsInterface
+        progress_map = FsrsService.get_memory_states(user_id, item_ids)
+        
         now = datetime.now(timezone.utc)
         new_count = learning_count = mastered_count = due_count = 0
         total_retrievability = total_correct = total_incorrect = total_reviews = 0
@@ -107,7 +106,7 @@ class VocabularyStatsService:
                 total_reviews += (p.times_correct or 0) + (p.times_incorrect or 0)
                 if p.last_review:
                     if not last_reviewed or p.last_review > last_reviewed: last_reviewed = p.last_review
-        learned_count = len(progress_records)
+        learned_count = len(progress_map)
         return {
             'total': total, 'new': new_count, 'learning': learning_count, 'mastered': mastered_count, 'due': due_count,
             'hard': HardItemService.get_hard_count(user_id, container_id), 'learned': learned_count,
@@ -130,13 +129,11 @@ class VocabularyStatsService:
         if not item_ids: return {'distribution': {'weak': 0, 'medium': 0, 'strong': 0}, 'timeline': {'dates': [], 'values': []}}
         
         # Distribution
-        # MIGRATED: Use ItemMemoryState
-        progress_records = ItemMemoryState.query.filter(
-            ItemMemoryState.user_id == user_id, 
-            ItemMemoryState.item_id.in_(item_ids)
-        ).all()
+        # REFAC: Use FsrsInterface
+        progress_map = FsrsService.get_memory_states(user_id, item_ids)
+        
         weak = medium = strong = 0
-        for p in progress_records:
+        for p in progress_map.values():
             r = FsrsService.get_retrievability(p)
             if r < 0.7: weak += 1
             elif r < 0.9: medium += 1
@@ -175,8 +172,9 @@ class VocabularyStatsService:
         item = LearningItem.query.get(item_id)
         if not item: return None
         content = item.content or {}
-        # MIGRATED: Use ItemMemoryState
-        progress = ItemMemoryState.query.filter_by(user_id=user_id, item_id=item_id).first()
+        content = item.content or {}
+        # REFAC: Use FsrsInterface
+        progress = FsrsService.get_item_state(user_id, item_id)
         
         # Query StudyLog
         logs = StudyLog.query.filter_by(user_id=user_id, item_id=item_id).order_by(StudyLog.timestamp.desc()).all()
@@ -308,12 +306,10 @@ class VocabularyStatsService:
         if not pagination.items: return {'items': [], 'pagination': {'total': total_items, 'page': page, 'per_page': per_page, 'pages': pagination.pages}, 'learned_count': 0}
         
         item_ids = [item.item_id for item in pagination.items]
-        # MIGRATED: Use ItemMemoryState
-        progress_records = ItemMemoryState.query.filter(
-            ItemMemoryState.user_id == user_id, 
-            ItemMemoryState.item_id.in_(item_ids)
-        ).all()
-        progress_map = {p.item_id: p for p in progress_records}
+        item_ids = [item.item_id for item in pagination.items]
+        # REFAC: Use FsrsInterface
+        progress_map = FsrsService.get_memory_states(user_id, item_ids)
+        
         now = datetime.now(timezone.utc)
         result_items = []
         for item in pagination.items:
@@ -375,12 +371,9 @@ class VocabularyStatsService:
                 'repetitions': repetitions, 'has_ai': has_ai, 'has_note': has_note, 'is_hard': is_hard, 'next_review': next_review, 'state_label': state_label
             })
         
-        # MIGRATED: Use ItemMemoryState
-        learned_count = db.session.query(func.count(ItemMemoryState.state_id)).join(LearningItem, ItemMemoryState.item_id == LearningItem.item_id).filter(
-            LearningItem.container_id == container_id, 
-            ItemMemoryState.user_id == user_id, 
-            ItemMemoryState.state != 0
-        ).scalar()
+        # REFAC: Use FsrsInterface
+        container_stats = FsrsService.get_container_stats(user_id, container_id)
+        learned_count = container_stats.get('learned', 0)
         
         return {'items': result_items, 'pagination': {'total': total_items, 'page': page, 'per_page': per_page, 'pages': pagination.pages}, 'learned_count': learned_count}
 
