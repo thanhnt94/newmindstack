@@ -34,70 +34,156 @@
 
 <div class="space-y-6" x-data="factoryApp()">
 
-    <!-- Top: Quick Start Form -->
-    <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-        <div class="px-6 py-4 border-b border-slate-200 bg-slate-50/50 flex justify-between items-center">
-            <h3 class="text-sm font-bold text-slate-700 uppercase tracking-wider">Start New Production Batch</h3>
-            <button @click="showForm = !showForm" class="text-indigo-600 text-sm hover:underline">
-                <span x-show="!showForm">Show Options</span>
-                <span x-show="showForm">Hide Options</span>
-            </button>
-        </div>
-
-        <form method="POST" x-show="showForm" x-transition class="p-6">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div class="lg:col-span-1 space-y-3">
-                    <label class="block text-xs font-bold text-slate-500 uppercase">1. Select Study Set</label>
-                    <select name="container_id" required
-                        class="w-full rounded-lg border-slate-300 text-sm focus:ring-indigo-500">
-                        <option value="" disabled selected>-- Choose a Set --</option>
-                        {% for c in containers %}
-                        <option value="{{ c.container_id }}">{{ c.title }} ({{ c.container_type }})</option>
-                        {% endfor %}
-                    </select>
-
-                    <label class="block text-xs font-bold text-slate-500 uppercase">Batch Name (Optional)</label>
-                    <input type="text" name="batch_name" placeholder="e.g. Vocabulary Set 1 - Audio"
-                        class="w-full rounded-lg border-slate-300 text-sm">
-                </div>
-
-                <div class="lg:col-span-1 space-y-3">
-                    <label class="block text-xs font-bold text-slate-500 uppercase">2. What to build?</label>
-                    <div class="flex flex-col gap-2">
-                        <label class="flex items-center gap-2 cursor-pointer">
-                            <input type="checkbox" name="gen_audio" checked class="rounded text-indigo-600">
-                            <span class="text-sm text-slate-700">Audio (TTS)</span>
-                        </label>
-                        <label class="flex items-center gap-2 cursor-pointer">
-                            <input type="checkbox" name="gen_ai_content" class="rounded text-indigo-600">
-                            <span class="text-sm text-slate-700">AI Explanations</span>
-                        </label>
-                        <label class="flex items-center gap-2 cursor-pointer mt-2">
-                            <input type="checkbox" name="overwrite" class="rounded text-rose-600">
-                            <span class="text-sm text-slate-700 font-bold">Overwrite existing content</span>
-                        </label>
+    <!-- Production Control Panel -->
+    <div class="mb-8" x-data="{
+        selectedContainerId: '',
+        selectedContainerType: '',
+        containers: [
+            {% for c in containers %}
+            { id: {{ c.container_id }}, title: `{{ c.title|e }}`, type: `{{ c.container_type }}` },
+            {% endfor %}
+        ],
+        showOptions: true,
+        
+        get isQuiz() {
+            const c = this.containers.find(x => x.id == this.selectedContainerId);
+            return c && (c.type === 'quiz_set' || c.type === 'quiz' || c.type === 'QUIZ_SET' || c.type === 'QUIZ');
+        },
+        
+        updateSelection(evt) {
+            this.selectedContainerId = evt.target.value;
+        }
+    }">
+        <div class="bg-slate-900 rounded-2xl shadow-xl border border-slate-700 overflow-hidden relative">
+            <!-- Header -->
+            <div class="px-6 py-4 border-b border-slate-800 flex justify-between items-center bg-slate-950/50">
+                <div class="flex items-center gap-3">
+                    <div
+                        class="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center text-white shadow-lg shadow-indigo-500/30">
+                        <i class="fas fa-industry"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-white font-bold text-lg tracking-tight">Production Control</h2>
+                        <p class="text-slate-400 text-xs">Start a new content generation batch</p>
                     </div>
                 </div>
-
-                <div class="lg:col-span-1 space-y-2">
-                    <label class="block text-xs font-bold text-slate-500 uppercase">3. Speed & Safety</label>
-                    <div class="flex items-center gap-3">
-                        <input type="number" name="bulk_delay" value="5" min="1"
-                            class="w-20 rounded border-slate-300 text-sm">
-                        <span class="text-xs text-slate-500">sec delay per item</span>
-                    </div>
-                </div>
-            </div>
-
-            <div class="mt-6 pt-6 border-t border-slate-100 flex justify-end">
-                <button type="submit"
-                    class="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition font-bold shadow-md">
-                    <i class="fas fa-play mr-2"></i> Launch Production
+                <button @click="showOptions = !showOptions"
+                    class="text-slate-500 hover:text-white transition-colors text-sm font-medium">
+                    <span x-text="showOptions ? 'Hide Options' : 'Show Options'"></span>
                 </button>
             </div>
-        </form>
+
+            <!-- Form Body -->
+            <div x-show="showOptions" x-collapse>
+                <form method="POST" class="p-6 grid grid-cols-1 lg:grid-cols-12 gap-8">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                    <!-- Col 1: Source & Identity -->
+                    <div class="lg:col-span-5 space-y-5">
+                        <div class="space-y-2">
+                            <label class="text-slate-400 text-xs font-bold uppercase tracking-wider">Target Study
+                                Set</label>
+                            <div class="relative">
+                                <select name="container_id" required @change="updateSelection"
+                                    class="w-full bg-slate-800 text-white border-2 border-slate-700 rounded-xl px-4 py-3 focus:outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/20 transition-all appearance-none">
+                                    <option value="" disabled selected>-- Select Source Material --</option>
+                                    {% for c in containers %}
+                                    <option value="{{ c.container_id }}">
+                                        [{{ c.container_type|replace('_SET', '') }}] {{ c.title }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                                <div
+                                    class="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-500">
+                                    <i class="fas fa-chevron-down"></i>
+                                </div>
+                            </div>
+                            <p class="text-xs text-slate-500" x-show="!selectedContainerId">Select a Flashcard Set or
+                                Quiz to begin.</p>
+                            <p class="text-xs text-amber-400" x-show="isQuiz" x-transition>
+                                <i class="fas fa-exclamation-triangle mr-1"></i> Quiz Sets: Audio generation is
+                                disabled.
+                            </p>
+                        </div>
+
+                        <div class="space-y-2">
+                            <label class="text-slate-400 text-xs font-bold uppercase tracking-wider">Batch Label
+                                (Optional)</label>
+                            <input type="text" name="batch_name" placeholder="e.g. Weekly Update v1"
+                                class="w-full bg-slate-800 text-white border border-slate-700 rounded-lg px-4 py-2 focus:border-slate-500 focus:outline-none transition-colors placeholder-slate-600">
+                        </div>
+                    </div>
+
+                    <!-- Col 2: Configuration -->
+                    <div class="lg:col-span-4 space-y-5">
+                        <label class="text-slate-400 text-xs font-bold uppercase tracking-wider">Generation
+                            Tasks</label>
+
+                        <div class="bg-slate-800/50 rounded-xl p-4 space-y-3 border border-slate-700/50">
+                            <!-- Audio Option -->
+                            <label
+                                class="flex items-start gap-3 p-2 rounded-lg hover:bg-slate-800 transition-colors cursor-pointer group"
+                                :class="{'opacity-50 pointer-events-none': isQuiz}">
+                                <div class="relative flex items-center mt-1">
+                                    <input type="checkbox" name="gen_audio" value="gen_audio" checked :disabled="isQuiz"
+                                        class="peer h-5 w-5 border-2 border-slate-600 rounded bg-slate-900 checked:bg-indigo-500 checked:border-indigo-500 focus:ring-0 transition-all">
+                                </div>
+                                <div class="flex-1">
+                                    <div class="text-slate-200 font-medium group-hover:text-white">Generate Audio (TTS)
+                                    </div>
+                                    <div class="text-xs text-slate-500">Create mp3 files for items.</div>
+                                </div>
+                            </label>
+
+                            <!-- AI Content Option -->
+                            <label
+                                class="flex items-start gap-3 p-2 rounded-lg hover:bg-slate-800 transition-colors cursor-pointer group">
+                                <div class="relative flex items-center mt-1">
+                                    <input type="checkbox" name="gen_ai_content" value="gen_ai_content"
+                                        class="peer h-5 w-5 border-2 border-slate-600 rounded bg-slate-900 checked:bg-indigo-500 checked:border-indigo-500 focus:ring-0 transition-all">
+                                </div>
+                                <div class="flex-1">
+                                    <div class="text-slate-200 font-medium group-hover:text-white">AI Explanations</div>
+                                    <div class="text-xs text-slate-500">Generate meanings & examples.</div>
+                                </div>
+                            </label>
+
+                            <!-- Overwrite Option -->
+                            <label
+                                class="flex items-start gap-3 p-2 rounded-lg hover:bg-slate-800 transition-colors cursor-pointer group border-t border-slate-700 pt-3">
+                                <div class="relative flex items-center mt-1">
+                                    <input type="checkbox" name="overwrite" value="overwrite"
+                                        class="peer h-5 w-5 border-2 border-slate-600 rounded bg-slate-900 checked:bg-rose-500 checked:border-rose-500 focus:ring-0 transition-all">
+                                </div>
+                                <div class="flex-1">
+                                    <div class="text-slate-200 font-medium group-hover:text-rose-400">Force Overwrite
+                                    </div>
+                                    <div class="text-xs text-slate-500">Re-generate existing content.</div>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Col 3: Launch -->
+                    <div class="lg:col-span-3 flex flex-col justify-end">
+                        <div class="bg-slate-800/30 rounded-xl p-4 mb-4 border border-dashed border-slate-700">
+                            <label class="flex justify-between text-xs text-slate-400 mb-2">
+                                <span>Throttle (Speed)</span>
+                                <span class="text-white font-mono">5s</span>
+                            </label>
+                            <input type="range" name="bulk_delay" min="1" max="20" value="5"
+                                class="w-full accent-indigo-500 h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer">
+                        </div>
+
+                        <button type="submit"
+                            class="w-full py-4 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-bold rounded-xl shadow-lg shadow-indigo-900/40 transform transition hover:-translate-y-0.5 active:translate-y-0 flex items-center justify-center gap-2 group">
+                            <span>Launch Production</span>
+                            <i class="fas fa-rocket group-hover:translate-x-1 transition-transform"></i>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
     </div>
 
     <!-- Main Workspace -->
