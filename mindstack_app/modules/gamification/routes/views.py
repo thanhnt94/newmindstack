@@ -13,7 +13,7 @@ def gamification_points():
         return redirect(url_for('dashboard.dashboard'))
     
     from mindstack_app.core.defaults import DEFAULT_APP_CONFIGS
-    return render_template('admin/admin_gamification/points_settings.html', 
+    return render_template('admin/modules/admin/admin_gamification/points_settings.html', 
                           active_tab='points', 
                           config=current_app.config, 
                           defaults=DEFAULT_APP_CONFIGS,
@@ -69,7 +69,7 @@ def list_badges():
         return redirect(url_for('dashboard.dashboard'))
         
     badges = Badge.query.order_by(Badge.created_at.desc()).all()
-    return render_template('admin/admin_gamification/badges_list.html', badges=badges, active_tab='badges', active_page='badges')
+    return render_template('admin/modules/admin/admin_gamification/badges_list.html', badges=badges, active_tab='badges', active_page='badges')
 
 @blueprint.route('/badges/new', methods=['GET', 'POST'])
 @login_required
@@ -101,7 +101,7 @@ def create_badge():
             db.session.rollback()
             flash(f'Lỗi: {str(e)}', 'error')
 
-    return render_template('admin/admin_gamification/badge_form.html', badge=None)
+    return render_template('admin/modules/admin/admin_gamification/badge_form.html', badge=None)
 
 @blueprint.route('/badges/<int:badge_id>/edit', methods=['GET', 'POST'])
 @login_required
@@ -128,7 +128,7 @@ def edit_badge(badge_id):
             db.session.rollback()
             flash(f'Lỗi: {str(e)}', 'error')
             
-    return render_template('admin/admin_gamification/badge_form.html', badge=badge)
+    return render_template('admin/modules/admin/admin_gamification/badge_form.html', badge=badge)
 
 @blueprint.route('/badges/<int:badge_id>/delete', methods=['POST'])
 @login_required

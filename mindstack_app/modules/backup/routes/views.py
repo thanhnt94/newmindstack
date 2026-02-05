@@ -76,7 +76,7 @@ def manage_backup_restore():
     ]
 
     return render_template(
-        'admin/backup_restore.html',
+        'admin/modules/admin/backup_restore.html',
         backup_entries=backup_entries,
         dataset_options=dataset_options,
     )

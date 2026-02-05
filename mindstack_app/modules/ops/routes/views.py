@@ -13,4 +13,4 @@ def reset_page():
         flash('Permission denied', 'danger')
         return redirect(url_for('admin.admin_dashboard'))
 
-    return render_template('admin/ops/reset.html', active_page='ops_reset')
+    return render_template('admin/modules/admin/ops/reset.html', active_page='ops_reset')

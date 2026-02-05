@@ -20,7 +20,7 @@ def admin_dashboard():
         'MAINTENANCE_MESSAGE': AppSettings.get('MAINTENANCE_MESSAGE', MaintenanceDefaultConfig.MAINTENANCE_MESSAGE),
     }
 
-    return render_template('admin/maintenance/index.html', settings=settings, active_page='maintenance')
+    return render_template('admin/modules/admin/maintenance/index.html', settings=settings, active_page='maintenance')
 
 @blueprint.route('/update', methods=['POST'])
 @login_required

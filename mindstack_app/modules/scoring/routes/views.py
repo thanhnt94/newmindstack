@@ -16,4 +16,4 @@ def dashboard():
 
     scoring_groups = ScoringConfigService.get_all_configs()
 
-    return render_template('admin/scoring/index.html', groups=scoring_groups, active_page='scoring')
+    return render_template('admin/modules/admin/scoring/index.html', groups=scoring_groups, active_page='scoring')
