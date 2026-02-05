@@ -1,0 +1,65 @@
+{% extends "admin/base_site.html" %}
+
+{% block title %}Content Generator Logs{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h3 class="card-title">Generation History</h3>
+                <a href="{{ url_for('content_generator.test_generator') }}" class="btn btn-primary btn-sm">
+                    <i class="fas fa-plus"></i> New Task
+                </a>
+            </div>
+            <div class="card-body p-0">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Type</th>
+                            <th>Session</th>
+                            <th>Requester</th>
+                            <th>Status</th>
+                            <th>Cost (Tokens)</th>
+                            <th>Created At</th>
+                            <th>Result</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for log in logs.items %}
+                        <tr>
+                            <td>{{ log.id }}</td>
+                            <td><span class="badge bg-info">{{ log.request_type }}</span></td>
+                            <td><small>{{ log.session_id or '-' }}</small></td>
+                            <td>{{ log.requester_module }}</td>
+                            <td>
+                                {% if log.status == 'completed' %}
+                                    <span class="badge bg-success">Completed</span>
+                                {% elif log.status == 'failed' %}
+                                    <span class="badge bg-danger">Failed</span>
+                                {% else %}
+                                    <span class="badge bg-warning">{{ log.status }}</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ log.cost_tokens }}</td>
+                            <td>{{ log.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                            <td>
+                                {% if log.error_message %}
+                                    <small class="text-danger">{{ log.error_message[:50] }}...</small>
+                                {% else %}
+                                    <small class="text-muted">Click to view</small>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <div class="card-footer clearfix">
+                {# Pagination here if needed #}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

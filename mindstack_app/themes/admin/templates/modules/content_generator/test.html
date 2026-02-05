@@ -1,0 +1,54 @@
+{% extends "admin/base_site.html" %}
+
+{% block title %}Test Generator{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-6 offset-md-3">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">Create New Generation Task</h3>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    <div class="form-group mb-3">
+                        <label>Task Type</label>
+                        <select name="type" class="form-control">
+                            <option value="text">Text Generation (LLM)</option>
+                            <option value="audio">Audio Generation (TTS)</option>
+                            <option value="image">Image Generation</option>
+                        </select>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                             <div class="form-group mb-3">
+                                <label>Session ID (Optional)</label>
+                                <input type="text" name="session_id" class="form-control" placeholder="e.g. course_creation_001">
+                                <small class="text-muted">Group related requests together.</small>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label>Delay (Seconds)</label>
+                                <input type="number" name="delay" class="form-control" value="0" min="0" max="3600">
+                                <small class="text-danger">Use delay to prevent API bans!</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group mb-3">
+                        <label>Prompt / Text</label>
+                        <textarea name="prompt" class="form-control" rows="5" required placeholder="Enter prompt or text here..."></textarea>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-magic"></i> Generate
+                    </button>
+                    <a href="{{ url_for('content_generator.index') }}" class="btn btn-secondary">Cancel</a>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

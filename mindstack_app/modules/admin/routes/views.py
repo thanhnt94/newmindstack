@@ -18,6 +18,7 @@ from mindstack_app.models import (
     AppSettings, UserContainerState, Note, ScoreLog, Feedback as UserFeedback
 )
 from mindstack_app.modules.fsrs.models import ItemMemoryState
+from mindstack_app.modules.content_generator.models import GenerationLog
 from mindstack_app.modules.learning_history.models import StudyLog
 from mindstack_app.utils.pagination import get_pagination_data
 from mindstack_app.modules.content_management.forms import CourseForm, FlashcardSetForm, QuizSetForm
@@ -116,9 +117,9 @@ def admin_dashboard():
         .all()
     )
 
-    recent_tasks = (
-        BackgroundTask.query.order_by(nullslast(BackgroundTask.last_updated.desc()))
-        .limit(4)
+    recent_generations = (
+        GenerationLog.query.order_by(GenerationLog.created_at.desc())
+        .limit(5)
         .all()
     )
 
@@ -129,7 +130,7 @@ def admin_dashboard():
         stats_data=stats_data,
         recent_users=recent_users,
         recent_containers=recent_containers,
-        recent_tasks=recent_tasks,
+        recent_generations=recent_generations,
         overview_metrics=overview_metrics,
     )
 
@@ -212,65 +213,6 @@ def content_config_page():
     return render_template('admin/modules/admin/content_config.html', 
                            general_settings=general_settings,
                            active_page='content_config')
-
-# --- Background Task Views ---
-
-@blueprint.route('/tasks')
-def manage_background_tasks():
-    """
-    Mô tả: Hiển thị trang quản lý các tác vụ nền.
-    """
-    tasks = BackgroundTask.query.all()
-    desired_tasks = [
-        'generate_audio_cache',
-        'clean_audio_cache',
-        'generate_image_cache',
-        'clean_image_cache',
-        'generate_ai_explanations'
-    ]
-    created_any = False
-    for task_name in desired_tasks:
-        if not BackgroundTask.query.filter_by(task_name=task_name).first():
-            db.session.add(BackgroundTask(task_name=task_name, message='Sẵn sàng', is_enabled=True))
-            created_any = True
-    if created_any:
-        db.session.commit()
-        tasks = BackgroundTask.query.all()
-
-    flashcard_containers = (
-        LearningContainer.query.filter_by(container_type='FLASHCARD_SET')
-        .order_by(LearningContainer.title.asc())
-        .all()
-    )
-    quiz_containers = (
-        LearningContainer.query.filter_by(container_type='QUIZ_SET')
-        .order_by(LearningContainer.title.asc())
-        .all()
-    )
-
-    return render_template(
-        'admin/modules/admin/background_tasks.html',
-        tasks=tasks,
-        flashcard_containers=flashcard_containers,
-        quiz_containers=quiz_containers,
-        default_request_interval=DEFAULT_REQUEST_INTERVAL_SECONDS,
-    )
-
-@blueprint.route('/tasks/<int:task_id>/logs', methods=['GET'])
-def view_task_logs(task_id: int):
-    task = BackgroundTask.query.get_or_404(task_id)
-    logs = (
-        BackgroundTaskLog.query.filter_by(task_id=task_id)
-        .order_by(BackgroundTaskLog.created_at.desc())
-        .limit(200)
-        .all()
-    )
-
-    return render_template(
-        'admin/modules/admin/background_task_logs.html',
-        task=task,
-        logs=logs,
-    )
 
 # --- Content Management Views ---
 

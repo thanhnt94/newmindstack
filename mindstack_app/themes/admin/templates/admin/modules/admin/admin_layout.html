@@ -175,8 +175,7 @@
                 {
                 'title': 'Vận hành (Ops)',
                 'items': [
-                {'key': 'tasks', 'label': 'Tác vụ nền', 'icon': 'fa-diagram-project', 'endpoint':
-                'admin.manage_background_tasks'},
+                {'key': 'content_generator', 'label': 'Content Generator', 'icon': 'fa-robot', 'endpoint': 'content_generator.index'},
                 {'key': 'media', 'label': 'File Manager', 'icon': 'fa-folder-open', 'endpoint': 'admin.media_library'},
                 {'key': 'backup', 'label': 'Backup & Restore', 'icon': 'fa-database', 'endpoint':
                 'backup.manage_backup_restore'},
@@ -193,10 +192,6 @@
                     class="admin-sidebar-link {% if active_page == item.key %}is-active{% else %}text-slate-200{% endif %}">
                     <span class="w-5 text-center"><i class="fas {{ item.icon }}"></i></span>
                     <span>{{ item.label }}</span>
-                    {% if item.key == 'tasks' and admin_sidebar_metrics.running_tasks %}
-                    <span class="ml-auto admin-chip bg-amber-100 text-amber-700">{{ admin_sidebar_metrics.running_tasks
-                        }}</span>
-                    {% endif %}
                     {% if item.key == 'settings' and admin_sidebar_metrics.maintenance_mode %}
                     <span class="ml-auto admin-chip bg-rose-100 text-rose-700">Bảo trì</span>
                     {% endif %}
