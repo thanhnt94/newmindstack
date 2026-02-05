@@ -1434,6 +1434,24 @@
       box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
   }
 
+  /* Selected State */
+  .flashcard-mobile-view .fc-rating-btn.selected {
+      transform: scale(1.05);
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+      z-index: 10;
+      border: 2px solid #3b82f6;
+      /* Blue border to highlight */
+      opacity: 1 !important;
+  }
+
+  /* Dimmed State */
+  .flashcard-mobile-view .fc-rating-btn.dimmed {
+      opacity: 0.4;
+      transform: scale(0.95);
+      filter: grayscale(1);
+      pointer-events: none;
+  }
+
   .flashcard-mobile-view .fc-rating-btn i {
       font-size: 0.9rem;
       margin-bottom: 2px;
@@ -1692,9 +1710,21 @@
 
   /* Animation for updated stats highlighting */
   @keyframes stats-pulse {
-      0% { transform: scale(1); color: inherit; }
-      50% { transform: scale(1.2); color: #3b82f6; text-shadow: 0 0 8px rgba(59, 130, 246, 0.4); }
-      100% { transform: scale(1); color: inherit; }
+      0% {
+          transform: scale(1);
+          color: inherit;
+      }
+
+      50% {
+          transform: scale(1.2);
+          color: #3b82f6;
+          text-shadow: 0 0 8px rgba(59, 130, 246, 0.4);
+      }
+
+      100% {
+          transform: scale(1);
+          color: inherit;
+      }
   }
 
   .stats-updated-flash {

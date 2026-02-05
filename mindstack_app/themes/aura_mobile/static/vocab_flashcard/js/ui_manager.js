@@ -602,6 +602,18 @@ function renderCard(data) {
                 btn.style.removeProperty('display');
             }
         });
+
+        // [New] Reset Footer Rating Buttons State
+        const footerRatingBtns = document.querySelector('.js-fc-rating-btns');
+        if (footerRatingBtns) {
+            // Hide them (since we are on front) and reset visual state
+            footerRatingBtns.classList.remove('show');
+            const allRatingBtns = footerRatingBtns.querySelectorAll('.fc-rating-btn, .js-rating-btn');
+            allRatingBtns.forEach(btn => {
+                btn.classList.remove('selected', 'dimmed');
+                btn.style.pointerEvents = '';
+            });
+        }
     };
 
     // Check if we need to wait for front image
@@ -1798,11 +1810,6 @@ document.addEventListener('notificationStart', function () {
     if (mobileView) {
         mobileView.classList.add('notification-active');
     }
-    // Also hide bottom bar explicitly for safety
-    const bottomBar = document.querySelector('.fc-bottom-bar');
-    if (bottomBar) {
-        bottomBar.style.display = 'none';
-    }
     // Set flag so renderCard knows to defer audio
     window.pendingAudioAutoplay = true;
 
@@ -1822,21 +1829,6 @@ document.addEventListener('notificationComplete', function () {
     const mobileView = document.querySelector('.flashcard-mobile-view');
     if (mobileView) {
         mobileView.classList.remove('notification-active');
-    }
-    // Show bottom bar again
-    const bottomBar = document.querySelector('.fc-bottom-bar');
-    if (bottomBar) {
-        bottomBar.style.display = '';
-    }
-    // Reset flip button visibility
-    const flipBtn = document.querySelector('.js-fc-flip-btn');
-    if (flipBtn) {
-        flipBtn.style.display = '';
-    }
-    // Hide rating buttons
-    const ratingBtns = document.querySelector('.js-fc-rating-btns');
-    if (ratingBtns) {
-        ratingBtns.classList.remove('show');
     }
 
     // Now trigger audio autoplay if enabled

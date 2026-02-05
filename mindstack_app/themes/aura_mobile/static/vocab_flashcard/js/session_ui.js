@@ -6,6 +6,24 @@
     // 1. Define global handler for inline onclick
     window.onMobileRatingClick = function (ratingValue) {
         if (window.hidePreviewTooltip) window.hidePreviewTooltip();
+
+        // --- VISUAL FEEDBACK STATE ---
+        // 1. Find all buttons
+        const allBtns = document.querySelectorAll('.fc-rating-btn, .js-rating-btn');
+        allBtns.forEach(btn => {
+            // Check if this is the clicked button
+            // Normalize values to string for comparison
+            if (String(btn.dataset.rating) === String(ratingValue)) {
+                btn.classList.add('selected');
+                btn.classList.remove('dimmed');
+            } else {
+                btn.classList.remove('selected');
+                btn.classList.add('dimmed');
+            }
+            // Disable pointer events to prevent double submission
+            btn.style.pointerEvents = 'none';
+        });
+
         console.log('[FSRS Mobile] Button clicked via inline handler:', ratingValue);
 
         // Map rating to answer strings
@@ -27,13 +45,10 @@
             console.error('[FSRS Mobile] submitFlashcardAnswer not found or batch empty');
         }
 
-        // UI Reset
-        const flipBtn = document.querySelector('.fc-flip-btn');
-        const ratingBtnsContainer = document.querySelector('.fc-rating-btns');
-        setTimeout(() => {
-            if (flipBtn) flipBtn.style.display = 'flex';
-            if (ratingBtnsContainer) ratingBtnsContainer.classList.remove('show');
-        }, 100);
+        // --- PREVENT UI RESET ---
+        // Do NOT hide buttons here. They should remain visible (highlighted)
+        // until the next card renders, which will replace the entire button set or reset the state.
+        // The renderCard function in ui_manager.js will handle the reset.
     };
 
     // Helper to get mobile stats container safely
@@ -706,17 +721,10 @@
     // --- Smart Transition Helpers ---
 
     window.hideRatingButtons = function () {
-        const ratingBtns = document.querySelector('.fc-rating-btns');
-        if (ratingBtns) {
-            // Use opacity for immediate visual feedback without layout shift
-            ratingBtns.style.opacity = '0';
-            ratingBtns.style.pointerEvents = 'none'; // Disable clicks
-        }
-        const bottomFlipBtn = document.querySelector('.fc-flip-btn');
-        if (bottomFlipBtn) {
-            bottomFlipBtn.style.opacity = '0';
-            bottomFlipBtn.style.pointerEvents = 'none';
-        }
+        // [MODIFIED] Do NOT hide buttons immediately.
+        // We want the selected state (dimmed/highlighted) to persist until the next card loads.
+        // The renderCard function will handle the cleanup.
+        console.log('[UI] hideRatingButtons called - Ignored for persistent feedback');
     };
 
     window.showRatingButtons = function () {
