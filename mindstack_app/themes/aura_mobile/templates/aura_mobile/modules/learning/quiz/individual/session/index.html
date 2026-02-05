@@ -824,7 +824,7 @@
                 const containerId = btn.dataset.containerId;
 
                 if (qId && containerId) {
-                    const editUrl = `/content/quizzes/${containerId}/items/edit/${qId}`;
+                    const editUrl = `/content/manage/container/${containerId}/edit_item/${qId}`;
                     if (window.openEditModal) window.openEditModal(editUrl, qId);
                 } else {
                     alert("Thiếu thông tin để sửa câu hỏi.");

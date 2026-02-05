@@ -135,7 +135,7 @@ def _get_base_items_query(user_id, set_id):
     Helper: Trả về query cơ bản lấy LearningItem dựa trên set_id.
     """
     query = LearningItem.query.filter(
-        LearningItem.item_type == 'QUIZ_MCQ'
+        LearningItem.item_type.in_(['QUIZ_MCQ', 'QUESTION', 'FLASHCARD'])
     )
 
     if set_id == 'all':

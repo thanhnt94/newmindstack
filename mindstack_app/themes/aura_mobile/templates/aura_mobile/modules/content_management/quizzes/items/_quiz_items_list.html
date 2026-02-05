@@ -109,12 +109,17 @@
                         <p><span class="font-semibold text-slate-500">Đáp án đúng:</span> {{
                             item.resolved_correct_answer or item.content.correct_answer }}</p>
                         <ul class="list-disc space-y-1 pl-5 text-xs text-slate-500">
-                            <li><span class="font-semibold text-slate-600">A:</span> {{ item.content.options.A }}</li>
-                            <li><span class="font-semibold text-slate-600">B:</span> {{ item.content.options.B }}</li>
-                            {% if item.content.options.C %}<li><span class="font-semibold text-slate-600">C:</span> {{
-                                item.content.options.C }}</li>{% endif %}
-                            {% if item.content.options.D %}<li><span class="font-semibold text-slate-600">D:</span> {{
-                                item.content.options.D }}</li>{% endif %}
+                            {% set opts = item.content.get('options') or {} %}
+                            <li><span class="font-semibold text-slate-600">A:</span> {{ opts.get('A') or
+                                item.content.get('option_a', '') }}</li>
+                            <li><span class="font-semibold text-slate-600">B:</span> {{ opts.get('B') or
+                                item.content.get('option_b', '') }}</li>
+                            {% set val_c = opts.get('C') or item.content.get('option_c') %}
+                            {% if val_c %}<li><span class="font-semibold text-slate-600">C:</span> {{ val_c }}</li>{%
+                            endif %}
+                            {% set val_d = opts.get('D') or item.content.get('option_d') %}
+                            {% if val_d %}<li><span class="font-semibold text-slate-600">D:</span> {{ val_d }}</li>{%
+                            endif %}
                         </ul>
                     </div>
                 </div>

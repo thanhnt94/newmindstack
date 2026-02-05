@@ -15,12 +15,11 @@ def setup_module(app):
     """Initialize the FSRS module."""
     from . import models
     from .routes.api import api_bp
-    from .routes.admin_views import fsrs_bp as admin_views_bp
+    # Import admin_views to ensure routes are registered to fsrs_bp
+    from .routes import admin_views
 
     # Register API routes
     app.register_blueprint(api_bp)
     
-    # Register Admin/View routes
-    # Note: 'fsrs_bp' defined at module level is often used for templates in older structure.
-    # We ensure the admin views are registered.
-    app.register_blueprint(admin_views_bp)
+    # Register Admin/View routes (fsrs_bp has interpreted the routes via admin_views import)
+    app.register_blueprint(fsrs_bp)

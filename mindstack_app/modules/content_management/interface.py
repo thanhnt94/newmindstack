@@ -116,10 +116,18 @@ class ContentInterface:
                     "explanation": item.ai_explanation or raw_content.get('explanation', '')
                 })
                 
-            elif item.item_type == 'QUIZ_MCQ':
+            elif item.item_type in ('QUIZ_MCQ', 'QUESTION'):
+                # Normalize options (Handle legacy flat structure)
+                options = raw_content.get('options') or {}
+                if not options:
+                    for k, f in [('A', 'option_a'), ('B', 'option_b'), ('C', 'option_c'), ('D', 'option_d')]:
+                        val = raw_content.get(f)
+                        if val not in (None, ''):
+                            options[k] = val
+
                 standardized.update({
                     "question": raw_content.get('question', ''),
-                    "options": raw_content.get('options', {}),
+                    "options": options,
                     "correct_option": raw_content.get('correct_option', ''),
                     "correct_answer": raw_content.get('correct_answer', ''),
                     "explanation": item.ai_explanation or raw_content.get('explanation', ''),

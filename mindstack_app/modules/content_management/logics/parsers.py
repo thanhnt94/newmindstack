@@ -19,11 +19,92 @@ ACTION_ALIASES = {
 }
 
 
+# Field normalization aliases
+COLUMN_ALIASES = {
+    # Common
+    'item_id': {'item_id', 'id', 'id câu hỏi', 'id item'},
+    'order_in_container': {'order', 'stt', 'order_in_container', 'thứ tự', 'sắp xếp'},
+
+    # Flashcard
+    'front': {'front', 'mặt trước', 'mat truoc', 'term', 'từ vựng', 'tu vung', 'từ', 'text 1', 'question'}, # 'question' can be front in FC context
+    'back': {'back', 'mặt sau', 'mat sau', 'definition', 'định nghĩa', 'dinh nghia', 'nghĩa', 'nghia', 'answer', 'text 2'}, # 'answer' can be back in FC context
+    'front_img': {'front_img', 'ảnh mặt trước', 'anh mat truoc', 'front image', 'image 1'},
+    'back_img': {'back_img', 'ảnh mặt sau', 'anh mat sau', 'back image', 'image 2'},
+    'front_audio_url': {'front_audio_url', 'audio mặt trước', 'audio mat truoc', 'audio 1', 'audio front'},
+    'back_audio_url': {'back_audio_url', 'audio mặt sau', 'audio mat sau', 'audio 2', 'audio back'},
+
+    # Quiz
+    'question': {'question', 'câu hỏi', 'cau hoi', 'nội dung câu hỏi', 'noidung', 'content', 'text 1', 'q'},
+    'correct_answer': {'correct_answer', 'correct answer', 'đáp án đúng', 'dap an dung', 'đáp án', 'dap an', 'answer', 'ans', 'correct', 'key', 'result'},
+    'explanation': {'explanation', 'giải thích', 'giai thich', 'lời giải', 'loi giai', 'explain', 'suggest', 'hint', 'gợi ý', 'goi y'},
+    'option_a': {'option_a', 'option a', 'lựa chọn a', 'lua chon a', 'a', 'đáp án a', 'dap an a', 'choice a'},
+    'option_b': {'option_b', 'option b', 'lựa chọn b', 'lua chon b', 'b', 'đáp án b', 'dap an b', 'choice b'},
+    'option_c': {'option_c', 'option c', 'lựa chọn c', 'lua chon c', 'c', 'đáp án c', 'dap an c', 'choice c'},
+    'option_d': {'option_d', 'option d', 'lựa chọn d', 'lua chon d', 'd', 'đáp án d', 'dap an d', 'choice d'},
+    'pre_question_text': {'pre_question_text', 'pre question', 'đoạn văn trước', 'doan van truoc', 'context', 'bối cảnh'},
+    
+    # AI
+    'ai_explanation': {'ai_explanation', 'ai giải thích', 'ai giai thich'},
+    'ai_prompt': {'ai_prompt', 'ai prompt', 'prompt'}
+}
+
+def normalize_column_headers(columns: List[str]) -> Dict[str, str]:
+    """
+    Map raw column names to standardized field names based on aliases.
+    
+    Args:
+        columns: List of raw column headers.
+        
+    Returns:
+        Dictionary mapping { 'Raw Header': 'standard_name' }
+    """
+    mapping = {}
+    used_standards = set()
+    
+    for col in columns:
+        clean_col = str(col).strip().lower()
+        
+        # Check explicit match first (priority)
+        matched = False
+        for standard, aliases in COLUMN_ALIASES.items():
+            if clean_col == standard or clean_col in aliases:
+                # Conflict resolution: if 'question' is claimed, don't map 'front' to it if 'front' alias has 'question'
+                # Simple logic: First match wins? Or Specificity?
+                # 'question' is in both 'question' aliases (self) and 'front' aliases.
+                # If we are parsing for generic, we might have ambiguity.
+                # But 'question' key alias set includes 'question'.
+                # 'front' key alias set includes 'question'.
+                # Order of dict iteration matters in Py3.7+.
+                # To fix ambiguity: remove 'question' from 'front' aliases if we want strict quiz support?
+                # Or assume context. 
+                # Let's keep it simple: First match in COLUMN_ALIASES wins.
+                # I should reorder COLUMN_ALIASES to prioritize QUIZ keys if similar?
+                # Or prioritize Exact Match.
+                
+                if clean_col == standard:
+                     mapping[col] = standard
+                     used_standards.add(standard)
+                     matched = True
+                     break
+                
+        if not matched:
+            # Check aliases
+            for standard, aliases in COLUMN_ALIASES.items():
+                 if clean_col in aliases:
+                     mapping[col] = standard
+                     used_standards.add(standard)
+                     matched = True
+                     break
+                     
+    return mapping
+
+
 def classify_columns(
     columns: List[str],
     standard_columns: Set[str],
     system_columns: Set[str],
-    ai_columns: Set[str]
+    ai_columns: Set[str],
+    required_columns: Optional[List[str]] = None
 ) -> Dict[str, List[str]]:
     """
     Classify DataFrame columns into categories.
@@ -33,6 +114,7 @@ def classify_columns(
         standard_columns: Set of standard field names (front, back, etc.).
         system_columns: Set of system field names (item_id, action, etc.).
         ai_columns: Set of AI-related field names.
+        required_columns: List of columns required to be present (default: ['front', 'back']).
     
     Returns:
         Dictionary with keys: standard, system, ai, custom, missing_required
@@ -42,6 +124,9 @@ def classify_columns(
         >>> classify_columns(columns, {'front', 'back'}, {'item_id'}, {'ai_explanation'})
         {'standard': ['back', 'front'], 'custom': ['my_custom_field'], ...}
     """
+    if required_columns is None:
+        required_columns = ['front', 'back']
+        
     columns_set = set(columns)
     all_known = standard_columns | system_columns | ai_columns
     
@@ -50,7 +135,7 @@ def classify_columns(
         'system': sorted([c for c in columns if c in system_columns]),
         'ai': sorted([c for c in columns if c in ai_columns]),
         'custom': sorted([c for c in columns if c not in all_known]),
-        'missing_required': [c for c in ['front', 'back'] if c not in columns_set],
+        'missing_required': [c for c in required_columns if c not in columns_set],
         'all': sorted(list(columns))
     }
 

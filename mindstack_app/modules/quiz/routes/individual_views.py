@@ -299,6 +299,12 @@ def quiz_session(session_id):
         session['quiz_session'] = session_manager.to_dict()
         session.modified = True
 
+    try:
+        return render_dynamic_template('modules/learning/quiz/individual/session/index.html')
+    except Exception as e:
+        current_app.logger.error(f"Error loading quiz session: {e}", exc_info=True)
+        return f"<h3>Lỗi tải phiên học:</h3><pre>{str(e)}</pre><p>Vui lòng quay lại Dashboard và thử lại.</p>", 500
+
 @blueprint.route('/dashboard/multi')
 @login_required
 def quiz_dashboard_multi():

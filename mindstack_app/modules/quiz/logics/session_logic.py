@@ -481,6 +481,14 @@ class QuizSessionManager:
             main_numbers_in_batch.append(main_number)
 
             raw_options = content_copy.get('options') or {}
+            
+            # [FIX] Logic to ensure options are found even if flat structure
+            if not raw_options:
+                for key, field in [('A', 'option_a'), ('B', 'option_b'), ('C', 'option_c'), ('D', 'option_d')]:
+                    val = content_copy.get(field)
+                    if val not in (None, ''):
+                        raw_options[key] = val
+
             # Filter out empty options (e.g. for questions with only 2 or 3 answers)
             content_copy['options'] = {
                 k: v for k, v in raw_options.items() 

@@ -1,4 +1,4 @@
-from flask import render_template, request, redirect, url_for, flash, abort, jsonify
+from flask import render_template, request, redirect, url_for, flash, abort, jsonify, current_app
 from mindstack_app.utils.template_helpers import render_dynamic_template
 from flask_login import login_required, current_user
 from mindstack_app.models import db, LearningContainer, LearningItem
@@ -51,11 +51,93 @@ def add_flashcard_item(set_id):
 @login_required
 def process_excel_info():
     """
-    Process uploaded Excel file to extract info/metadata (not full import yet).
-    This is a stub implementation to fix BuildError.
+    Process uploaded Excel file to extract info/metadata and analyze columns.
     """
-    # TODO: Implement actual Excel processing logic
-    return jsonify({'success': False, 'message': 'Not implemented yet'}), 501
+    if 'excel_file' not in request.files:
+         return jsonify({'success': False, 'message': 'Không tìm thấy file.'}), 400
+         
+    file = request.files['excel_file']
+    if not file.filename:
+        return jsonify({'success': False, 'message': 'Chưa chọn file.'}), 400
+
+    try:
+        import pandas as pd
+        from ..logics.parsers import classify_columns, normalize_column_headers
+        
+        # Read Excel
+        xls = pd.ExcelFile(file)
+        sheet_names = xls.sheet_names
+        
+        # Determine Data Sheet
+        data_sheet = sheet_names[0] # Default to first sheet
+        if 'Data' in sheet_names: 
+            data_sheet = 'Data'
+            
+        df = pd.read_excel(xls, sheet_name=data_sheet)
+        raw_columns = [str(c).strip() for c in df.columns]
+
+        # Metadata extraction from 'Info' sheet
+        metadata = {}
+        if 'Info' in sheet_names:
+             try:
+                 info_df = pd.read_excel(xls, sheet_name='Info')
+                 # Try to find Key/Value pair columns case-insensitive
+                 key_col = next((c for c in info_df.columns if str(c).lower() == 'key'), None)
+                 val_col = next((c for c in info_df.columns if str(c).lower() == 'value'), None)
+                 
+                 if key_col and val_col:
+                     for _, row in info_df.iterrows():
+                         k = row[key_col]
+                         v = row[val_col]
+                         if pd.notna(k) and pd.notna(v):
+                             metadata[str(k).strip()] = v
+             except Exception as e:
+                 current_app.logger.warning(f"Error reading Info sheet: {e}")
+
+        # Normalize Columns
+        mapping = normalize_column_headers(raw_columns)
+        current_app.logger.info(f"Excel Column Mapping: {mapping}")
+        df.rename(columns=mapping, inplace=True)
+        columns = [str(c).strip() for c in df.columns]
+
+        # Extended Standards for Quiz + Flashcards
+        STANDARD_COLS = {
+            'front', 'back', 'front_img', 'back_img', 'front_audio_url', 'back_audio_url', 
+            'ai_explanation', 'image', 'audio', 'question', 'explanation', 
+            'options', 'correct_answer', 'correct_option', 
+            'pre_question_text', 'passage_text', 'audio_transcript',
+            'option_a', 'option_b', 'option_c', 'option_d'
+        }
+        SYSTEM_COLS = {'item_id', 'action', 'container_id', 'order_in_container'}
+        AI_COLS = {'ai_prompt'}
+
+        # Smart Required Columns Detection
+        required = ['front', 'back'] # Default Flashcard
+        if 'question' in columns:
+            required = ['question'] # Minimal Quiz Requirement
+            # If strictly MCQ, maybe correct_answer? But let's be lenient for analysis
+            if 'correct_answer' in columns:
+                required.append('correct_answer')
+        
+        classification = classify_columns(columns, STANDARD_COLS, SYSTEM_COLS, AI_COLS, required_columns=required)
+        
+        return jsonify({
+            'success': True,
+            'message': 'Đã đọc thông tin từ file.',
+            'data': {
+                'data': metadata, 
+                'column_analysis': {
+                    'success': True,
+                    'standard_columns': classification['standard'],
+                    'missing_required': classification['missing_required'],
+                    'all_columns': classification['all']
+                }
+            }
+        })
+
+    except Exception as e:
+        current_app.logger.error(f"Excel Process Error: {e}")
+        return jsonify({'success': False, 'message': f"Lỗi xử lý file: {str(e)}"}), 500
 
 @blueprint.route('/flashcards/<int:set_id>/edit/<int:item_id>', methods=['GET', 'POST'])
 @login_required

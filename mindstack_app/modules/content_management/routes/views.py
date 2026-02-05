@@ -134,9 +134,18 @@ def add_container(container_type):
                 media_audio_folder=getattr(form, 'audio_base_folder', None) and form.audio_base_folder.data
             )
             
-            message = f'Đã tạo {container_type.lower()} mới thành công!'
+            container_id = container.container_id
+            
+            # [NEW] Handle Excel Import
+            import_count = 0
+            if request.files.get('excel_file'):
+                f = request.files['excel_file']
+                if f.filename:
+                    import_count = _import_excel_items(container_id, f, container_type)
+
+            message = f'Đã tạo {container_type.lower()} mới thành công! (Đã nhập {import_count} mục)'
             if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-                return jsonify({'success': True, 'message': message, 'container_id': container.container_id})
+                return jsonify({'success': True, 'message': message, 'container_id': container_id})
                 
             flash(message, 'success')
             return redirect(url_for('content_management.content_dashboard', tab=container_type.lower()))
@@ -256,7 +265,17 @@ def edit_container(container_id):
             # 4. Perform update
             ContentKernelService.update_container(container_id, **update_data)
             
+            # [NEW] Handle Excel Import
+            import_count = 0
+            if request.files.get('excel_file'):
+                f = request.files['excel_file']
+                if f.filename:
+                    import_count = _import_excel_items(container_id, f, container.container_type)
+
             message = 'Đã cập nhật thành công!'
+            if import_count > 0:
+                message += f' (Đã nhập thêm {import_count} mục)'
+
             if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
                 return jsonify({'success': True, 'message': message})
                 
@@ -600,6 +619,68 @@ def export_container_excel(container_id):
         download_name=filename,
         mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
     )
+
+
+def _import_excel_items(container_id, excel_file, container_type):
+    """
+    Helper to parse Excel and create items in bulk.
+    """
+    try:
+        import pandas as pd
+        from ..logics.parsers import normalize_column_headers
+        
+        # Read Excel
+        xls = pd.ExcelFile(excel_file)
+        # Check sheet
+        data_sheet = 'Data' if 'Data' in xls.sheet_names else xls.sheet_names[0]
+        df = pd.read_excel(xls, sheet_name=data_sheet)
+        
+        # Normalize columns
+        mapping = normalize_column_headers([str(c) for c in df.columns])
+        df.rename(columns=mapping, inplace=True)
+        
+        # Determine Item Type
+        item_type = 'FLASHCARD'
+        if container_type == 'QUIZ_SET': 
+            item_type = 'QUIZ_MCQ'
+        elif container_type == 'COURSE': 
+            item_type = 'LESSON'
+            
+        # Determine start order
+        last_item = LearningItem.query.filter_by(container_id=container_id).order_by(LearningItem.order_in_container.desc()).first()
+        start_order = (last_item.order_in_container if last_item else 0) + 1
+        
+        count = 0
+        for idx, row in df.iterrows():
+            content = {}
+            # Extract all columns to content dict
+            for col in df.columns:
+                val = row[col]
+                if pd.notna(val):
+                     content[str(col)] = str(val).strip()
+                     
+            # Special Handling for Quiz
+            if container_type == 'QUIZ_SET':
+                # Map standardized keys if needed or rely on interface
+                pass
+            
+            # Skip empty rows (basic check)
+            if not content:
+                continue
+                
+            ContentKernelService.create_item(
+                container_id=container_id,
+                item_type=item_type,
+                content=content,
+                order=start_order + count
+            )
+            count += 1
+            
+        return count
+
+    except Exception as e:
+        current_app.logger.error(f"Excel Import Error: {e}", exc_info=True)
+        return 0
 
 
 

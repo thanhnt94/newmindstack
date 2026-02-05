@@ -75,12 +75,24 @@ def _serialize_quiz_learning_item(item, user_id):
         
     # Ensure options are clean (already handled by interface if it just copied raw, but interface is just a filtered pass)
     # Actually Interface just returns what's in DB for options.
+    # Ensure options are clean
+    # Support both nested 'options' dict and flat keys 'option_a', 'option_b', etc.
     options = content_copy.get('options') or {}
     valid_options = {}
-    for key in ['A', 'B', 'C', 'D']:
-        val = options.get(key)
-        if val not in (None, ''):
-            valid_options[key] = val
+    
+    # Check for flat keys if nested options are empty
+    if not options:
+        for key, field in [('A', 'option_a'), ('B', 'option_b'), ('C', 'option_c'), ('D', 'option_d')]:
+            val = content_copy.get(field)
+            if val not in (None, ''):
+                valid_options[key] = val
+    else:
+        # Normalize nested options
+        for key in ['A', 'B', 'C', 'D']:
+            val = options.get(key)
+            if val not in (None, ''):
+                valid_options[key] = val
+                
     content_copy['options'] = valid_options
 
     # Fetch Note
@@ -558,66 +570,87 @@ def api_get_quiz_sets():
 @login_required
 def api_get_quiz_set_detail(set_id):
     """API to get detailed info about a specific quiz set."""
-    from ..logics.algorithms import get_quiz_mode_counts
-    
-    container = LearningContainer.query.get_or_404(set_id)
-    
-    # Get questions
-    questions = LearningItem.query.filter(
-        LearningItem.container_id == set_id,
-        LearningItem.item_type.in_(['QUESTION', 'FLASHCARD', 'QUIZ_MCQ'])
-    ).order_by(LearningItem.order_index).all()
-    
-    question_count = len(questions)
-
-    # [REFACTORED] Use ContentInterface
-    from mindstack_app.modules.content_management.interface import ContentInterface
-    q_ids = [q.item_id for q in questions]
-    content_map = ContentInterface.get_items_content(q_ids)
-
-    # Helper to map std content to legacy frontend expected format
-    def format_content(std_c):
-        c = dict(std_c or {})
-        if 'image' in c: c['question_image_file'] = c.pop('image')
-        if 'audio' in c: c['question_audio_file'] = c.pop('audio')
-        return c
-
-    # Get creator info
-    creator = User.query.get(container.creator_user_id)
-    
-    # Get user access count
-    user_state = UserContainerState.query.filter_by(
-        user_id=current_user.user_id,
-        container_id=set_id
-    ).first()
-    access_count = 1 if user_state and user_state.last_accessed else 0
-    
-    # Get available modes
     try:
-        modes = get_quiz_mode_counts(current_user.user_id, set_id)
-    except:
-        modes = [
-            {'id': 'all', 'name': 'Tất cả'},
-            {'id': 'new_only', 'name': 'Câu mới'},
-            {'id': 'due_only', 'name': 'Ôn tập'},
-        ]
-    
-    return jsonify({
-        'success': True,
-        'set': {
-            'id': container.container_id,
-            'title': container.title,
-            'description': container.description or '',
-            'question_count': question_count,
-            'creator_name': creator.username if creator else 'Unknown',
-            'access_count': access_count,
-        },
-        'questions': [
-            {'id': q.item_id, 'content': format_content(content_map.get(q.item_id))}
-            for q in questions
-        ],
-        'modes': modes
-    })
+        from ..logics.algorithms import get_quiz_mode_counts
+        
+        container = LearningContainer.query.get_or_404(set_id)
+        
+        # Get questions
+        questions = LearningItem.query.filter(
+            LearningItem.container_id == set_id,
+            LearningItem.item_type.in_(['QUESTION', 'FLASHCARD', 'QUIZ_MCQ'])
+        ).order_by(LearningItem.order_in_container).all()
+        
+        question_count = len(questions)
+
+        # [REFACTORED] Use ContentInterface
+        from mindstack_app.modules.content_management.interface import ContentInterface
+        q_ids = [q.item_id for q in questions]
+        content_map = ContentInterface.get_items_content(q_ids)
+
+        # Helper to map std content to legacy frontend expected format
+        def format_content(std_c):
+            c = dict(std_c or {})
+            if 'image' in c: c['question_image_file'] = c.pop('image')
+            if 'audio' in c: c['question_audio_file'] = c.pop('audio')
+            
+            # Ensure "correct_answer" maps to legacy "correct_answer_text" if needed by frontend
+            # The interface standardizes to 'correct_answer'. Frontend logic should be checked.
+            # But let's assume frontend expects 'correct_answer_text' or similar?
+            # Looking at previous logic: it returned 'content' as is.
+            # Old content had 'correct_answer_text'.
+            # New Interface uses 'correct_answer'.
+            # If frontend relies on 'correct_answer_text', we should map it.
+            if 'correct_answer' in c and 'correct_answer_text' not in c:
+                c['correct_answer_text'] = c['correct_answer']
+            
+            return c
+
+        # Get creator info
+        creator = User.query.get(container.creator_user_id)
+        
+        # Get user access count
+        user_state = UserContainerState.query.filter_by(
+            user_id=current_user.user_id,
+            container_id=set_id
+        ).first()
+        access_count = 1 if user_state and user_state.last_accessed else 0
+        
+        # Get available modes
+        try:
+            mode_data = get_quiz_mode_counts(current_user.user_id, set_id)
+            # Handle dict response from algorithms (v3)
+            if isinstance(mode_data, dict) and 'list' in mode_data:
+                modes = mode_data['list']
+            else:
+                modes = mode_data if isinstance(mode_data, list) else []
+        except Exception as e:
+            current_app.logger.error(f"Error getting modes: {e}")
+            modes = [
+                {'id': 'all', 'name': 'Tất cả'},
+                {'id': 'new_only', 'name': 'Câu mới'},
+                {'id': 'due_only', 'name': 'Ôn tập'},
+            ]
+        
+        return jsonify({
+            'success': True,
+            'set': {
+                'id': container.container_id,
+                'title': container.title,
+                'description': container.description or '',
+                'question_count': question_count,
+                'creator_name': creator.username if creator else 'Unknown',
+                'access_count': access_count,
+            },
+            'questions': [
+                {'id': q.item_id, 'content': format_content(content_map.get(q.item_id))}
+                for q in questions
+            ],
+            'modes': modes
+        })
+    except Exception as e:
+        current_app.logger.error(f"Error in api_get_quiz_set_detail: {e}", exc_info=True)
+        return jsonify({'success': False, 'message': f'System Error: {str(e)}'}), 500
 
 @blueprint.route('/api/item/<int:item_id>/generate-ai', methods=['POST'])
 @login_required
