@@ -170,7 +170,47 @@ def get_question_batch():
         question_batch['session_correct_answers'] = session_manager.correct_answers
         question_batch['session_total_answered'] = session_manager.correct_answers + session_manager.incorrect_answers
 
-        return jsonify(question_batch)
+        # Inject container title for frontend display
+        if 'container_title' not in question_batch:
+            container_title = "Quiz Session"
+            try:
+                # set_id can be int (single) or list (multi)
+                set_id = session_manager.set_id
+                
+                if isinstance(set_id, (int, str)):
+                    # Validating set_id before query
+                    if str(set_id).isdigit():
+                        container = LearningContainer.query.get(int(set_id))
+                        if container:
+                            container_title = container.title
+                elif isinstance(set_id, list):
+                    if len(set_id) == 1:
+                         if str(set_id[0]).isdigit():
+                            container = LearningContainer.query.get(int(set_id[0]))
+                            if container:
+                                container_title = container.title
+                    elif len(set_id) > 1:
+                        container_title = "Hoctap (Mixed)"
+            except Exception as e:
+                current_app.logger.warning(f"Failed to fetch container title: {e}")
+            
+            question_batch['container_title'] = container_title
+
+        # [DEBUG] Log batch content to trace options issue
+        items = question_batch.get('items', [])
+        if items:
+            first_item = items[0]
+            content = first_item.get('content', {})
+            print(f">>> [DEBUG] get_question_batch: {len(items)} items")
+            print(f">>> [DEBUG] Item[0] content keys: {list(content.keys())}")
+            print(f">>> [DEBUG] Item[0] options: {content.get('options')}")
+            print(f">>> [DEBUG] Item[0] option_a: {content.get('option_a')}")
+
+        response = jsonify(question_batch)
+        response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+        response.headers["Pragma"] = "no-cache"
+        response.headers["Expires"] = "0"
+        return response
 
     except Exception as e:
         current_app.logger.error(f"LỖI NGHIÊM TRỌNG khi lấy nhóm câu hỏi: {e}", exc_info=True)

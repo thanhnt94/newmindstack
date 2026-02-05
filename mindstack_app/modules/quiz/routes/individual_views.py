@@ -265,18 +265,25 @@ def quiz_session(session_id):
     
     if not current_session_data:
         should_reload = True
-    elif current_session_data.get('db_session_id') != session_id:
+        current_app.logger.debug(f"[QUIZ_VIEW] No current session data. Reloading session_id={session_id}")
+    elif str(current_session_data.get('db_session_id')) != str(session_id):
         should_reload = True
+        current_app.logger.debug(f"[QUIZ_VIEW] Session Mismatch! Internal DB_ID={current_session_data.get('db_session_id')} vs Req={session_id}. Reloading.")
         
     if should_reload:
+        # Force clear old session data to ensure clean state
+        session.pop('quiz_session', None)
+        
         from mindstack_app.modules.session.services.session_service import LearningSessionService
         db_session = LearningSessionService.get_session_by_id(session_id)
         
         if not db_session or db_session.user_id != current_user.user_id:
+             current_app.logger.warning(f"[QUIZ_VIEW] Unauthorized/Missing DB session {session_id}")
              flash('Phiên học không tồn tại hoặc bạn không có quyền truy cập.', 'danger')
              return redirect(url_for('quiz.dashboard'))
              
         if db_session.end_time:
+             current_app.logger.info(f"[QUIZ_VIEW] Session {session_id} ended.")
              flash('Phiên học này đã kết thúc.', 'info')
              return redirect(url_for('quiz.dashboard'))
 
@@ -298,9 +305,10 @@ def quiz_session(session_id):
         
         session['quiz_session'] = session_manager.to_dict()
         session.modified = True
+        current_app.logger.debug(f"[QUIZ_VIEW] Session initialized for ID={session_id}. SetID={db_session.set_id_data}")
 
     try:
-        return render_dynamic_template('modules/learning/quiz/individual/session/index.html')
+        return render_dynamic_template('modules/learning/quiz/individual/session/index.html', session_id=session_id)
     except Exception as e:
         current_app.logger.error(f"Error loading quiz session: {e}", exc_info=True)
         return f"<h3>Lỗi tải phiên học:</h3><pre>{str(e)}</pre><p>Vui lòng quay lại Dashboard và thử lại.</p>", 500

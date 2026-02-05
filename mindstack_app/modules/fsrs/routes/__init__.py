@@ -1,6 +1,7 @@
 from flask import Blueprint
 from .api import api_bp
-from .admin_views import fsrs_bp as admin_bp
+# Import fsrs_bp from parent module (where it's defined), not from admin_views
+from .. import fsrs_bp as admin_bp
 
 def init_routes(app):
     """Register blueprints for the FSRS module."""

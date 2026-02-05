@@ -129,7 +129,7 @@ class ContentInterface:
                     "question": raw_content.get('question', ''),
                     "options": options,
                     "correct_option": raw_content.get('correct_option', ''),
-                    "correct_answer": raw_content.get('correct_answer', ''),
+                    "correct_answer": raw_content.get('correct_answer') or raw_content.get('correct_option', ''),
                     "explanation": item.ai_explanation or raw_content.get('explanation', ''),
                     "image": ContentInterface._resolve_media_url(raw_content.get('image') or raw_content.get('question_image_file'), item.container),
                     "audio": ContentInterface._resolve_media_url(raw_content.get('audio') or raw_content.get('question_audio_file'), item.container),

@@ -40,23 +40,32 @@ def process_quiz_answer(user_id, item_id, user_answer_text, current_user_total_s
 
     # Lấy đáp án đúng (dạng văn bản) và các lựa chọn
     correct_answer_text_from_db = std_content.get('correct_answer')
+    correct_option_from_db = std_content.get('correct_option')
     options = std_content.get('options', {})
-    explanation = std_content.get('explanation') # Interface handles fallback to ai_explanation
+    explanation = std_content.get('explanation')
 
-    # XÁC ĐỊNH KÝ TỰ CỦA ĐÁP ÁN ĐÚNG DỰA TRÊN NỘI DUNG VĂN BẢN
+    # XÁC ĐỊNH KÝ TỰ CỦA ĐÁP ÁN ĐÚNG
     correct_option_char = None
-    for key, value in options.items():
-        if value == correct_answer_text_from_db:
-            correct_option_char = key
-            break
+    
+    # 1. Try matching text content
+    if correct_answer_text_from_db:
+        for key, value in options.items():
+            if value == correct_answer_text_from_db:
+                correct_option_char = key
+                break
+                
+    # 2. If no text match, check if correct_answer IS the key (A/B/C/D)
+    if correct_option_char is None and correct_answer_text_from_db in ['A', 'B', 'C', 'D']:
+        correct_option_char = correct_answer_text_from_db
+
+    # 3. Fallback: Use correct_option field directly (common in legacy data)
+    if correct_option_char is None and correct_option_from_db in ['A', 'B', 'C', 'D']:
+        correct_option_char = correct_option_from_db
     
     if correct_option_char is None:
-        if correct_answer_text_from_db in ['A', 'B', 'C', 'D']:
-             correct_option_char = correct_answer_text_from_db
-        else:
-            current_app.logger.error(f"Lỗi dữ liệu: Không tìm thấy ký tự lựa chọn cho đáp án đúng '{correct_answer_text_from_db}' của item_id={item_id}. Options: {options}")
-            is_correct = False
-            return score_change, current_user_total_score, is_correct, correct_option_char, explanation
+        current_app.logger.error(f"Lỗi dữ liệu: Không tìm thấy ký tự lựa chọn cho đáp án đúng '{correct_answer_text_from_db}' của item_id={item_id}. Options: {options}")
+        is_correct = False
+        return score_change, current_user_total_score, is_correct, correct_option_char, explanation
 
     is_correct = (user_answer_text == correct_option_char)
 

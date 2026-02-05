@@ -413,7 +413,9 @@
     let activeHubItemId = null; // Currently tracked question ID
     let activeFeedbackItemId = null;
     let sessionPoints = 0; // Track points earned in this session
-    const SESSION_KEY = 'quiz_session_batch_state';
+
+    // [FIX] Unique storage key per session to prevent collision
+    const sessionId = "{{ session_id }}";
 
     // URLs
     const getQuestionBatchUrl = "{{ url_for('quiz.get_question_batch') }}";
@@ -432,9 +434,8 @@
 
     function init() {
         loadQuizTitleFromStorage();
-        if (!loadState()) {
-            getNextQuestionBatch();
-        }
+        // Always fetch from server, do not use client-side storage
+        getNextQuestionBatch();
     }
 
     function loadQuizTitleFromStorage() {
@@ -456,89 +457,7 @@
     }
 
     // --- State Management ---
-    function saveState() {
-        const state = {
-            currentQuestionBatch,
-            currentBatchMeta,
-            userAnswers,
-            isBatchSubmitted,
-            totalQuestionsInSession,
-            sessionTotalAnswered
-        };
-        try {
-            sessionStorage.setItem(SESSION_KEY, JSON.stringify(state));
-        } catch (e) { console.error('Error saving state', e); }
-    }
-
-    function clearState() {
-        try {
-            sessionStorage.removeItem(SESSION_KEY);
-        } catch (e) { console.error('Error clearing state', e); }
-    }
-
-    function loadState() {
-        try {
-            const raw = sessionStorage.getItem(SESSION_KEY);
-            if (!raw) return false;
-            const state = JSON.parse(raw);
-
-            // Validate basic integrity
-            if (!state.currentQuestionBatch || !Array.isArray(state.currentQuestionBatch) || state.currentQuestionBatch.length === 0) {
-                return false;
-            }
-
-            // Restore
-            currentQuestionBatch = state.currentQuestionBatch;
-            currentBatchMeta = state.currentBatchMeta || {};
-            userAnswers = state.userAnswers || {};
-            isBatchSubmitted = state.isBatchSubmitted || false;
-            totalQuestionsInSession = state.totalQuestionsInSession || 0;
-            sessionTotalAnswered = state.sessionTotalAnswered || 0;
-
-            restoreUI();
-            return true;
-        } catch (e) {
-            console.error('Error loading state', e);
-            clearState();
-            return false;
-        }
-    }
-
-    function restoreUI() {
-        // Construct a batchData-like object to reuse display logic
-        // We only need basic fields for displayQuestionBatch to run
-        const batchData = {
-            items: currentQuestionBatch,
-            start_index: currentBatchMeta.startIndex,
-            total_items_in_session: currentBatchMeta.totalItemsInSession,
-            // These might be stale but displayQuestionBatch recalculates or we override below
-            session_correct_answers: 0, // Placeholder, will update later
-            session_total_answered: sessionTotalAnswered,
-            question_number_min: currentBatchMeta.startIndex + 1,
-            question_number_max: currentBatchMeta.startIndex + currentQuestionBatch.length
-        };
-
-        displayQuestionBatch(batchData, true); // true = restoring
-
-        // Restore Selections
-        Object.entries(userAnswers).forEach(([itemId, answer]) => {
-            const qId = parseInt(itemId);
-            document.querySelectorAll(`.option-button[data-question-id="${qId}"]`).forEach(b => b.classList.remove('selected'));
-            document.querySelectorAll(`.option-button[data-question-id="${qId}"][data-option="${answer}"]`).forEach(b => b.classList.add('selected'));
-        });
-
-        // Restore Feedback if submitted
-        if (isBatchSubmitted) {
-            toggleControlButtons('submitted');
-            currentQuestionBatch.forEach(q => {
-                renderFeedbackForQuestion(q); // Helper to render feedback
-            });
-            // Reveal all hints/explanations after submission
-            document.querySelectorAll('.js-hint-btn').forEach(btn => btn.classList.remove('hidden'));
-            document.querySelectorAll('.js-batch-explain-btn').forEach(btn => btn.classList.remove('hidden'));
-        }
-    }
-
+    // [REMOVED] saveState/loadState/clearState - Rely on Server Logic only as per user request
     function renderFeedbackForQuestion(result) {
         const questionCards = document.querySelectorAll(`.question-card[data-item-id="${result.item_id}"]`);
         questionCards.forEach(card => {
@@ -595,7 +514,16 @@
         toggleControlButtons('loading');
 
         try {
-            const response = await fetch(getQuestionBatchUrl, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+            // Add timestamp to prevent caching
+            const bustCacheUrl = getQuestionBatchUrl + (getQuestionBatchUrl.includes('?') ? '&' : '?') + 't=' + new Date().getTime();
+            const response = await fetch(bustCacheUrl, {
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Cache-Control': 'no-cache, no-store, must-revalidate',
+                    'Pragma': 'no-cache',
+                    'Expires': '0'
+                }
+            });
             if (!response.ok) {
                 if (response.status === 404) {
                     const data = await response.json();
@@ -606,6 +534,13 @@
             }
             const batchData = await response.json();
 
+            // Update title if provided by backend (fallback for direct link access)
+            if (batchData.container_title) {
+                setText('.js-quiz-set-title', batchData.container_title);
+                // Optionally update localStorage also so it persists on reload if needed
+                // But simple setText is enough for now.
+            }
+
             // Reset state for new batch
             userAnswers = {};
             isBatchSubmitted = false;
@@ -614,7 +549,6 @@
             if (navContainer) navContainer.innerHTML = '';
 
             displayQuestionBatch(batchData);
-            saveState();
         }
         catch (error) {
             console.error('Lỗi khi tải nhóm câu hỏi:', error);
