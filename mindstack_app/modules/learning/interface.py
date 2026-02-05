@@ -12,9 +12,18 @@ This interface decouples consumers (Quiz, Typing, etc.) from the internal logic.
 from typing import Any, Dict, Optional
 from mindstack_app.modules.learning.logics.marker import compare_text, evaluate_multiple_choice
 from mindstack_app.modules.learning.services.progress_service import ProgressService
+from mindstack_app.modules.learning.services.learning_metrics_service import LearningMetricsService
 
 class LearningInterface:
     """Public Facade for Learning Module."""
+    
+    @staticmethod
+    def get_score_breakdown(user_id):
+        return LearningMetricsService.get_score_breakdown(user_id)
+
+    @staticmethod
+    def get_weekly_active_days_count(user_id):
+        return LearningMetricsService.get_weekly_active_days_count(user_id)
     
     # === EVALUATION ===
     

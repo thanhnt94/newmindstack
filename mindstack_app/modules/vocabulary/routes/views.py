@@ -3,15 +3,15 @@ from mindstack_app.utils.template_helpers import render_dynamic_template
 from flask_login import login_required, current_user
 from . import blueprint
 from ..services.vocabulary_service import VocabularyService
-from mindstack_app.modules.learning.services.learning_metrics_service import LearningMetricsService
+from mindstack_app.modules.learning.interface import LearningInterface
 
 @blueprint.route('/')
 @blueprint.route('/dashboard')
 @login_required
 def dashboard():
     """Main vocabulary learning hub dashboard."""
-    score_data = LearningMetricsService.get_score_breakdown(current_user.user_id)
-    weekly_active_days = LearningMetricsService.get_weekly_active_days_count(current_user.user_id)
+    score_data = LearningInterface.get_score_breakdown(current_user.user_id)
+    weekly_active_days = LearningInterface.get_weekly_active_days_count(current_user.user_id)
     score_overview = {
         'today': score_data['today'],
         'week': score_data['week'],
@@ -26,8 +26,8 @@ def set_detail_page(set_id):
     """Vocabulary set detail page"""
     detail = VocabularyService.get_set_detail(current_user.user_id, set_id)
     
-    score_data = LearningMetricsService.get_score_breakdown(current_user.user_id)
-    weekly_active_days = LearningMetricsService.get_weekly_active_days_count(current_user.user_id)
+    score_data = LearningInterface.get_score_breakdown(current_user.user_id)
+    weekly_active_days = LearningInterface.get_weekly_active_days_count(current_user.user_id)
     score_overview = {
         'today': score_data['today'],
         'week': score_data['week'],

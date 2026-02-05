@@ -1,7 +1,8 @@
 from mindstack_app.models import (
     db, LearningContainer, LearningItem, User, UserContainerState
 )
-from mindstack_app.modules.fsrs.models import ItemMemoryState
+# REMOVED: from mindstack_app.modules.fsrs.models import ItemMemoryState
+from mindstack_app.modules.fsrs.interface import FSRSInterface as FsrsInterface
 from sqlalchemy import or_, func
 from flask import current_app
 from mindstack_app.modules.stats.interface import StatsInterface
@@ -25,14 +26,21 @@ class VocabularyService:
             if category == 'my':
                 query = query.filter(LearningContainer.creator_user_id == user_id)
             elif category == 'learning':
-                # MIGRATED: Use ItemMemoryState
-                learned_container_ids = db.session.query(LearningItem.container_id).join(
-                    ItemMemoryState, LearningItem.item_id == ItemMemoryState.item_id
-                ).filter(
-                    ItemMemoryState.user_id == user_id,
-                    ItemMemoryState.state != 0 # Only learned items
+                # REFACTORED: Use FsrsInterface to get learned items/containers
+                learned_item_ids = FsrsInterface.get_learned_item_ids(user_id)
+                # Find containers that contain these items
+                # Optimization: We can ask FSRS for container_ids if supported, 
+                # but currently we map item_ids -> container_ids via SQL here or 
+                # assume FsrsInterface returns what we need.
+                # Since the instruction said "get list item_ids, then filter LearningContainer",
+                # we need to join locally with LearningItem to find distinct containers.
+                
+                learned_container_ids = db.session.query(LearningItem.container_id).filter(
+                    LearningItem.item_id.in_(learned_item_ids)
                 ).distinct()
+                
                 query = query.filter(LearningContainer.container_id.in_(learned_container_ids))
+
             elif category in ['public', 'explore']:
                 query = query.filter(LearningContainer.is_public == True)
             elif category == 'favorite':
@@ -129,25 +137,5 @@ class VocabularyService:
     @staticmethod
     def save_item_note(user_id, item_id, note_content):
         """Save user personal note for a learning item."""
-        # MIGRATED: Use ItemMemoryState
-        state_record = ItemMemoryState.query.filter_by(
-            user_id=user_id, item_id=item_id
-        ).first()
-        
-        if not state_record:
-            state_record = ItemMemoryState(
-                user_id=user_id, item_id=item_id,
-                state=0, # NEW
-                created_at=datetime.now(timezone.utc)
-            )
-            db.session.add(state_record)
-        
-        data = dict(state_record.data) if state_record.data else {}
-        data['note'] = note_content
-        state_record.data = data
-        
-        from sqlalchemy.orm.attributes import flag_modified
-        flag_modified(state_record, 'data')
-        
-        db.session.commit()
-        return True
+        # REFACTORED: Delegate to FsrsInterface
+        return FsrsInterface.save_item_note(user_id, item_id, note_content)

@@ -260,3 +260,41 @@ class FSRSInterface:
             'avg_stability': round(avg_stability, 2)
         }
 
+    @staticmethod
+    def get_learned_item_ids(user_id: int) -> List[int]:
+        """Get IDs of all items that have been learned (state != 0)."""
+        from mindstack_app.core.extensions import db
+        return [r[0] for r in db.session.query(ItemMemoryState.item_id).filter(
+            ItemMemoryState.user_id == user_id,
+            ItemMemoryState.state != 0
+        ).all()]
+
+    @staticmethod
+    def save_item_note(user_id: int, item_id: int, note_content: str) -> bool:
+        """Save user personal note for an item."""
+        from mindstack_app.core.extensions import db
+        from datetime import datetime, timezone
+        
+        state_record = ItemMemoryState.query.filter_by(
+            user_id=user_id, item_id=item_id
+        ).first()
+        
+        if not state_record:
+            state_record = ItemMemoryState(
+                user_id=user_id, item_id=item_id,
+                state=0, # NEW
+                created_at=datetime.now(timezone.utc)
+            )
+            db.session.add(state_record)
+        
+        # Clone dict to trigger change tracking if needed
+        data = dict(state_record.data) if state_record.data else {}
+        data['note'] = note_content
+        state_record.data = data
+        
+        from sqlalchemy.orm.attributes import flag_modified
+        flag_modified(state_record, 'data')
+        
+        db.session.commit()
+        return True
+
