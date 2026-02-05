@@ -19,8 +19,47 @@
     <!-- Vendors: Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
-    {# Standard Scripts (Tailwind, Alpine) #}
-    {% include _v ~ '/components/_head_scripts.html' %}
+    {# TAILWIND & CORE SCRIPTS #}
+    <script>
+        (function () {
+            if (typeof window === 'undefined') return;
+            const originalWarn = console.warn.bind(console);
+            window.__TAILWIND_ORIGINAL_WARN__ = originalWarn;
+            console.warn = function (...args) {
+                if (args.length && typeof args[0] === 'string' && args[0].includes('cdn.tailwindcss.com should not be used in production')) { return; }
+                return originalWarn(...args);
+            };
+        })();
+    </script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        if (window.__TAILWIND_ORIGINAL_WARN__) {
+            console.warn = window.__TAILWIND_ORIGINAL_WARN__;
+            delete window.__TAILWIND_ORIGINAL_WARN__;
+        }
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#4f46e5',    // Indigo (Dashboard)
+                        secondary: '#10b981',  // Emerald (Success)
+                        surface: '#ffffff',    // Card Background
+                        background: '#f8fafc'  // App Background
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif']
+                    },
+                    boxShadow: {
+                        'soft': '0 4px 20px -2px rgba(0, 0, 0, 0.05)',
+                        'glow': '0 0 15px rgba(59, 130, 246, 0.5)'
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- Alpine.js -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 
     {# Global Core Styles #}
     {% include _v ~ '/components/_global_styles.html' %}
@@ -29,7 +68,8 @@
     <style>
         /* Core Layout Styles */
         body {
-            background-color: #F8FAFC;
+            background-color: #f8fafc;
+            /* Matches theme background */
             min-height: 100vh;
             display: flex;
             flex-direction: column;
@@ -62,7 +102,38 @@
 
     <main class="app-container">
         {# Flash Messages #}
-        {% include _v ~ '/components/_flash_msg.html' %}
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        <div id="flash-messages-container"
+            class="fixed top-4 left-4 right-4 z-[200] flex flex-col space-y-2 pointer-events-none">
+            {% for category, message in messages %}
+            <div class="flash-message-item pointer-events-auto flex items-center p-4 rounded-2xl shadow-lg relative text-sm font-medium animate-slide-in-top
+                 {% if category == 'success' %}bg-secondary text-white shadow-secondary/30
+                 {% elif category == 'danger' %}bg-rose-500 text-white shadow-rose-500/30
+                 {% else %}bg-slate-800 text-white shadow-slate-900/30{% endif %}" onclick="this.remove()">
+                <i
+                    class="fas fa-{{ 'check' if category == 'success' else ('exclamation' if category == 'danger' else 'info') }}-circle mr-3 text-lg"></i>
+                <span>{{ message }}</span>
+            </div>
+            {% endfor %}
+        </div>
+        <script>
+                (function () {
+                    setTimeout(function () {
+                        var messages = document.querySelectorAll('.flash-message-item');
+                        messages.forEach(function (msg) {
+                            msg.style.transition = 'opacity 0.5s ease-out, transform 0.5s ease-out';
+                            msg.style.opacity = '0';
+                            msg.style.transform = 'translateY(-20px)';
+                            setTimeout(function () {
+                                if (msg.parentNode) msg.parentNode.removeChild(msg);
+                            }, 500);
+                        });
+                    }, 3000); // Dismiss after 3 seconds
+                })();
+        </script>
+        {% endif %}
+        {% endwith %}
 
         {% block content %}{% endblock %}
     </main>
