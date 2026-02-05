@@ -46,6 +46,32 @@ def get_leaderboard(
     # Convert to DTOs
     return raw_data
 
+def get_dashboard_activity(user_id: int) -> Dict[str, Any]:
+    """
+    Get daily activity & score metrics for dashboard.
+    Aggregates data from LearningMetricsService.
+    """
+    from mindstack_app.modules.learning.services.learning_metrics_service import LearningMetricsService
+    
+    # 1. Today's counts
+    todays_counts = LearningMetricsService.get_todays_activity_counts(user_id)
+    
+    # 2. Score breakdown
+    score_data = LearningMetricsService.get_score_breakdown(user_id)
+    
+    # 3. Active days
+    weekly_active_days = LearningMetricsService.get_weekly_active_days_count(user_id)
+    
+    # 4. Summaries (If needed for shortcut actions, though dashboard_service does it too)
+    summaries = LearningMetricsService.get_user_learning_summary(user_id)
+
+    return {
+        'todays_counts': todays_counts,
+        'score_data': score_data,
+        'active_days': weekly_active_days,
+        'summaries': summaries
+    }
+
 class StatsInterface:
     @staticmethod
     def record_activity(user_id: int, activity_type: str, value: float = 1.0, timestamp: Optional[datetime] = None):
@@ -58,6 +84,10 @@ class StatsInterface:
     @staticmethod
     def get_leaderboard(timeframe: str = 'all_time', sort_by: str = 'total_score', limit: int = 50, viewer_user_id: Optional[int] = None):
         return get_leaderboard(timeframe, sort_by, limit, viewer_user_id)
+
+    @staticmethod
+    def get_dashboard_activity(user_id: int) -> Dict[str, Any]:
+        return get_dashboard_activity(user_id)
 
     @staticmethod
     def get_vocab_item_stats(user_id: int, item_id: int) -> dict:

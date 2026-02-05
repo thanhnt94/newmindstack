@@ -14,8 +14,20 @@ def profile_required():
 
 @blueprint.route('/')
 def view_profile():
+    import time
+    start_time = time.time()
     from mindstack_app.models import UserBadge
-    badges = UserBadge.query.filter_by(user_id=current_user.user_id).join(UserBadge.badge).all()
+    from sqlalchemy.orm import joinedload
+    
+    # Optimize query with eager loading
+    # Use order_by joined column might require join first? 
+    # Actually just joinedload is enough for avoiding N+1.
+    # Also added order by earned_at desc
+    badges = (UserBadge.query
+              .filter_by(user_id=current_user.user_id)
+              .options(joinedload(UserBadge.badge))
+              .order_by(UserBadge.earned_at.desc())
+              .all())
     
     try:
         from ...telegram_bot.services import generate_connect_link
@@ -24,6 +36,9 @@ def view_profile():
         telegram_link = '#'
         print(f"Error generating telegram link: {e}")
 
+    elapsed = time.time() - start_time
+    print(f"Profile page load time: {elapsed:.4f}s")
+    
     return render_dynamic_template('modules/user_profile/profile.html', user=current_user, badges=badges, telegram_link=telegram_link)
 
 @blueprint.route('/edit', methods=['GET', 'POST'])

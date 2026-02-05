@@ -192,3 +192,34 @@ class SchedulerService:
         except Exception as e:
             logger.error(f"FSRS get_preview_intervals failed for user={user_id}, item={item_id}: {e}")
             return FALLBACK
+    @staticmethod
+    def get_due_counts(user_id: int) -> Dict[str, int]:
+        """
+        Get count of due items per type for a user.
+        """
+        from mindstack_app.models import LearningItem
+        from sqlalchemy import func
+        
+        now = datetime.datetime.now(datetime.timezone.utc)
+        
+        results = (
+            db.session.query(
+                LearningItem.item_type,
+                func.count(ItemMemoryState.state_id)
+            )
+            .join(LearningItem, LearningItem.item_id == ItemMemoryState.item_id)
+            .filter(
+                ItemMemoryState.user_id == user_id,
+                ItemMemoryState.due_date <= now
+            )
+            .group_by(LearningItem.item_type)
+            .all()
+        )
+        
+        counts = {'flashcard': 0, 'quiz': 0}
+        for type_code, count in results:
+             # standardize keys
+            if type_code == 'FLASHCARD': counts['flashcard'] = count
+            elif type_code == 'QUIZ_MCQ': counts['quiz'] = count
+            
+        return counts

@@ -5,6 +5,10 @@ from mindstack_app.modules.fsrs.services.optimizer_service import FSRSOptimizerS
 from mindstack_app.modules.fsrs.services.settings_service import FSRSSettingsService
 from mindstack_app.modules.fsrs.schemas import SrsResultDTO
 
+def get_due_counts(user_id: int) -> Dict[str, int]:
+    """Get count of due items per type for a user."""
+    return FSRSInterface.get_due_counts(user_id)
+
 class FSRSInterface:
     """
     Public API (Gatekeeper) for FSRS module.
@@ -98,6 +102,14 @@ class FSRSInterface:
         is_correct = result_data.get('is_correct', False)
         duration_ms = result_data.get('duration_ms', 0)
         
+    @staticmethod
+    def get_due_counts(user_id: int) -> Dict[str, int]:
+        """
+        Get count of due items per type for a user.
+        Used by Dashboard aggregator.
+        """
+        from mindstack_app.modules.fsrs.services.scheduler_service import SchedulerService
+        return SchedulerService.get_due_counts(user_id)
         # Default mapping: Correct=Good(3), Incorrect=Again(1)
         quality = 3 if is_correct else 1
         
