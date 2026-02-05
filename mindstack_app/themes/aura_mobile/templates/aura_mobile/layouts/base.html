@@ -58,6 +58,22 @@
         }
     </script>
 
+    <!-- MindStack Global Config -->
+    <script>
+        window.MindStack = window.MindStack || {};
+        window.MindStack.userTimezone = "{{ current_user.timezone if current_user.is_authenticated else 'UTC' }}";
+
+        // Helper to format user time from JS
+        window.formatUserTime = function (isoString, options = {}) {
+            if (!isoString) return '';
+            const date = new Date(isoString);
+            return new Intl.DateTimeFormat('default', {
+                timeZone: window.MindStack.userTimezone || 'UTC',
+                ...options
+            }).format(date);
+        };
+    </script>
+
     <!-- Alpine.js -->
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 
@@ -118,19 +134,19 @@
             {% endfor %}
         </div>
         <script>
-                (function () {
-                    setTimeout(function () {
-                        var messages = document.querySelectorAll('.flash-message-item');
-                        messages.forEach(function (msg) {
-                            msg.style.transition = 'opacity 0.5s ease-out, transform 0.5s ease-out';
-                            msg.style.opacity = '0';
-                            msg.style.transform = 'translateY(-20px)';
-                            setTimeout(function () {
-                                if (msg.parentNode) msg.parentNode.removeChild(msg);
-                            }, 500);
-                        });
-                    }, 3000); // Dismiss after 3 seconds
-                })();
+            (function () {
+                setTimeout(function () {
+                    var messages = document.querySelectorAll('.flash-message-item');
+                    messages.forEach(function (msg) {
+                        msg.style.transition = 'opacity 0.5s ease-out, transform 0.5s ease-out';
+                        msg.style.opacity = '0';
+                        msg.style.transform = 'translateY(-20px)';
+                        setTimeout(function () {
+                            if (msg.parentNode) msg.parentNode.removeChild(msg);
+                        }, 500);
+                    });
+                }, 3000); // Dismiss after 3 seconds
+            })();
         </script>
         {% endif %}
         {% endwith %}

@@ -1,0 +1,458 @@
+{% extends "admin/modules/admin/admin_layout.html" %}
+{% set active_page = 'content_generator' %}
+
+{% block title %}Content Factory Dashboard{% endblock %}
+{% block page_title %}🏭 Content Factory{% endblock %}
+{% block page_subtitle %}Generate AI explanations and Audio for your study sets in bulk.{% endblock %}
+
+{% block content %}
+<style>
+    .status-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        display: inline-block;
+    }
+
+    .status-pending {
+        background-color: #cbd5e1;
+    }
+
+    .status-processing {
+        background-color: #6366f1;
+        animation: pulse 2s infinite;
+    }
+
+    .status-completed {
+        background-color: #10b981;
+    }
+
+    .status-failed {
+        background-color: #ef4444;
+    }
+</style>
+
+<div class="space-y-6" x-data="factoryApp()">
+
+    <!-- Top: Quick Start Form -->
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+        <div class="px-6 py-4 border-b border-slate-200 bg-slate-50/50 flex justify-between items-center">
+            <h3 class="text-sm font-bold text-slate-700 uppercase tracking-wider">Start New Production Batch</h3>
+            <button @click="showForm = !showForm" class="text-indigo-600 text-sm hover:underline">
+                <span x-show="!showForm">Show Options</span>
+                <span x-show="showForm">Hide Options</span>
+            </button>
+        </div>
+
+        <form method="POST" x-show="showForm" x-transition class="p-6">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div class="lg:col-span-1 space-y-3">
+                    <label class="block text-xs font-bold text-slate-500 uppercase">1. Select Study Set</label>
+                    <select name="container_id" required
+                        class="w-full rounded-lg border-slate-300 text-sm focus:ring-indigo-500">
+                        <option value="" disabled selected>-- Choose a Set --</option>
+                        {% for c in containers %}
+                        <option value="{{ c.container_id }}">{{ c.title }} ({{ c.container_type }})</option>
+                        {% endfor %}
+                    </select>
+
+                    <label class="block text-xs font-bold text-slate-500 uppercase">Batch Name (Optional)</label>
+                    <input type="text" name="batch_name" placeholder="e.g. Vocabulary Set 1 - Audio"
+                        class="w-full rounded-lg border-slate-300 text-sm">
+                </div>
+
+                <div class="lg:col-span-1 space-y-3">
+                    <label class="block text-xs font-bold text-slate-500 uppercase">2. What to build?</label>
+                    <div class="flex flex-col gap-2">
+                        <label class="flex items-center gap-2 cursor-pointer">
+                            <input type="checkbox" name="gen_audio" checked class="rounded text-indigo-600">
+                            <span class="text-sm text-slate-700">Audio (TTS)</span>
+                        </label>
+                        <label class="flex items-center gap-2 cursor-pointer">
+                            <input type="checkbox" name="gen_ai_content" class="rounded text-indigo-600">
+                            <span class="text-sm text-slate-700">AI Explanations</span>
+                        </label>
+                        <label class="flex items-center gap-2 cursor-pointer mt-2">
+                            <input type="checkbox" name="overwrite" class="rounded text-rose-600">
+                            <span class="text-sm text-slate-700 font-bold">Overwrite existing content</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="lg:col-span-1 space-y-2">
+                    <label class="block text-xs font-bold text-slate-500 uppercase">3. Speed & Safety</label>
+                    <div class="flex items-center gap-3">
+                        <input type="number" name="bulk_delay" value="5" min="1"
+                            class="w-20 rounded border-slate-300 text-sm">
+                        <span class="text-xs text-slate-500">sec delay per item</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-6 pt-6 border-t border-slate-100 flex justify-end">
+                <button type="submit"
+                    class="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition font-bold shadow-md">
+                    <i class="fas fa-play mr-2"></i> Launch Production
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Main Workspace -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 h-[600px]">
+
+        <!-- Left: Session List -->
+        <div class="lg:col-span-4 bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden flex flex-col">
+            <div class="px-4 py-3 bg-slate-50 border-b border-slate-200 flex justify-between items-center">
+                <h3 class="text-xs font-bold text-slate-500 uppercase">Recent Sessions</h3>
+                <div class="flex gap-2">
+                    <button @click="cleanupZombies()" class="text-slate-400 hover:text-rose-600"
+                        title="Force clean stuck tasks"><i class="fas fa-broom text-xs"></i></button>
+                    <button @click="fetchSessions()" class="text-slate-400 hover:text-indigo-600"><i
+                            class="fas fa-sync-alt text-xs"></i></button>
+                </div>
+            </div>
+            <div class="flex-1 overflow-y-auto divide-y divide-slate-100">
+                <template x-for="session in sessions" :key="session.session_id">
+                    <div @click="selectSession(session)"
+                        :class="{'bg-indigo-50 border-l-4 border-indigo-500': selectedSession?.session_id === session.session_id, 'hover:bg-slate-50': selectedSession?.session_id !== session.session_id}"
+                        class="p-4 cursor-pointer transition-all relative group">
+
+                        <div class="flex justify-between items-start mb-1">
+                            <div class="flex flex-col">
+                                <span class="text-sm font-semibold text-slate-800 truncate max-w-[180px]"
+                                    x-text="session.session_name"></span>
+                                <span :class="{
+                                    'text-emerald-600 bg-emerald-50': session.status === 'Finished',
+                                    'text-indigo-600 bg-indigo-50': session.status === 'Running',
+                                    'text-rose-600 bg-rose-50': session.status === 'Failed',
+                                    'text-amber-600 bg-amber-50': session.status === 'Partial'
+                                }" class="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded w-fit mt-1"
+                                    x-text="session.status"></span>
+                            </div>
+                            <span x-show="session.is_active"
+                                class="flex h-2 w-2 rounded-full bg-emerald-500 animate-ping"></span>
+                        </div>
+
+                        <div class="text-xs text-slate-400 mb-2" x-text="session.start_time"></div>
+
+                        <div class="flex items-center gap-2">
+                            <div class="flex-1 bg-slate-100 rounded-full h-1.5">
+                                <div class="bg-indigo-500 h-1.5 rounded-full transition-all"
+                                    :style="'width: ' + session.progress + '%'"></div>
+                            </div>
+                            <span class="text-[10px] font-bold text-slate-500" x-text="session.progress + '%'"></span>
+                        </div>
+
+                        <!-- Delete Button (Visible on Hover or if not active) -->
+                        <div class="absolute top-2 right-2 hidden group-hover:block"
+                            x-show="selectedSession?.session_id !== session.session_id">
+                            <button @click.stop="deleteSession(session.session_id)"
+                                class="text-slate-300 hover:text-rose-500 transition-colors p-1" title="Delete Session">
+                                <i class="fas fa-trash-alt text-[10px]"></i>
+                            </button>
+                        </div>
+                    </div>
+                </template>
+            </div>
+        </div>
+
+        <!-- Right: Grouped Items View -->
+        <div class="lg:col-span-8 bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden flex flex-col">
+            <template x-if="!selectedSession">
+                <div class="flex-1 flex flex-col items-center justify-center text-slate-400">
+                    <i class="fas fa-industry fa-3x mb-4 opacity-20"></i>
+                    <p>Select a session to view details</p>
+                </div>
+            </template>
+
+            <template x-if="selectedSession">
+                <div class="flex-1 flex flex-col overflow-hidden">
+                    <div class="px-6 py-4 bg-slate-900 text-white flex justify-between items-center">
+                        <div>
+                            <h3 class="font-bold text-lg" x-text="selectedSession.session_name"></h3>
+                            <p class="text-xs text-slate-400 font-mono" x-text="selectedSession.session_id"></p>
+                        </div>
+                        <div class="flex items-center gap-4">
+                            <button x-show="selectedSession.is_active" @click="stopSession(selectedSession.session_id)"
+                                class="px-3 py-1 bg-rose-600 text-white text-xs font-bold rounded hover:bg-rose-700 transition">
+                                <i class="fas fa-stop mr-1"></i> STOP
+                            </button>
+                            <div class="text-2xl font-mono font-bold text-emerald-400"
+                                x-text="selectedSession.progress + '%'">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="flex-1 overflow-y-auto">
+                        <table class="w-full text-left">
+                            <thead class="bg-slate-50 text-[10px] uppercase text-slate-500 sticky top-0 border-b">
+                                <tr>
+                                    <th class="px-6 py-3 w-1/2">Learning Card Content</th>
+                                    <th class="px-4 py-3 text-center">Audio Front</th>
+                                    <th class="px-4 py-3 text-center">Audio Back</th>
+                                    <th class="px-4 py-3 text-center">AI Explain</th>
+                                    <th class="px-6 py-3 text-right">Preview</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-100 text-sm">
+                                <template x-for="item in selectedItems" :key="item.item_id">
+                                    <tr class="hover:bg-slate-50/50">
+                                        <td class="px-6 py-3">
+                                            <div class="font-medium text-slate-900 truncate max-w-[300px]"
+                                                x-text="item.item_title"></div>
+                                            <div class="text-[10px] text-slate-400 font-mono"
+                                                x-text="'ID: ' + item.item_id">
+                                            </div>
+                                        </td>
+
+                                        <!-- Audio Front Column -->
+                                        <td class="px-4 py-3 text-center">
+                                            <div x-show="item.tasks && item.tasks.front_audio" class="status-dot"
+                                                :class="{
+                                                'status-completed': item.tasks?.front_audio?.status === 'completed',
+                                                'status-failed': item.tasks?.front_audio?.status === 'failed',
+                                                'status-processing': item.tasks?.front_audio?.status === 'processing',
+                                                'status-pending': item.tasks?.front_audio?.status === 'pending'
+                                            }" :title="getTooltip(item.tasks?.front_audio)"></div>
+                                            <span x-show="!item.tasks || !item.tasks.front_audio">-</span>
+                                        </td>
+
+                                        <!-- Audio Back Column -->
+                                        <td class="px-4 py-3 text-center">
+                                            <div x-show="item.tasks && item.tasks.back_audio" class="status-dot" :class="{
+                                                'status-completed': item.tasks?.back_audio?.status === 'completed',
+                                                'status-failed': item.tasks?.back_audio?.status === 'failed',
+                                                'status-processing': item.tasks?.back_audio?.status === 'processing',
+                                                'status-pending': item.tasks?.back_audio?.status === 'pending'
+                                            }" :title="getTooltip(item.tasks?.back_audio)"></div>
+                                            <span x-show="!item.tasks || !item.tasks.back_audio">-</span>
+                                        </td>
+
+                                        <!-- AI Column -->
+                                        <td class="px-4 py-3 text-center">
+                                            <div x-show="item.tasks && item.tasks.ai" class="status-dot" :class="{
+                                                'status-completed': item.tasks?.ai?.status === 'completed',
+                                                'status-failed': item.tasks?.ai?.status === 'failed',
+                                                'status-processing': item.tasks?.ai?.status === 'processing',
+                                                'status-pending': item.tasks?.ai?.status === 'pending'
+                                            }" :title="getTooltip(item.tasks?.ai)"></div>
+                                            <span x-show="!item.tasks || !item.tasks.ai">-</span>
+                                        </td>
+
+                                        <td class="px-6 py-3 text-right">
+                                            <button @click="previewItem(item.item_id)"
+                                                class="text-slate-300 hover:text-indigo-600 transition-colors">
+                                                <i class="fas fa-eye"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                </template>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </template>
+        </div>
+    </div>
+
+    <!-- Preview Modal (Giữ nguyên logic cũ đã sửa) -->
+    <div x-show="showPreview" style="display: none;"
+        class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" x-transition>
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden" @click.away="showPreview = false">
+            <div class="px-6 py-4 border-b border-slate-200 flex justify-between items-center">
+                <h3 class="font-bold text-slate-800">Card Content Check</h3>
+                <button @click="showPreview = false" class="text-slate-400 hover:text-slate-600"><i
+                        class="fas fa-times"></i></button>
+            </div>
+            <template x-if="previewData">
+                <div class="grid grid-cols-2 gap-4 p-4">
+                    <div class="p-4 rounded-lg border bg-slate-50 border-slate-200">
+                        <div class="text-xs font-bold uppercase mb-3 text-slate-500 text-center border-b pb-1">Audio
+                            Files</div>
+
+                        <div class="mb-3">
+                            <div class="text-[9px] uppercase text-slate-400">Front Side</div>
+                            <template x-if="previewData && previewData.front_audio">
+                                <audio controls :src="'/media/' + previewData.front_audio" class="w-full h-6"></audio>
+                            </template>
+                            <template x-if="!previewData || !previewData.front_audio"><span
+                                    class="text-xs text-slate-300 italic">None</span></template>
+                        </div>
+
+                        <div>
+                            <div class="text-[9px] uppercase text-slate-400">Back Side</div>
+                            <template x-if="previewData && previewData.back_audio">
+                                <audio controls :src="'/media/' + previewData.back_audio" class="w-full h-6"></audio>
+                            </template>
+                            <template x-if="!previewData || !previewData.back_audio"><span
+                                    class="text-xs text-slate-300 italic">None</span></template>
+                        </div>
+                    </div>
+
+                    <div class="p-4 rounded-lg border bg-slate-50 border-slate-200">
+                        <div class="text-xs font-bold uppercase mb-3 text-slate-500 text-center border-b pb-1">AI
+                            Context</div>
+                        <template x-if="previewData && previewData.ai_explanation">
+                            <div class="text-[10px] text-slate-600 max-h-32 overflow-y-auto"
+                                x-text="previewData.ai_explanation"></div>
+                        </template>
+                        <template x-if="!previewData || !previewData.ai_explanation">
+                            <div class="text-xs text-slate-300 italic text-center mt-4">Empty</div>
+                        </template>
+                    </div>
+                </div>
+            </template>
+            <template x-if="!previewData">
+                <div class="p-6 text-center text-slate-400 italic">No preview data available.</div>
+            </template>
+        </div>
+    </div>
+</div>
+</div>
+</div>
+
+</div>
+
+<script src="//unpkg.com/alpinejs" defer></script>
+<script>
+    function factoryApp() {
+        return {
+            showForm: true,
+            sessions: [],
+            selectedSession: null,
+            selectedItems: [], // Changed from selectedTasks
+            showPreview: false,
+            previewData: null,
+            intervalId: null,
+
+            init() {
+                this.fetchSessions();
+                setInterval(() => this.fetchSessions(), 5000);
+
+                const urlParams = new URLSearchParams(window.location.search);
+                const activeId = urlParams.get('active_session');
+                if (activeId) {
+                    setTimeout(() => {
+                        const session = this.sessions.find(s => s.session_id === activeId);
+                        if (session) this.selectSession(session);
+                    }, 1000);
+                }
+            },
+
+            async fetchSessions() {
+                try {
+                    const response = await fetch('/admin/content-generator/api/sessions');
+                    this.sessions = await response.json();
+                    if (this.selectedSession) {
+                        const updated = this.sessions.find(s => s.session_id === this.selectedSession.session_id);
+                        if (updated) this.selectedSession = updated;
+                    }
+                } catch (e) { console.error(e); }
+            },
+
+            async selectSession(session) {
+                this.selectedSession = session;
+                this.fetchDetails();
+                if (this.intervalId) clearInterval(this.intervalId);
+                this.intervalId = setInterval(() => this.fetchDetails(), 3000);
+            },
+
+            async fetchDetails() {
+                if (!this.selectedSession) return;
+                try {
+                    const response = await fetch(`/admin/content-generator/api/session/${this.selectedSession.session_id}/details`);
+                    const data = await response.json();
+                    this.selectedItems = data.items;
+                } catch (e) { console.error(e); }
+            },
+
+            async stopSession(sessionId) {
+                if (!confirm("Stop this batch?")) return;
+                try {
+                    await fetch(`/admin/content-generator/api/session/${sessionId}/stop`, {
+                        method: 'POST',
+                        headers: { 'X-CSRFToken': '{{ csrf_token() }}' }
+                    });
+                    this.fetchSessions();
+                } catch (e) { console.error(e); }
+            },
+
+            async cleanupZombies() {
+                if (!confirm("Warning: This will MARK ALL running/pending tasks as FAILED immediately.\nUse this only if tasks are stuck.\n\nContinue?")) return;
+                try {
+                    const res = await fetch('/admin/content-generator/api/cleanup', {
+                        method: 'POST',
+                        headers: { 'X-CSRFToken': '{{ csrf_token() }}' }
+                    });
+                    const data = await res.json();
+                    alert(`Cleaned ${data.cleaned} tasks.`);
+                    this.fetchSessions();
+                } catch (e) { alert("Cleanup failed"); }
+            },
+
+
+
+            async deleteSession(sessionId) {
+                if (!confirm("Are you sure you want to delete this session history?")) return;
+                try {
+                    const res = await fetch(`/admin/content-generator/api/session/${sessionId}`, {
+                        method: 'DELETE',
+                        headers: { 'X-CSRFToken': '{{ csrf_token() }}' }
+                    });
+                    if (res.ok) {
+                        this.selectedSession = null;
+                        this.selectedItems = [];
+                        this.fetchSessions();
+                    } else {
+                        alert("Failed to delete");
+                    }
+                } catch (e) { console.error(e); }
+            },
+
+            async previewItem(itemId) {
+                if (!itemId) return;
+                try {
+                    const response = await fetch(`/admin/content-generator/api/item/${itemId}/preview`);
+                    if (response.ok) {
+                        this.previewData = await response.json();
+                        this.showPreview = true;
+                    }
+                } catch (e) { alert("Error loading preview"); }
+            },
+
+            formatTime(iso) {
+                if (!iso) return '';
+                // Use global standardized helper
+                if (window.formatUserTime) {
+                    return window.formatUserTime(iso);
+                }
+                return new Date(iso).toLocaleTimeString();
+            },
+
+            parseBBCode(text) {
+                if (!text) return '';
+                let html = text
+                    .replace(/\[b\](.*?)\[\/b\]/gi, "<b>$1</b>")
+                    .replace(/\[i\](.*?)\[\/i\]/gi, "<i>$1</i>")
+                    .replace(/\[u\](.*?)\[\/u\]/gi, "<u>$1</u>")
+                    .replace(/\[color=(.*?)\](.*?)\[\/color\]/gi, "<span style='color:$1'>$2</span>")
+                    .replace(/\n/g, "<br>");
+                return html;
+            },
+
+            getTooltip(task) {
+                if (!task) return 'No task';
+                let tip = `Status: ${task.status.toUpperCase()}`;
+                if (task.created_at) tip += `\nStart: ${this.formatTime(task.created_at)}`;
+                if (task.completed_at) tip += `\nEnd: ${this.formatTime(task.completed_at)}`;
+                if (task.execution_time_ms) tip += `\nDuration: ${task.execution_time_ms}ms`;
+                if (task.error) tip += `\nError: ${task.error}`;
+                return tip;
+            }
+        }
+    }
+</script>
+{% endblock %}

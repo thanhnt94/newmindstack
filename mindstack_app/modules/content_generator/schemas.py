@@ -6,7 +6,12 @@ class GenerationRequestBase(Schema):
     """Base schema for all generation requests."""
     requester_module = fields.Str(required=False, load_default="unknown")
     session_id = fields.Str(required=False, load_default=None)
-    delay_seconds = fields.Int(load_default=0, validate=validate.Range(min=0, max=3600))
+    session_name = fields.Str(required=False, load_default=None)
+    delay_seconds = fields.Int(load_default=0, validate=validate.Range(min=0, max=86400))
+    item_id = fields.Int(required=False, load_default=None)
+    item_title = fields.Str(required=False, load_default=None)
+    container_id = fields.Int(required=False, load_default=None) # New
+    side = fields.Str(required=False, load_default=None)         # New
 
 # --- Specific Schemas ---
 

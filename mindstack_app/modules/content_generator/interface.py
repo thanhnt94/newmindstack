@@ -41,6 +41,12 @@ def generate_image(prompt, requester_module="external", session_id=None, delay_s
     }
     return generator_service.dispatch_image_generation(payload)
 
+def generate_bulk_from_container(container_id, options, requester_module="admin_bulk"):
+    """
+    Generate content for all items in a specific container.
+    """
+    return generator_service.dispatch_bulk_generation(container_id, options, requester_module)
+
 def get_generation_status(log_id):
     """
     Check the status of a generation request.

@@ -14,11 +14,15 @@ class GenerationLog(db.Model):
     # Request Details
     request_type = db.Column(db.String(20), nullable=False) # 'text', 'audio', 'image'
     requester_module = db.Column(db.String(50), nullable=True) # e.g., 'flashcard', 'course'
-    session_id = db.Column(db.String(100), index=True, nullable=True) # To group related tasks
+    session_id = db.Column(db.String(100), index=True, nullable=True) # Unique ID
+    session_name = db.Column(db.String(255), nullable=True) # User-friendly name
+    item_id = db.Column(db.Integer, nullable=True) # Link to LearningItem
+    item_title = db.Column(db.String(255), nullable=True) # Cached title (Front/Question) for quick display
     delay_seconds = db.Column(db.Integer, default=0) # Planned delay to avoid bans
     
     # Status
     status = db.Column(db.String(20), default='pending') # pending, processing, completed, failed
+    stop_requested = db.Column(db.Boolean, default=False) # New field to support stopping
     
     # Data Payloads (Stored as JSON strings for flexibility)
     input_payload = db.Column(db.Text, nullable=True) 

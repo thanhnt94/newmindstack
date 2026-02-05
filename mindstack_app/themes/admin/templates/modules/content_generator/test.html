@@ -1,54 +1,234 @@
-{% extends "admin/base_site.html" %}
+{% extends "admin/modules/admin/admin_layout.html" %}
+{% set active_page = 'content_generator' %}
 
-{% block title %}Test Generator{% endblock %}
+{% block title %}Create Generation Task{% endblock %}
+{% block page_title %}New Content Task{% endblock %}
+{% block page_subtitle %}Manually trigger AI text, audio or image generation.{% endblock %}
 
 {% block content %}
-<div class="row">
-    <div class="col-md-6 offset-md-3">
-        <div class="card">
-            <div class="card-header">
-                <h3 class="card-title">Create New Generation Task</h3>
-            </div>
-            <div class="card-body">
-                <form method="POST">
-                    <div class="form-group mb-3">
-                        <label>Task Type</label>
-                        <select name="type" class="form-control">
-                            <option value="text">Text Generation (LLM)</option>
-                            <option value="audio">Audio Generation (TTS)</option>
-                            <option value="image">Image Generation</option>
-                        </select>
-                    </div>
-                    
-                    <div class="row">
-                        <div class="col-md-6">
-                             <div class="form-group mb-3">
-                                <label>Session ID (Optional)</label>
-                                <input type="text" name="session_id" class="form-control" placeholder="e.g. course_creation_001">
-                                <small class="text-muted">Group related requests together.</small>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="form-group mb-3">
-                                <label>Delay (Seconds)</label>
-                                <input type="number" name="delay" class="form-control" value="0" min="0" max="3600">
-                                <small class="text-danger">Use delay to prevent API bans!</small>
-                            </div>
-                        </div>
-                    </div>
+<div class="max-w-4xl mx-auto" x-data="generatorApp()">
+    
+    <!-- Tabs Navigation -->
+    <div class="flex border-b border-slate-200 mb-6">
+        <button @click="activeTab = 'single'" 
+            :class="{ 'border-indigo-500 text-indigo-600': activeTab === 'single', 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300': activeTab !== 'single' }"
+            class="w-1/2 py-4 px-1 text-center border-b-2 font-medium text-sm transition-colors">
+            <i class="fas fa-microchip mr-2"></i> Single Test
+        </button>
+        <button @click="activeTab = 'bulk'" 
+            :class="{ 'border-indigo-500 text-indigo-600': activeTab === 'bulk', 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300': activeTab !== 'bulk' }"
+            class="w-1/2 py-4 px-1 text-center border-b-2 font-medium text-sm transition-colors">
+            <i class="fas fa-layer-group mr-2"></i> Bulk Generation
+        </button>
+    </div>
 
-                    <div class="form-group mb-3">
-                        <label>Prompt / Text</label>
-                        <textarea name="prompt" class="form-control" rows="5" required placeholder="Enter prompt or text here..."></textarea>
-                    </div>
-                    
-                    <button type="submit" class="btn btn-success">
-                        <i class="fas fa-magic"></i> Generate
-                    </button>
-                    <a href="{{ url_for('content_generator.index') }}" class="btn btn-secondary">Cancel</a>
-                </form>
+    <!-- Live Progress Monitor (Shows when session is active) -->
+    <div x-show="activeSessionId" x-transition class="mb-6 bg-slate-900 rounded-xl shadow-lg border border-slate-700 overflow-hidden text-white">
+        <div class="px-6 py-4 border-b border-slate-700 flex justify-between items-center bg-slate-800/50">
+            <div class="flex items-center gap-3">
+                <div class="relative">
+                    <div class="w-3 h-3 bg-emerald-500 rounded-full animate-ping absolute"></div>
+                    <div class="w-3 h-3 bg-emerald-500 rounded-full relative"></div>
+                </div>
+                <h3 class="font-semibold">Processing Session: <span x-text="activeSessionId" class="font-mono text-emerald-400"></span></h3>
+            </div>
+            <button @click="stopMonitoring()" class="text-xs text-slate-400 hover:text-white">Close Monitor</button>
+        </div>
+        <div class="p-6">
+            <div class="flex justify-between text-sm mb-2">
+                <span class="text-slate-400" x-text="sessionData.current_item || 'Initializing...'"></span>
+                <span class="font-mono font-bold" x-text="sessionData.progress_percent + '%'"></span>
+            </div>
+            <div class="w-full bg-slate-700 rounded-full h-2.5 mb-6">
+                <div class="bg-indigo-500 h-2.5 rounded-full transition-all duration-500" :style="'width: ' + sessionData.progress_percent + '%'"></div>
+            </div>
+            
+            <div class="grid grid-cols-4 gap-4 text-center">
+                <div class="bg-slate-800 rounded p-3">
+                    <div class="text-2xl font-bold" x-text="sessionData.total">0</div>
+                    <div class="text-xs text-slate-500 uppercase">Total</div>
+                </div>
+                <div class="bg-slate-800 rounded p-3">
+                    <div class="text-2xl font-bold text-emerald-400" x-text="sessionData.completed">0</div>
+                    <div class="text-xs text-slate-500 uppercase">Completed</div>
+                </div>
+                <div class="bg-slate-800 rounded p-3">
+                    <div class="text-2xl font-bold text-amber-400" x-text="sessionData.processing + sessionData.pending">0</div>
+                    <div class="text-xs text-slate-500 uppercase">Remaining</div>
+                </div>
+                <div class="bg-slate-800 rounded p-3">
+                    <div class="text-2xl font-bold text-rose-400" x-text="sessionData.failed">0</div>
+                    <div class="text-xs text-slate-500 uppercase">Failed</div>
+                </div>
             </div>
         </div>
     </div>
+
+    <!-- Single Test Form -->
+    <div x-show="activeTab === 'single'" class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+        <div class="px-6 py-4 border-b border-slate-200 bg-slate-50/50">
+            <h3 class="text-lg font-semibold text-slate-900">Single Generation</h3>
+        </div>
+        
+        <form method="POST" class="p-6 space-y-6">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="action_type" value="single">
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="space-y-2">
+                    <label class="block text-sm font-medium text-slate-700">Generation Type</label>
+                    <select name="type" class="w-full rounded-lg border-slate-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm">
+                        <option value="text">Text Generation (LLM)</option>
+                        <option value="audio">Audio Generation (TTS)</option>
+                        <option value="image">Image Generation</option>
+                    </select>
+                </div>
+                
+                <div class="space-y-2">
+                    <label class="block text-sm font-medium text-slate-700">Delay (Seconds)</label>
+                    <input type="number" name="delay" value="0" min="0" max="3600" class="w-full rounded-lg border-slate-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm">
+                </div>
+            </div>
+
+            <div class="space-y-2">
+                <label class="block text-sm font-medium text-slate-700">Session ID (Optional)</label>
+                <input type="text" name="session_id" placeholder="e.g. course_batch_01" class="w-full rounded-lg border-slate-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm">
+            </div>
+
+            <div class="space-y-2">
+                <label class="block text-sm font-medium text-slate-700">Input Text / Prompt</label>
+                <textarea name="prompt" rows="6" required placeholder="Enter your prompt or text here..." 
+                    class="w-full rounded-lg border-slate-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm"></textarea>
+            </div>
+
+            <div class="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
+                <a href="{{ url_for('content_generator.index') }}" class="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors">
+                    Cancel
+                </a>
+                <button type="submit" class="inline-flex items-center gap-2 px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-sm font-medium shadow-sm">
+                    <i class="fas fa-magic"></i> Start Generation
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Bulk Generation Form -->
+    <div x-show="activeTab === 'bulk'" class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden" style="display: none;">
+        <div class="px-6 py-4 border-b border-slate-200 bg-slate-50/50">
+            <h3 class="text-lg font-semibold text-slate-900">Bulk Content Processing</h3>
+            <p class="text-xs text-slate-500 mt-1">Generate content for all items in a container.</p>
+        </div>
+        
+        <form method="POST" class="p-6 space-y-6">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="action_type" value="bulk">
+            
+            <div class="space-y-2">
+                <label class="block text-sm font-medium text-slate-700">Select Container (Flashcard/Quiz Set)</label>
+                <select name="container_id" required class="w-full rounded-lg border-slate-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm">
+                    <option value="" disabled selected>-- Choose a container --</option>
+                    {% for c in containers %}
+                    <option value="{{ c.container_id }}">
+                        [{{ c.container_type }}] {{ c.title }} (ID: {{ c.container_id }})
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 bg-slate-50 p-4 rounded-lg border border-slate-100">
+                <div class="space-y-4">
+                    <p class="font-medium text-sm text-slate-900">What to generate?</p>
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input type="checkbox" name="gen_audio" checked class="rounded text-indigo-600 focus:ring-indigo-500">
+                        <span class="text-sm text-slate-700">Generate Audio (TTS)</span>
+                    </label>
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input type="checkbox" name="gen_ai_content" class="rounded text-indigo-600 focus:ring-indigo-500">
+                        <span class="text-sm text-slate-700">Generate Examples/Explanation (AI)</span>
+                    </label>
+                </div>
+                
+                <div class="space-y-4">
+                     <p class="font-medium text-sm text-slate-900">Configuration</p>
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input type="checkbox" name="overwrite" class="rounded text-rose-600 focus:ring-rose-500">
+                        <span class="text-sm text-slate-700">Overwrite existing content</span>
+                    </label>
+                    
+                    <div class="space-y-1">
+                        <label class="text-xs text-slate-500">Stagger Delay (Seconds per item)</label>
+                        <input type="number" name="bulk_delay" value="5" min="1" max="60" class="w-full rounded border-slate-300 text-sm">
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
+                <a href="{{ url_for('content_generator.index') }}" class="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors">
+                    Cancel
+                </a>
+                <button type="submit" class="inline-flex items-center gap-2 px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-sm font-medium shadow-sm">
+                    <i class="fas fa-layer-group"></i> Start Bulk Process
+                </button>
+            </div>
+        </form>
+    </div>
 </div>
+
+<script src="//unpkg.com/alpinejs" defer></script>
+<script>
+    function generatorApp() {
+        return {
+            activeTab: 'single',
+            activeSessionId: null,
+            intervalId: null,
+            sessionData: {
+                total: 0,
+                completed: 0,
+                failed: 0,
+                processing: 0,
+                pending: 0,
+                progress_percent: 0,
+                current_item: ''
+            },
+            
+            init() {
+                // Auto-start monitoring if session ID is passed from backend
+                const autoSessionId = "{{ active_session_id or '' }}";
+                if (autoSessionId) {
+                    this.startMonitoring(autoSessionId);
+                }
+            },
+            
+            startMonitoring(sessionId) {
+                this.activeSessionId = sessionId;
+                this.pollStatus();
+                this.intervalId = setInterval(() => this.pollStatus(), 2000);
+            },
+            
+            stopMonitoring() {
+                this.activeSessionId = null;
+                if (this.intervalId) clearInterval(this.intervalId);
+            },
+            
+            async pollStatus() {
+                if (!this.activeSessionId) return;
+                
+                try {
+                    const response = await fetch(`/admin/content-generator/api/session/${this.activeSessionId}/status`);
+                    if (response.ok) {
+                        this.sessionData = await response.json();
+                        if (this.sessionData.is_finished) {
+                            setTimeout(() => {
+                                // Optional: Show completion notification
+                                // this.stopMonitoring(); 
+                            }, 5000);
+                        }
+                    }
+                } catch (e) {
+                    console.error("Monitoring error:", e);
+                }
+            }
+        }
+    }
+</script>
 {% endblock %}

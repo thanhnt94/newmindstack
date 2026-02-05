@@ -31,6 +31,23 @@
             delete window.__TAILWIND_ORIGINAL_WARN__;
         }
     </script>
+
+    <!-- MindStack Global Config -->
+    <script>
+        window.MindStack = window.MindStack || {};
+        window.MindStack.userTimezone = "{{ current_user.timezone if current_user.is_authenticated else 'UTC' }}";
+
+        // Helper to format user time from JS
+        window.formatUserTime = function (isoString, options = {}) {
+            if (!isoString) return '';
+            const date = new Date(isoString);
+            return new Intl.DateTimeFormat('default', {
+                timeZone: window.MindStack.userTimezone || 'UTC',
+                ...options
+            }).format(date);
+        };
+    </script>
+
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
         integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw=="
         crossorigin="anonymous" referrerpolicy="no-referrer" />
@@ -175,7 +192,8 @@
                 {
                 'title': 'Vận hành (Ops)',
                 'items': [
-                {'key': 'content_generator', 'label': 'Content Generator', 'icon': 'fa-robot', 'endpoint': 'content_generator.index'},
+                {'key': 'content_generator', 'label': 'Content Generator', 'icon': 'fa-robot', 'endpoint':
+                'content_generator.index'},
                 {'key': 'media', 'label': 'File Manager', 'icon': 'fa-folder-open', 'endpoint': 'admin.media_library'},
                 {'key': 'backup', 'label': 'Backup & Restore', 'icon': 'fa-database', 'endpoint':
                 'backup.manage_backup_restore'},

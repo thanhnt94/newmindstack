@@ -1,65 +1,95 @@
-{% extends "admin/base_site.html" %}
+{% extends "admin/modules/admin/admin_layout.html" %}
+{% set active_page = 'content_generator' %}
 
 {% block title %}Content Generator Logs{% endblock %}
+{% block page_title %}Generation History{% endblock %}
+{% block page_subtitle %}Manage and monitor all AI, Audio, and Image generation tasks.{% endblock %}
 
 {% block content %}
-<div class="row">
-    <div class="col-md-12">
-        <div class="card">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <h3 class="card-title">Generation History</h3>
-                <a href="{{ url_for('content_generator.test_generator') }}" class="btn btn-primary btn-sm">
-                    <i class="fas fa-plus"></i> New Task
-                </a>
-            </div>
-            <div class="card-body p-0">
-                <table class="table table-striped">
-                    <thead>
-                        <tr>
-                            <th>ID</th>
-                            <th>Type</th>
-                            <th>Session</th>
-                            <th>Requester</th>
-                            <th>Status</th>
-                            <th>Cost (Tokens)</th>
-                            <th>Created At</th>
-                            <th>Result</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for log in logs.items %}
-                        <tr>
-                            <td>{{ log.id }}</td>
-                            <td><span class="badge bg-info">{{ log.request_type }}</span></td>
-                            <td><small>{{ log.session_id or '-' }}</small></td>
-                            <td>{{ log.requester_module }}</td>
-                            <td>
-                                {% if log.status == 'completed' %}
-                                    <span class="badge bg-success">Completed</span>
-                                {% elif log.status == 'failed' %}
-                                    <span class="badge bg-danger">Failed</span>
-                                {% else %}
-                                    <span class="badge bg-warning">{{ log.status }}</span>
-                                {% endif %}
-                            </td>
-                            <td>{{ log.cost_tokens }}</td>
-                            <td>{{ log.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
-                            <td>
-                                {% if log.error_message %}
-                                    <small class="text-danger">{{ log.error_message[:50] }}...</small>
-                                {% else %}
-                                    <small class="text-muted">Click to view</small>
-                                {% endif %}
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-            <div class="card-footer clearfix">
-                {# Pagination here if needed #}
-            </div>
+<div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+    <div class="px-6 py-4 border-b border-slate-200 flex justify-between items-center bg-slate-50/50">
+        <h3 class="text-lg font-semibold text-slate-900">Recent Tasks</h3>
+        <a href="{{ url_for('content_generator.test_generator') }}" class="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-sm font-medium shadow-sm">
+            <i class="fas fa-magic"></i> New Generation
+        </a>
+    </div>
+    
+    <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse">
+            <thead>
+                <tr class="bg-slate-50 text-slate-500 text-xs uppercase tracking-wider">
+                    <th class="px-6 py-3 font-semibold border-b border-slate-200">ID</th>
+                    <th class="px-6 py-3 font-semibold border-b border-slate-200">Type</th>
+                    <th class="px-6 py-3 font-semibold border-b border-slate-200">Session</th>
+                    <th class="px-6 py-3 font-semibold border-b border-slate-200">Module</th>
+                    <th class="px-6 py-3 font-semibold border-b border-slate-200">Status</th>
+                    <th class="px-6 py-3 font-semibold border-b border-slate-200">Tokens</th>
+                    <th class="px-6 py-3 font-semibold border-b border-slate-200">Created</th>
+                    <th class="px-6 py-3 font-semibold border-b border-slate-200">Action</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100 text-sm">
+                {% for log in logs.items %}
+                <tr class="hover:bg-slate-50/50 transition-colors">
+                    <td class="px-6 py-4 font-medium text-slate-900">#{{ log.id }}</td>
+                    <td class="px-6 py-4">
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium 
+                            {% if log.request_type == 'audio' %}bg-amber-100 text-amber-700{% elif log.request_type == 'text' %}bg-blue-100 text-blue-700{% else %}bg-purple-100 text-purple-700{% endif %}">
+                            {{ log.request_type|upper }}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 text-slate-500 font-mono text-xs">{{ log.session_id or '-' }}</td>
+                    <td class="px-6 py-4 text-slate-600">{{ log.requester_module }}</td>
+                    <td class="px-6 py-4">
+                        {% if log.status == 'completed' %}
+                            <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700">
+                                <i class="fas fa-check-circle text-[10px]"></i> Completed
+                            </span>
+                        {% elif log.status == 'failed' %}
+                            <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-rose-100 text-rose-700">
+                                <i class="fas fa-exclamation-circle text-[10px]"></i> Failed
+                            </span>
+                        {% elif log.status == 'processing' %}
+                            <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700 animate-pulse">
+                                <i class="fas fa-spinner fa-spin text-[10px]"></i> Processing
+                            </span>
+                        {% else %}
+                            <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-600">
+                                <i class="fas fa-clock text-[10px]"></i> {{ log.status|capitalize }}
+                            </span>
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-4 text-slate-500">{{ log.cost_tokens or 0 }}</td>
+                    <td class="px-6 py-4 text-slate-500">{{ log.created_at.strftime('%m-%d %H:%M') }}</td>
+                    <td class="px-6 py-4">
+                        {% if log.error_message %}
+                        <button class="text-rose-600 hover:text-rose-800 transition-colors" title="{{ log.error_message }}">
+                            <i class="fas fa-info-circle"></i>
+                        </button>
+                        {% else %}
+                        <button class="text-slate-400 hover:text-indigo-600 transition-colors">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    
+    {% if logs.pages > 1 %}
+    <div class="px-6 py-4 bg-slate-50 border-t border-slate-200 flex items-center justify-between">
+        <p class="text-xs text-slate-500">Showing page {{ logs.page }} of {{ logs.pages }}</p>
+        <div class="flex gap-2">
+            {% if logs.has_prev %}
+            <a href="{{ url_for('content_generator.index', page=logs.prev_num) }}" class="px-3 py-1 bg-white border border-slate-300 rounded text-xs hover:bg-slate-50 transition-colors">Prev</a>
+            {% endif %}
+            {% if logs.has_next %}
+            <a href="{{ url_for('content_generator.index', page=logs.next_num) }}" class="px-3 py-1 bg-white border border-slate-300 rounded text-xs hover:bg-slate-50 transition-colors">Next</a>
+            {% endif %}
         </div>
     </div>
+    {% endif %}
 </div>
 {% endblock %}

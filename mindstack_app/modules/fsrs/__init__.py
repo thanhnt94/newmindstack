@@ -21,5 +21,6 @@ def setup_module(app):
     # Register API routes
     app.register_blueprint(api_bp)
     
-    # Register Admin/View routes (fsrs_bp has interpreted the routes via admin_views import)
-    app.register_blueprint(fsrs_bp)
+    # Register Admin/View routes
+    # specific handling: bootstrap.py handles fsrs_bp registration via module_metadata
+    # app.register_blueprint(fsrs_bp)

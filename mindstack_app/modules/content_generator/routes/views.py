@@ -1,38 +1,37 @@
-from flask import render_template, request, current_app, flash, redirect, url_for
+from flask import render_template, request, flash, redirect, url_for
+from mindstack_app.models import LearningContainer
 from .. import blueprint
 from ..models import GenerationLog
-from ..interface import generate_text, generate_audio
+from ..interface import generate_bulk_from_container
 
 @blueprint.route('/')
 def index():
-    """Admin Dashboard for Content Generator."""
-    page = request.args.get('page', 1, type=int)
-    logs = GenerationLog.query.order_by(GenerationLog.created_at.desc()).paginate(page=page, per_page=20)
-    # Path is now relative to the theme's template folder
-    return render_template('modules/content_generator/index.html', logs=logs)
+    """Chuyển hướng trực tiếp vào Factory Dashboard."""
+    return redirect(url_for('content_generator.factory_dashboard'))
 
-@blueprint.route('/test', methods=['GET', 'POST'])
-def test_generator():
-    """Manual testing interface."""
+@blueprint.route('/factory', methods=['GET', 'POST'])
+def factory_dashboard():
+    """Giao diện chính để quản lý tạo nội dung hàng loạt."""
     if request.method == 'POST':
-        gen_type = request.form.get('type')
-        prompt = request.form.get('prompt')
-        session_id = request.form.get('session_id') or "manual_test"
-        delay = request.form.get('delay', 0, type=int)
-        
+        container_id = request.form.get('container_id')
+        options = {
+            'batch_name': request.form.get('batch_name'),
+            'gen_audio': 'gen_audio' in request.form,
+            'gen_ai_content': 'gen_ai_content' in request.form,
+            'overwrite': 'overwrite' in request.form,
+            'voice_id': request.form.get('voice_id', 'default'),
+            'delay_seconds': request.form.get('bulk_delay', 5, type=int)
+        }
         try:
-            if gen_type == 'text':
-                generate_text(prompt, requester_module="admin_test", session_id=session_id, delay_seconds=delay)
-                flash(f"Text generation task queued (Delay: {delay}s)!", "success")
-            elif gen_type == 'audio':
-                generate_audio(prompt, voice_id="default", requester_module="admin_test", session_id=session_id, delay_seconds=delay)
-                flash(f"Audio generation task queued (Delay: {delay}s)!", "success")
-            elif gen_type == 'image':
-                 generate_image(prompt, requester_module="admin_test", session_id=session_id, delay_seconds=delay)
-                 flash(f"Image generation task queued (Delay: {delay}s)!", "success")
-            
-            return redirect(url_for('content_generator.index'))
+            result = generate_bulk_from_container(container_id, options, requester_module="admin_bulk")
+            if result['tasks_created'] == 0:
+                flash(f"No new content needed for '{result['container_title']}'. Everything is already up to date.", "info")
+                return redirect(url_for('content_generator.factory_dashboard'))
+                
+            flash(f"Started session {result['session_id']} for {result['container_title']}. Queued {result['tasks_created']} tasks.", "success")
+            return redirect(url_for('content_generator.factory_dashboard', active_session=result['session_id']))
         except Exception as e:
-            flash(f"Error: {str(e)}", "danger")
-            
-    return render_template('modules/content_generator/test.html')
+            flash(str(e), "danger")
+
+    containers = LearningContainer.query.order_by(LearningContainer.title).all()
+    return render_template('modules/content_generator/factory.html', containers=containers)
