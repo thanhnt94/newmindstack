@@ -12,3 +12,7 @@ module_metadata = {
 
 def setup_module(app):
     from . import routes
+    
+    # Initialize Automated Backup Scheduler
+    from .services.auto_backup_service import AutoBackupService
+    AutoBackupService.init_scheduler(app)

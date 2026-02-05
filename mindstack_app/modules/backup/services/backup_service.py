@@ -177,23 +177,24 @@ def collect_dataset_payload(dataset_key):
         payload[model.__tablename__] = [serialize_instance(row) for row in rows]
     return payload
 
-def write_dataset_to_zip(zipf, dataset_key, payload):
+def write_dataset_to_zip(zipf, dataset_key, payload, folder_prefix=None):
+    base_path = f"{folder_prefix}/" if folder_prefix else ""
     manifest = {
         'type': 'dataset',
         'dataset': dataset_key,
         'generated_at': datetime.utcnow().isoformat() + 'Z',
         'tables': list(payload.keys()),
     }
-    zipf.writestr(f'{dataset_key}/manifest.json', json.dumps(manifest, ensure_ascii=False, indent=2))
+    zipf.writestr(f'{base_path}{dataset_key}/manifest.json', json.dumps(manifest, ensure_ascii=False, indent=2))
     for table_name, records in payload.items():
         json_bytes = json.dumps(records, ensure_ascii=False, indent=2).encode('utf-8')
-        zipf.writestr(f'{dataset_key}/{table_name}.json', json_bytes)
+        zipf.writestr(f'{base_path}{dataset_key}/{table_name}.json', json_bytes)
         if records:
             output = io.StringIO()
             writer = csv.DictWriter(output, fieldnames=records[0].keys())
             writer.writeheader()
             writer.writerows(records)
-            zipf.writestr(f'{dataset_key}/{table_name}.csv', output.getvalue())
+            zipf.writestr(f'{base_path}{dataset_key}/{table_name}.csv', output.getvalue())
 
 def read_backup_manifest(zipf):
     candidates = ['manifest.json']
@@ -214,7 +215,12 @@ def extract_dataset_payload_from_zip(zipf, dataset_key):
     members = set(zipf.namelist())
     for model in DATASET_CATALOG[dataset_key]['models']:
         table_name = model.__tablename__
-        for candidate in (f'{dataset_key}/{table_name}.json', f'{table_name}.json'):
+        candidates = [
+            f'datasets/{dataset_key}/{table_name}.json',
+            f'{dataset_key}/{table_name}.json',
+            f'{table_name}.json'
+        ]
+        for candidate in candidates:
             if candidate not in members:
                 continue
             try:
@@ -319,28 +325,52 @@ def restore_from_uploaded_bytes(raw_bytes, dataset_hint=None) -> Dict[str, objec
             with zipfile.ZipFile(buffer) as zipf:
                 manifest_data, _ = read_backup_manifest(zipf)
                 manifest_type = manifest_data.get('type') if isinstance(manifest_data, dict) else None
-                if manifest_type == 'full':
+                
+                # Case 1: Full system restore requested (no dataset hint)
+                if manifest_type == 'full' and not dataset_hint:
                     includes_uploads = bool(manifest_data.get('includes_uploads', False))
                     restore_backup_from_zip(zipf, restore_database=True, restore_uploads=includes_uploads)
                     return {'success': True, 'message': 'Đã khôi phục toàn bộ hệ thống (Full Backup).'}
-                if manifest_type == 'database':
+                
+                # Case 2: Database only restore
+                if manifest_type == 'database' and not dataset_hint:
                     restore_backup_from_zip(zipf, restore_database=True, restore_uploads=False)
                     return {'success': True, 'message': 'Đã khôi phục cơ sở dữ liệu.'}
+                
+                # Case 3: Selective dataset restore (either from a standalone dataset backup or a full backup)
                 dataset_key = None
+                
+                # Priority 1: User explicitly chose a dataset to restore
                 if dataset_hint and dataset_hint in DATASET_CATALOG:
                     dataset_key = dataset_hint
-                elif manifest_data and isinstance(manifest_data, dict):
+                
+                # Priority 2: Manifest says it's a standalone dataset
+                elif manifest_type == 'dataset':
                     manifest_dataset = manifest_data.get('dataset')
                     if isinstance(manifest_dataset, str) and manifest_dataset in DATASET_CATALOG:
                         dataset_key = manifest_dataset
+                
+                # Priority 3: Fallback - infer from contents
                 if not dataset_key:
                     dataset_key = infer_dataset_key_from_zip(zipf)
+                
                 if dataset_key:
+                    # Check if it's a Universal Full Backup (contents in 'datasets/' folder)
+                    is_universal = manifest_data.get('is_universal', False) if isinstance(manifest_data, dict) else False
+                    
+                    # We try both: datasets/key/TABLE.json and key/TABLE.json
                     payload = extract_dataset_payload_from_zip(zipf, dataset_key)
+                    
+                    # Fallback for universal: extract_dataset_payload_from_zip currently doesn't check 'datasets/'
+                    # I'll update extract_dataset_payload_from_zip to be smarter, but let's handle it here if needed
+                    # Actually, let's update extract_dataset_payload_from_zip instead to keep it clean.
+                    
                     if not payload:
-                        return {'success': False, 'error': 'Không tìm thấy dữ liệu hợp lệ trong gói sao lưu.'}
+                        return {'success': False, 'error': f'Không tìm thấy dữ liệu cho dataset {dataset_key} trong gói sao lưu.'}
+                    
                     apply_dataset_restore(dataset_key, payload)
                     return {'success': True, 'message': f"Đã khôi phục dataset '{DATASET_CATALOG[dataset_key]['label']}'."}
+                    
             return {'success': False, 'error': 'Không thể xác định loại gói sao lưu từ file ZIP.'}
         
         try:

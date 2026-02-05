@@ -75,10 +75,16 @@ def manage_backup_restore():
         for key, config in DATASET_CATALOG.items()
     ]
 
+    from mindstack_app.services.config_service import get_runtime_config
+    auto_backup_enabled = get_runtime_config('AUTO_BACKUP_ENABLED', 'false').lower() == 'true'
+    auto_backup_retention = int(get_runtime_config('AUTO_BACKUP_RETENTION_DAYS', 7))
+
     return render_template(
         'admin/modules/admin/backup_restore.html',
         backup_entries=backup_entries,
         dataset_options=dataset_options,
+        auto_backup_enabled=auto_backup_enabled,
+        auto_backup_retention=auto_backup_retention
     )
 
 @blueprint.route('/create/database', methods=['POST'])
@@ -133,11 +139,20 @@ def download_full_backup():
                         arcname = os.path.join('uploads', os.path.relpath(file_path, uploads_folder))
                         zipf.write(file_path, arcname)
 
+            # Add datasets for selective restore (Universal Format)
+            for dataset_key in DATASET_CATALOG.keys():
+                try:
+                    payload = collect_dataset_payload(dataset_key)
+                    write_dataset_to_zip(zipf, dataset_key, payload, folder_prefix='datasets')
+                except Exception as e:
+                    current_app.logger.error(f"Failed to include dataset {dataset_key} in full backup: {e}")
+
             manifest = {
                 'type': 'full',
                 'generated_at': datetime.utcnow().isoformat() + 'Z',
                 'database_file': os.path.basename(db_path),
-                'includes_uploads': True
+                'includes_uploads': True,
+                'is_universal': True
             }
             zipf.writestr('manifest.json', json.dumps(manifest, ensure_ascii=False, indent=2))
 
@@ -237,7 +252,8 @@ def restore_dataset():
         file_bytes = file.read()
         file_name = file.filename
         
-        result = restore_from_uploaded_bytes(file_bytes, file_name)
+        dataset_key = request.form.get('dataset_key')
+        result = restore_from_uploaded_bytes(file_bytes, dataset_hint=dataset_key or file_name)
         
         if result.get('success'):
              flash(f"Khôi phục dữ liệu thành công: {result.get('message')}", 'success')
@@ -271,8 +287,11 @@ def restore_backup():
         with open(file_path, 'rb') as f:
             file_bytes = f.read()
             
+        # Optional dataset key for selective restore
+        dataset_key = request.form.get('dataset_key')
+            
         # Use existing service function to handle restoration
-        result = restore_from_uploaded_bytes(file_bytes, filename)
+        result = restore_from_uploaded_bytes(file_bytes, dataset_hint=dataset_key or filename)
         
         if result.get('success'):
              flash(f"Khôi phục thành công: {result.get('message')}", 'success')
