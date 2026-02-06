@@ -824,7 +824,17 @@ class QuizSessionManager:
 
             except Exception as e:
                 current_app.logger.error(f"Error updating DB session history: {e}")
-            from mindstack_app.modules.session.services.session_service import LearningSessionService
+            # The original code imported LearningSessionService again here.
+            # We will use SessionInterface if we needed service methods, but checking lines 831-840 it uses `db` directly to update `LearningSession`.
+            # So we can remove the Service import if it's not used for anything else in this block.
+            # Wait, line 827 in original was importing LearningSessionService.
+            
+            # The original code:
+            # db_sess = db.session.get(LearningSession, self.db_session_id)
+            
+            # It seems `LearningSessionService` wasn't even used in the following block (lines 831-840)! 
+            # It just does direct DB operations.
+            # I will remove the unused import.
             # We use process_answer_batch for the whole batch
             # We'll update the session metadata (counts) 
             # and processed_item_ids in bulk via a custom service method or manual update
@@ -872,10 +882,10 @@ class QuizSessionManager:
             result['stats'] = stats
 
             if db_session_id:
-                from mindstack_app.modules.session.services.session_service import LearningSessionService
+                from mindstack_app.modules.session.interface import SessionInterface
                 # Always mark as completed if user explicitly ends it, 
                 # or just use complete_session which sets status='completed'
-                LearningSessionService.complete_session(db_session_id)
+                SessionInterface.complete_session(db_session_id)
 
             session.pop(cls.SESSION_KEY, None)
             

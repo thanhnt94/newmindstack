@@ -37,7 +37,7 @@ from mindstack_app.models import (
 )
 # REFAC: Removed ItemMemoryState import
 from mindstack_app.modules.fsrs.interface import FSRSInterface
-from mindstack_app.modules.vocabulary.services.stats_container import VocabularyStatsService
+from mindstack_app.modules.vocabulary.interface import VocabularyInterface
 
 # Helper from views (could be moved to a shared logic file later)
 def _user_can_edit_flashcard(container_id: int) -> bool:

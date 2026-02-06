@@ -699,13 +699,12 @@ def api_get_quiz_set_detail(set_id):
 @login_required
 def api_generate_quiz_ai_explanation(item_id):
     """Generate AI explanation for a quiz item."""
-    from mindstack_app.modules.AI.interface import generate_content
-    from mindstack_app.modules.AI.logics.prompts import get_formatted_prompt
+    from mindstack_app.modules.AI.interface import generate_content, AIInterface
     
     item = LearningItem.query.get_or_404(item_id)
     
     try:
-        prompt = get_formatted_prompt(item, purpose="explanation")
+        prompt = AIInterface.get_formatted_prompt(item, purpose="explanation")
         if not prompt:
             return jsonify({'success': False, 'message': 'Không thể tạo prompt cho học liệu này.'}), 400
             

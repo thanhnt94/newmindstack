@@ -6,7 +6,7 @@ from typing import Dict, Any, List, Optional, Tuple
 
 from sqlalchemy import func, distinct, case
 from mindstack_app.models import (
-    db, User, ScoreLog, LearningContainer, LearningItem
+    db, User, ScoreLog, StudyLog, LearningContainer, LearningItem
 )
 # REMOVED: ItemMemoryState import
 from mindstack_app.modules.fsrs.interface import FSRSInterface as FsrsInterface

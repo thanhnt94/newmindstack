@@ -19,7 +19,6 @@ from mindstack_app.models import (
     db,
 )
 from mindstack_app.modules.fsrs.interface import FSRSInterface as FsrsInterface
-from mindstack_app.modules.gamification.services.scoring_service import ScoreService
 
 from .. import blueprint
 

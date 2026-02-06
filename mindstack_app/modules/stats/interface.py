@@ -32,12 +32,12 @@ def get_leaderboard(
     """
     Get leaderboard data.
     """
-    from mindstack_app.modules.learning.services.learning_metrics_service import LearningMetricsService
+    from mindstack_app.modules.learning.interface import LearningInterface
     from mindstack_app.models import User
     
     viewer = User.query.get(viewer_user_id) if viewer_user_id else None
     
-    raw_data = LearningMetricsService.get_leaderboard(
+    raw_data = LearningInterface.get_leaderboard(
         sort_by=sort_by,
         timeframe=timeframe,
         viewer_user=viewer

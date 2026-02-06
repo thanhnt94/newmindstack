@@ -31,7 +31,7 @@ from ..engine.vocab_flashcard_mode import get_flashcard_mode_by_id
 # Import external module interfaces
 from mindstack_app.modules.session.interface import SessionInterface
 from mindstack_app.modules.fsrs.interface import FSRSInterface
-from mindstack_app.modules.vocabulary.services.stats_container import VocabularyStatsService
+from mindstack_app.modules.vocabulary.interface import VocabularyInterface
 from ..engine.core import FlashcardEngine
 
 
@@ -446,7 +446,7 @@ def flashcard_session(session_id):
 def flashcard_setup():
     """Trang thiết lập trước khi bắt đầu phiên luyện tập."""
     from mindstack_app.modules.vocabulary.interface import VocabularyInterface
-    from mindstack_app.modules.learning.services.settings_service import LearningSettingsService
+    from mindstack_app.modules.learning.interface import LearningInterface
     
     set_ids_str = request.args.get('sets', '')
     mode = request.args.get('mode', 'mixed_srs')
@@ -472,7 +472,7 @@ def flashcard_setup():
         set_details = VocabularyInterface.get_set_detail(current_user.user_id, set_id)
         if set_details:
             container_title = set_details.set_info.title
-        saved_settings = LearningSettingsService.get_container_settings(current_user.user_id, set_id)
+        saved_settings = LearningInterface.get_container_settings(current_user.user_id, set_id)
     else:
         # Default settings if multiple sets or 'all'
         saved_settings = {

@@ -2,8 +2,8 @@ from flask import render_template, redirect, url_for, flash, request, abort
 from flask_login import login_required, current_user
 from .. import blueprint
 from ..services.user_service import UserService
-from mindstack_app.modules.auth.models import User
-from mindstack_app.modules.auth.forms import UserForm
+from mindstack_app.modules.auth.interface import AuthInterface
+from mindstack_app.models import User
 from mindstack_app.core.extensions import db
 
 def admin_required():
@@ -32,6 +32,7 @@ def manage_users():
 def add_user():
     """Admin: Add a new user."""
     admin_required()
+    UserForm = AuthInterface.get_user_form_class()
     form = UserForm()
     if form.validate_on_submit():
         user_data = {
@@ -57,6 +58,7 @@ def edit_user(user_id):
     if not user:
         abort(404)
         
+    UserForm = AuthInterface.get_user_form_class()
     form = UserForm(obj=user)
     form.user = user
     

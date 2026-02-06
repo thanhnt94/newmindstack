@@ -132,7 +132,8 @@ def on_user_registered(sender, user, **kwargs):
 
 # NEW: Listen for flashcard session completion (from vocab_flashcard module)
 try:
-    from mindstack_app.modules.vocab_flashcard.signals import flashcard_session_completed
+    from mindstack_app.modules.vocab_flashcard.interface import FlashcardInterface
+    flashcard_session_completed = FlashcardInterface.get_session_completed_signal()
 
     @flashcard_session_completed.connect
     def on_flashcard_session_completed(sender, **kwargs):

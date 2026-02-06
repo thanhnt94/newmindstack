@@ -5,10 +5,8 @@ from flask import request, jsonify
 from flask_login import current_user
 from mindstack_app.models import db, BackgroundTask, BackgroundTaskLog, LearningContainer, User, AppSettings
 from mindstack_app.core.error_handlers import error_response, success_response
-from mindstack_app.modules.AI.services.explanation_service import (
-    DEFAULT_REQUEST_INTERVAL_SECONDS,
-    generate_ai_explanations,
-)
+from mindstack_app.core.error_handlers import error_response, success_response
+from mindstack_app.modules.AI.interface import AIInterface
 from mindstack_app.services.template_service import TemplateService
 from .. import admin_bp as blueprint
 
@@ -237,19 +235,19 @@ def start_task(task_id):
     task.message = f"Đang khởi chạy cho {scope_label}..."
     db.session.commit()
 
-    from mindstack_app.modules.vocab_flashcard.services import AudioService, ImageService
-    from mindstack_app.modules.quiz.individual.services.audio_service import QuizAudioService
+    from mindstack_app.modules.vocab_flashcard.interface import FlashcardInterface
+    from mindstack_app.modules.quiz.interface import transcribe_quiz_audio
     
-    audio_service = AudioService()
-    image_service = ImageService()
-    quiz_audio_service = QuizAudioService()
+    audio_service = FlashcardInterface.get_audio_service_instance()
+    image_service = FlashcardInterface.get_image_service_instance()
+    # quiz_audio_service = QuizAudioService() # Removed direct service instantiation
 
     if task.task_name == 'generate_audio_cache':
         audio_service.generate_cache_for_all_cards(task, container_ids=container_scope_ids)
     elif task.task_name == 'clean_audio_cache':
         audio_service.clean_orphan_audio_cache(task)
     elif task.task_name == 'transcribe_quiz_audio':
-        quiz_audio_service.transcribe_quiz_audio(task, container_ids=container_scope_ids)
+        transcribe_quiz_audio(task, container_ids=container_scope_ids)
     elif task.task_name == 'generate_image_cache':
         asyncio.run(image_service.generate_images_for_missing_cards(task, container_ids=container_scope_ids))
     elif task.task_name == 'clean_image_cache':

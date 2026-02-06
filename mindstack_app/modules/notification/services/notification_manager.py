@@ -13,7 +13,6 @@ from mindstack_app.core.signals import (
     # achievement_unlocked, # Needed
 )
 # We might need to import custom signals from other modules if they aren't in core/signals yet?
-# e.g. from mindstack_app.modules.gamification.signals import level_up
 # For now, let's assume we use what's available or simulated.
 
 from mindstack_app.modules.notification.services.delivery_service import DeliveryService

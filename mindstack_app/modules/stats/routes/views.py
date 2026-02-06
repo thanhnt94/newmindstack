@@ -19,8 +19,8 @@ def dashboard():
         viewer_user=current_user
     )
     
-    # Lấy tổng quan học tập từ LearningMetricsService
-    summary = LearningMetricsService.get_user_learning_summary(current_user.user_id)
+    # Lấy tổng quan học tập từ LearningMetricsService -> LearningInterface
+    summary = LearningInterface.get_user_learning_summary(current_user.user_id)
     
     # Map dữ liệu cho UI (Giữ nguyên cấu trúc cũ để tránh break UI)
     dashboard_data = {
@@ -37,7 +37,7 @@ def dashboard():
         'course_avg_completion_percent': summary['course']['avg_completion'],
     }
     
-    recent_activity = LearningMetricsService.get_recent_activity(current_user.user_id)
+    recent_activity = LearningInterface.get_recent_activity(current_user.user_id)
 
     return render_dynamic_template('modules/analytics/dashboard.html',
         leaderboard_data=leaderboard_data,

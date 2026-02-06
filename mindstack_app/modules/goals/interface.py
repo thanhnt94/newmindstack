@@ -6,6 +6,13 @@ def get_user_goals(user_id: int) -> List[GoalDTO]:
     """Get active goals for a user."""
     return GoalKernelService.get_user_goals(user_id, active_only=True)
 
+
 def create_user_goal(user_id: int, goal_code: str, target: int, period: str = 'daily'):
     """Create a new goal for user."""
     return GoalKernelService.ensure_user_goal(user_id, goal_code, target_override=target)
+
+def get_goal_progress(user_id: int) -> list[dict]:
+    """Get calculated progress for all user goals."""
+    from .view_helpers import build_goal_progress
+    goals = GoalKernelService.get_user_goals(user_id, active_only=True)
+    return build_goal_progress(goals)

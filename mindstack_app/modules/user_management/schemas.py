@@ -7,7 +7,7 @@ class UserSchema:
         if not obj:
             return None
         
-        from mindstack_app.modules.auth.models import User
+        from mindstack_app.models import User
         
         return {
             'user_id': obj.user_id,

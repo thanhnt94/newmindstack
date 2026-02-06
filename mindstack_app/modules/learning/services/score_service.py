@@ -18,7 +18,7 @@ from typing import Optional
 from datetime import datetime, timezone
 
 from mindstack_app.models import db
-from mindstack_app.modules.gamification.services.scoring_service import ScoreService
+from mindstack_app.modules.gamification.interface import award_points
 
 from ..logics.scoring_engine import ScoringEngine, ScoreResult, LearningMode
 
@@ -89,7 +89,7 @@ class LearningScoreService:
             }
         
         # Persist to database via gamification service
-        result = ScoreService.award_points(
+        result = award_points(
             user_id=user_id,
             amount=score_result.total_points,
             reason=score_result.reason,
@@ -144,7 +144,7 @@ class LearningScoreService:
                 'breakdown': score_result.breakdown
             }
         
-        result = ScoreService.award_points(
+        result = award_points(
             user_id=user_id,
             amount=score_result.total_points,
             reason=score_result.reason,
@@ -205,7 +205,7 @@ class LearningScoreService:
                 'breakdown': score_result.breakdown
             }
         
-        result = ScoreService.award_points(
+        result = award_points(
             user_id=user_id,
             amount=score_result.total_points,
             reason=score_result.reason,
@@ -257,7 +257,7 @@ class LearningScoreService:
                 'breakdown': score_result.breakdown
             }
         
-        result = ScoreService.award_points(
+        result = award_points(
             user_id=user_id,
             amount=score_result.total_points,
             reason=score_result.reason,
@@ -293,7 +293,7 @@ class LearningScoreService:
                 'reason': score_result.reason
             }
         
-        result = ScoreService.award_points(
+        result = award_points(
             user_id=user_id,
             amount=score_result.total_points,
             reason=score_result.reason,
@@ -345,7 +345,7 @@ def award_learning_points(
     if score_result.total_points == 0:
         return {'success': True, 'points_awarded': 0}
     
-    result = ScoreService.award_points(
+    result = award_points(
         user_id=user_id,
         amount=score_result.total_points,
         reason=score_result.reason,

@@ -1,6 +1,6 @@
 from typing import Optional, List, Dict, Any
 from mindstack_app.core.extensions import db
-from mindstack_app.modules.auth.models import User
+from mindstack_app.models import User
 from sqlalchemy import or_
 
 class UserService:

@@ -18,12 +18,10 @@ from mindstack_app.models import (
     AppSettings, UserContainerState, Note, ScoreLog, Feedback as UserFeedback
 )
 # REFAC: ItemMemoryState removed
-from mindstack_app.modules.content_generator.models import GenerationLog
 # REFAC: StudyLog removed (Isolation)
 from mindstack_app.utils.pagination import get_pagination_data
-from mindstack_app.modules.content_management.forms import CourseForm, FlashcardSetForm, QuizSetForm
-from mindstack_app.modules.content_management.services.kernel_service import ContentKernelService
-from mindstack_app.modules.AI.services.explanation_service import DEFAULT_REQUEST_INTERVAL_SECONDS
+from mindstack_app.modules.content_management.interface import ContentInterface
+from mindstack_app.modules.AI.interface import AIInterface
 
 from .. import admin_bp as blueprint
 from ..context_processors import build_admin_sidebar_metrics
@@ -65,8 +63,8 @@ def login():
         login_user(user, remember=form.remember_me.data)
         
         try:
-            from mindstack_app.modules.gamification.services.scoring_service import ScoreService
-            ScoreService.record_daily_login(user.user_id)
+            from mindstack_app.modules.gamification.interface import record_daily_login
+            record_daily_login(user.user_id)
         except Exception:
             pass
 
@@ -251,12 +249,7 @@ def list_content(container_type):
                            active_page='content')
 
 def _get_form_for_type(container_type):
-    forms = {
-        'COURSE': CourseForm,
-        'FLASHCARD_SET': FlashcardSetForm,
-        'QUIZ_SET': QuizSetForm
-    }
-    return forms.get(container_type.upper())
+    return ContentInterface.get_form_class(container_type)
 
 @blueprint.route('/content/edit/<int:container_id>', methods=['GET', 'POST'])
 def edit_content(container_id):
@@ -284,7 +277,7 @@ def edit_content(container_id):
             if hasattr(form, 'audio_base_folder'):
                 update_data['media_audio_folder'] = form.audio_base_folder.data
 
-            ContentKernelService.update_container(container_id, **update_data)
+            ContentInterface.update_container(container_id, **update_data)
             
             flash('Đã cập nhật thành công!', 'success')
             return redirect(url_for('admin.list_content', container_type=container.container_type.lower()))

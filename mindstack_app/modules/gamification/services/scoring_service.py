@@ -202,3 +202,36 @@ class ScoreService:
             
         db.session.commit()
         return {'success': True, 'synced_count': synced_count}
+        return {'success': True, 'synced_count': synced_count}
+
+    @staticmethod
+    def delete_user_data(user_id: int) -> bool:
+        """Delete all score logs for user (Reset Data)."""
+        try:
+            ScoreLog.query.filter_by(user_id=user_id).delete()
+            # Note: Badges and Streaks might need resetting too if they are stored in separate tables linked to user.
+            # Assuming ScoreLog is the main transactional data. 
+            # Streaks are calculated from logs, so deleting logs breaks streaks implicitly (or check StreakService).
+            db.session.commit()
+            return True
+        except Exception as e:
+            db.session.rollback()
+            current_app.logger.error(f"Error deleting user gamification data: {e}")
+            return False
+
+    @staticmethod
+    def delete_items_data(user_id: int, item_ids: list[int]) -> bool:
+        """Delete score logs for specific items."""
+        try:
+            if not item_ids:
+                return True
+            ScoreLog.query.filter(
+                ScoreLog.user_id == user_id, 
+                ScoreLog.item_id.in_(item_ids)
+            ).delete(synchronize_session=False)
+            db.session.commit()
+            return True
+        except Exception as e:
+            db.session.rollback()
+            current_app.logger.error(f"Error deleting item gamification data: {e}")
+            return False

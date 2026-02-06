@@ -47,8 +47,17 @@ def generate_bulk_from_container(container_id, options, requester_module="admin_
     """
     return generator_service.dispatch_bulk_generation(container_id, options, requester_module)
 
+
 def get_generation_status(log_id):
     """
     Check the status of a generation request.
     """
     return generator_service.get_log_status(log_id)
+
+def get_log_model():
+    """
+    Get the GenerationLog model class.
+    Used by Admin/Ops for direct queries or cleanup.
+    """
+    from .models import GenerationLog
+    return GenerationLog

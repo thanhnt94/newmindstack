@@ -183,4 +183,35 @@ class ContentInterface:
             
         # 3. TODO: Shared/Collaborative access check
         
+        # 3. TODO: Shared/Collaborative access check
+        
         return False
+
+    @staticmethod
+    def get_form_class(container_type: str):
+        """
+        Get the appropriate form class for a container type.
+        Used by Admin module to render forms.
+        """
+        from .forms import CourseForm, FlashcardSetForm, QuizSetForm
+        forms = {
+            'COURSE': CourseForm,
+            'FLASHCARD_SET': FlashcardSetForm,
+            'QUIZ_SET': QuizSetForm
+        }
+        return forms.get(container_type.upper())
+
+    @staticmethod
+    def create_container(creator_id: int, container_type: str, **kwargs):
+        """Wrapper for ContentKernelService.create_container."""
+        return ContentKernelService.create_container(creator_id, container_type, **kwargs)
+
+    @staticmethod
+    def update_container(container_id: int, **kwargs):
+        """Wrapper for ContentKernelService.update_container."""
+        return ContentKernelService.update_container(container_id, **kwargs)
+
+    @staticmethod
+    def delete_container(container_id: int):
+        """Wrapper for ContentKernelService.delete_container."""
+        return ContentKernelService.delete_container(container_id)

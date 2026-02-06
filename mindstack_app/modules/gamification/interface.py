@@ -68,7 +68,23 @@ def get_user_score(user_id: int) -> int:
     return user.total_score if user else 0
 
 
-def sync_all_users_scores() -> dict:
-    """Trigger global score synchronization."""
-    return ScoreService.sync_all_users_scores()
+
+def record_daily_login(user_id: int):
+    """Record daily login for points/streaks."""
+    return ScoreService.record_daily_login(user_id)
+
+
+def delete_user_gamification_data(user_id: int) -> bool:
+    """
+    Delete all gamification data for a user.
+    Used by Ops/Reset service.
+    """
+    return ScoreService.delete_user_data(user_id)
+
+def delete_items_gamification_data(user_id: int, item_ids: List[int]) -> bool:
+    """
+    Delete gamification data for specific items.
+    Used by Ops/Reset service.
+    """
+    return ScoreService.delete_items_data(user_id, item_ids)
 

@@ -51,4 +51,24 @@ class AIInterface:
             
         item.ai_explanation = result.content
         db.session.commit()
+        item.ai_explanation = result.content
+        db.session.commit()
         return result.content
+
+    @staticmethod
+    def get_formatted_prompt(item, purpose="explanation"):
+        """Get formatted prompt for an item."""
+        from .logics.prompts import get_formatted_prompt
+        return get_formatted_prompt(item, purpose=purpose)
+
+    @staticmethod
+    def get_default_request_interval():
+        """Get default request interval constant."""
+        from .services.explanation_service import DEFAULT_REQUEST_INTERVAL_SECONDS
+        return DEFAULT_REQUEST_INTERVAL_SECONDS
+
+    @staticmethod
+    def generate_ai_explanations(task_id):
+        """Wrapper to trigger background explanation generation."""
+        from .services.explanation_service import generate_ai_explanations
+        return generate_ai_explanations(task_id)

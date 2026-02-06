@@ -64,8 +64,8 @@ def start_audio_task():
         data = request.get_json()
         task_name = data.get('task_name')
         
-        from mindstack_app.modules.vocab_flashcard.services import AudioService as FlashcardAudioService
-        from mindstack_app.modules.quiz.individual.services.audio_service import QuizAudioService
+        from mindstack_app.modules.vocab_flashcard.interface import FlashcardInterface
+        from mindstack_app.modules.quiz.interface import transcribe_quiz_audio
         
         task = BackgroundTask.query.filter_by(task_name=task_name).first()
         if not task:
@@ -81,15 +81,15 @@ def start_audio_task():
         db.session.commit()
         
         try:
-            if task_name == 'generate_audio_cache':
-                svc = FlashcardAudioService()
-                svc.generate_cache_for_all_cards(task)
-            elif task_name == 'clean_audio_cache':
-                svc = FlashcardAudioService()
-                svc.clean_orphan_audio_cache(task)
+            if task.task_name == 'regenerate_audio':
+                item_ids = data.get('item_ids', []) # Assuming item_ids are passed in the request data
+                audio_service = FlashcardInterface.get_audio_service_instance()
+                audio_service.regenerate_audio_for_item_list(task, item_ids)
+            elif task_name == 'generate_audio_cache':
+                audio_service = FlashcardInterface.get_audio_service_instance()
+                audio_service.generate_cache_for_all_cards(task)
             elif task_name == 'transcribe_quiz_audio':
-                svc = QuizAudioService()
-                svc.transcribe_quiz_audio(task)
+                transcribe_quiz_audio(task)
             else:
                  return jsonify({'success': False, 'message': 'Unknown task name.'})
                  

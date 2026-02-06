@@ -247,8 +247,8 @@ def start_quiz_session_by_id(set_id, mode):
 @blueprint.route('/session')
 @login_required
 def quiz_active_session_redirect():
-    from mindstack_app.modules.session.services.session_service import LearningSessionService
-    active_db_session = LearningSessionService.get_active_session(current_user.user_id, learning_mode='quiz')
+    from mindstack_app.modules.session.interface import SessionInterface
+    active_db_session = SessionInterface.get_active_session(current_user.user_id, learning_mode='quiz')
     if active_db_session:
         return redirect(url_for('quiz.quiz_session', session_id=active_db_session.session_id))
     else:
@@ -274,8 +274,8 @@ def quiz_session(session_id):
         # Force clear old session data to ensure clean state
         session.pop('quiz_session', None)
         
-        from mindstack_app.modules.session.services.session_service import LearningSessionService
-        db_session = LearningSessionService.get_session_by_id(session_id)
+        from mindstack_app.modules.session.interface import SessionInterface
+        db_session = SessionInterface.get_session_by_id(session_id)
         
         if not db_session or db_session.user_id != current_user.user_id:
              current_app.logger.warning(f"[QUIZ_VIEW] Unauthorized/Missing DB session {session_id}")

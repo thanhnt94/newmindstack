@@ -11,13 +11,15 @@ from mindstack_app.utils.pagination import get_pagination_data
 from mindstack_app.utils.search import apply_search_filter
 from mindstack_app.services.config_service import get_runtime_config
 from mindstack_app.core.config import Config
-from mindstack_app.modules.vocab_flashcard.services.flashcard_config_service import FlashcardConfigService
-from mindstack_app.modules.quiz.services.quiz_config_service import QuizConfigService
+from mindstack_app.modules.vocab_flashcard.interface import FlashcardInterface
+from mindstack_app.modules.quiz.interface import get_all_quiz_configs
 
 from .. import blueprint
 from ..forms import ContributorForm, CourseForm, LessonForm, FlashcardSetForm, FlashcardItemForm, QuizSetForm, QuizItemForm
 from ..services.management_service import ManagementService
 from ..logics.validators import has_container_access
+# Fix missing import
+from mindstack_app.modules.vocab_flashcard.services.flashcard_config_service import FlashcardConfigService
 from ..config import ContentManagementModuleDefaultConfig
 
 @blueprint.route('/')
@@ -80,7 +82,7 @@ def list_containers(container_type):
         'search_field': search_field,
         'search_field_map': search_field_map,
         'flashcard_config': FlashcardConfigService.get_all(),
-        'quiz_config': QuizConfigService.get_all()
+        'quiz_config': get_all_quiz_configs()
     }
 
     templates = {
@@ -104,6 +106,24 @@ def _get_form_for_type(container_type):
         'QUIZ_SET': QuizSetForm
     }
     return forms.get(container_type.upper())
+
+@blueprint.route('/settings/flashcard', methods=['GET', 'POST'])
+@login_required
+def settings_flashcard():
+    if not has_container_access('FLASHCARD_SET'):
+        abort(403)
+        
+    FlashcardConfigService = FlashcardInterface.get_config_service()
+    
+    if request.method == 'POST':
+        configs = request.form.to_dict()
+        FlashcardConfigService.update_all(configs)
+        flash('Cập nhật cấu hình thành công!', 'success')
+        return redirect(url_for('content_management.settings_flashcard'))
+        
+    configs = FlashcardConfigService.get_all()
+    # Assuming template exists or using a generic one
+    return render_dynamic_template('modules/content_management/settings/flashcard.html', configs=configs)
 
 @blueprint.route('/<container_type>/add', methods=['GET', 'POST'])
 @login_required
@@ -166,7 +186,7 @@ def add_container(container_type):
                                    title=f'Thêm {container_type}',
                                    available_keys=['front', 'back'],
                                    flashcard_config=FlashcardConfigService.get_all(),
-                                   quiz_config=QuizConfigService.get_all())
+                                   quiz_config=get_all_quiz_configs())
 
 @blueprint.route('/edit/<int:container_id>', methods=['GET', 'POST'])
 @login_required
@@ -180,6 +200,7 @@ def edit_container(container_id):
     form = form_class(obj=container)
     
     # [FIX] Manually populate media folder fields, AI capabilities, and settings - ONLY ON GET
+    FlashcardConfigService = FlashcardInterface.get_config_service()
     if request.method == 'GET':
         if hasattr(form, 'image_base_folder'):
             form.image_base_folder.data = container.media_image_folder
@@ -311,7 +332,7 @@ def edit_container(container_id):
                                    set_id=container_id,
                                    available_keys=available_keys,
                                    flashcard_config=FlashcardConfigService.get_all(),
-                                   quiz_config=QuizConfigService.get_all())
+                                   quiz_config=get_all_quiz_configs())
 
 @blueprint.route('/container/<int:container_id>/update-settings', methods=['POST'])
 @login_required
@@ -367,7 +388,7 @@ def list_items(container_id):
         'pagination': pagination,
         'search_query': search_query,
         'flashcard_config': FlashcardConfigService.get_all(),
-        'quiz_config': QuizConfigService.get_all(),
+        'quiz_config': get_all_quiz_configs(),
         'can_edit': has_container_access(container_id, 'editor')
     }
     

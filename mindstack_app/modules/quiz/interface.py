@@ -20,3 +20,20 @@ def get_quiz_set_details(set_id: int) -> Optional[QuizSetDTO]:
         question_count=count,
         creator_name=container.host.username if hasattr(container, 'host') and container.host else "Unknown"
     )
+
+def transcribe_quiz_audio(task):
+    """
+    Trigger transcription of audio for quiz items.
+    Delegates to QuizAudioService.
+    """
+    from .services.audio_service import QuizAudioService
+    service = QuizAudioService()
+    return service.transcribe_quiz_audio(task)
+
+def get_all_quiz_configs():
+    """
+    Get all quiz configuration settings.
+    Delegates to QuizConfigService.
+    """
+    from .services.quiz_config_service import QuizConfigService
+    return QuizConfigService.get_all()

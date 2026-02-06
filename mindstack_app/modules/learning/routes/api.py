@@ -89,6 +89,6 @@ def check_active_vocab_session(set_id):
 @login_required
 def api_stats_summary():
     """Delegated to Stats module via Analytics Service."""
-    from mindstack_app.modules.stats.services.analytics_service import AnalyticsService
-    summary = AnalyticsService.get_dashboard_overview(current_user.user_id)
+    from mindstack_app.modules.stats.interface import StatsInterface
+    summary = StatsInterface.get_user_summary(current_user.user_id)
     return jsonify(summary)

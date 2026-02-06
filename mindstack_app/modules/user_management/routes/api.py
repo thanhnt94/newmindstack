@@ -3,7 +3,7 @@ from flask_login import login_required, current_user
 from .. import blueprint
 from ..services.user_service import UserService
 from ..schemas import UserSchema, UserProfileSchema
-from mindstack_app.modules.auth.models import User
+from mindstack_app.models import User
 
 def admin_required():
     if not current_user.is_authenticated or current_user.user_role != User.ROLE_ADMIN:

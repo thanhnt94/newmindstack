@@ -1,5 +1,7 @@
 # mindstack_app/modules/vocabulary/logics/flashcard_modes.py
-from mindstack_app.modules.vocab_flashcard.engine.vocab_flashcard_mode import FlashcardMode, register_flashcard_modes
+from mindstack_app.modules.vocab_flashcard.interface import FlashcardInterface
+
+FlashcardMode = FlashcardInterface.get_flashcard_mode_class()
 
 VOCAB_MODES = [
     FlashcardMode(
@@ -22,4 +24,4 @@ VOCAB_MODES = [
 
 def register_vocabulary_flashcard_modes():
     """Register flashcard modes specific to the Vocabulary module."""
-    register_flashcard_modes('vocab', VOCAB_MODES)
+    FlashcardInterface.register_flashcard_modes('vocab', VOCAB_MODES)

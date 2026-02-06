@@ -52,3 +52,9 @@ class AuthInterface:
                 avatar_url=user.get_avatar_url()
             )
         return None
+
+    @staticmethod
+    def get_user_form_class():
+        """Get the UserForm class for admin usage."""
+        from .forms import UserForm
+        return UserForm

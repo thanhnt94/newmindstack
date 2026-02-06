@@ -9,7 +9,9 @@ from flask_login import login_required, current_user
 
 from .. import blueprint
 from mindstack_app.models import LearningContainer, LearningItem, UserContainerState
-from mindstack_app.modules.vocab_mcq.logics.mcq_logic import get_mcq_eligible_items, generate_mcq_question, check_mcq_answer, get_available_content_keys
+from mindstack_app.modules.vocab_mcq.interface import (
+    get_mcq_eligible_items, generate_mcq_question, check_mcq_answer, get_available_content_keys
+)
 from mindstack_app.utils.db_session import safe_commit
 
 @blueprint.route('/speed/setup/<int:set_id>')

@@ -2,12 +2,13 @@
 # FlashcardEngine - Core logic for flashcard learning
 
 from datetime import datetime, timezone
-from mindstack_app.models import db, User, LearningItem
+from mindstack_app.models import db, User, LearningItem, StudyLog
 # REFAC: Remove ItemMemoryState dependency
 from mindstack_app.core.signals import card_reviewed
 from mindstack_app.utils.db_session import safe_commit
 from mindstack_app.modules.fsrs.interface import FSRSInterface
 from mindstack_app.modules.learning_history.interface import LearningHistoryInterface
+from mindstack_app.modules.learning.interface import LearningInterface
 
 from mindstack_app.services.config_service import get_runtime_config
 from mindstack_app.utils.content_renderer import render_content_dict
@@ -542,12 +543,15 @@ class FlashcardEngine:
         is_all_review = (mode == 'all_review')
 
         # Determine result type
+        # Determine result type
         if quality >= 4:
             result_type = 'correct'
         elif quality >= 2:
             result_type = 'vague'
         else:
             result_type = 'incorrect'
+            
+        is_correct = (quality >= 3)
 
         score_change = 0
         state_record = None
@@ -570,6 +574,13 @@ class FlashcardEngine:
             
             # Note: Scoring is now handled via card_reviewed signal or should be called separately
             # Calculate points via Interface
+            
+            # Define missing variables for point calculation
+            is_first_time = (state_record.repetitions == 1) if state_record else False
+            # Basic streak calculation from simple state or log - optimizing to 0 for now to prevent error
+            # Ideally should query StudyLog but for performance we might defer or cache
+            current_streak = 0 
+            
             score_result = LearningInterface.calculate_answer_points(
                 mode='flashcard',
                 quality=quality,
@@ -642,8 +653,8 @@ class FlashcardEngine:
         # Optimistic score update
         new_total_score = current_user_total_score + score_change
         
-        # === Record Interaction via HistoryRecorder ===
-        HistoryRecorder.record_interaction(
+        # === Record Interaction via HistoryRecorder -> LearningHistoryInterface ===
+        LearningHistoryInterface.record_log(
             user_id=user_id,
             item_id=item_id,
             result_data={

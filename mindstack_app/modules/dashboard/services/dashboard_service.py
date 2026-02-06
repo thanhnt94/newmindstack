@@ -1,6 +1,5 @@
 from typing import Dict, Any, List
 from flask import url_for
-from mindstack_app.modules.goals.view_helpers import build_goal_progress
 from mindstack_app.modules.gamification import interface as gamification_interface
 from mindstack_app.modules.fsrs import interface as fsrs_interface
 from mindstack_app.modules.stats import interface as stats_interface
@@ -64,8 +63,7 @@ class DashboardService:
         )
 
         # 7. Goals
-        goals = goals_interface.get_user_goals(user_id)
-        goal_progress = build_goal_progress(goals)
+        goal_progress = goals_interface.get_goal_progress(user_id)
 
         return {
             'flashcard_summary': flashcard_summary,
