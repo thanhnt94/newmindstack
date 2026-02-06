@@ -167,3 +167,38 @@ class ScoreService:
         # Extract dates from query results and delegate to pure logic
         activity_dates = [row.activity_date for row in rows]
         return calculate_streak_from_dates(activity_dates, datetime.now(timezone.utc).date())
+
+    @staticmethod
+    def sync_user_score(user_id: int) -> int:
+        """
+        Đồng bộ điểm số của một user dựa trên ScoreLog.
+        Cập nhật lại User.total_score.
+        """
+        user = User.query.get(user_id)
+        if not user:
+            return 0
+        
+        # Tính tổng điểm từ log
+        total_from_log = db.session.query(func.sum(ScoreLog.score_change))\
+            .filter(ScoreLog.user_id == user_id).scalar() or 0
+        
+        user.total_score = int(total_from_log)
+        db.session.commit()
+        return user.total_score
+
+    @staticmethod
+    def sync_all_users_scores() -> dict:
+        """
+        Đồng bộ điểm số cho tất cả người dùng từ ScoreLog.
+        """
+        users = User.query.all()
+        synced_count = 0
+        for user in users:
+            # Inline summing for efficiency in loops, though scalar() is fine here
+            total = db.session.query(func.sum(ScoreLog.score_change))\
+                .filter(ScoreLog.user_id == user.user_id).scalar() or 0
+            user.total_score = int(total)
+            synced_count += 1
+            
+        db.session.commit()
+        return {'success': True, 'synced_count': synced_count}

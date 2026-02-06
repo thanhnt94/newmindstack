@@ -7,21 +7,30 @@
 
 {% block content %}
 <div class="p-6">
-    <div class="mb-6 flex justify-between items-center">
+    <div class="mb-6 flex justify-between items-center gap-3">
         <div>
             <!-- Info text if needed -->
         </div>
-        <button id="save-btn" class="px-6 py-3 bg-indigo-600 text-white font-bold rounded-xl shadow-lg shadow-indigo-200 hover:bg-indigo-700 transition transform hover:-translate-y-0.5">
-            <i class="fas fa-save mr-2"></i>Lưu Thay Đổi
-        </button>
+        <div class="flex gap-3">
+            <button id="sync-btn"
+                class="px-6 py-3 bg-white text-slate-700 border border-slate-200 font-bold rounded-xl shadow-sm hover:bg-slate-50 transition transform hover:-translate-y-0.5">
+                <i class="fas fa-sync-alt mr-2"></i>Đồng bộ điểm số
+            </button>
+            <button id="save-btn"
+                class="px-6 py-3 bg-indigo-600 text-white font-bold rounded-xl shadow-lg shadow-indigo-200 hover:bg-indigo-700 transition transform hover:-translate-y-0.5">
+                <i class="fas fa-save mr-2"></i>Lưu Thay Đổi
+            </button>
+        </div>
     </div>
 
     <form id="scoring-form">
         <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
             {% for group_key, group in groups.items() %}
-            <div class="bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition duration-300 overflow-hidden flex flex-col">
+            <div
+                class="bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition duration-300 overflow-hidden flex flex-col">
                 <div class="px-6 py-4 bg-slate-50 border-b border-slate-100 flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-lg bg-white border border-slate-200 flex items-center justify-center text-indigo-600 shadow-sm">
+                    <div
+                        class="w-10 h-10 rounded-lg bg-white border border-slate-200 flex items-center justify-center text-indigo-600 shadow-sm">
                         <i class="{{ group.icon }}"></i>
                     </div>
                     <div>
@@ -29,7 +38,7 @@
                         <p class="text-xs text-slate-500">{{ group.desc }}</p>
                     </div>
                 </div>
-                
+
                 <div class="p-6 space-y-5 flex-1">
                     {% for item in group['items'] %}
                     <div>
@@ -45,7 +54,8 @@
                         </div>
                         <div class="mt-1 flex justify-between items-center">
                             <span class="text-[10px] text-slate-400 font-mono">{{ item.key }}</span>
-                            <span class="text-[10px] text-slate-500">Mặc định: <strong>{{ item.default }}</strong></span>
+                            <span class="text-[10px] text-slate-500">Mặc định: <strong>{{ item.default
+                                    }}</strong></span>
                         </div>
                     </div>
                     {% endfor %}
@@ -57,52 +67,95 @@
 </div>
 
 <script>
-document.addEventListener('DOMContentLoaded', () => {
-    const saveBtn = document.getElementById('save-btn');
-    const form = document.getElementById('scoring-form');
+    document.addEventListener('DOMContentLoaded', () => {
+        const saveBtn = document.getElementById('save-btn');
+        const syncBtn = document.getElementById('sync-btn');
+        const form = document.getElementById('scoring-form');
 
-    saveBtn.addEventListener('click', async () => {
-        saveBtn.disabled = true;
-        const originalHtml = saveBtn.innerHTML;
-        saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Đang lưu...';
+        saveBtn.addEventListener('click', async () => {
+            saveBtn.disabled = true;
+            const originalHtml = saveBtn.innerHTML;
+            saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Đang lưu...';
 
-        const settings = {};
-        form.querySelectorAll('input').forEach(input => {
-            settings[input.name] = input.value;
+            const settings = {};
+            form.querySelectorAll('input').forEach(input => {
+                settings[input.name] = input.value;
+            });
+
+            try {
+                const response = await fetch("{{ url_for('scoring.save_scoring') }}", {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': "{{ csrf_token() }}"
+                    },
+                    body: JSON.stringify({ settings })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    if (window.showFlashMessage) {
+                        window.showFlashMessage(data.message, 'success');
+                    } else {
+                        alert(data.message);
+                    }
+                } else {
+                    if (window.showFlashMessage) {
+                        window.showFlashMessage(data.message, 'danger');
+                    } else {
+                        alert(data.message);
+                    }
+                }
+            } catch (e) {
+                alert('Lỗi kết nối: ' + e);
+            } finally {
+                saveBtn.disabled = false;
+                saveBtn.innerHTML = originalHtml;
+            }
         });
 
-        try {
-            const response = await fetch("{{ url_for('scoring.save_scoring') }}", {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': "{{ csrf_token() }}"
-                },
-                body: JSON.stringify({ settings })
-            });
-            
-            const data = await response.json();
-            
-            if (data.success) {
-                if (window.showFlashMessage) {
-                    window.showFlashMessage(data.message, 'success');
-                } else {
-                    alert(data.message);
-                }
-            } else {
-                if (window.showFlashMessage) {
-                    window.showFlashMessage(data.message, 'danger');
-                } else {
-                    alert(data.message);
-                }
+        // --- Sync Scores ---
+        syncBtn.addEventListener('click', async () => {
+            if (!confirm('Bạn có chắc chắn muốn đồng bộ lại điểm số cho tất cả người dùng từ lịch sử ghi chép?\nViệc này sẽ cập nhật lại giá trị điểm tổng dựa trên ScoreLog.')) {
+                return;
             }
-        } catch (e) {
-            alert('Lỗi kết nối: ' + e);
-        } finally {
-            saveBtn.disabled = false;
-            saveBtn.innerHTML = originalHtml;
-        }
+
+            syncBtn.disabled = true;
+            const originalHtml = syncBtn.innerHTML;
+            syncBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Đang đồng bộ...';
+
+            try {
+                const response = await fetch("{{ url_for('scoring.sync_scores') }}", {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': "{{ csrf_token() }}"
+                    }
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    if (window.showFlashMessage) {
+                        window.showFlashMessage(data.message, 'success');
+                    } else {
+                        alert(data.message);
+                    }
+                } else {
+                    if (window.showFlashMessage) {
+                        window.showFlashMessage(data.message, 'danger');
+                    } else {
+                        alert(data.message);
+                    }
+                }
+            } catch (e) {
+                alert('Lỗi kết nối: ' + e);
+            } finally {
+                syncBtn.disabled = false;
+                syncBtn.innerHTML = originalHtml;
+            }
+        });
     });
-});
 </script>
 {% endblock %}

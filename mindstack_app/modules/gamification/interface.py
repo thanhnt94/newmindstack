@@ -67,3 +67,8 @@ def get_user_score(user_id: int) -> int:
     user = User.query.get(user_id)
     return user.total_score if user else 0
 
+
+def sync_all_users_scores() -> dict:
+    """Trigger global score synchronization."""
+    return ScoreService.sync_all_users_scores()
+

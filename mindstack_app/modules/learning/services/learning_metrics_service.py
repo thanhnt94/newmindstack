@@ -197,20 +197,24 @@ class LearningMetricsService:
         today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
         week_start = today_start - timedelta(days=6)
         
-        rows = (
+        # 1. Get temporal totals from ScoreLog
+        temporal_rows = (
             db.session.query(
                 func.sum(case((ScoreLog.timestamp >= today_start, ScoreLog.score_change), else_=0)).label('today'),
-                func.sum(case((ScoreLog.timestamp >= week_start, ScoreLog.score_change), else_=0)).label('week'),
-                func.sum(ScoreLog.score_change).label('total')
+                func.sum(case((ScoreLog.timestamp >= week_start, ScoreLog.score_change), else_=0)).label('week')
             )
             .filter(ScoreLog.user_id == user_id)
             .one()
         )
         
+        # 2. Get true total from User model (source of truth)
+        user = User.query.get(user_id)
+        total_score = user.total_score if user else 0
+        
         return {
-            'today': int(rows.today or 0),
-            'week': int(rows.week or 0),
-            'total': int(rows.total or 0),
+            'today': int(temporal_rows.today or 0),
+            'week': int(temporal_rows.week or 0),
+            'total': int(total_score or 0)
         }
 
     @classmethod
