@@ -69,6 +69,7 @@ def get_mcq_eligible_items(container_id: int) -> list:
     return eligible
 
 
+def get_mcq_mode_counts(user_id: int, container_id: int = None) -> dict:
     """
     Get learning statistics for MCQ setup page.
     Delegated to VocabularyStatsService for centralized stats logic.
