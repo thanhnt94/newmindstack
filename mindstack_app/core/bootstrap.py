@@ -25,11 +25,11 @@ def bootstrap_system(app: Flask):
     from mindstack_app.utils.template_filters import register_filters
     register_filters(app)
     
-    # 3. Auto-Discovery & Load Modules
-    load_modules(app)
-    
-    # 4. Load Themes (Presentation Layer)
+    # 3. Load Themes (Presentation Layer) - SHOULD BE EARLY for template resolution
     load_themes(app)
+    
+    # 4. Auto-Discovery & Load Modules
+    load_modules(app)
     
     # 5. Model Registry (SQLAlchemy visibility)
     register_all_models(app)
@@ -105,10 +105,25 @@ def load_themes(app: Flask):
     """Nạp giao diện hệ thống (Admin & Active User Theme)"""
     # 1. Always load Admin Theme
     try:
-        from mindstack_app.themes.admin import blueprint as admin_theme_bp
-        app.register_blueprint(admin_theme_bp)
-    except ImportError:
-        logger.warning("Admin theme not found in themes/admin")
+        # Dynamic import for consistency and better error reporting
+        admin_theme_mod = importlib.import_module('mindstack_app.themes.admin')
+        admin_theme_bp = getattr(admin_theme_mod, 'blueprint', None)
+        if admin_theme_bp:
+            app.register_blueprint(admin_theme_bp)
+            
+            # Explicitly add to Jinja loader as fallback for VPS/Gunicorn consistency
+            from jinja2 import ChoiceLoader, FileSystemLoader
+            admin_tpl_path = os.path.join(app.root_path, 'themes', 'admin', 'templates')
+            if os.path.exists(admin_tpl_path):
+                app.jinja_loader = ChoiceLoader([
+                    app.jinja_loader,
+                    FileSystemLoader(admin_tpl_path)
+                ])
+                logger.info(f"Admin templates added to global loader: {admin_tpl_path}")
+            
+            logger.info("Admin theme registered successfully.")
+    except Exception as e:
+        logger.warning(f"Failed to load Admin theme: {e}")
 
     # 2. Load Active Theme from Config
     active_theme = app.config.get('ACTIVE_THEME', 'aura_mobile')
@@ -117,9 +132,24 @@ def load_themes(app: Flask):
         theme_bp = getattr(theme_mod, 'blueprint', None)
         if theme_bp:
             app.register_blueprint(theme_bp)
+            
+            # Explicitly add to Jinja loader as fallback for VPS/Gunicorn consistency
+            from jinja2 import ChoiceLoader, FileSystemLoader
+            theme_tpl_path = os.path.join(app.root_path, 'themes', active_theme, 'templates')
+            if os.path.exists(theme_tpl_path):
+                # We always want the new loader to be at the front or added to existing ChoiceLoader
+                if isinstance(app.jinja_loader, ChoiceLoader):
+                    app.jinja_loader.loaders.append(FileSystemLoader(theme_tpl_path))
+                else:
+                    app.jinja_loader = ChoiceLoader([
+                        app.jinja_loader,
+                        FileSystemLoader(theme_tpl_path)
+                    ])
+                logger.info(f"Theme templates added to global loader: {theme_tpl_path}")
+            
             logger.info(f"Theme activated: {active_theme}")
     except Exception as e:
-        logger.error(f"Failed to load theme {active_theme}: {e}")
+        logger.warning(f"Failed to load theme {active_theme}: {e}")
 
 def register_all_models(app: Flask):
     """SQLAlchemy Model Registry: Đảm bảo tất cả models được import."""
