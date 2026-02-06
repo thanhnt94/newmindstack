@@ -18,8 +18,6 @@ from .. import blueprint
 from ..forms import ContributorForm, CourseForm, LessonForm, FlashcardSetForm, FlashcardItemForm, QuizSetForm, QuizItemForm
 from ..services.management_service import ManagementService
 from ..logics.validators import has_container_access
-# Fix missing import
-from mindstack_app.modules.vocab_flashcard.services.flashcard_config_service import FlashcardConfigService
 from ..config import ContentManagementModuleDefaultConfig
 
 @blueprint.route('/')
@@ -81,7 +79,7 @@ def list_containers(container_type):
         'search_query': search_query,
         'search_field': search_field,
         'search_field_map': search_field_map,
-        'flashcard_config': FlashcardConfigService.get_all(),
+        'flashcard_config': FlashcardInterface.get_all_configs(),
         'quiz_config': get_all_quiz_configs()
     }
 

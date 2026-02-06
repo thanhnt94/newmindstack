@@ -33,6 +33,12 @@ class FlashcardInterface:
         return ImageService()
 
     @staticmethod
+    def get_all_configs():
+        """Get all flashcard configuration options."""
+        from .services.flashcard_config_service import FlashcardConfigService
+        return FlashcardConfigService.get_all()
+
+    @staticmethod
     def get_config_service():
         """Get the FlashcardConfigService class."""
         from .services.flashcard_config_service import FlashcardConfigService
