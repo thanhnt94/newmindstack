@@ -41,7 +41,7 @@ from mindstack_app.modules.collab.models import (
     QuizBattleMessage,
 )
 
-from mindstack_app.modules.AI.models import ApiKey, AiTokenLog, AiCache
+from mindstack_app.modules.AI.models import ApiKey, AiTokenLog, AiCache, AiContent
 from mindstack_app.modules.goals.models import Goal, UserGoal, GoalProgress
 from mindstack_app.modules.gamification.models import Badge, UserBadge, ScoreLog, Streak
 from mindstack_app.modules.translator.models import TranslationHistory
@@ -49,6 +49,7 @@ from mindstack_app.modules.stats.models import UserMetric, DailyStat, Achievemen
 from mindstack_app.modules.notification.models import Notification, PushSubscription, NotificationPreference
 from mindstack_app.modules.feedback.models import Feedback, FeedbackAttachment
 from mindstack_app.modules.notes.models import Note
+from mindstack_app.modules.content_generator.models import GenerationLog
 
 # Module-based models (formerly in models/)
 from mindstack_app.modules.course.models import Course, Lesson
@@ -86,6 +87,8 @@ __all__ = [
     'ApiKey',
     'AiTokenLog',
     'AiCache',
+    'AiContent',
+    'GenerationLog',
     'Goal',
     'UserGoal',
     'GoalProgress',

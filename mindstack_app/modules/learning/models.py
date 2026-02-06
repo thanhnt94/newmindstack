@@ -149,13 +149,64 @@ class LearningItem(db.Model):
     }
     content = db.Column(JSON, nullable=False)
     order_in_container = db.Column(db.Integer, default=0)
-    ai_explanation = db.Column(db.Text, nullable=True)
+    # ai_explanation column removed, using property instead
     custom_data = db.Column(JSON, nullable=True)
     search_text = db.Column(db.Text, nullable=True)
 
     group = db.relationship('LearningGroup', backref=db.backref('items', lazy=True), lazy=True)
     
     __table_args__ = (db.Index('ix_learning_items_search_text', 'search_text'),)
+
+    @property
+    def ai_explanation(self):
+        """
+        Compatibility property: returns the content of the primary AI explanation.
+        """
+        # Avoid circular import
+        from mindstack_app.modules.AI.models import AiContent
+        primary = AiContent.query.filter_by(
+            item_id=self.item_id, 
+            content_type='explanation', 
+            is_primary=True
+        ).first()
+        return primary.content_text if primary else None
+
+    @ai_explanation.setter
+    def ai_explanation(self, value):
+        """
+        Compatibility setter: creates a new primary AiContent record only if different.
+        """
+        if not value:
+            return
+            
+        from mindstack_app.modules.AI.models import AiContent
+        from mindstack_app.core.extensions import db
+        
+        # Check if already exists as primary to avoid recursion/duplicates
+        existing = AiContent.query.filter_by(
+            item_id=self.item_id, 
+            content_type='explanation',
+            is_primary=True
+        ).first()
+        
+        if existing and existing.content_text == value:
+            return
+
+        # Unset existing primary
+        AiContent.query.filter_by(
+            item_id=self.item_id, 
+            content_type='explanation'
+        ).update({'is_primary': False})
+        
+        # Create new content
+        new_content = AiContent(
+            item_id=self.item_id,
+            content_type='explanation',
+            content_text=value,
+            is_primary=True,
+            model_name='System Migration'
+        )
+        db.session.add(new_content)
 
     def update_search_text(self):
         if not self.content: return

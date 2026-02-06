@@ -64,3 +64,43 @@ class AiCache(db.Model):
     # Metadata for auditing
     hit_count = db.Column(db.Integer, default=0)
     last_hit_at = db.Column(db.DateTime(timezone=True))
+
+class AiContent(db.Model):
+    """Stores multiple versions of AI generated content for learning items."""
+
+    __tablename__ = 'ai_contents'
+
+    content_id = db.Column(db.Integer, primary_key=True)
+    item_id = db.Column(db.Integer, db.ForeignKey('learning_items.item_id'), nullable=True)
+    
+    # Type of content: 'explanation', 'example', 'mnemonics', 'translation', etc.
+    content_type = db.Column(db.String(50), nullable=False, default='explanation')
+    
+    provider = db.Column(db.String(50))
+    model_name = db.Column(db.String(100))
+    
+    # If standard generation, this might be null. If Chat/Q&A, this stores what user asked.
+    user_question = db.Column(db.Text, nullable=True)
+    
+    prompt = db.Column(db.Text)
+    content_text = db.Column(db.Text, nullable=False)
+    
+    created_at = db.Column(db.DateTime(timezone=True), server_default=func.now())
+    user_id = db.Column(db.Integer, db.ForeignKey('users.user_id'), nullable=True)
+    
+    # If True, this is the version shown in the main UI by default
+    is_primary = db.Column(db.Boolean, default=False)
+    
+    # Metadata for additional context
+    metadata_json = db.Column(db.JSON, nullable=True)
+
+    # Relationships
+    user = db.relationship('User', backref=db.backref('ai_contents', lazy='dynamic'))
+    # item backref will be handled via LearningItem side if possible, 
+    # but here we can define a basic relationship
+    item = db.relationship('LearningItem', backref=db.backref('ai_contents', lazy='dynamic', cascade='all, delete-orphan'))
+
+    __table_args__ = (
+        db.Index('ix_ai_contents_item_id', 'item_id'),
+        db.Index('ix_ai_contents_content_type', 'content_type'),
+    )

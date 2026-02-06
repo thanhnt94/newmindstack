@@ -83,7 +83,39 @@
         </div>
         <!-- Body -->
         <div class="ai-modal-body text-left space-y-4">
-            <h4 id="ai-modal-term" class="text-sm font-semibold text-purple-600"></h4>
+            <div class="flex items-center justify-between">
+                <h4 id="ai-modal-term" class="text-sm font-semibold text-purple-600"></h4>
+                <div class="flex gap-2">
+                    <button id="ai-history-toggle" class="text-[10px] bg-gray-100 text-gray-600 px-2 py-1 rounded border border-gray-200">
+                        <i class="fa-solid fa-history"></i> Lịch sử
+                    </button>
+                    <button onclick="toggleAiChat()" class="text-[10px] bg-blue-50 text-blue-600 px-2 py-1 rounded border border-blue-200">
+                        <i class="fa-solid fa-comment-dots"></i> Hỏi AI
+                    </button>
+                    <button onclick="fetchAiResponse(true)" class="text-[10px] bg-purple-50 text-purple-600 px-2 py-1 rounded border border-purple-200">
+                        <i class="fa-solid fa-sync"></i> Tạo lại
+                    </button>
+                </div>
+            </div>
+
+            <!-- Version list -->
+            <div id="ai-versions-list" class="hidden p-2 bg-gray-50 rounded-lg border border-gray-200 max-h-40 overflow-y-auto">
+                <div class="text-[10px] font-bold text-gray-400 uppercase mb-2 px-1">Lịch sử các bản giải thích</div>
+                <div id="ai-versions-container" class="flex flex-col gap-1">
+                    <!-- Versions will be injected here -->
+                </div>
+            </div>
+
+            <!-- Chat / Custom Question Input -->
+            <div id="ai-chat-input-container" class="mt-2 hidden">
+                <textarea id="ai-custom-question" class="w-full p-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-purple-200 focus:border-purple-400 outline-none transition" rows="2" placeholder="Đặt câu hỏi riêng cho AI..."></textarea>
+                <div class="flex justify-end mt-2">
+                    <button onclick="submitCustomQuestion()" class="bg-purple-600 text-white text-xs font-bold px-3 py-1.5 rounded hover:bg-purple-700 transition">
+                        <i class="fa-solid fa-paper-plane mr-1"></i> Gửi câu hỏi
+                    </button>
+                </div>
+            </div>
+
             <div id="ai-response-container"
                 class="markdown-body bg-gray-50 p-4 rounded-md min-h-[150px] max-h-[40vh] overflow-y-auto">
                 <div class="text-gray-500">Câu trả lời của AI sẽ xuất hiện ở đây.</div>
@@ -129,10 +161,32 @@
         }
     }
 
+    function toggleAiChat() {
+        const container = document.getElementById('ai-chat-input-container');
+        if (container) {
+            container.classList.toggle('hidden');
+            if (!container.classList.contains('hidden')) {
+                document.getElementById('ai-custom-question').focus();
+            }
+        }
+    }
+
+    async function submitCustomQuestion() {
+        const input = document.getElementById('ai-custom-question');
+        const question = input.value.trim();
+        if (!question) return;
+        
+        // Hide input after sending (optional, or keep open)
+        // toggleAiChat(); 
+        input.value = ''; // Clear input
+        
+        await fetchAiResponse(true, question);
+    }
+
     /**
      * Mô tả: Gửi yêu cầu đến server để nhận phản hồi từ AI.
      */
-    async function fetchAiResponse() {
+    async function fetchAiResponse(force = false, customQuestion = null) {
         const aiResponseContainer = document.getElementById('ai-response-container')
         if (!currentAiItemId || !aiResponseContainer) return
 
@@ -141,10 +195,6 @@
         try {
             const csrfTokenMeta = document.querySelector('meta[name="csrf-token"]');
             const csrfToken = csrfTokenMeta ? csrfTokenMeta.getAttribute('content') : '';
-
-            if (!csrfToken) {
-                console.warn('Mindstack AI: CSRF Token not found in meta tag');
-            }
 
             // SỬA LỖI: Đổi 'ai_services.get_ai_response' thành 'AI.get_ai_response' cho đúng với tên blueprint mới
             const response = await fetch("{{ url_for('AI.get_ai_response') }}", {
@@ -157,7 +207,9 @@
                 credentials: 'same-origin',
                 body: JSON.stringify({
                     item_id: currentAiItemId,
-                    prompt_type: 'explanation'
+                    prompt_type: 'explanation',
+                    force_regenerate: force,
+                    custom_question: customQuestion
                 })
             })
             const result = await response.json()
@@ -168,6 +220,12 @@
                 } else {
                     aiResponseContainer.innerHTML = rawContent
                 }
+                
+                // Refresh history if open
+                const list = document.getElementById('ai-versions-list');
+                if (list && !list.classList.contains('hidden')) {
+                    loadAiModalVersions();
+                }
             } else {
                 aiResponseContainer.innerHTML = `<p class="text-red-500">${result.message || 'Có lỗi xảy ra.'}</p>`
             }
@@ -177,6 +235,82 @@
         }
     }
 
+    async function loadAiModalVersions() {
+        if (!currentAiItemId) return;
+        const container = document.getElementById('ai-versions-container');
+        if (!container) return;
+        
+        container.innerHTML = '<div class="text-center py-2"><i class="fas fa-spinner fa-spin text-purple-400"></i></div>';
+        
+        try {
+            const res = await fetch(`/ai/item/${currentAiItemId}/contents?type=explanation`);
+            const data = await res.json();
+            
+            if (data.success && data.contents.length > 0) {
+                container.innerHTML = data.contents.map((c, idx) => `
+                    <div class="flex flex-col p-2 rounded border border-gray-100 hover:bg-gray-50 mb-1 ${c.is_primary ? 'bg-purple-50 border-purple-100' : ''}">
+                        <div class="flex justify-between items-start mb-1">
+                            <span class="text-[9px] font-bold text-gray-500 uppercase">
+                                ${c.user_question ? 'Hỏi đáp' : 'Giải thích'} 
+                                <span class="font-normal text-gray-400">• ${c.model_name || 'Gemini'}</span>
+                            </span>
+                            <span class="text-[9px] text-gray-400">${new Date(c.created_at).toLocaleString('vi-VN')}</span>
+                        </div>
+                        
+                        ${c.user_question ? `
+                            <div class="text-xs font-semibold text-gray-800 mb-1 italic">" ${c.user_question} "</div>
+                        ` : ''}
+                        
+                        <div class="flex items-center justify-between">
+                            <button class="text-[10px] text-blue-600 hover:underline" onclick="previewAiModalContent('${btoa(unescape(encodeURIComponent(c.content_text)))}', ${c.is_primary})">
+                                Xem câu trả lời
+                            </button>
+                             ${!c.is_primary ? `
+                                <button onclick="handleSetPrimaryAiModalContent(${c.content_id})" class="text-[9px] bg-white text-gray-500 px-2 py-0.5 rounded border border-gray-200 hover:text-purple-600 hover:border-purple-200">Ghim</button>
+                            ` : '<span class="text-[9px] font-bold text-purple-600 italic"><i class="fa-solid fa-thumbtack"></i></span>'}
+                        </div>
+                    </div>
+                `).join('');
+            } else {
+                container.innerHTML = '<div class="text-[10px] text-gray-400 text-center py-2">Chưa có lịch sử phiên bản.</div>';
+            }
+        } catch (e) {
+            container.innerHTML = '<div class="text-[10px] text-red-400 text-center py-2">Lỗi tải dữ liệu.</div>';
+        }
+    }
+
+    window.previewAiModalContent = function(encodedContent, isPrimary) {
+        const content = decodeURIComponent(escape(atob(encodedContent)));
+        const aiResponseContainer = document.getElementById('ai-response-container');
+        if (aiResponseContainer) {
+            if (window.applyMarkdownToElement) {
+                window.applyMarkdownToElement(aiResponseContainer, content, { treatAsHtml: false });
+            } else {
+                aiResponseContainer.innerHTML = content;
+            }
+        }
+    };
+
+    window.handleSetPrimaryAiModalContent = async function(contentId) {
+        const csrfTokenMeta = document.querySelector('meta[name="csrf-token"]');
+        const csrfToken = csrfTokenMeta ? csrfTokenMeta.getAttribute('content') : '';
+        
+        try {
+            const res = await fetch(`/ai/content/${contentId}/set-primary`, {
+                method: 'POST',
+                headers: { 'X-CSRFToken': csrfToken }
+            });
+            const data = await res.json();
+            if (data.success) {
+                loadAiModalVersions();
+                // Optionally refresh main view
+                fetchAiResponse(false);
+            }
+        } catch (e) {
+            alert("Lỗi khi cập nhật phiên bản mặc định.");
+        }
+    };
+
     // Gắn event listener khi DOM sẵn sàng
     document.addEventListener('DOMContentLoaded', function () {
         const closeBtn = document.getElementById('close-ai-modal-btn')
@@ -184,5 +318,17 @@
             closeBtn.addEventListener('click', closeAiModal)
         }
 
+        const historyBtn = document.getElementById('ai-history-toggle');
+        if (historyBtn) {
+            historyBtn.onclick = () => {
+                const list = document.getElementById('ai-versions-list');
+                if (list) {
+                    list.classList.toggle('hidden');
+                    if (!list.classList.contains('hidden')) {
+                        loadAiModalVersions();
+                    }
+                }
+            };
+        }
     })
 </script>

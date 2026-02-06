@@ -31,6 +31,17 @@ DEFAULT_QUIZ_EXPLANATION_PROMPT = (
     "Hãy trình bày câu trả lời một cách logic, rõ ràng, sử dụng định dạng Markdown."
 )
 
+DEFAULT_CUSTOM_QUESTION_PROMPT = (
+    "Bạn là một trợ lý học tập thông minh. Người dùng đang xem xét một nội dung học tập và có câu hỏi riêng.\n"
+    "Dưới đây là thông tin ngữ cảnh về nội dung đó:\n\n"
+    "---\n"
+    "{context_summary}\n"
+    "---\n\n"
+    "**Câu hỏi của người dùng:**\n"
+    "\"{custom_question}\"\n\n"
+    "Hãy trả lời câu hỏi trên một cách chính xác, ngắn gọn và hữu ích, bám sát vào ngữ cảnh đã cung cấp."
+)
+
 def _get_item_context_data(item):
     """
     Mô tả: Thu thập tất cả dữ liệu ngữ cảnh từ một LearningItem và LearningContainer liên quan
@@ -142,15 +153,30 @@ def get_formatted_prompt(item, purpose='explanation', custom_question=None):
 
     # Xử lý trường hợp câu hỏi tùy chỉnh
     if purpose == 'custom_question' and custom_question:
-        context_info = ""
+        # Xây dựng context summary dựa trên loại item
+        context_summary = ""
+        c = item.content or {}
         if item.item_type == 'FLASHCARD':
-            context_info = f"thuật ngữ \"{item.content.get('front', '')}\" với định nghĩa là \"{item.content.get('back', '')}\""
+            context_summary = (
+                f"Thuật ngữ: {c.get('front', '')}\n"
+                f"Định nghĩa: {c.get('back', '')}"
+            )
         elif item.item_type == 'QUIZ_MCQ':
-            context_info = f"câu hỏi \"{item.content.get('question', '')}\""
-            
-        raw_prompt = (f"Dựa trên {context_info}, "
-                      f"hãy trả lời câu hỏi sau một cách ngắn gọn và chính xác:\n\n"
-                      f"**Câu hỏi:** \"{custom_question}\"")
+            options_text = "\n".join([f"- {k}: {v}" for k, v in c.get('options', {}).items()])
+            context_summary = (
+                f"Câu hỏi: {c.get('question', '')}\n"
+                f"Các lựa chọn:\n{options_text}\n"
+                f"Đáp án đúng: {c.get('correct_answer', '')}\n"
+                f"Giải thích gốc: {c.get('explanation', '')}"
+            )
+        else:
+            context_summary = f"Nội dung: {c}"
+
+        raw_prompt = DEFAULT_CUSTOM_QUESTION_PROMPT.format(
+            context_summary=context_summary, 
+            custom_question=custom_question
+        )
+        return raw_prompt
 
     if not raw_prompt:
         return None

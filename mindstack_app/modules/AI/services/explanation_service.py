@@ -10,6 +10,7 @@ from sqlalchemy import or_
 
 from mindstack_app.core.extensions import db
 from mindstack_app.models import LearningContainer, LearningItem
+from ..models import AiContent, ApiKey
 from .ai_manager import get_ai_service
 from ..logics.prompts import get_formatted_prompt
 
@@ -150,6 +151,17 @@ def generate_ai_explanations(
                 task.message = f"Lỗi khi gọi AI cho {item_info}: {ai_response}"
                 db.session.commit()
                 return
+
+            # Save to AiContent
+            AiContent.query.filter_by(item_id=item.item_id, content_type='explanation').update({'is_primary': False})
+            ai_content = AiContent(
+                item_id=item.item_id,
+                content_type='explanation',
+                content_text=ai_response,
+                prompt=prompt,
+                is_primary=True
+            )
+            db.session.add(ai_content)
 
             item.ai_explanation = ai_response
             task.progress += 1

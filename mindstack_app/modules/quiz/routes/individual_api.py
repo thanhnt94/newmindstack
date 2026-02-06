@@ -699,30 +699,15 @@ def api_get_quiz_set_detail(set_id):
 @login_required
 def api_generate_quiz_ai_explanation(item_id):
     """Generate AI explanation for a quiz item."""
-    from mindstack_app.modules.AI.interface import generate_content, AIInterface
-    
-    item = LearningItem.query.get_or_404(item_id)
+    from mindstack_app.modules.AI.interface import AIInterface
     
     try:
-        prompt = AIInterface.get_formatted_prompt(item, purpose="explanation")
-        if not prompt:
-            return jsonify({'success': False, 'message': 'Không thể tạo prompt cho học liệu này.'}), 400
-            
-        item_info = f"{item.item_type} ID {item.item_id}"
-        response = generate_content(prompt, feature="explanation", context_ref=item_info)
-        
-        if not response.success:
-            return jsonify({'success': False, 'message': f'Lỗi từ AI: {response.error}'}), 500
-            
-        item.ai_explanation = response.content
-        db.session.commit()
-        
-        return jsonify({'success': True, 'message': 'Đã tạo nội dung AI thành công.', 'explanation': response.content})
+        explanation = AIInterface.generate_item_explanation(item_id, user_id=current_user.user_id)
+        return jsonify({'success': True, 'message': 'Đã tạo nội dung AI thành công.', 'explanation': explanation})
         
     except Exception as e:
-        db.session.rollback()
         current_app.logger.error(f"Error generating AI explanation for item {item_id}: {e}")
-        return jsonify({'success': False, 'message': 'Đã xảy ra lỗi hệ thống.'}), 500
+        return jsonify({'success': False, 'message': f'Lỗi hệ thống: {str(e)}'}), 500
 
 @blueprint.route('/api/sets')
 @login_required

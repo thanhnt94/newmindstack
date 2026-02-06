@@ -144,26 +144,83 @@
 
             <!-- SUB-TAB C: AI CONTENT -->
             <div id="sub-ai" class="sub-tab-content" style="display: none;">
-                {% if s.item.ai_explanation %}
-                <div class="ai-content-box markdown-body js-markdown-content"
-                    style="line-height: 1.6; color: #334155; font-size: 0.95rem;">
-                    {{ s.item.ai_explanation }}
-                </div>
-                {% else %}
-                <div id="ai-placeholder" style="text-align: center; color: #94a3b8; padding: 2rem;">
-                    <i class="fas fa-robot" style="font-size: 2rem; margin-bottom: 1rem; opacity: 0.5;"></i>
-                    <p style="margin-bottom: 1.5rem;">Chưa có nội dung từ AI.</p>
+                <div class="flex flex-col h-full">
+                    <!-- Actions Header -->
+                    <div class="flex items-center justify-between mb-3">
+                        <div class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Phiên thảo luận AI</div>
+                        <div class="flex gap-2">
+                            <button onclick="generateStatsAIExplanation({{ s.item.id }}, true)" class="px-3 py-1.5 bg-white border border-slate-200 text-slate-600 rounded-lg text-[10px] font-bold shadow-sm active:scale-95 transition-all">
+                                <i class="fas fa-sync-alt"></i> Mặc định
+                            </button>
+                            <button onclick="toggleStatsAiChat()" class="px-3 py-1.5 bg-indigo-600 text-white rounded-lg text-[10px] font-bold shadow-sm active:scale-95 transition-all">
+                                <i class="fas fa-plus"></i> Đặt câu hỏi
+                            </button>
+                        </div>
+                    </div>
 
-                    <!-- [NEW] Generate Button -->
-                    <button id="generate-ai-btn" onclick="generateAIExplanation({{ s.item.id }})"
-                        style="background: #6366f1; color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 0.75rem; font-weight: 700; cursor: pointer; transition: background 0.2s; display: inline-flex; align-items: center; gap: 0.5rem;">
-                        <i class="fas fa-sparkles"></i> Tạo nội dung AI
-                    </button>
+                    <!-- Horizontal Version Tabs with Scroll Arrows -->
+                    <div class="flex items-center gap-1 mb-3 border-b border-slate-100 pb-1">
+                        <button onclick="scrollAiTabs(-1)" class="w-6 h-8 flex items-center justify-center text-slate-300 hover:text-indigo-600 transition-colors">
+                            <i class="fas fa-chevron-left text-[10px]"></i>
+                        </button>
+                        <div id="stats-ai-version-tabs" class="flex-1 flex gap-2 overflow-x-auto no-scrollbar scroll-smooth">
+                            <div class="text-xs text-slate-400 py-1 italic">Đang tải lịch sử...</div>
+                        </div>
+                        <button onclick="scrollAiTabs(1)" class="w-6 h-8 flex items-center justify-center text-slate-300 hover:text-indigo-600 transition-colors">
+                            <i class="fas fa-chevron-right text-[10px]"></i>
+                        </button>
+                    </div>
+
+                    <!-- Chat Input Container (Hidden by default) -->
+                    <div id="stats-ai-chat-input" class="hidden mb-4 p-3 bg-indigo-50 rounded-xl border border-indigo-100 shadow-inner">
+                        <div class="flex justify-between items-center mb-2">
+                            <span class="text-[10px] font-bold text-indigo-800 uppercase">Câu hỏi của bạn</span>
+                            <button onclick="toggleStatsAiChat()" class="text-slate-400"><i class="fas fa-times"></i></button>
+                        </div>
+                        <textarea id="stats-ai-question" class="w-full p-3 border border-slate-200 rounded-lg text-sm outline-none shadow-sm bg-white" rows="2" placeholder="Nhập thắc mắc của bạn..."></textarea>
+                        <div class="flex justify-end mt-2">
+                            <button onclick="submitStatsAiQuestion({{ s.item.id }})" class="px-4 py-1.5 bg-indigo-600 text-white text-[10px] font-bold rounded-lg shadow-md">
+                                <i class="fas fa-paper-plane mr-1"></i> Gửi câu hỏi
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Full Question Display (Only for custom questions) -->
+                    <div id="stats-ai-full-question-box" class="hidden mb-3 p-3 bg-slate-50 border border-slate-100 rounded-lg">
+                        <div class="text-[9px] font-bold text-slate-400 uppercase mb-1">Nội dung câu hỏi:</div>
+                        <div id="stats-ai-full-question-text" class="text-xs font-semibold text-slate-800 italic"></div>
+                    </div>
+
+                    <!-- Main Response Display Wrapper -->
+                    <div id="stats-ai-response-wrapper" class="flex-1 bg-white rounded-xl border border-slate-200 overflow-hidden flex flex-col shadow-sm">
+                        <!-- Content Meta Header -->
+                        <div id="stats-ai-meta-header" class="px-4 py-2 bg-slate-50 border-b border-slate-100 flex justify-between items-center">
+                            <div class="flex items-center gap-2">
+                                <i class="fas fa-robot text-indigo-500 text-xs"></i>
+                                <div class="flex flex-col">
+                                    <div class="flex items-center gap-1.5">
+                                        <span id="stats-ai-author" class="font-bold text-slate-700 text-[10px]">Hệ thống</span>
+                                        <span class="text-slate-300 text-[10px]">•</span>
+                                        <span id="stats-ai-model" class="text-slate-500 text-[9px] font-medium">Gemini</span>
+                                    </div>
+                                    <span id="stats-ai-date" class="text-slate-400 text-[8px]">-</span>
+                                </div>
+                            </div>
+                            <span id="stats-ai-type-label" class="text-[8px] font-black text-white uppercase bg-indigo-400 px-2 py-0.5 rounded-full">GIẢI THÍCH</span>
+                        </div>
+                        
+                        <!-- AI Answer Area -->
+                        <div id="stats-ai-content-box" class="p-4 overflow-y-auto markdown-body text-sm leading-relaxed text-slate-700 min-h-[200px]">
+                            <div class="flex flex-col items-center justify-center py-12 text-slate-300">
+                                <i class="fas fa-brain text-4xl mb-2 opacity-20"></i>
+                                <p class="text-xs">Đang sẵn sàng phân tích...</p>
+                            </div>
+                        </div>
+                        
+                        <!-- Contextual Actions -->
+                        <div class="p-2 bg-slate-50 border-t border-slate-100 flex justify-end gap-2" id="stats-ai-footer-actions"></div>
+                    </div>
                 </div>
-                <!-- Box for new content -->
-                <div id="ai-content-box" class="ai-content-box markdown-body"
-                    style="display: none; line-height: 1.6; color: #334155; font-size: 0.95rem;"></div>
-                {% endif %}
             </div>
         </div>
 
@@ -446,5 +503,32 @@
             opacity: 1;
             transform: translateY(0);
         }
+    }
+    
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    
+    .ai-session-tab {
+        flex-shrink: 0;
+        padding: 6px 12px;
+        background: #f1f5f9;
+        color: #64748b;
+        border-radius: 8px;
+        font-size: 10px;
+        font-weight: 700;
+        cursor: pointer;
+        border: 1px solid transparent;
+        transition: all 0.2s;
+        max-width: 120px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        text-transform: uppercase;
+    }
+    .ai-session-tab.active {
+        background: #eef2ff;
+        color: #4f46e5;
+        border-color: #c7d2fe;
+        box-shadow: 0 2px 4px rgba(79, 70, 229, 0.1);
     }
 </style>

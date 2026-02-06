@@ -1,6 +1,6 @@
 # File: mindstack_app/modules/AI/routes/api.py
 import threading
-from flask import request, jsonify, current_app
+from flask import request, jsonify, current_app, flash, redirect, url_for
 from flask_login import login_required, current_user
 import mistune
 from .. import blueprint
@@ -17,6 +17,7 @@ def get_ai_response():
     """
     Endpoint chính để nhận yêu cầu từ frontend và trả về phản hồi từ AI.
     """
+    from ..interface import AIInterface
     data = request.get_json()
     if not data:
         return jsonify({'success': False, 'message': 'Yêu cầu không hợp lệ.'}), 400
@@ -33,40 +34,66 @@ def get_ai_response():
     if not item:
         return jsonify({'success': False, 'message': 'Không tìm thấy học liệu.'}), 404
 
+    # If asking for explanation and we already have one, return it unless forced
     if prompt_type == 'explanation' and item.ai_explanation and not force_regenerate:
         html_content = sanitize_rich_text(mistune.html(item.ai_explanation))
         return jsonify({'success': True, 'response': html_content})
 
-    ai_client = get_ai_service()
-    if not ai_client:
-        return jsonify({'success': False, 'message': 'Dịch vụ AI chưa được cấu hình (thiếu API key).'}), 503
-
-    final_prompt = get_formatted_prompt(item, purpose=prompt_type, custom_question=custom_question)
-    
-    if not final_prompt:
-        return jsonify({'success': False, 'message': 'Không thể tạo prompt cho loại học liệu này.'}), 400
-    
     try:
-        item_info = f"{item.item_type} ID {item.item_id}"
-        success, ai_response = ai_client.generate_content(
-            final_prompt, 
-            feature=prompt_type,
-            context_ref=item_info
-        )
+        if prompt_type == 'explanation':
+            # Use the high-level helper which handles AiContent table
+            explanation = AIInterface.generate_item_explanation(
+                item_id, 
+                user_id=current_user.user_id,
+                custom_question=custom_question
+            )
+            html_content = sanitize_rich_text(mistune.html(explanation))
+            return jsonify({'success': True, 'response': html_content})
+        
+        # For other prompt types, use general generation
+        ai_client = get_ai_service()
+        if not ai_client:
+            return jsonify({'success': False, 'message': 'Dịch vụ AI chưa được cấu hình.'}), 503
 
+        final_prompt = AIInterface.get_formatted_prompt(item, purpose=prompt_type)
+        if not final_prompt:
+             return jsonify({'success': False, 'message': 'Không thể tạo prompt.'}), 400
+
+        success, ai_response = ai_client.generate_content(final_prompt, feature=prompt_type, context_ref=f"ITEM_{item_id}")
         if not success:
             return jsonify({'success': False, 'message': ai_response}), 503
 
-        if prompt_type == 'explanation':
-            html_content = sanitize_rich_text(mistune.html(ai_response))
-            item.ai_explanation = html_content
-            db.session.commit()
-            return jsonify({'success': True, 'response': html_content})
-
         return jsonify({'success': True, 'response': ai_response})
+
     except Exception as e:
-        current_app.logger.error(f"Lỗi khi xử lý yêu cầu AI cho item {item_id}: {e}", exc_info=True)
-        return jsonify({'success': False, 'message': 'Đã xảy ra lỗi phía máy chủ khi xử lý yêu cầu AI.'}), 500
+        current_app.logger.error(f"Lỗi AI cho item {item_id}: {e}", exc_info=True)
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+@blueprint.route('/ai/item/<int:item_id>/contents', methods=['GET'])
+@login_required
+def api_get_item_ai_contents(item_id):
+    """Lấy danh sách các phiên bản nội dung AI của một item."""
+    from ..interface import AIInterface
+    content_type = request.args.get('type', 'explanation')
+    contents = AIInterface.get_item_ai_contents(item_id, content_type=content_type)
+    return jsonify({'success': True, 'contents': contents})
+
+@blueprint.route('/ai/content/<int:content_id>/set-primary', methods=['POST'])
+@login_required
+def api_set_primary_ai_content(content_id):
+    """Thiết lập một phiên bản AI content làm mặc định."""
+    from ..models import AiContent
+    content = AiContent.query.get_or_404(content_id)
+    
+    # Permission check (optional: only creator or admin?)
+    # For now allow if logged in, but better to check item ownership
+    
+    # Reset others
+    AiContent.query.filter_by(item_id=content.item_id, content_type=content.content_type).update({'is_primary': False})
+    content.is_primary = True
+            
+    db.session.commit()
+    return jsonify({'success': True, 'message': 'Đã cập nhật phiên bản mặc định.'})
 
 # --- Admin API Routes ---
 

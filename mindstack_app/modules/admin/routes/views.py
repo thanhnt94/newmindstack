@@ -15,7 +15,8 @@ from mindstack_app.services.config_service import get_runtime_config
 from mindstack_app.services.template_service import TemplateService
 from mindstack_app.models import (
     db, User, LearningContainer, LearningItem, ApiKey, BackgroundTask, BackgroundTaskLog,
-    AppSettings, UserContainerState, Note, ScoreLog, Feedback as UserFeedback
+    AppSettings, UserContainerState, Note, ScoreLog, Feedback as UserFeedback,
+    GenerationLog, AiContent
 )
 # REFAC: ItemMemoryState removed
 # REFAC: StudyLog removed (Isolation)

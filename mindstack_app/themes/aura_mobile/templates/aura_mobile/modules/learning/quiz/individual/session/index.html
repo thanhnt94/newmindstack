@@ -163,10 +163,24 @@
                         <div class="flex items-center gap-2 text-indigo-700 font-bold"><i class="fa-solid fa-robot"></i>
                             <span>AI Phân Tích</span>
                         </div>
-                        <button id="ai-generate-btn"
-                            class="text-xs bg-white text-indigo-600 px-3 py-1.5 rounded-lg border border-indigo-200 font-semibold shadow-sm"><i
-                                class="fa-solid fa-wand-magic-sparkles"></i> Tạo mới</button>
+                        <div class="flex items-center gap-2">
+                             <button id="ai-versions-btn" class="text-[10px] bg-indigo-100 text-indigo-600 px-2 py-1 rounded border border-indigo-200 font-medium">
+                                <i class="fa-solid fa-history"></i> Lịch sử
+                             </button>
+                             <button id="ai-generate-btn"
+                                class="text-xs bg-white text-indigo-600 px-3 py-1.5 rounded-lg border border-indigo-200 font-semibold shadow-sm"><i
+                                    class="fa-solid fa-wand-magic-sparkles"></i> Tạo mới</button>
+                        </div>
                     </div>
+
+                    <!-- Versions List (Hidden by default) -->
+                    <div id="ai-versions-list" class="hidden mb-4 p-2 bg-white rounded-lg border border-indigo-100 max-h-40 overflow-y-auto">
+                        <div class="text-[10px] font-bold text-slate-400 uppercase mb-2 px-1">Các bản đã tạo</div>
+                        <div id="ai-versions-container" class="flex flex-col gap-1">
+                            <!-- Versions injected here -->
+                        </div>
+                    </div>
+
                     <div id="hub-ai-content"
                         class="content-display markdown-body text-sm text-slate-700 leading-relaxed min-h-[100px]">Nhấn
                         nút để yêu cầu AI phân tích...</div>
@@ -843,6 +857,16 @@
             aiBtn.addEventListener('click', handleBatchAiGenerate);
         }
 
+        // AI Versions Toggle
+        if (dom.aiVersionsBtn) {
+            dom.aiVersionsBtn.onclick = () => {
+                dom.aiVersionsList.classList.toggle('hidden');
+                if (!dom.aiVersionsList.classList.contains('hidden')) {
+                    loadAiVersions(activeHubItemId);
+                }
+            };
+        }
+
         // Note Save
         const noteBtn = document.getElementById('hub-note-save');
         if (noteBtn) {
@@ -880,7 +904,7 @@
             const res = await fetch(getAiResponseUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
-                body: JSON.stringify({ item_id: activeHubItemId, prompt_type: 'explanation' })
+                body: JSON.stringify({ item_id: activeHubItemId, prompt_type: 'explanation', force_regenerate: true })
             });
             const data = await res.json();
             const content = data.html_content || data.response;
@@ -892,6 +916,11 @@
             if (qIdx !== -1) {
                 currentQuestionBatch[qIdx].ai_explanation = content;
             }
+            
+            // Refresh versions list if visible
+            if (!dom.aiVersionsList.classList.contains('hidden')) {
+                loadAiVersions(activeHubItemId);
+            }
         } catch (err) {
             if (contentDiv) contentDiv.innerHTML = '<span class="text-red-500 text-xs">Lỗi tải AI.</span>';
         } finally {
@@ -899,6 +928,71 @@
             btn.disabled = false;
         }
     }
+
+    async function loadAiVersions(itemId) {
+        if (!itemId || !dom.aiVersionsContainer) return;
+        dom.aiVersionsContainer.innerHTML = '<div class="text-center py-2"><i class="fas fa-spinner fa-spin text-indigo-400"></i></div>';
+        
+        try {
+            const res = await fetch(`/ai/item/${itemId}/contents?type=explanation`);
+            const data = await res.json();
+            
+            if (data.success && data.contents.length > 0) {
+                dom.aiVersionsContainer.innerHTML = data.contents.map((c, idx) => `
+                    <div class="flex items-center justify-between p-2 rounded hover:bg-slate-50 border border-transparent ${c.is_primary ? 'bg-indigo-50 border-indigo-100' : ''}">
+                        <div class="flex flex-col cursor-pointer flex-1" onclick="previewAiContent('${btoa(unescape(encodeURIComponent(c.content_text)))}', ${c.is_primary})">
+                            <span class="text-[10px] font-bold text-slate-700">Phiên bản ${data.contents.length - idx}</span>
+                            <span class="text-[9px] text-slate-500">${new Date(c.created_at).toLocaleString('vi-VN')}</span>
+                        </div>
+                        ${!c.is_primary ? `
+                            <button onclick="handleSetPrimaryAiContent(${c.content_id}, ${itemId})" class="text-[9px] bg-white text-indigo-600 px-2 py-0.5 rounded border border-indigo-200">Chọn</button>
+                        ` : '<span class="text-[9px] font-bold text-indigo-600 px-2 italic">Mặc định</span>'}
+                    </div>
+                `).join('');
+            } else {
+                dom.aiVersionsContainer.innerHTML = '<div class="text-[10px] text-slate-400 text-center py-2">Chưa có lịch sử phiên bản.</div>';
+            }
+        } catch (e) {
+            dom.aiVersionsContainer.innerHTML = '<div class="text-[10px] text-red-400 text-center py-2">Lỗi tải dữ liệu.</div>';
+        }
+    }
+
+    window.previewAiContent = function(encodedContent, isPrimary) {
+        const content = decodeURIComponent(escape(atob(encodedContent)));
+        if (dom.hubAiContent) {
+            dom.hubAiContent.innerHTML = content;
+        }
+    };
+
+    window.handleSetPrimaryAiContent = async function(contentId, itemId) {
+        try {
+            const res = await fetch(`/ai/content/${contentId}/set-primary`, {
+                method: 'POST',
+                headers: { 'X-CSRFToken': csrfToken }
+            });
+            const data = await res.json();
+            if (data.success) {
+                loadAiVersions(itemId);
+                // Update item explanation in current batch
+                const q = currentQuestionBatch.find(q => q.item_id == itemId);
+                if (q) {
+                    // We need the content text. Find it from the container or re-fetch.
+                    // For simplicity, let's re-fetch the content for the display.
+                    const resContent = await fetch(`/ai/item/${itemId}/contents?type=explanation`);
+                    const dataContent = await resContent.json();
+                    const primary = dataContent.contents.find(c => c.is_primary);
+                    if (primary) {
+                        q.ai_explanation = primary.content_text;
+                        if (activeHubItemId == itemId) {
+                            dom.hubAiContent.innerHTML = primary.content_text;
+                        }
+                    }
+                }
+            }
+        } catch (e) {
+            alert("Lỗi khi cập nhật phiên bản mặc định.");
+        }
+    };
 
     async function handleBatchNoteSave(e) {
         if (!activeHubItemId) return;
@@ -1073,6 +1167,9 @@
         hubExplText: document.getElementById('hub-explanation-text'),
         hubAiContent: document.getElementById('hub-ai-content'),
         aiGenerateBtn: document.getElementById('ai-generate-btn'),
+        aiVersionsBtn: document.getElementById('ai-versions-btn'),
+        aiVersionsList: document.getElementById('ai-versions-list'),
+        aiVersionsContainer: document.getElementById('ai-versions-container'),
         hubNoteInput: document.getElementById('hub-note-input'),
         hubNoteSave: document.getElementById('hub-note-save'),
         hubNoteEditBtn: document.getElementById('hub-note-edit-btn'),

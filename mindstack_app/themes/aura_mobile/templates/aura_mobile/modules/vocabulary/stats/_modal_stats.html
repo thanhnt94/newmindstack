@@ -146,6 +146,12 @@
             if (target) {
                 target.style.display = 'block';
                 target.classList.add('active');
+                if (targetId === 'sub-ai') {
+                    // Try to get itemId
+                    const markerBtn = target.closest('.stats-container')?.querySelector('.js-toggle-vocab-marker');
+                    const itemId = markerBtn?.onclick?.toString().match(/\d+/)?.[0];
+                    if(itemId) loadStatsAiHistory(itemId);
+                }
             }
             const btns = container.querySelectorAll('.sub-tab-btn');
             btns.forEach(btn => {
@@ -160,7 +166,7 @@
             const modalContainer = document.getElementById('item-stats-container');
             if (!modalContainer) return;
 
-            const tabBtns = modalContainer.querySelectorAll('.tab-btn');
+            const tabBtns = modalContainer.querySelectorAll('.tab-navigation .tab-btn');
             const tabContents = modalContainer.querySelectorAll('.tab-content');
 
             tabBtns.forEach(btn => {
@@ -182,49 +188,6 @@
             });
         };
 
-        window.selectHistoryItem = function (el, idx) {
-            const container = document.querySelector('.stats-container');
-            if (!container) return;
-
-            let historyData = [];
-            try {
-                historyData = JSON.parse(container.dataset.history || '[]');
-            } catch (e) { console.error("History parse error", e); }
-
-            document.querySelectorAll('.js-history-item').forEach(item => item.classList.remove('active'));
-            el.classList.add('active');
-
-            const log = historyData[idx];
-            if (!log) return;
-
-            const histBar = document.getElementById('history-detail-bar');
-            const histTime = document.getElementById('hist-time');
-            const histResult = document.getElementById('hist-result');
-
-            if (histBar) histBar.style.display = 'flex';
-            if (histTime) {
-                const date = new Date(log.timestamp);
-                histTime.textContent = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + ' ' + date.toLocaleDateString();
-            }
-
-            const histModeBadge = document.getElementById('hist-mode-badge');
-            if (histModeBadge) histModeBadge.textContent = log.mode || 'Flashcard';
-
-            if (histResult) {
-                histResult.textContent = log.result === 'Correct' ? 'ĐÚNG' : 'SAI';
-                histResult.style.background = log.result === 'Correct' ? '#dcfce7' : '#fee2e2';
-                histResult.style.color = log.result === 'Correct' ? '#16a34a' : '#dc2626';
-            }
-
-            const histDuration = document.getElementById('hist-duration');
-            const histScore = document.getElementById('hist-score');
-            const histMastery = document.getElementById('hist-mastery');
-
-            if (histDuration) histDuration.textContent = log.duration_ms ? (log.duration_ms / 1000).toFixed(1) + 's' : '-';
-            if (histScore) histScore.textContent = (log.score_change > 0 ? '+' : '') + (log.score_change || 0);
-            if (histMastery) histMastery.textContent = (log.mastery_snapshot ? Math.round(log.mastery_snapshot * 100) : 0) + '%';
-        };
-
         window.saveItemNote = function (itemId) {
             const btn = document.getElementById('save-note-btn');
             const input = document.getElementById('item-note-input');
@@ -234,9 +197,7 @@
             btn.disabled = true;
             btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang lưu...';
 
-            let csrfToken = '';
-            const meta = document.querySelector('meta[name="csrf-token"]');
-            if (meta) csrfToken = meta.getAttribute('content');
+            let csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
 
             fetch('/learn/vocabulary/api/progress/' + itemId + '/note', {
                 method: 'POST',
@@ -273,54 +234,191 @@
                 });
         };
 
-        window.generateAIExplanation = function (itemId) {
-            const btn = document.getElementById('generate-ai-btn');
-            const contentBox = document.getElementById('ai-content-box');
-            const placeholder = document.getElementById('ai-placeholder');
-            if (!btn) return;
+        // --- ENHANCED TAB-BASED AI FUNCTIONS ---
+        window.toggleStatsAiChat = function() {
+            const el = document.getElementById('stats-ai-chat-input');
+            if(el) {
+                el.classList.toggle('hidden');
+                if(!el.classList.contains('hidden')) document.getElementById('stats-ai-question')?.focus();
+            }
+        };
 
-            const originalText = btn.innerHTML;
-            btn.disabled = true;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang tạo...';
+        window.scrollAiTabs = function(direction) {
+            const container = document.getElementById('stats-ai-version-tabs');
+            if(container) {
+                container.scrollBy({ left: direction * 150, behavior: 'smooth' });
+            }
+        };
 
-            let csrfToken = '';
-            const meta = document.querySelector('meta[name="csrf-token"]');
-            if (meta) csrfToken = meta.getAttribute('content');
-
-            fetch('/learn/vocabulary/api/item/' + itemId + '/generate-ai', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': csrfToken
-                }
-            })
+        window.loadStatsAiHistory = function(itemId) {
+            const tabsContainer = document.getElementById('stats-ai-version-tabs');
+            if(!tabsContainer) return;
+            
+            fetch('/learn/ai/ai/item/' + itemId + '/contents?type=explanation')
                 .then(r => r.json())
                 .then(data => {
-                    if (data.success) {
-                        if (placeholder) placeholder.style.display = 'none';
-                        const content = data.explanation;
-                        if (contentBox) {
-                            contentBox.style.display = 'block';
-                            if (window.renderMarkdown) {
-                                contentBox.innerHTML = window.renderMarkdown(content.trim());
-                                contentBox.classList.add('markdown-body');
-                                contentBox.style.whiteSpace = 'normal';
-                            } else {
-                                contentBox.innerHTML = '<div style="white-space: pre-wrap;">' + content + '</div>';
-                            }
-                        }
+                    if(data.success && data.contents.length > 0) {
+                        renderAiSessionTabs(data.contents, itemId);
+                        // Auto preview primary or newest
+                        const primary = data.contents.find(c => c.is_primary) || data.contents[0];
+                        previewStatsAiContent(primary);
                     } else {
-                        alert('Lỗi: ' + data.message);
-                        btn.innerHTML = originalText;
-                        btn.disabled = false;
+                        tabsContainer.innerHTML = '<div class="text-[10px] text-slate-400 py-1">Chưa có dữ liệu AI.</div>';
+                        document.getElementById('stats-ai-content-box').innerHTML = '<div class="text-center text-slate-300 py-12"><i class="fas fa-robot text-4xl mb-3 opacity-20"></i><p class="text-xs">Hãy bấm nút phía trên để AI phân tích.</p></div>';
                     }
                 })
                 .catch(err => {
-                    console.error(err);
-                    alert('Lỗi kết nối: ' + err);
-                    btn.innerHTML = originalText;
-                    btn.disabled = false;
+                    tabsContainer.innerHTML = '<div class="text-[10px] text-red-400 py-1">Lỗi kết nối.</div>';
                 });
+        };
+
+        window.renderAiSessionTabs = function(contents, itemId) {
+            const container = document.getElementById('stats-ai-version-tabs');
+            if(!container) return;
+            
+            container.innerHTML = contents.map((c, idx) => {
+                const rawTitle = c.user_question ? c.user_question : 'Giải thích gốc';
+                // Truncate for tab title
+                const displayTitle = rawTitle.length > 15 ? rawTitle.substring(0, 15) + '...' : rawTitle;
+                const activeClass = c.is_primary ? 'active' : '';
+                
+                return `
+                    <div class="ai-session-tab ${activeClass}" 
+                         onclick="previewStatsAiContent(${JSON.stringify(c).replace(/"/g, '&quot;')}, this)"
+                         title="${rawTitle}">
+                        ${displayTitle}
+                    </div>
+                `;
+            }).join('');
+        };
+
+        window.previewStatsAiContent = function(contentObj, el) {
+            if(el) {
+                document.querySelectorAll('.ai-session-tab').forEach(t => t.classList.remove('active'));
+                el.classList.add('active');
+            }
+            
+            const box = document.getElementById('stats-ai-content-box');
+            if(!box) return;
+            
+            // 1. Show Full Question Box if it exists
+            const fullQuestionBox = document.getElementById('stats-ai-full-question-box');
+            const fullQuestionText = document.getElementById('stats-ai-full-question-text');
+            if(contentObj.user_question) {
+                fullQuestionBox.classList.remove('hidden');
+                fullQuestionText.textContent = '" ' + contentObj.user_question + ' "';
+            } else {
+                fullQuestionBox.classList.add('hidden');
+            }
+
+            // 2. Update Meta Header
+            document.getElementById('stats-ai-author').textContent = contentObj.username || 'Hệ thống';
+            document.getElementById('stats-ai-model').textContent = (contentObj.model_name || 'AI Coach').toUpperCase();
+            document.getElementById('stats-ai-date').textContent = new Date(contentObj.created_at).toLocaleString('vi-VN');
+            
+            const typeLabel = document.getElementById('stats-ai-type-label');
+            if(typeLabel) {
+                typeLabel.textContent = contentObj.user_question ? 'Hỏi đáp' : 'Giải thích';
+                typeLabel.className = contentObj.user_question ? 
+                    'text-[8px] font-black text-white uppercase bg-indigo-500 px-2 py-0.5 rounded-full' : 
+                    'text-[8px] font-black text-white uppercase bg-slate-400 px-2 py-0.5 rounded-full';
+            }
+            
+            // 3. Render Answer Content
+            const content = contentObj.content_text;
+            if(window.renderMarkdown) {
+                box.innerHTML = window.renderMarkdown(content);
+            } else if (typeof mistune !== 'undefined') {
+                box.innerHTML = mistune.html(content);
+            } else {
+                box.innerHTML = content.replace(/\n/g, '<br>');
+            }
+            
+            // 4. Update Footer Actions
+            const footer = document.getElementById('stats-ai-footer-actions');
+            if(footer) {
+                footer.innerHTML = !contentObj.is_primary ? `
+                    <button onclick="handleSetPrimaryStatsAiContent(${contentObj.content_id}, ${contentObj.item_id})" class="px-3 py-1 bg-white border border-slate-200 text-slate-600 rounded-lg text-[10px] font-bold hover:text-indigo-600 hover:border-indigo-200 transition-all">
+                        <i class="fas fa-thumbtack"></i> Ghim mặc định
+                    </button>
+                ` : '<span class="text-[10px] font-bold text-indigo-500 italic px-2"><i class="fas fa-check-circle"></i> Bản mặc định</span>';
+            }
+        };
+
+        window.submitStatsAiQuestion = function(itemId) {
+            const input = document.getElementById('stats-ai-question');
+            const val = input.value.trim();
+            if(!val) return;
+            
+            generateStatsAIExplanation(itemId, true, val);
+            input.value = '';
+            toggleStatsAiChat();
+        };
+
+        window.handleSetPrimaryStatsAiContent = function(cid, itemId) {
+            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+            fetch('/learn/ai/ai/content/' + cid + '/set-primary', {
+                method: 'POST',
+                headers: {'X-CSRFToken': csrfToken}
+            }).then(() => {
+                loadStatsAiHistory(itemId);
+            });
+        };
+
+        window.generateStatsAIExplanation = function (itemId, force = false, customQuestion = null) {
+            const box = document.getElementById('stats-ai-content-box');
+            if (!box) return;
+
+            box.innerHTML = '<div class="flex flex-col items-center justify-center py-12 text-indigo-500"><i class="fas fa-spinner fa-spin text-3xl mb-3"></i><p class="text-[10px] font-bold animate-pulse">AI ĐANG PHÂN TÍCH...</p></div>';
+
+            let csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+
+            fetch('/learn/ai/ai/get-ai-response', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+                body: JSON.stringify({ 
+                    item_id: itemId, 
+                    prompt_type: 'explanation',
+                    force_regenerate: force,
+                    custom_question: customQuestion
+                })
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    loadStatsAiHistory(itemId);
+                } else {
+                    box.innerHTML = '<div class="text-red-500 p-4 text-center text-xs">Lỗi: ' + data.message + '</div>';
+                }
+            })
+            .catch(err => {
+                box.innerHTML = '<div class="text-red-500 p-4 text-center text-xs">Lỗi kết nối.</div>';
+            });
+        };
+
+        window.toggleSubTabs = function(showContent) {
+            const target = event && event.target ? event.target.dataset.tab : (showContent ? 'content' : 'notes');
+            if(target) {
+                const nav = document.querySelector('.tab-navigation');
+                if(nav) {
+                    nav.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                    const activeBtn = Array.from(nav.querySelectorAll('.tab-btn')).find(b => b.dataset.tab === target);
+                    if(activeBtn) activeBtn.classList.add('active');
+                }
+                document.querySelectorAll('.tab-content').forEach(c => c.style.display = 'none');
+                const t = document.getElementById('tab-' + target);
+                if(t) {
+                    t.style.display = 'block';
+                    if(target === 'content') {
+                        const aiSub = document.getElementById('sub-ai');
+                        if(aiSub && aiSub.style.display !== 'none') {
+                            const markerBtn = document.querySelector('.js-toggle-vocab-marker');
+                            const itemId = markerBtn?.onclick?.toString().match(/\d+/)?.[0];
+                            if(itemId) loadStatsAiHistory(itemId);
+                        }
+                    }
+                }
+            }
         };
 
         const initModal = () => {
@@ -342,51 +440,21 @@
                 }
             });
 
-
             window.openVocabularyItemStats = function (itemId) {
                 if (!statsModal || !statsContainer) return;
-
                 statsModal.classList.add('active');
                 statsContainer.innerHTML = '<div style="display: flex; align-items: center; justify-content: center; height: 16rem;"><i class="fas fa-spinner fa-spin" style="font-size: 2rem; color: #6366f1;"></i></div>';
-
-                const editBtn = statsModal.querySelector('.js-edit-item-stats');
-                if (editBtn) editBtn.style.display = 'none';
 
                 fetch('/learn/vocabulary/item/' + itemId + '/stats?modal=true&_cb=' + new Date().getTime())
                     .then(r => r.text())
                     .then(html => {
                         statsContainer.innerHTML = html;
-                        const contentEl = statsContainer.querySelector('.stats-container');
-                        if (contentEl && editBtn) {
-                            const canEdit = contentEl.dataset.canEdit === 'true';
-                            const editUrl = contentEl.dataset.editUrl;
-                            if (canEdit && editUrl) {
-                                editBtn.style.display = 'flex';
-                                editBtn.onclick = function (e) {
-                                    if (e) {
-                                        e.preventDefault();
-                                        e.stopPropagation();
-                                    }
-                                    openVocabEditOverlay(editUrl);
-                                    return false;
-                                };
-                            }
-                        }
-
-                        const mdContainers = statsContainer.querySelectorAll('.js-markdown-content');
-                        mdContainers.forEach(container => {
-                            if (window.renderMarkdown) {
-                                const rawText = container.textContent.trim();
-                                container.innerHTML = window.renderMarkdown(rawText);
-                                container.style.whiteSpace = 'normal';
-                            }
-                        });
-
                         if (window.initStatsModalTabs) window.initStatsModalTabs();
-                    })
-                    .catch(err => {
-                        console.error("Stats load error:", err);
-                        statsContainer.innerHTML = '<div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 16rem; color: #94a3b8;"><i class="fas fa-exclamation-triangle" style="font-size: 2rem; margin-bottom: 0.5rem;"></i><span>Không thể tải thống kê</span></div>';
+                        
+                        const aiSub = document.getElementById('sub-ai');
+                        if(aiSub && aiSub.style.display !== 'none') {
+                            loadStatsAiHistory(itemId);
+                        }
                     });
             };
         };
