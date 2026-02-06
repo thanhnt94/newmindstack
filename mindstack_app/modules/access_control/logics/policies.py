@@ -72,6 +72,34 @@ ROLE_POLICIES: Dict[str, Dict[str, Any]] = {
     }
 }
 
+from mindstack_app.models import AppSettings
+
 def get_role_policy(role: str) -> Dict[str, Any]:
-    """Retrieve policy for a specific role with fallback to FREE."""
-    return ROLE_POLICIES.get(role, ROLE_POLICIES[ROLE_FREE])
+    """
+    Retrieve policy for a specific role with fallback to FREE.
+    Limits are fetched from AppSettings (Dynamic) or default constants.
+    """
+    base_policy = ROLE_POLICIES.get(role, ROLE_POLICIES[ROLE_FREE]).copy()
+    
+    # Deep copy limits to avoid mutating global state
+    limits = base_policy.get('limits', {}).copy()
+    
+    # Dynamic Overrides for Quotas
+    # Naming Convention: QUOTA_{LIMIT_KEY}_{ROLE} (upper case)
+    # Example: QUOTA_LIMIT_FLASHCARDS_FREE
+    
+    for limit_key, default_val in limits.items():
+        if default_val == PolicyValues.UNLIMITED:
+            continue
+            
+        setting_key = f"QUOTA_{limit_key}_{role}".upper()
+        dynamic_val = AppSettings.get(setting_key)
+        
+        if dynamic_val is not None:
+            try:
+                limits[limit_key] = int(dynamic_val)
+            except (ValueError, TypeError):
+                pass # Keep default if invalid
+                
+    base_policy['limits'] = limits
+    return base_policy

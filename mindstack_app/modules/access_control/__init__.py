@@ -1,4 +1,4 @@
-from .routes import blueprint
+from .routes import blueprint, views
 from .events import register_events
 from .exceptions import PermissionDeniedError, QuotaExceededError
 from .decorators import handle_access_control_error

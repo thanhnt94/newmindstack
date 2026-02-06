@@ -1,0 +1,111 @@
+{% extends 'admin/modules/admin/admin_layout.html' %}
+
+{% block title %}Phân quyền & Giới hạn{% endblock %}
+
+{% block page_title %}Phân quyền & Giới hạn (Access Control){% endblock %}
+{% block page_subtitle %}Xem ma trận phân quyền và cấu hình giới hạn tài nguyên cho các nhóm người dùng.{% endblock %}
+
+{% block content %}
+<div class="grid grid-cols-1 gap-6">
+
+    <!-- Configurable Roles Loop -->
+    {% for role, data in matrix.items() %}
+    <div class="data-card">
+        <div class="data-card-header px-6 py-4 flex items-center justify-between">
+            <div>
+                <h3 class="text-lg font-bold text-slate-800 uppercase tracking-wide">
+                    {% if role == 'free' %}
+                    <span class="text-slate-500"><i class="fas fa-user"></i></span> Nhóm Miễn phí (Free)
+                    {% elif role == 'user' %}
+                    <span class="text-indigo-500"><i class="fas fa-crown"></i></span> Nhóm Trả phí (Premium/VIP)
+                    {% else %}
+                    {{ role|upper }}
+                    {% endif %}
+                </h3>
+                <p class="text-xs text-slate-400 mt-1">Cấu hình cho nhóm người dùng {{ role }}</p>
+            </div>
+        </div>
+
+        <div class="p-6 grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <!-- Permissions Column (Read Only) -->
+            <div>
+                <h4 class="text-sm font-bold text-slate-700 mb-4 border-b border-slate-100 pb-2">
+                    <i class="fas fa-shield-alt mr-2 text-slate-400"></i>Quyền hạn (Permissions)
+                </h4>
+                <div class="space-y-3">
+                    {% for perm_key, allowed in data.permissions.items() %}
+                    <div class="flex items-center justify-between text-sm">
+                        <span class="text-slate-600 font-mono text-xs">{{ perm_key }}</span>
+                        {% if allowed %}
+                        <span class="admin-chip bg-emerald-100 text-emerald-700">
+                            <i class="fas fa-check mr-1"></i> Cho phép
+                        </span>
+                        {% else %}
+                        <span class="admin-chip bg-slate-100 text-slate-500">
+                            <i class="fas fa-times mr-1"></i> Bị chặn
+                        </span>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+                <p class="text-[10px] text-slate-400 italic mt-4">
+                    * Quyền hạn được định nghĩa cứng trong code (policies.py) và không thể thay đổi tại đây để đảm bảo
+                    an toàn hệ thống.
+                </p>
+            </div>
+
+            <!-- Quotas Column (Editable) -->
+            <div>
+                <h4 class="text-sm font-bold text-slate-700 mb-4 border-b border-slate-100 pb-2">
+                    <i class="fas fa-scale-balanced mr-2 text-slate-400"></i>Giới hạn Tài nguyên (Quotas)
+                </h4>
+
+                <form method="POST" class="space-y-4">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                    {% for limit_key, limit_info in data.limits.items() %}
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1 font-mono uppercase">{{ limit_key
+                            }}</label>
+                        <div class="flex items-center gap-2">
+                            <input type="number" name="{{ limit_info.setting_key }}" value="{{ limit_info.current }}"
+                                min="-1"
+                                class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition shadow-sm"
+                                placeholder="Default: {{ limit_info.default }}">
+                            <div class="text-xs text-slate-400 whitespace-nowrap" title="Giá trị mặc định trong code">
+                                Gốc: {{ limit_info.default }}
+                            </div>
+                        </div>
+                        <p class="text-[10px] text-slate-400 mt-1">Dùng AppSettings Key:
+                            <code>{{ limit_info.setting_key }}</code></p>
+                    </div>
+                    {% endfor %}
+
+                    <div class="pt-2">
+                        <button type="submit"
+                            class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg shadow-sm transition flex items-center gap-2">
+                            <i class="fas fa-save"></i> Lưu cập nhật cho {{ role|upper }}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+
+    <!-- Admin Role Info (Read Only) -->
+    <div class="data-card opacity-75 grayscale hover:grayscale-0 transition duration-500">
+        <div class="p-6">
+            <h3 class="text-sm font-bold text-slate-800 uppercase tracking-wide mb-2">
+                <i class="fas fa-user-shield mr-2"></i> Nhóm Admin (Quản trị viên)
+            </h3>
+            <p class="text-sm text-slate-600">
+                Nhóm quản trị viên có quyền truy cập <strong>không giới hạn</strong> vào tất cả các tính năng và tài
+                nguyên.
+                Các giới hạn và phân quyền không áp dụng cho nhóm này.
+            </p>
+        </div>
+    </div>
+
+</div>
+{% endblock %}
