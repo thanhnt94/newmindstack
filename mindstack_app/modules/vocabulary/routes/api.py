@@ -127,17 +127,18 @@ def api_get_flashcard_modes(set_id):
 @login_required
 def api_container_settings(set_id):
     """API to manage per-container user settings."""
-    from mindstack_app.modules.learning.services.settings_service import LearningSettingsService
+    from mindstack_app.modules.learning.interface import LearningInterface
     try:
         if request.method == 'DELETE':
-            LearningSettingsService.update_container_settings(current_user.user_id, set_id, {
-                'flashcard': {}, 'quiz': {}, 'listening': {}, 'typing': {}
+            LearningInterface.update_container_settings(current_user.user_id, set_id, {
+                'auto_save': False,
+                'last_mode': None
             })
-            return jsonify({'success': True, 'message': 'Cài đặt đã được reset.'})
-
-        payload = request.get_json() or {}
-        new_settings = LearningSettingsService.update_container_settings(current_user.user_id, set_id, payload)
-        return jsonify({'success': True, 'settings': new_settings})
+            return jsonify({'success': True, 'message': 'Đã xóa cài đặt ghi nhớ cho học phần này.'})
+        
+        data = request.get_json()
+        settings = LearningInterface.update_container_settings(current_user.user_id, set_id, data)
+        return jsonify({'success': True, 'settings': settings})
     except Exception as e:
         current_app.logger.error(f"Error managing settings for set {set_id}: {e}")
         return error_response(str(e), 'SERVER_ERROR', 500)

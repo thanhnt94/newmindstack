@@ -15,8 +15,8 @@ from flask import current_app
 from mindstack_app.models import LearningItem
 from mindstack_app.modules.fsrs.interface import FSRSInterface
 from mindstack_app.modules.session.interface import SessionInterface
-from mindstack_app.modules.learning.logics.scoring_engine import ScoringEngine
-from mindstack_app.modules.learning_history.services import HistoryRecorder
+# REFAC: ScoringEngine via Interface
+from mindstack_app.modules.learning_history.interface import LearningHistoryInterface
 from mindstack_app.core.signals import card_reviewed
 from mindstack_app.utils.db_session import safe_commit
 
@@ -125,7 +125,7 @@ class FlashcardService:
                     'next_review': srs_result.next_review.isoformat() if srs_result.next_review else None
                 }
             
-            HistoryRecorder.record_interaction(
+            LearningHistoryInterface.record_log(
                 user_id=user_id,
                 item_id=item_id,
                 result_data={

@@ -2,7 +2,7 @@
 # Phiên bản: 3.2
 # MỤC ĐÍCH: Cập nhật để đọc từ StudyLog và ItemMemoryState.
 
-from mindstack_app.modules.learning_history.models import StudyLog
+# REFAC: StudyLog import removed (Isolation)
 # REFAC: Remove ItemMemoryState import
 from mindstack_app.modules.fsrs.interface import FSRSInterface
 import datetime
@@ -21,24 +21,24 @@ def get_quiz_item_statistics(user_id, item_id):
     total_attempts = times_correct + times_incorrect
     correct_percentage = times_correct / total_attempts * 100 if total_attempts > 0 else 0
 
-    # Query StudyLog table
-    logs = StudyLog.query.filter_by(
-        user_id=user_id, item_id=item_id, learning_mode='quiz'
-    ).order_by(StudyLog.timestamp.desc()).all()
+    # Query via LearningHistoryInterface
+    from mindstack_app.modules.learning_history.interface import LearningHistoryInterface
+    logs = LearningHistoryInterface.get_item_history(item_id, limit=100, learning_mode='quiz')
     
     formatted_review_history = []
     for log in logs:
-        fsrs = log.fsrs_snapshot or {}
-        gamification = log.gamification_snapshot or {}
+        fsrs = log.get('fsrs_snapshot') or {}
+        gamification = log.get('gamification_snapshot') or {}
+        timestamp = log.get('timestamp')
         
         entry = {
-            'timestamp': log.timestamp.isoformat() if log.timestamp else None,
-            'timestamp_formatted': log.timestamp.strftime("%H:%M %d/%m/%Y") if log.timestamp else None,
-            'user_answer': log.user_answer,
-            'is_correct': log.is_correct,
+            'timestamp': timestamp.isoformat() if timestamp else None,
+            'timestamp_formatted': timestamp.strftime("%H:%M %d/%m/%Y") if timestamp else None,
+            'user_answer': log.get('user_answer'),
+            'is_correct': log.get('is_correct'),
             'score_change': gamification.get('score_change', 0),
             'stability': fsrs.get('stability'),
-            'duration_ms': log.review_duration
+            'duration_ms': log.get('review_duration')
         }
         formatted_review_history.append(entry)
 

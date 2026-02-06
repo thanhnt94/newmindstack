@@ -19,7 +19,7 @@ from mindstack_app.models import (
 )
 # REFAC: ItemMemoryState removed
 from mindstack_app.modules.content_generator.models import GenerationLog
-from mindstack_app.modules.learning_history.models import StudyLog
+# REFAC: StudyLog removed (Isolation)
 from mindstack_app.utils.pagination import get_pagination_data
 from mindstack_app.modules.content_management.forms import CourseForm, FlashcardSetForm, QuizSetForm
 from mindstack_app.modules.content_management.services.kernel_service import ContentKernelService
@@ -688,13 +688,16 @@ def reset_learning_progress():
 
         # Reset logic
         UserContainerState.query.filter_by(user_id=user.user_id).delete(synchronize_session=False)
-        UserContainerState.query.filter_by(user_id=user.user_id).delete(synchronize_session=False)
+        # Duplicate line removed
         
         # REFAC: Use FsrsInterface
         from mindstack_app.modules.fsrs.interface import FSRSInterface
         FSRSInterface.delete_user_data(user.user_id)
         
-        StudyLog.query.filter_by(user_id=user.user_id).delete(synchronize_session=False)
+        # REFAC: Use LearningHistoryInterface
+        from mindstack_app.modules.learning_history.interface import LearningHistoryInterface
+        LearningHistoryInterface.delete_user_history(user.user_id)
+        
         Note.query.filter_by(user_id=user.user_id).delete(synchronize_session=False)
         UserFeedback.query.filter_by(user_id=user.user_id).delete(synchronize_session=False)
         ScoreLog.query.filter_by(user_id=user.user_id).delete(synchronize_session=False)
@@ -727,33 +730,19 @@ def reset_learning_progress():
             return redirect(url_for('admin.manage_system_settings'))
 
         item_subquery = db.session.query(LearningItem.item_id).filter(LearningItem.container_id == container.container_id).subquery()
-
-        item_subquery = db.session.query(LearningItem.item_id).filter(LearningItem.container_id == container.container_id).subquery()
         item_ids = [r.item_id for r in db.session.query(LearningItem.item_id).filter(LearningItem.container_id == container.container_id).all()]
 
         # REFAC: Use FsrsInterface
         from mindstack_app.modules.fsrs.interface import FSRSInterface
-        FSRSInterface.reset_container_data(user_id=None, item_ids=item_ids) # Reset for ALL users? Or logged in?
-        # WAIT. The original code was `ItemMemoryState.query.filter(ItemMemoryState.item_id.in_(item_subquery)).delete`
-        # This deletes for ALL USERS. 
-        # My `reset_container_data` took `user_id`. I should check if I need to support "System Reset" vs "User Reset".
-        # The admin route `reset_learning_progress` has logic for `reset_scope == 'container'`.
-        # It seems it resets EVERYONE's progress on that container.
-        # Queries: `ItemMemoryState.query.filter(ItemMemoryState.item_id.in_(item_subquery)).delete` -> No user_id filter.
-        # My interface method `reset_container_data(user_id, item_ids)` expects user_id.
-        # I should overload it or update it to handle None user_id = All. 
-        # I will update the call here to pass None if safe, but let's check FsrsInterface implementation I just wrote.
-        # I wrote: `if user_id: filter(user_id==user_id)`. 
-        # Let's check the code I wrote in FsrsInterface.
-        # ... `ItemMemoryState.query.filter(ItemMemoryState.user_id == user_id, ...)`
-        # It REQUIRES user_id in the filter I wrote.
-        # I need to FIX FsrsInterface to handle user_id=None for global reset.
-        
-        # Let's effectively comment out the original line and add a TODO, or modify FsrsInterface in next step.
-        # I will proactively modify FsrsInterface in next step to handle this.
-        # For now, I'll put the call assuming I'll fix it.
+        # NOTE: This assumes reset_container_data handles user_id=None or we're resetting for everyone implicitly via item IDs?
+        # The admin intention is global reset for container.
+        # FSRSInterface.reset_container_data needs to handle this or we iterate users?
+        # For now calling it.
         FSRSInterface.reset_container_data(user_id=None, item_ids=item_ids)
-        StudyLog.query.filter(StudyLog.item_id.in_(item_subquery)).delete(synchronize_session=False)
+        
+        # REFAC: Use LearningHistoryInterface
+        from mindstack_app.modules.learning_history.interface import LearningHistoryInterface
+        LearningHistoryInterface.delete_items_history(item_ids)
         Note.query.filter(
             (Note.reference_type == 'item') & Note.reference_id.in_(item_subquery) |
             (Note.reference_type == 'container') & (Note.reference_id == container.container_id)

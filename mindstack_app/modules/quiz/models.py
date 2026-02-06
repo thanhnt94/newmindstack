@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 from mindstack_app.core.extensions import db
-from mindstack_app.modules.learning.models import LearningContainer, LearningItem
+from mindstack_app.models import LearningContainer, LearningItem
 
 
 class QuizSet(LearningContainer):

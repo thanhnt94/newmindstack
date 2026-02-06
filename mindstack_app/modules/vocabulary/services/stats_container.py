@@ -6,8 +6,7 @@ from datetime import datetime, timezone, timedelta
 from collections import defaultdict
 from sqlalchemy import func
 from mindstack_app.models import LearningItem, LearningContainer
-# REFAC: Remove ItemMemoryState
-from mindstack_app.modules.learning_history.models import StudyLog
+# REFAC: Remove ItemMemoryState and StudyLog (Isolation)
 from mindstack_app.modules.fsrs.interface import FSRSInterface as FsrsService
 
 
@@ -187,18 +186,18 @@ class VocabularyContainerStats:
         timeline_data = defaultdict(list)
         start_date = now - timedelta(days=30)
         
-        logs = StudyLog.query.filter(
-            StudyLog.user_id == user_id,
-            StudyLog.item_id.in_(item_ids),
-            StudyLog.timestamp >= start_date
-        ).order_by(StudyLog.timestamp).all()
+        from mindstack_app.modules.learning_history.interface import LearningHistoryInterface
+        
+        logs = LearningHistoryInterface.get_study_log_timeline(user_id, item_ids, start_date)
         
         for log in logs:
-            date_key = log.timestamp.strftime('%d/%m')
-            fsrs = log.fsrs_snapshot or {}
-            stability = fsrs.get('stability')
-            if stability is not None:
-                timeline_data[date_key].append(min((stability)/21.0, 1.0) * 100)
+            timestamp = log.get('timestamp')
+            if timestamp:
+                date_key = timestamp.strftime('%d/%m')
+                fsrs = log.get('fsrs_snapshot') or {}
+                stability = fsrs.get('stability')
+                if stability is not None:
+                    timeline_data[date_key].append(min((stability)/21.0, 1.0) * 100)
         
         dates = []
         values = []

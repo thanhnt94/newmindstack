@@ -4,7 +4,7 @@ from mindstack_app.utils.template_helpers import render_dynamic_template
 from flask_login import login_required, current_user
 from mindstack_app.models import LearningContainer, LearningItem, db
 from ..services.session_service import LearningSessionService
-from mindstack_app.modules.learning_history.models import StudyLog
+# REFAC: StudyLog removed (Isolation)
 from .. import blueprint
 from .api import safe_url_for
 
@@ -142,33 +142,60 @@ def session_summary(session_id):
         from mindstack_app.utils.content_renderer import render_text_field
         page = request.args.get('page', 1, type=int)
         
-        # Query StudyLog instead of ReviewLog
-        pagination = StudyLog.query.filter_by(session_id=session_obj.session_id).order_by(StudyLog.timestamp.desc()).paginate(page=page, per_page=20, error_out=False)
+        # Query via Interface
+        from mindstack_app.modules.learning_history.interface import LearningHistoryInterface
+        logs_data = LearningHistoryInterface.get_session_logs(session_id=session_obj.session_id, page=page, per_page=20)
+
+        class PaginationWrapper:
+            def __init__(self, data):
+                self.items = data['items']
+                self.total = data['total']
+                self.pages = data['pages']
+                self.page = data['current_page']
+                self.per_page = 20
+                self.has_prev = self.page > 1
+                self.has_next = self.page < self.pages
+                self.prev_num = self.page - 1
+                self.next_num = self.page + 1
+
+            def iter_pages(self, left_edge=2, left_current=2, right_current=5, right_edge=2):
+                last = 0
+                for num in range(1, self.pages + 1):
+                    if num <= left_edge or \
+                       (num > self.page - left_current - 1 and num < self.page + right_current) or \
+                       num > self.pages - right_edge:
+                        if last + 1 != num:
+                            yield None
+                        yield num
+                        last = num
         
-        # Prefetch items to avoid N+1 and because StudyLog has no relationship
-        item_ids = [log.item_id for log in pagination.items]
+        pagination = PaginationWrapper(logs_data)
+        
+        # Prefetch items
+        item_ids = [log['item_id'] for log in pagination.items]
         items = LearningItem.query.filter(LearningItem.item_id.in_(item_ids)).all()
         item_map = {i.item_id: i for i in items}
 
         processed_logs = []
         for log in pagination.items:
-            item = item_map.get(log.item_id)
-            game = log.gamification_snapshot or {}
+            item = item_map.get(log['item_id'])
+            game = log.get('gamification_snapshot') or {}
             
             score_change = game.get('score_change', 0)
             if score_change == 0:
                  # Fallback if gamification_snapshot is missing or 0
-                 if log.rating == 3: score_change = 10
-                 elif log.rating == 4: score_change = 15
-                 elif log.rating == 2: score_change = 5
+                 rating = log.get('rating')
+                 if rating == 3: score_change = 10
+                 elif rating == 4: score_change = 15
+                 elif rating == 2: score_change = 5
 
             log_data = {
-                'timestamp': log.timestamp, 
-                'rating': log.rating, 
+                'timestamp': log['timestamp'], 
+                'rating': log['rating'], 
                 'score_change': score_change, 
-                'duration_ms': log.review_duration, 
-                'item_id': log.item_id, 
-                'item_content': f"Item #{log.item_id}"
+                'duration_ms': log['review_duration'], 
+                'item_id': log['item_id'], 
+                'item_content': f"Item #{log['item_id']}"
             }
             if item:
                 if item.item_type == 'FLASHCARD': 

@@ -153,7 +153,7 @@ def update_lesson_progress(lesson_id):
     completion_pct = progress.data.get('completion_percentage', 0) if progress.data else 0
     lesson_completed = previous_percentage < 100 and completion_pct >= 100
 
-    from mindstack_app.modules.learning.quiz_learning.quiz_logic import _get_score_value # Reuse helper or move it? 
+    # REFAC: Removed legacy quiz_logic import
     # Helper is local in quiz_logic.py. I should use config service directly or reimplement helper.
     # Reimplementing helper for safety
     def _get_score_value_local(key, default):

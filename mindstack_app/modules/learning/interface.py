@@ -22,6 +22,10 @@ class LearningInterface:
     # === METRICS & ANALYTICS ===
     
     @staticmethod
+    def get_todays_activity_counts(user_id):
+        return LearningMetricsService.get_todays_activity_counts(user_id)
+
+    @staticmethod
     def get_score_breakdown(user_id):
         return LearningMetricsService.get_score_breakdown(user_id)
 
@@ -106,27 +110,53 @@ class LearningInterface:
         Centralized method to update learning progress (History + Scoring).
         Replaces direct calls to ScoringEngine and HistoryRecorder.
         """
-        from mindstack_app.modules.learning_history.services import HistoryRecorder
-        from mindstack_app.modules.gamification.services.scoring_service import ScoreService
-
+        from mindstack_app.modules.learning.logics.scoring_engine import ScoringEngine
+        from mindstack_app.modules.learning_history.interface import LearningHistoryInterface
+        
         # 1. Record History
-        HistoryRecorder.record_interaction(
+        LearningHistoryInterface.record_log(
             user_id=user_id,
             item_id=item_id,
             result_data=result_data,
             context_data=context_data or {},
         )
         
-        # 2. Award Points (Simplified)
-        # Assuming result_data contains 'is_correct' or 'rating'
-        score_change = 0
-        is_correct = result_data.get('is_correct', False)
-        
-        # TODO: This logic needs to be smarter based on Item Type
-        # But for now, we provide the hook.
-        # Existing ScoringEngine logic is complex and mode-specific.
-        # For full refactor, we would delegate to ScoringEngine here.
+        # 2. Logic for scoring could be triggered here or separately depending on architecture.
+        # Currently consumers call calculation separately, which is fine.
+
+    # === SETTINGS (Configuration) ===
+    
+    @staticmethod
+    def get_container_settings(user_id: int, container_id: int) -> Dict[str, Any]:
+        """Fetch container-specific user settings."""
+        from mindstack_app.modules.learning.services.settings_service import LearningSettingsService
+        return LearningSettingsService.get_container_settings(user_id, container_id)
+
+    @staticmethod
+    def update_container_settings(user_id: int, container_id: int, payload: Dict[str, Any]) -> Dict[str, Any]:
+        """Update container-specific user settings."""
+        from mindstack_app.modules.learning.services.settings_service import LearningSettingsService
+        return LearningSettingsService.update_container_settings(user_id, container_id, payload)
+
+    @staticmethod
+    def resolve_flashcard_session_config(user: Any, container_id: int, url_params: Dict[str, Any]) -> Dict[str, Any]:
+        """Resolve final session config for Flashcards."""
+        from mindstack_app.modules.learning.services.settings_service import LearningSettingsService
+        return LearningSettingsService.resolve_flashcard_session_config(user, container_id, url_params)
+
+    # === SCORING & UTILS ===
+    
+    @staticmethod
+    def calculate_answer_points(mode, quality, is_correct, **kwargs):
+        """
+        Calculate points for an answer. Delegates to ScoringEngine.
+        """
         from mindstack_app.modules.learning.logics.scoring_engine import ScoringEngine
-        # We can expose ScoringEngine through here if needed, 
-        # but pure delegation is safer given current complexity.
-        pass
+        return ScoringEngine.calculate_answer_points(mode, quality, is_correct, **kwargs)
+
+    @staticmethod
+    def quality_to_score(quality: int) -> int:
+        """Convert FSRS quality (1-4) to basic score."""
+        from mindstack_app.modules.learning.logics.scoring_engine import ScoringEngine
+        return ScoringEngine.quality_to_score(quality)
+

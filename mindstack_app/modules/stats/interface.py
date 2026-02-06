@@ -51,19 +51,19 @@ def get_dashboard_activity(user_id: int) -> Dict[str, Any]:
     Get daily activity & score metrics for dashboard.
     Aggregates data from LearningMetricsService.
     """
-    from mindstack_app.modules.learning.services.learning_metrics_service import LearningMetricsService
+    from mindstack_app.modules.learning.interface import LearningInterface
     
     # 1. Today's counts
-    todays_counts = LearningMetricsService.get_todays_activity_counts(user_id)
+    todays_counts = LearningInterface.get_todays_activity_counts(user_id)
     
     # 2. Score breakdown
-    score_data = LearningMetricsService.get_score_breakdown(user_id)
+    score_data = LearningInterface.get_score_breakdown(user_id)
     
     # 3. Active days
-    weekly_active_days = LearningMetricsService.get_weekly_active_days_count(user_id)
+    weekly_active_days = LearningInterface.get_weekly_active_days_count(user_id)
     
     # 4. Summaries (If needed for shortcut actions, though dashboard_service does it too)
-    summaries = LearningMetricsService.get_user_learning_summary(user_id)
+    summaries = LearningInterface.get_user_learning_summary(user_id)
 
     return {
         'todays_counts': todays_counts,

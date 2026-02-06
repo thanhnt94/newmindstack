@@ -403,7 +403,7 @@ def api_save_flashcard_settings():
     button_count = data.get('button_count')
     visual_settings = data.get('visual_settings')
     
-    from mindstack_app.modules.learning.services.settings_service import LearningSettingsService
+    from mindstack_app.modules.learning.interface import LearningInterface
     
     session_data = session.get('flashcard_session', {})
     set_ids = session_data.get('set_id')
@@ -419,9 +419,10 @@ def api_save_flashcard_settings():
 
     for sid in target_set_ids:
         if isinstance(sid, int):
-            LearningSettingsService.update_container_settings(current_user.user_id, sid, update_payload)
+            # REFAC: Use Interface
+            settings = LearningInterface.update_container_settings(current_user.user_id, sid, update_payload)
                 
-    return jsonify({'success': True, 'message': 'Cài đặt đã được lưu.'})
+    return jsonify({'success': True, 'settings': settings})
 
 @blueprint.route('/toggle_archive_flashcard/<int:set_id>', methods=['POST'])
 @login_required

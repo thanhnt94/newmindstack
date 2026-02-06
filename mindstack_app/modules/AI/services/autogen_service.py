@@ -3,7 +3,7 @@
 
 from flask import current_app
 from mindstack_app.models import db, BackgroundTask
-from mindstack_app.modules.learning.models import LearningContainer, LearningItem
+from mindstack_app.models import LearningContainer, LearningItem
 from mindstack_app.modules.AI.services.ai_manager import get_ai_service
 from mindstack_app.modules.AI.logics.prompts import get_formatted_prompt
 import time

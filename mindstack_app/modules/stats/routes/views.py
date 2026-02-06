@@ -1,7 +1,7 @@
 from flask import request
 from flask_login import login_required, current_user
 from mindstack_app.utils.template_helpers import render_dynamic_template
-from mindstack_app.modules.learning.services.learning_metrics_service import LearningMetricsService
+from mindstack_app.modules.learning.interface import LearningInterface
 from mindstack_app.modules.stats.services.leaderboard_service import LeaderboardService
 from mindstack_app.modules.stats.services.metrics import get_user_container_options
 

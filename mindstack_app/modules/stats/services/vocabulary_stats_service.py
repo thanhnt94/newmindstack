@@ -9,7 +9,7 @@ from mindstack_app.models import (
     UserItemMarker, ScoreLog
 )
 # REFAC: ItemMemoryState removed
-from mindstack_app.modules.learning_history.models import StudyLog
+# REFAC: StudyLog removed (Isolation)
 from mindstack_app.modules.fsrs.interface import FSRSInterface as FsrsService
 # REFAC: HardItemService removed (Delegated to FsrsInterface)
 from mindstack_app.utils.content_renderer import render_text_field
@@ -137,17 +137,17 @@ class VocabularyStatsService:
         timeline_data = defaultdict(list)
         start_date = now - timedelta(days=30)
         
-        logs = StudyLog.query.filter(
-            StudyLog.user_id == user_id, 
-            StudyLog.item_id.in_(item_ids), 
-            StudyLog.timestamp >= start_date
-        ).order_by(StudyLog.timestamp).all()
+        from mindstack_app.modules.learning_history.interface import LearningHistoryInterface
+        
+        logs = LearningHistoryInterface.get_study_log_timeline(user_id, item_ids, start_date)
         
         for log in logs:
-            fsrs = log.fsrs_snapshot or {}
+            fsrs = log.get('fsrs_snapshot') or {}
             stability = fsrs.get('stability')
-            if stability is not None:
-                date_key = log.timestamp.strftime('%d/%m')
+            timestamp = log.get('timestamp')
+            
+            if stability is not None and timestamp:
+                date_key = timestamp.strftime('%d/%m')
                 timeline_data[date_key].append(min((stability)/21.0, 1.0) * 100)
         
         dates, values = [], []
@@ -168,26 +168,30 @@ class VocabularyStatsService:
         # REFAC: Use FsrsInterface
         progress = FsrsService.get_item_state(user_id, item_id)
         
-        logs = StudyLog.query.filter_by(user_id=user_id, item_id=item_id).order_by(StudyLog.timestamp.desc()).all()
+        from mindstack_app.modules.learning_history.interface import LearningHistoryInterface
+        
+        # Fetch detailed history (limit 100 or all? UI usually needs some history list)
+        logs = LearningHistoryInterface.get_item_history(item_id, limit=500)
+        # Note: HistoryQueryService.get_item_history now returns DTO dicts.
         
         total_attempts = len(logs)
-        total_correct = sum(1 for log in logs if VocabularyStatsService._is_log_correct(log))
-        total_duration_ms = sum(log.review_duration for log in logs if log.review_duration)
+        total_correct = sum(1 for log in logs if VocabularyStatsService._is_log_dict_correct(log))
+        total_duration_ms = sum(log['review_duration'] for log in logs if log.get('review_duration'))
         
         total_score = 0
         for log in logs:
-            game = log.gamification_snapshot or {}
+            game = log.get('gamification_snapshot') or {}
             total_score += game.get('score_change', 0)
         
         mode_counts = {}
         for log in logs:
-            mode = log.learning_mode or 'unknown'
+            mode = log.get('learning_mode') or 'unknown'
             if mode not in mode_counts: mode_counts[mode] = {'count': 0, 'correct': 0, 'duration': 0, 'score': 0}
             mode_counts[mode]['count'] += 1
-            if log.review_duration: mode_counts[mode]['duration'] += log.review_duration
-            if VocabularyStatsService._is_log_correct(log): mode_counts[mode]['correct'] += 1
+            if log.get('review_duration'): mode_counts[mode]['duration'] += log['review_duration']
+            if VocabularyStatsService._is_log_dict_correct(log): mode_counts[mode]['correct'] += 1
             
-            game = log.gamification_snapshot or {}
+            game = log.get('gamification_snapshot') or {}
             score = game.get('score_change', 0)
             if score: mode_counts[mode]['score'] += score
 
@@ -205,8 +209,8 @@ class VocabularyStatsService:
         avg_duration = (total_duration_ms / total_attempts) if total_attempts > 0 else 0
         avg_score = (total_score / total_attempts) if total_attempts > 0 else 0
         
-        first_reviewed = logs[-1].timestamp if logs else None
-        last_reviewed_log = logs[0].timestamp if logs else None
+        first_reviewed = logs[-1]['timestamp'] if logs else None
+        last_reviewed_log = logs[0]['timestamp'] if logs else None
         
         status = 'new'
         if progress:
@@ -214,7 +218,6 @@ class VocabularyStatsService:
             if stability >= 21.0: status = 'mastered'
             elif progress.due_date and (progress.due_date.replace(tzinfo=timezone.utc) if progress.due_date.tzinfo is None else progress.due_date) <= now: status = 'due'
             else:
-                 # Check logic for 'hard' without HardItemService
                  is_hard = (progress.difficulty or 0) >= 7.0
                  if is_hard: status = 'hard'
                  else: status = 'learning'
@@ -235,7 +238,7 @@ class VocabularyStatsService:
         markers = UserItemMarker.query.filter_by(user_id=user_id, item_id=item_id).all()
         marker_list = [m.marker_type for m in markers]
 
-        durations = [log.review_duration for log in logs if log.review_duration]
+        durations = [log['review_duration'] for log in logs if log.get('review_duration')]
         min_duration = min(durations) if durations else 0
 
         return {
@@ -264,10 +267,10 @@ class VocabularyStatsService:
             },
             'history': [
                 {
-                    'timestamp': log.timestamp, 'mode': log.learning_mode, 'result': 'Correct' if VocabularyStatsService._is_log_correct(log) else 'Incorrect',
-                    'duration_ms': log.review_duration, 'user_answer': log.user_answer, 
-                    'score_change': (log.gamification_snapshot or {}).get('score_change', 0), 
-                    'rating': log.rating
+                    'timestamp': log['timestamp'], 'mode': log['learning_mode'], 'result': 'Correct' if VocabularyStatsService._is_log_dict_correct(log) else 'Incorrect',
+                    'duration_ms': log['review_duration'], 'user_answer': log['user_answer'], 
+                    'score_change': (log.get('gamification_snapshot') or {}).get('score_change', 0), 
+                    'rating': log['rating']
                 }
                 for log in logs[:50]
             ],
@@ -372,6 +375,14 @@ class VocabularyStatsService:
     def _is_log_correct(log) -> bool:
         if log.is_correct is not None: return log.is_correct
         if log.rating is not None: return log.rating >= 2
+        return False
+
+    @staticmethod
+    def _is_log_dict_correct(log: dict) -> bool:
+        is_correct = log.get('is_correct')
+        if is_correct is not None: return is_correct
+        rating = log.get('rating')
+        if rating is not None: return rating >= 2
         return False
 
     @staticmethod

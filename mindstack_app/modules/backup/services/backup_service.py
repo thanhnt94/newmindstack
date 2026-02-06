@@ -26,7 +26,9 @@ from mindstack_app.models import (
     Notification, PushSubscription, NotificationPreference,
     UserMetric, DailyStat, Achievement, TranslationHistory, Streak
 )
-from mindstack_app.modules.learning_history.models import StudyLog
+# REFAC: Use Interface for Isolation
+from mindstack_app.modules.learning_history.interface import LearningHistoryInterface
+StudyLog = LearningHistoryInterface.get_model_class()
 from mindstack_app.modules.fsrs.interface import FSRSInterface
 # FSRS Model entity retrieved via Interface for DATASET_CATALOG mapping
 ItemMemoryStateModel = FSRSInterface.get_all_memory_states_query().column_descriptions[0]['entity']

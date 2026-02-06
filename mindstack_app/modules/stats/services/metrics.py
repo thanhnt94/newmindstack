@@ -36,47 +36,19 @@ ITEM_TYPE_LABELS = {
 def get_user_container_options(user_id, container_type, learning_mode, timestamp_attr='last_review', item_type=None):
     """Return the list of learning containers (id/title) a user interacted with."""
     
-    # REFAC: Use FsrsInterface to get user's active/learned items
-    # and then find containers.
-    # Note: timestamp_attr logic (last_review) implies sorting by recency.
-    # FSRSInterface currently doesn't provide "get_learned_items_with_timestamp".
-    # But `StudyLog` (learning_history) has this info!
-    # Using `StudyLog` is robust because it tracks ANY activity.
-    # The original code filtered by `ItemMemoryState`.
+    # REFAC: Use LearningHistoryInterface
+    from mindstack_app.modules.learning_history.interface import LearningHistoryInterface
     
-    from mindstack_app.modules.learning_history.models import StudyLog
-    
-    # Query StudyLog for recent containers
-    study_log_q = (
-        db.session.query(
-            LearningContainer.container_id,
-            LearningContainer.title,
-            func.max(StudyLog.timestamp).label('last_activity')
-        )
-        .join(LearningItem, LearningItem.item_id == StudyLog.item_id)
-        .join(LearningContainer, LearningContainer.container_id == LearningItem.container_id)
-        .filter(
-            StudyLog.user_id == user_id,
-            LearningContainer.container_type == container_type
-        )
+    results = LearningHistoryInterface.get_recent_containers(
+        user_id=user_id,
+        container_type=container_type,
+        item_type=item_type
     )
-    
-    if item_type:
-        study_log_q = study_log_q.filter(LearningItem.item_type == item_type)
-        
-    study_log_q = study_log_q.group_by(LearningContainer.container_id, LearningContainer.title).order_by(func.max(StudyLog.timestamp).desc())
-    
-    results = study_log_q.all()
-    
-    # Fallback to check ItemMemoryState if StudyLog is empty (e.g. migration)?
-    # Assuming StudyLog is populated. 
-    # If not, we might miss some legacy data where StudyLog was flushed but MemoryState remains.
-    # But separating modules means we rely on history/logs for this aggregate.
     
     return [
         {
-            'id': row.container_id,
-            'title': row.title,
+            'id': row['id'],
+            'title': row['title'],
         }
         for row in results
     ]
@@ -506,61 +478,27 @@ def paginate_course_items(user_id, container_id=None, status=None, page=1, per_p
 
 
 def get_flashcard_activity_series(user_id, container_id, timeframe='30d'):
-    # MIGRATED: Use ItemMemoryState
+    # MIGRATED: Use LearningHistoryInterface
     if not container_id: return {'series': []}
     timeframe_start, timeframe_end = _resolve_timeframe_dates(timeframe)
     
-    # Can't easily reconstruct new/review counts per day from ItemMemoryState snapshot.
-    # ItemMemoryState only has current state.
-    # Review history is in StudyLog.
-    # The previous code queried LearningProgress.mode_data['review_history'].
-    # That field is gone. We must query StudyLog.
+    from mindstack_app.modules.learning_history.interface import LearningHistoryInterface
     
-    # Query StudyLog
-    from mindstack_app.modules.learning_history.models import StudyLog
-    
-    # Since we need to join with LearningItem to filter by container_id
-    query = (
-        db.session.query(StudyLog.timestamp, StudyLog.learning_mode)
-        .join(LearningItem, LearningItem.item_id == StudyLog.item_id)
-        .filter(
-            StudyLog.user_id == user_id,
-            LearningItem.container_id == container_id,
-            LearningItem.item_type == 'FLASHCARD'
-        )
+    logs = LearningHistoryInterface.get_daily_activity_series(
+        user_id, timeframe_start, timeframe_end, container_id, 'FLASHCARD'
     )
-    
-    if timeframe_start:
-        query = query.filter(StudyLog.timestamp >= timeframe_start)
-    if timeframe_end:
-        query = query.filter(StudyLog.timestamp <= timeframe_end)
-        
-    logs = query.all()
     
     new_counts = defaultdict(int)
     review_counts = defaultdict(int)
     
-    for ts, mode in logs:
-        # Simplification: StudyLog doesn't explicitly flag "First Time".
-        # But we can assume if we find it, it happened.
-        # Actually, "new" count usually means "cards learned for the first time".
-        # In StudyLog, we don't know if it was the first time unless we check.
-        # However, for activity series, maybe total reviews is enough?
-        # The UI likely expects "Reviews".
-        # Let's count everything as review for now to avoid complexity, or try to approximate.
-        # Original code used `mode_data['review_history']` which had precise timestamps.
-        # StudyLog is cleaner.
+    for (ts, mode) in logs:
+        # Simplification to reviews
         dt_val = ts
         if not dt_val: continue
         entry_date = dt_val.date()
         review_counts[entry_date] += 1
         
-    # We missed "New" cards. "New" means transition from New -> Learning.
-    # StudyLog doesn't store state transition explicitly.
-    # Acceptable to show all as reviews for this refactor phase.
-    
     # Calculate score from ScoreLog as before
-    # ... (ScoreLog part unchanged) ...
     start_dt_filter = datetime.combine(timeframe_start, datetime.min.time()).replace(tzinfo=timezone.utc)
     end_dt_filter = datetime.combine(timeframe_end + timedelta(days=1), datetime.min.time()).replace(tzinfo=timezone.utc)
 
@@ -596,34 +534,19 @@ def get_flashcard_activity_series(user_id, container_id, timeframe='30d'):
 
 
 # Reuse get_flashcard_activity_series logic for quiz (simplified)
-get_quiz_activity_series = get_flashcard_activity_series 
-# (Actually quiz differs by item_type filter, I should duplicate or parametrize)
-# For now, I will just implement a generic one or leave it empty? 
-# I'll implement it quickly.
-
 def get_quiz_activity_series(user_id, container_id, timeframe='30d'):
-    # MIGRATED: Use ItemMemoryState
+    # MIGRATED: Use LearningHistoryInterface
     if not container_id: return {'series': []}
     timeframe_start, timeframe_end = _resolve_timeframe_dates(timeframe)
     
-    from mindstack_app.modules.learning_history.models import StudyLog
+    from mindstack_app.modules.learning_history.interface import LearningHistoryInterface
     
-    query = (
-        db.session.query(StudyLog.timestamp)
-        .join(LearningItem, LearningItem.item_id == StudyLog.item_id)
-        .filter(
-            StudyLog.user_id == user_id,
-            LearningItem.container_id == container_id,
-            LearningItem.item_type == 'QUIZ_MCQ'
-        )
+    logs = LearningHistoryInterface.get_daily_activity_series(
+        user_id, timeframe_start, timeframe_end, container_id, 'QUIZ_MCQ'
     )
     
-    if timeframe_start: query = query.filter(StudyLog.timestamp >= timeframe_start)
-    if timeframe_end: query = query.filter(StudyLog.timestamp <= timeframe_end)
-        
-    logs = query.all()
     review_counts = defaultdict(int)
-    for (ts,) in logs:
+    for (ts, mode) in logs:
         if ts: review_counts[ts.date()] += 1
         
     start_dt_filter = datetime.combine(timeframe_start, datetime.min.time()).replace(tzinfo=timezone.utc)

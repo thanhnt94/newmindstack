@@ -12,7 +12,6 @@ def init_events(app):
     Giúp module scoring độc lập hoàn toàn.
     """
     # Ví dụ: Lắng nghe từ module learning (khi hoàn thành bài học)
-    # from mindstack_app.modules.learning.events import lesson_completed
     # lesson_completed.connect(handle_lesson_completion)
     pass
 

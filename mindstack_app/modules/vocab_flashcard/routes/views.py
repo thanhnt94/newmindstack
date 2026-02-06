@@ -238,11 +238,15 @@ def start_flashcard_session_by_id(set_id, mode):
     """
     
     # [UPDATED v6] Use centralized Settings Service
-    from mindstack_app.modules.learning.services.settings_service import LearningSettingsService
-    config = LearningSettingsService.resolve_flashcard_session_config(current_user, set_id, request.args)
-    
-    session['flashcard_button_count_override'] = config['button_count']
-    session['flashcard_visual_settings'] = config['visual_settings']
+    from mindstack_app.modules.learning.interface import LearningInterface
+    # REFAC: Use Interface
+    session_config = LearningInterface.resolve_flashcard_session_config(
+        user=current_user,
+        container_id=set_id,
+        url_params=request.args.to_dict()
+    )
+    session['flashcard_button_count_override'] = session_config['button_count']
+    session['flashcard_visual_settings'] = session_config['visual_settings']
 
         
     # [REFACTORED] Stateless Session Start (Single ID)

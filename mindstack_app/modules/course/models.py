@@ -1,7 +1,7 @@
 # File: mindstack_app/modules/course/models.py
 """Course and Lesson models."""
 from __future__ import annotations
-from mindstack_app.modules.learning.models import LearningContainer, LearningItem
+from mindstack_app.models import LearningContainer, LearningItem
 
 class Course(LearningContainer):
     """Specialized LearningContainer for Courses."""
