@@ -149,10 +149,10 @@ async function ensureFlashcardBuffer(immediate = false) {
                 return null;
             }
             const getFlashcardBatchUrl = config.getFlashcardBatchUrl;
-            const urlWithBatch = `${getFlashcardBatchUrl}${getFlashcardBatchUrl.includes('?') ? '&' : '?'}batch_size=3`;
+            const urlWithBatch = `${getFlashcardBatchUrl}${getFlashcardBatchUrl.includes('?') ? '&' : '?'}batch_size=1`;
 
             const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 8000); // 8s timeout for smaller batch
+            const timeoutId = setTimeout(() => controller.abort(), 8000); // 8s timeout
 
             console.log('[Batch] Fetching from:', urlWithBatch);
             const res = await fetch(urlWithBatch, {
@@ -216,7 +216,7 @@ async function ensureFlashcardBuffer(immediate = false) {
             // Trigger audio prefetch for the newly added items
             if (window.prefetchAudioForUpcomingCards) {
                 console.log('[Batch] Triggering audio pre-generation for the new batch');
-                window.prefetchAudioForUpcomingCards(3);
+                window.prefetchAudioForUpcomingCards(1);
             }
 
         } catch (e) {
@@ -359,7 +359,7 @@ function displayCurrentCard() {
 
     // Trigger audio prefetch for upcoming cards to stay ahead
     if (window.prefetchAudioForUpcomingCards) {
-        window.prefetchAudioForUpcomingCards(3);
+        window.prefetchAudioForUpcomingCards(1);
     }
 
     // Session Stats Update

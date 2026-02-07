@@ -618,12 +618,25 @@ class FSRSInterface:
             # Import case for sorting
             from sqlalchemy import case
             
+            # Use explicit CASE for sorting to ensure 1/0 values (handling NULLs from outerjoin)
+            # is_due: 1 if due, 0 otherwise
+            is_due_case = case(
+                (ItemMemoryState.due_date <= now, 1),
+                else_=0
+            )
+            
+            # is_new: 1 if new (state is None or 0), 0 otherwise
+            is_new_case = case(
+                (or_(ItemMemoryState.state_id.is_(None), ItemMemoryState.state == 0), 1),
+                else_=0
+            )
+            
             return query.order_by(
-                is_due.desc(),
-                is_new.desc(),
+                is_due_case.desc(),  # Due items (1) first
+                is_new_case.desc(),  # New items (1) second (if not due)
                 case(
-                    (is_due, func.random()),
-                    else_=LearningItem.order_in_container
+                    (ItemMemoryState.due_date <= now, func.random()), # Randomize if Due
+                    else_=LearningItem.order_in_container # Sequential if New
                 )
             )
              
