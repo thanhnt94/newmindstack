@@ -1,7 +1,7 @@
 """Service for calculating and retrieving learning metrics across the application."""
 
 from collections import defaultdict
-from datetime import datetime, timedelta, date, timezone
+from datetime import datetime, timedelta, date, timezone, time
 from typing import Dict, Any, List, Optional, Tuple
 
 from sqlalchemy import func, distinct, case
@@ -410,8 +410,85 @@ class LearningMetricsService:
                 'review_count': int(row.review_count or 0)
             })
             
-            
         return leaderboard
+
+    @classmethod
+    def get_hourly_activity(cls, user_id: int) -> Dict[str, Any]:
+        """
+        Get activity breakdown by hour of day (0-23).
+        Returns a list of counts for each hour.
+        """
+        from sqlalchemy import func, extract
+        from mindstack_app.models import ScoreLog
+        
+        query = db.session.query(
+            extract('hour', ScoreLog.timestamp).label('hour'),
+            func.count(ScoreLog.log_id).label('count')
+        ).filter(
+            ScoreLog.user_id == user_id
+        ).group_by(extract('hour', ScoreLog.timestamp)).all()
+        
+        # Initialize 0 for all 24 hours
+        hourly_counts = [0] * 24
+        
+        for row in query:
+            h = int(row.hour)
+            if 0 <= h < 24:
+                hourly_counts[h] = row.count
+                
+        return {
+            'labels': [f"{h}:00" for h in range(24)],
+            'data': hourly_counts
+        }
+
+    @classmethod
+    def get_accuracy_trend(cls, user_id: int, days: int = 30) -> Dict[str, Any]:
+        """
+        Get daily average accuracy trend for the last N days.
+        """
+        end_date = date.today()
+        start_date = end_date - timedelta(days=days-1)
+        
+        from sqlalchemy import func, case
+        from mindstack_app.models import ScoreLog
+        
+        # Calculate daily "Success" rate
+        # We assume score_change > 0 means "Correct" (or at least not a complete fail)
+        
+        query = db.session.query(
+            func.date(ScoreLog.timestamp).label('date'),
+            func.count(ScoreLog.log_id).label('total_reviews'),
+            func.sum(case((ScoreLog.score_change > 0, 1), else_=0)).label('successful_reviews')
+        ).filter(
+            ScoreLog.user_id == user_id,
+            ScoreLog.timestamp >= datetime.combine(start_date, time.min)
+        ).group_by(func.date(ScoreLog.timestamp)).all()
+        
+        data_map = {str(row.date): row for row in query}
+        
+        labels = []
+        accuracy_data = []
+        
+        current = start_date
+        while current <= end_date:
+            d_str = current.isoformat()
+            if d_str in data_map:
+                row = data_map[d_str]
+                if row.total_reviews > 0:
+                    acc = round((row.successful_reviews / row.total_reviews) * 100, 1)
+                else:
+                    acc = 0
+                accuracy_data.append(acc)
+            else:
+                accuracy_data.append(0)
+            
+            labels.append(current.strftime('%d/%m'))
+            current += timedelta(days=1)
+            
+        return {
+            'labels': labels,
+            'data': accuracy_data
+        }
 
     @classmethod
     def get_extended_dashboard_stats(cls, user_id: int) -> Dict[str, Any]:
@@ -503,6 +580,10 @@ class LearningMetricsService:
         avg_reviews_quiz = round(sum(reviews_map_quiz.values()) / 30, 1)
         avg_new_quiz = round(sum(new_items_map_quiz.values()) / 30, 1)
         
+        # 5. Advanced Charts Data
+        hourly_activity = cls.get_hourly_activity(user_id)
+        accuracy_trend = cls.get_accuracy_trend(user_id)
+
         return {
             'averages': {
                 'avg_reviews_per_day': avg_reviews_per_day, # Global
@@ -524,6 +605,8 @@ class LearningMetricsService:
                     'reviews': reviews_data,
                     'new_items': new_items_data,
                     'scores': score_data
-                }
+                },
+                'hourly_activity': hourly_activity,
+                'accuracy_trend': accuracy_trend
             }
         }

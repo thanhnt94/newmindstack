@@ -245,6 +245,30 @@
                         {% endfor %}
                     </div>
                 </div>
+
+                {# Thói quen học tập (Advanced Stats) #}
+                <div class="px-5 mt-2 pb-24">
+                    <h3 class="text-base font-bold text-slate-800 mb-4 flex items-center gap-2">
+                        <i class="fas fa-clock text-amber-500"></i>
+                        <span>Thói quen học tập</span>
+                    </h3>
+
+                    {# Hourly Activity #}
+                    <div class="bg-white border border-slate-200 p-4 rounded-3xl shadow-sm mb-4">
+                        <h4 class="text-sm font-bold text-slate-700 mb-4">Khung giờ học tập</h4>
+                        <div class="h-48 w-full">
+                            <canvas id="hourlyChart"></canvas>
+                        </div>
+                    </div>
+
+                    {# Accuracy Trend #}
+                    <div class="bg-white border border-slate-200 p-4 rounded-3xl shadow-sm">
+                        <h4 class="text-sm font-bold text-slate-700 mb-4">Xu hướng chính xác (30 ngày)</h4>
+                        <div class="h-48 w-full">
+                            <canvas id="accuracyChart"></canvas>
+                        </div>
+                    </div>
+                </div>
             </div>
         </template>
 
@@ -356,12 +380,16 @@
     });
 
     document.addEventListener('DOMContentLoaded', () => {
-        const ctx = document.getElementById('activityChart');
+        const activityCtx = document.getElementById('activityChart');
+        const hourlyCtx = document.getElementById('hourlyChart');
+        const accuracyCtx = document.getElementById('accuracyChart');
+
         const chartData = {{ dashboard_data.charts | tojson
     }};
 
-    if (ctx && chartData) {
-        new Chart(ctx, {
+    // 1. Activity Chart (Existing)
+    if (activityCtx && chartData) {
+        new Chart(activityCtx, {
             type: 'bar',
             data: {
                 labels: chartData.labels,
@@ -414,6 +442,78 @@
                     mode: 'nearest',
                     axis: 'x',
                     intersect: false
+                }
+            }
+        });
+    }
+
+    // 2. Hourly Activity Chart (New)
+    if (hourlyCtx && chartData && chartData.hourly_activity) {
+        new Chart(hourlyCtx, {
+            type: 'bar',
+            data: {
+                labels: chartData.hourly_activity.labels,
+                datasets: [{
+                    label: 'Hoạt động',
+                    data: chartData.hourly_activity.data,
+                    backgroundColor: '#f59e0b', // Amber 500
+                    borderRadius: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    x: {
+                        grid: { display: false },
+                        ticks: { font: { size: 10 }, maxTicksLimit: 8 }
+                    },
+                    y: {
+                        display: false,
+                        grid: { display: false }
+                    }
+                }
+            }
+        });
+    }
+
+    // 3. Accuracy Trend Chart (New)
+    if (accuracyCtx && chartData && chartData.accuracy_trend) {
+        new Chart(accuracyCtx, {
+            type: 'line',
+            data: {
+                labels: chartData.accuracy_trend.labels,
+                datasets: [{
+                    label: 'Chính xác (%)',
+                    data: chartData.accuracy_trend.data,
+                    borderColor: '#10b981', // Emerald 500
+                    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                    tension: 0.4,
+                    fill: true,
+                    pointRadius: 0,
+                    pointHoverRadius: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    x: {
+                        grid: { display: false },
+                        ticks: { font: { size: 10 }, maxTicksLimit: 7 }
+                    },
+                    y: {
+                        display: false,
+                        grid: { display: false },
+                        min: 0,
+                        max: 100
+                    }
                 }
             }
         });
