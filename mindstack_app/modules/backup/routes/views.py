@@ -14,8 +14,16 @@ from ..services.backup_service import (
     restore_from_uploaded_bytes
 )
 
-@blueprint.route('/')
-def manage_backup_restore():
+def format_file_size(size_bytes):
+    if size_bytes < 1024:
+        return f"{size_bytes} B"
+    elif size_bytes < 1024 * 1024:
+        return f"{round(size_bytes / 1024, 1)} KB"
+    else:
+        return f"{round(size_bytes / (1024 * 1024), 1)} MB"
+
+@blueprint.route('/manager')
+def sys_backup_view():
     """
     Mô tả: Hiển thị trang quản lý sao lưu và khôi phục dữ liệu.
     """
@@ -34,44 +42,33 @@ def manage_backup_restore():
             # Format size to human readable
             if file_size < 1024 * 1024:
                 size_label = f"{round(file_size / 1024, 1)} KB"
-            else:
-                size_label = f"{round(file_size / (1024 * 1024), 1)} MB"
+            if filename.endswith('.zip') or filename.endswith('.db'):
+                file_path = os.path.join(backup_folder, filename)
+                stat = os.stat(file_path)
+                
+                # Check if it has uploads folder if it's a zip
+                has_uploads = False
+                if filename.endswith('.zip'):
+                    try:
+                        with zipfile.ZipFile(file_path, 'r') as zf:
+                            has_uploads = any(info.filename.startswith('uploads/') for info in zf.infolist())
+                    except Exception:
+                        pass
 
-            has_uploads = False
-
-            try:
-                with zipfile.ZipFile(file_path, 'r') as zipf:
-                    members = zipf.namelist()
-                    has_uploads = any(member.startswith('uploads/') for member in members)
-
-                    if not has_uploads and 'manifest.json' in members:
-                        try:
-                            manifest_raw = zipf.read('manifest.json')
-                            manifest_data = json.loads(manifest_raw.decode('utf-8'))
-                            has_uploads = bool(manifest_data.get('includes_uploads', False))
-                        except (KeyError, ValueError, UnicodeDecodeError):
-                            pass
-            except zipfile.BadZipFile:
-                pass
-
-            backup_entries.append(
-                {
+                backup_entries.append({
                     'name': filename,
-                    'created_at': created_at,
-                    'created_at_label': created_at.strftime('%d/%m/%Y %H:%M:%S'),
-                    'size_label': size_label,
-                    'has_uploads': has_uploads,
-                }
-            )
+                    'size_bytes': stat.st_size,
+                    'size_label': format_file_size(stat.st_size),
+                    'created_at': stat.st_mtime,
+                    'created_at_label': datetime.fromtimestamp(stat.st_mtime).strftime('%Y-%m-%d %H:%M'),
+                    'has_uploads': has_uploads
+                })
 
-    backup_entries.sort(key=lambda entry: entry['created_at'], reverse=True)
+    # Sort by date
+    backup_entries.sort(key=lambda x: x['created_at'], reverse=True)
 
     dataset_options = [
-        {
-            'key': key,
-            'label': config['label'],
-            'description': config['description'],
-        }
+        {'key': key, 'label': config['label'], 'description': config.get('description', '')}
         for key, config in DATASET_CATALOG.items()
     ]
 
@@ -80,7 +77,7 @@ def manage_backup_restore():
     auto_backup_retention = int(get_runtime_config('AUTO_BACKUP_RETENTION_DAYS', 7))
 
     return render_template(
-        'admin/modules/admin/backup_restore.html',
+        'admin/modules/admin/sys_backup_manager.html',
         backup_entries=backup_entries,
         dataset_options=dataset_options,
         auto_backup_enabled=auto_backup_enabled,

@@ -1,0 +1,279 @@
+{% extends "admin/modules/admin/admin_layout.html" %}
+{% set active_page = 'backup' %}
+
+{% block title %}Sao lưu & Khôi phục{% endblock %}
+{% block page_title %}Quản lý Sao lưu & Khôi phục{% endblock %}
+{% block page_subtitle %}Quản lý dữ liệu hệ thống, tạo bản sao lưu và khôi phục khi cần thiết.{% endblock %}
+
+{% block content %}
+<div class="space-y-8">
+    <!-- Action Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <!-- New Backup -->
+        <div class="data-card p-6">
+            <h3 class="font-bold text-slate-800 flex items-center gap-2 mb-4">
+                <i class="fas fa-plus-circle text-indigo-600"></i>
+                Tạo bản sao lưu mới
+            </h3>
+            <div class="grid grid-cols-1 gap-4">
+                <form action="{{ url_for('backup.download_full_backup') }}" method="POST">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit"
+                        class="w-full flex items-center justify-center gap-2 px-4 py-3 bg-indigo-600 rounded-xl hover:bg-indigo-700 transition shadow-lg shadow-indigo-200 text-sm font-semibold text-white">
+                        <i class="fas fa-file-archive"></i>
+                        Sao lưu Toàn bộ (Full)
+                    </button>
+                </form>
+                <form action="{{ url_for('backup.create_database_backup') }}" method="POST">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit"
+                        class="w-full flex items-center justify-center gap-2 px-4 py-3 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition shadow-sm text-sm font-semibold text-slate-700">
+                        <i class="fas fa-database text-blue-500"></i>
+                        Chỉ Database
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Auto Backup Status (NEW) -->
+        <div class="data-card p-6 bg-slate-50 border-dashed">
+            <h3 class="font-bold text-slate-800 flex items-center gap-2 mb-4">
+                <i class="fas fa-clock text-amber-500"></i>
+                Sao lưu Tự động
+            </h3>
+            <div class="flex items-center gap-3 mb-4">
+                <div
+                    class="w-10 h-10 rounded-full flex items-center justify-center 
+                    {% if auto_backup_enabled %}bg-emerald-100 text-emerald-600{% else %}bg-slate-200 text-slate-500{% endif %}">
+                    <i class="fas {% if auto_backup_enabled %}fa-check{% else %}fa-times{% endif %}"></i>
+                </div>
+                <div>
+                    <div class="text-sm font-bold text-slate-700">
+                        {% if auto_backup_enabled %}Đang BẬT{% else %}Đang TẮT{% endif %}
+                    </div>
+                    <div class="text-[11px] text-slate-500">Lịch: 02:00 AM Hàng ngày</div>
+                </div>
+            </div>
+            <p class="text-[11px] text-slate-500 mb-4">
+                Lưu giữ {{ auto_backup_retention }} bản sao lưu gần nhất.
+            </p>
+            <button onclick="alert('Tính năng cấu hình đang được phát triển. Hiện đang sử dụng mặc định hệ thống.')"
+                class="w-full py-2 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-600 hover:bg-slate-50 transition">
+                Cấu hình
+            </button>
+        </div>
+
+        <!-- Restore from File -->
+        <div class="data-card p-6">
+            <h3 class="font-bold text-slate-800 flex items-center gap-2 mb-4">
+                <i class="fas fa-upload text-emerald-600"></i>
+                Khôi phục từ file
+            </h3>
+            <form action="{{ url_for('backup.restore_dataset') }}" method="POST" enctype="multipart/form-data"
+                class="space-y-4">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="flex flex-col gap-2">
+                    <input type="file" name="dataset_file" accept=".zip,.json" required
+                        class="w-full text-xs text-slate-500 file:mr-4 file:py-1.5 file:px-3 file:rounded-full file:border-0 file:text-[11px] file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 cursor-pointer">
+                    <button type="submit"
+                        class="w-full py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition font-semibold text-sm">
+                        Khôi phục
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Dataset Export -->
+    <div class="data-card p-6">
+        <h3 class="font-bold text-slate-800 flex items-center gap-2 mb-4">
+            <i class="fas fa-file-export text-amber-600"></i>
+            Xuất Dataset riêng lẻ
+        </h3>
+        <form action="{{ url_for('backup.export_dataset_from_form') }}" method="POST"
+            class="flex flex-wrap items-end gap-4">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="flex-1 min-w-[200px]">
+                <label class="block text-xs font-bold text-slate-500 mb-2 uppercase tracking-wide">Chọn gói dữ
+                    liệu</label>
+                <select name="dataset_key"
+                    class="w-full border border-slate-200 rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+                    <option value="">-- Chọn dataset --</option>
+                    {% for opt in dataset_options %}
+                    <option value="{{ opt.key }}">{{ opt.label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <button type="submit"
+                class="px-6 py-2 bg-slate-800 text-white rounded-lg hover:bg-slate-900 transition font-semibold text-sm">
+                Xuất Dữ Liệu
+            </button>
+        </form>
+    </div>
+
+    <!-- Backup List -->
+    <div class="data-card overflow-hidden">
+        <div class="px-6 py-5 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
+            <h3 class="font-bold text-slate-800 flex items-center gap-2">
+                <i class="fas fa-list text-slate-600"></i>
+                Danh sách các bản sao lưu trên máy chủ
+            </h3>
+            <span class="text-xs font-semibold px-2 py-1 bg-slate-200 text-slate-600 rounded-full">
+                {{ backup_entries|length }} tệp tin
+            </span>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="bg-slate-50 text-slate-500 text-[11px] uppercase tracking-wider font-bold">
+                        <th class="px-6 py-4 border-b border-slate-100">Tên file</th>
+                        <th class="px-6 py-4 border-b border-slate-100 text-center">Ngày tạo</th>
+                        <th class="px-6 py-4 border-b border-slate-100 text-center">Dung lượng</th>
+                        <th class="px-6 py-4 border-b border-slate-100 text-center">Uploads</th>
+                        <th class="px-6 py-4 border-b border-slate-100 text-right">Hành động</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    {% for entry in backup_entries %}
+                    <tr class="hover:bg-slate-50/50 transition">
+                        <td class="px-6 py-4">
+                            <div class="font-medium text-slate-900">{{ entry.name }}</div>
+                        </td>
+                        <td class="px-6 py-4 text-center text-sm text-slate-500">
+                            {{ entry.created_at_label }}
+                        </td>
+                        <td class="px-6 py-4 text-center">
+                            <span class="px-2 py-1 bg-blue-50 text-blue-700 text-xs font-bold rounded">
+                                {{ entry.size_label }}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 text-center">
+                            {% if entry.has_uploads %}
+                            <i class="fas fa-check-circle text-emerald-500" title="Có bao gồm thư mục uploads"></i>
+                            {% else %}
+                            <i class="fas fa-minus text-slate-300"></i>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 text-right">
+                            <div class="flex items-center justify-end gap-2">
+                                <a href="{{ url_for('backup.download_backup_file', filename=entry.name) }}"
+                                    class="p-2 text-slate-400 hover:text-blue-600 transition" title="Tải về máy">
+                                    <i class="fas fa-download"></i>
+                                </a>
+                                <button onclick="confirmRestore('{{ entry.name }}')"
+                                    class="p-2 text-slate-400 hover:text-emerald-600 transition"
+                                    title="Khôi phục Toàn bộ">
+                                    <i class="fas fa-undo"></i>
+                                </button>
+                                <button onclick="openSelectiveRestore('{{ entry.name }}')"
+                                    class="p-2 text-slate-400 hover:text-amber-600 transition"
+                                    title="Khôi phục Tùy chọn">
+                                    <i class="fas fa-filter"></i>
+                                </button>
+                                <button onclick="confirmDelete('{{ entry.name }}')"
+                                    class="p-2 text-slate-400 hover:text-rose-600 transition" title="Xóa">
+                                    <i class="fas fa-trash-alt"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="5" class="px-6 py-12 text-center text-slate-400">
+                            <i class="fas fa-folder-open text-3xl mb-3 block"></i>
+                            Không có bản sao lưu nào được tìm thấy trên máy chủ.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Modal xác nhận xóa -->
+<form id="deleteForm" method="POST" class="hidden">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+</form>
+
+<!-- Modal xác nhận khôi phục -->
+<form id="restoreForm" method="POST" action="{{ url_for('backup.restore_backup') }}" class="hidden">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="filename" id="restoreFilename">
+</form>
+
+<!-- Modal Khôi phục Tùy chọn -->
+<div id="selectiveRestoreModal" class="fixed inset-0 z-50 hidden bg-slate-900/50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
+        <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+            <h3 class="font-bold text-slate-800">Khôi phục Tùy chọn</h3>
+            <button onclick="closeSelectiveRestore()" class="text-slate-400 hover:text-slate-600">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="p-6">
+            <p class="text-xs text-slate-500 mb-4">
+                Chọn gói dữ liệu bạn muốn khôi phục từ bản sao lưu <span id="targetBackupName"
+                    class="font-bold text-slate-700"></span>.
+            </p>
+            <form action="{{ url_for('backup.restore_dataset') }}" method="POST">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="filename" id="selective_filename">
+
+                <div class="space-y-2 max-h-60 overflow-y-auto pr-2 mb-6">
+                    {% for opt in dataset_options %}
+                    <label
+                        class="flex items-start gap-3 p-3 rounded-xl border border-slate-100 hover:border-indigo-100 hover:bg-slate-50 transition cursor-pointer group">
+                        <input type="radio" name="dataset_key" value="{{ opt.key }}" class="mt-1 text-indigo-600">
+                        <div>
+                            <div class="text-sm font-bold text-slate-700 group-hover:text-indigo-600 transition">{{
+                                opt.label }}</div>
+                            <div class="text-[10px] text-slate-400">{{ opt.description }}</div>
+                        </div>
+                    </label>
+                    {% endfor %}
+                </div>
+
+                <div class="flex gap-3">
+                    <button type="button" onclick="closeSelectiveRestore()"
+                        class="flex-1 px-4 py-2 border border-slate-200 text-slate-600 rounded-lg text-sm font-bold hover:bg-slate-50 transition">
+                        Hủy
+                    </button>
+                    <button type="submit"
+                        class="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-bold hover:bg-indigo-700 transition">
+                        Bắt đầu Khôi phục
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    function confirmDelete(filename) {
+        if (confirm(`Bạn có chắc muốn xóa bản sao lưu "${filename}"? Hành động này không thể hoàn tác.`)) {
+            const form = document.getElementById('deleteForm');
+            form.action = `/admin/backup/files/${filename}/delete`;
+            form.submit();
+        }
+    }
+
+    function confirmRestore(filename) {
+        if (confirm(`Bạn có chắc muốn KHÔI PHỤC TOÀN BỘ hệ thống (bao gồm database & uploads) từ bản sao lưu "${filename}"?\n\nCẢNH BÁO: Dữ liệu hiện tại sẽ bị GHI ĐÈ.`)) {
+            const form = document.getElementById('restoreForm');
+            document.getElementById('restoreFilename').value = filename;
+            form.submit();
+        }
+    }
+
+    function openSelectiveRestore(filename) {
+        document.getElementById('targetBackupName').textContent = filename;
+        document.getElementById('selective_filename').value = filename;
+        document.getElementById('selectiveRestoreModal').classList.remove('hidden');
+    }
+
+    function closeSelectiveRestore() {
+        document.getElementById('selectiveRestoreModal').classList.add('hidden');
+    }
+</script>
+{% endblock %}
