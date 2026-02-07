@@ -172,7 +172,13 @@ async function ensureFlashcardBuffer(immediate = false) {
                 return null;
             }
             const getFlashcardBatchUrl = config.getFlashcardBatchUrl;
-            const urlWithBatch = `${getFlashcardBatchUrl}${getFlashcardBatchUrl.includes('?') ? '&' : '?'}batch_size=1`;
+
+            // [SSR + BATCH 1 FIX] Send exclude_items (ids in buffer)
+            const excludedIds = currentFlashcardBatch.map(item => item.item_id).join(',');
+            let urlWithBatch = `${getFlashcardBatchUrl}${getFlashcardBatchUrl.includes('?') ? '&' : '?'}batch_size=1`;
+            if (excludedIds) {
+                urlWithBatch += `&exclude_items=${excludedIds}`;
+            }
 
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), 8000); // 8s timeout
@@ -314,11 +320,12 @@ async function getNextFlashcardBatch() {
     }
 }
 
-function displayCurrentCard() {
-    console.log(`[Display] Attempting to display card at index: ${currentFlashcardIndex}, Buffer size: ${currentFlashcardBatch.length}`);
+async function displayCurrentCard(force = false) {
+    console.log(`[Display] Attempting to display card at index: ${currentFlashcardIndex}, Buffer size: ${currentFlashcardBatch.length} (Force: ${force})`);
 
     // [UX-DEFER] If a notification is active, wait until it finishes
-    if (window.isNotificationActive) {
+    // UNLESS force is true (e.g. calling from submitFlashcardAnswer with smart timing)
+    if (window.isNotificationActive && !force) {
         console.warn('[Display] Deferring: Notification is currently ACTIVE');
         window.pendingCardDisplay = true;
         return;
@@ -334,6 +341,13 @@ function displayCurrentCard() {
 
     window.isSubmitLock = false;
     window.stopAllFlashcardAudio();
+
+    // [ANIMATION] Start Exit Transition
+    const cardSurface = document.querySelector('.card-surface');
+    if (cardSurface) {
+        cardSurface.classList.add('card-transition-exit');
+        await new Promise(resolve => setTimeout(resolve, 100)); // Match CSS 0.1s
+    }
 
     // Stats Rendering
     const currentCardStatsContainer = document.getElementById('current-card-stats');
@@ -369,6 +383,18 @@ function displayCurrentCard() {
 
     window.renderCard(currentCardData);
 
+    // [ANIMATION] Enter Transition
+    if (cardSurface) {
+        cardSurface.classList.remove('card-transition-exit');
+        cardSurface.classList.add('card-transition-enter');
+        void cardSurface.offsetHeight; // Force reflow
+        cardSurface.classList.add('card-transition-enter-active');
+
+        setTimeout(() => {
+            cardSurface.classList.remove('card-transition-enter', 'card-transition-enter-active');
+        }, 200); // Match CSS 0.15s + buffer
+    }
+
     // Card state badge
     const customState = currentCardData.initial_stats?.custom_state || 'new';
     window.updateStateBadge(customState);
@@ -382,7 +408,8 @@ function displayCurrentCard() {
 
     // Trigger audio prefetch for upcoming cards to stay ahead
     if (window.prefetchAudioForUpcomingCards) {
-        window.prefetchAudioForUpcomingCards(1);
+        // Prefetch more aggressively (2 cards ahead) to avoid gaps
+        window.prefetchAudioForUpcomingCards(2);
     }
 
     // Session Stats Update
@@ -553,17 +580,38 @@ async function submitFlashcardAnswer(itemId, answer) {
         // We increment the index and THEN wait for the notification to trigger displayCurrentCard
         currentFlashcardIndex++;
 
-        // If we are out of cards in buffer, we MUST fetch more
-        if (currentFlashcardIndex >= currentFlashcardBatch.length) {
+        // [OPTIMIZATION] Trigger background fetch if buffer needs refill
+        // checking > because we just incremented. if index == length, we are out.
+        const needsRefill = (currentFlashcardIndex >= currentFlashcardBatch.length);
+        let backgroundFetchPromise = Promise.resolve();
+
+        if (needsRefill && !isSessionEnding) {
+            console.log('[Optimization] Buffer empty. Starting background fetch parallel with notification.');
+            backgroundFetchPromise = ensureFlashcardBuffer(true);
+        }
+
+        // [UX-TUNING] Increase delay to keep old card visible specifically for 1.8s
+        const smoothDelayPromise = new Promise(resolve => setTimeout(resolve, 1800));
+
+        // Wait for BOTH (Fetch to complete) AND (Smooth Delay)
+        await Promise.all([backgroundFetchPromise, smoothDelayPromise]);
+
+        // Validate buffer state
+        if (currentFlashcardIndex < currentFlashcardBatch.length) {
+            // Ready to show - FORCE display over notification
+            displayCurrentCard(true);
+            // Trigger next refill immediately for the card AFTER this one
+            ensureFlashcardBuffer();
+        } else {
+            // Still empty? (Network error or slow?) Fallback to standard flow
             await notificationPromise;
+
             if (!isSessionEnding) {
                 await getNextFlashcardBatch();
             }
-        } else {
-            // Still have cards in buffer? Just trigger attempt to display
-            // Notification handler will catch it if one is active
-            displayCurrentCard();
         }
+
+
 
         if (window.showRatingButtons) window.showRatingButtons();
 

@@ -223,6 +223,18 @@ def api_get_flashcard_batch():
         return jsonify({'message': 'Phiên học đã kết thúc.'}), 404
 
     batch_size = request.args.get('batch_size', default=1, type=int)
+
+    # [NEW] Handle client-side exclusions (for prefetching)
+    exclude_items_str = request.args.get('exclude_items', '')
+    client_excluded_ids = []
+    if exclude_items_str:
+        try:
+            client_excluded_ids = [int(s) for s in exclude_items_str.split(',') if s]
+        except ValueError:
+            pass
+
+    # Merge with DB processed IDs
+    processed_ids = list(set((db_sess.processed_item_ids or []) + client_excluded_ids))
     
     try:
         # 2. Get Next Batch using Stateless Engine
@@ -230,7 +242,7 @@ def api_get_flashcard_batch():
             user_id=current_user.user_id,
             set_id=session_data.get('set_id'),
             mode=session_data.get('mode'),
-            processed_ids=db_sess.processed_item_ids or [],
+            processed_ids=processed_ids,
             db_session_id=db_id,
             batch_size=batch_size,
             current_db_item_id=db_sess.current_item_id

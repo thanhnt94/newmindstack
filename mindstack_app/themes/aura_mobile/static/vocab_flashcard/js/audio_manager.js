@@ -247,11 +247,13 @@ async function generateAndPlayAudio(button, audioPlayer, options = {}) {
                 await playbackPromise;
             }
         } else {
-            if (window.showCustomAlert) window.showCustomAlert(result.message || 'Lỗi khi tạo audio.');
+            // [SUPPRESSED] if (window.showCustomAlert) window.showCustomAlert(result.message || 'Lỗi khi tạo audio.');
+            console.warn('[Audio] Failed to generate audio:', result.message);
         }
     } catch (error) {
         console.error('Lỗi khi tạo audio:', error);
-        if (window.showCustomAlert) window.showCustomAlert('Không thể kết nối đến máy chủ để tạo audio.');
+        // [SUPPRESSED] if (window.showCustomAlert) window.showCustomAlert('Không thể kết nối đến máy chủ để tạo audio.');
+        console.error('Lỗi khi tải audio:', error);
     } finally {
         button.classList.remove('is-disabled');
         if (!suppressLoadingUi) {

@@ -14,6 +14,25 @@
 {% block body_class %} flashcard-session-active{% endblock %}
 {% block head %}
 <link rel="stylesheet" href="{{ url_for('static', filename='aura_mobile/vocab_flashcard/css/session.css') }}">
+<style>
+    /* Smooth Card Transition */
+    .card-transition-exit {
+        opacity: 0;
+        transform: scale(0.98);
+        transition: opacity 0.1s ease-out, transform 0.1s ease-out;
+    }
+
+    .card-transition-enter {
+        opacity: 0;
+        transform: scale(1.02);
+    }
+
+    .card-transition-enter-active {
+        opacity: 1;
+        transform: scale(1);
+        transition: opacity 0.15s ease-out, transform 0.15s ease-out;
+    }
+</style>
 
 {% include _v ~ '/components/_markdown_assets.html' %}
 {% endblock %}
