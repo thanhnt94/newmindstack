@@ -246,8 +246,10 @@
                     </div>
                 </div>
 
-                {# Thói quen học tập (Advanced Stats) #}
-                <div class="px-5 mt-2 pb-24">
+
+
+                {# Thói quen học tập (Restored) #}
+                <div class="px-5 mt-4">
                     <h3 class="text-base font-bold text-slate-800 mb-4 flex items-center gap-2">
                         <i class="fas fa-clock text-amber-500"></i>
                         <span>Thói quen học tập</span>
@@ -266,6 +268,55 @@
                         <h4 class="text-sm font-bold text-slate-700 mb-4">Xu hướng chính xác (30 ngày)</h4>
                         <div class="h-48 w-full">
                             <canvas id="accuracyChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                {# Advanced Stats (Collapsible) #}
+                <div class="px-5 mt-4 pb-24" x-data="{ expanded: false }">
+                    <button
+                        @click="expanded = !expanded; setTimeout(() => { window.dispatchEvent(new Event('resize')); }, 350)"
+                        class="w-full flex items-center justify-between p-4 bg-white border border-slate-200 rounded-2xl shadow-sm text-slate-700 font-bold transition-all duration-300"
+                        :class="{ 'bg-slate-50': expanded }">
+                        <span class="flex items-center gap-2">
+                            <i class="fas fa-chart-pie text-purple-500"></i>
+                            Xem thêm chỉ số
+                        </span>
+                        <i class="fas fa-chevron-down transition-transform duration-300"
+                            :class="{ 'rotate-180': expanded }"></i>
+                    </button>
+
+                    <div x-show="expanded" x-collapse class="mt-4 space-y-4">
+                        {# Streak Info #}
+                        <div class="bg-gradient-to-r from-orange-500 to-red-500 p-5 rounded-3xl shadow-sm text-white">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-sm font-medium opacity-90">Chuỗi hiện tại</p>
+                                    <p class="text-3xl font-black">{{ dashboard_data.streak_info.current_streak }} <span
+                                            class="text-base font-normal">ngày</span></p>
+                                </div>
+                                <div class="text-right">
+                                    <p class="text-xs font-medium opacity-90">Kỷ lục</p>
+                                    <p class="text-xl font-bold">{{ dashboard_data.streak_info.longest_streak }} ngày
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        {# Upcoming Reviews #}
+                        <div class="bg-white border border-slate-200 p-4 rounded-3xl shadow-sm">
+                            <h4 class="text-sm font-bold text-slate-700 mb-4">Dự báo ôn tập (7 ngày tới)</h4>
+                            <div class="h-48 w-full">
+                                <canvas id="upcomingChart"></canvas>
+                            </div>
+                        </div>
+
+                        {# Memory State #}
+                        <div class="bg-white border border-slate-200 p-4 rounded-3xl shadow-sm">
+                            <h4 class="text-sm font-bold text-slate-700 mb-4">Phân bố trạng thái</h4>
+                            <div class="h-64 w-full flex items-center justify-center">
+                                <canvas id="memoryStateChart"></canvas>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -383,6 +434,8 @@
         const activityCtx = document.getElementById('activityChart');
         const hourlyCtx = document.getElementById('hourlyChart');
         const accuracyCtx = document.getElementById('accuracyChart');
+        const upcomingCtx = document.getElementById('upcomingChart');
+        const memoryCtx = document.getElementById('memoryStateChart');
 
         const chartData = {{ dashboard_data.charts | tojson
     }};
@@ -447,7 +500,7 @@
         });
     }
 
-    // 2. Hourly Activity Chart (New)
+    // 2. Hourly Activity Chart
     if (hourlyCtx && chartData && chartData.hourly_activity) {
         new Chart(hourlyCtx, {
             type: 'bar',
@@ -456,31 +509,23 @@
                 datasets: [{
                     label: 'Hoạt động',
                     data: chartData.hourly_activity.data,
-                    backgroundColor: '#f59e0b', // Amber 500
+                    backgroundColor: '#f59e0b',
                     borderRadius: 4
                 }]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
-                plugins: {
-                    legend: { display: false }
-                },
+                plugins: { legend: { display: false } },
                 scales: {
-                    x: {
-                        grid: { display: false },
-                        ticks: { font: { size: 10 }, maxTicksLimit: 8 }
-                    },
-                    y: {
-                        display: false,
-                        grid: { display: false }
-                    }
+                    x: { grid: { display: false }, ticks: { font: { size: 10 }, maxTicksLimit: 8 } },
+                    y: { display: false, grid: { display: false } }
                 }
             }
         });
     }
 
-    // 3. Accuracy Trend Chart (New)
+    // 3. Accuracy Trend Chart
     if (accuracyCtx && chartData && chartData.accuracy_trend) {
         new Chart(accuracyCtx, {
             type: 'line',
@@ -489,7 +534,7 @@
                 datasets: [{
                     label: 'Chính xác (%)',
                     data: chartData.accuracy_trend.data,
-                    borderColor: '#10b981', // Emerald 500
+                    borderColor: '#10b981',
                     backgroundColor: 'rgba(16, 185, 129, 0.1)',
                     tension: 0.4,
                     fill: true,
@@ -500,19 +545,60 @@
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
-                plugins: {
-                    legend: { display: false }
-                },
+                plugins: { legend: { display: false } },
                 scales: {
-                    x: {
-                        grid: { display: false },
-                        ticks: { font: { size: 10 }, maxTicksLimit: 7 }
-                    },
-                    y: {
-                        display: false,
-                        grid: { display: false },
-                        min: 0,
-                        max: 100
+                    x: { grid: { display: false }, ticks: { font: { size: 10 }, maxTicksLimit: 7 } },
+                    y: { display: false, grid: { display: false }, min: 0, max: 100 }
+                }
+            }
+        });
+    }
+
+    // 4. Upcoming Reviews Chart
+    if (upcomingCtx && chartData && chartData.upcoming_reviews) {
+        new Chart(upcomingCtx, {
+            type: 'bar',
+            data: {
+                labels: chartData.upcoming_reviews.labels,
+                datasets: [{
+                    label: 'Cần ôn tập',
+                    data: chartData.upcoming_reviews.data,
+                    backgroundColor: '#ef4444',
+                    borderRadius: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { grid: { display: false }, ticks: { font: { size: 10 } } },
+                    y: { display: false, grid: { display: false } }
+                }
+            }
+        });
+    }
+
+    // 5. Memory State Chart
+    if (memoryCtx && chartData && chartData.memory_state) {
+        new Chart(memoryCtx, {
+            type: 'doughnut',
+            data: {
+                labels: chartData.memory_state.labels,
+                datasets: [{
+                    data: chartData.memory_state.data,
+                    backgroundColor: chartData.memory_state.colors,
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '70%',
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: { usePointStyle: true, font: { size: 10, family: 'Inter' } }
                     }
                 }
             }
@@ -526,16 +612,7 @@
 {% include _v ~ '/components/_bottom_nav.html' %}
 </div>
 
-<style>
-    .no-scrollbar::-webkit-scrollbar {
-        display: none;
-    }
 
-    .no-scrollbar {
-        -ms-overflow-style: none;
-        scrollbar-width: none;
-    }
-</style>
 {% endblock %}
 
 {% block scripts %}

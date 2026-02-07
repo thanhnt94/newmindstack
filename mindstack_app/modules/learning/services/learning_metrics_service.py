@@ -491,12 +491,107 @@ class LearningMetricsService:
         }
 
     @classmethod
+    def get_upcoming_reviews(cls, user_id: int) -> Dict[str, Any]:
+        """
+        Get upcoming reviews count for the next 7 days.
+        """
+        from mindstack_app.modules.fsrs.models import ItemMemoryState
+        
+        start_date = datetime.now(timezone.utc)
+        end_date = start_date + timedelta(days=6)
+        
+        query = db.session.query(
+            func.date(ItemMemoryState.due_date).label('due_date'),
+            func.count(ItemMemoryState.state_id).label('count')
+        ).filter(
+            ItemMemoryState.user_id == user_id,
+            ItemMemoryState.due_date >= start_date,
+            ItemMemoryState.due_date <= end_date
+        ).group_by(func.date(ItemMemoryState.due_date)).all()
+        
+        data_map = {}
+        for row in query:
+            # Handle potential string or date object
+            d_val = row.due_date
+            if isinstance(d_val, str):
+                 data_map[d_val] = row.count
+            elif hasattr(d_val, 'isoformat'):
+                 data_map[d_val.isoformat()[:10]] = row.count
+            else:
+                 data_map[str(d_val)] = row.count
+
+        labels = []
+        counts = []
+        
+        current = start_date
+        for _ in range(7):
+            d_str = current.strftime('%Y-%m-%d')
+            # For display
+            labels.append(current.strftime('%d/%m'))
+            counts.append(data_map.get(d_str, 0))
+            current += timedelta(days=1)
+            
+        return {
+            'labels': labels,
+            'data': counts
+        }
+
+    @classmethod
+    def get_memory_state_distribution(cls, user_id: int) -> Dict[str, Any]:
+        """
+        Get distribution of items by FSRS state.
+        0=New, 1=Learning, 2=Review, 3=Relearning
+        """
+        from mindstack_app.modules.fsrs.models import ItemMemoryState
+        
+        query = db.session.query(
+            ItemMemoryState.state,
+            func.count(ItemMemoryState.state_id).label('count')
+        ).filter(
+            ItemMemoryState.user_id == user_id
+        ).group_by(ItemMemoryState.state).all()
+        
+        # Default counts
+        counts = {0: 0, 1: 0, 2: 0, 3: 0}
+        for row in query:
+            if row.state in counts:
+                counts[row.state] = row.count
+                
+        return {
+            'labels': ['Mới', 'Đang học', 'Ôn tập', 'Học lại'],
+            'data': [counts[0], counts[1], counts[2], counts[3]],
+            'colors': ['#10b981', '#3b82f6', '#f59e0b', '#ef4444'] # Emerald, Blue, Amber, Red
+        }
+
+    @classmethod
+    def get_streak_info(cls, user_id: int) -> Dict[str, Any]:
+        """
+        Get current streak info.
+        """
+        from mindstack_app.modules.gamification.models import Streak
+        
+        streak = Streak.query.filter_by(user_id=user_id).first()
+        
+        if streak:
+            return {
+                'current_streak': streak.current_streak,
+                'longest_streak': streak.longest_streak,
+                'last_activity': streak.last_activity_date.isoformat() if streak.last_activity_date else None
+            }
+        return {
+            'current_streak': 0,
+            'longest_streak': 0,
+            'last_activity': None
+        }
+
+    @classmethod
     def get_extended_dashboard_stats(cls, user_id: int) -> Dict[str, Any]:
         """
         Get extended statistics for dashboard including averages and chart data.
         Calculates based on the last 30 days.
         """
         end_date = date.today()
+        # ... rest of function ...
         start_date = end_date - timedelta(days=29) # 30 days total inclusive
         
         # 1. Fetch daily stats for the period
@@ -580,9 +675,12 @@ class LearningMetricsService:
         avg_reviews_quiz = round(sum(reviews_map_quiz.values()) / 30, 1)
         avg_new_quiz = round(sum(new_items_map_quiz.values()) / 30, 1)
         
-        # 5. Advanced Charts Data
+        # 5. Advanced Charts Data (Phase 2 & 3)
         hourly_activity = cls.get_hourly_activity(user_id)
         accuracy_trend = cls.get_accuracy_trend(user_id)
+        upcoming_reviews = cls.get_upcoming_reviews(user_id)
+        memory_state = cls.get_memory_state_distribution(user_id)
+        streak_info = cls.get_streak_info(user_id)
 
         return {
             'averages': {
@@ -607,6 +705,9 @@ class LearningMetricsService:
                     'scores': score_data
                 },
                 'hourly_activity': hourly_activity,
-                'accuracy_trend': accuracy_trend
-            }
+                'accuracy_trend': accuracy_trend,
+                'upcoming_reviews': upcoming_reviews,
+                'memory_state': memory_state
+            },
+            'streak_info': streak_info
         }
