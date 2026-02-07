@@ -421,6 +421,25 @@ def flashcard_session(session_id):
     except Exception as e:
         current_app.logger.warning(f"Error loading display settings: {e}")
     
+    # [NEW] Server-Side Initial Batch Load (SSR)
+    initial_batch = []
+    try:
+        from ..engine.core import FlashcardEngine
+        # Force batch_size=1 for standard flashcards, unless autoplay (which might want more, but let's stick to 1 for consistency)
+        batch_limit = 1
+        initial_batch_data = FlashcardEngine.get_next_batch(
+            user_id=current_user.user_id,
+            session_id=session_id,
+            batch_size=batch_limit
+        )
+        if initial_batch_data and 'items' in initial_batch_data:
+            initial_batch = initial_batch_data['items']
+            # Update session total items if returned
+            if 'total_items_in_session' in initial_batch_data:
+                 session_data['total_items_in_session'] = initial_batch_data['total_items_in_session']
+    except Exception as e:
+        current_app.logger.error(f"Error fetching initial batch: {e}")
+
     return render_dynamic_template(
         'modules/vocab_flashcard/session.html',
         user_button_count=user_button_count,
@@ -430,7 +449,8 @@ def flashcard_session(session_id):
         mode_display_text=mode_display_text,
         saved_visual_settings=session.get('flashcard_visual_settings', {}),
         saved_auto_save=saved_auto_save,
-        display_settings=display_settings
+        display_settings=display_settings,
+        initial_batch=initial_batch # Pass to template
     )
 
 

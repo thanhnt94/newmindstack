@@ -222,7 +222,7 @@ def api_get_flashcard_batch():
     if not db_sess or db_sess.status != 'active':
         return jsonify({'message': 'Phiên học đã kết thúc.'}), 404
 
-    batch_size = request.args.get('batch_size', default=10, type=int)
+    batch_size = request.args.get('batch_size', default=1, type=int)
     
     try:
         # 2. Get Next Batch using Stateless Engine

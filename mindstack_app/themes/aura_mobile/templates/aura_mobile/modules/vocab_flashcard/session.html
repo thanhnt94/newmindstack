@@ -234,6 +234,9 @@ MỤC ĐÍCH: Giao diện thống kê phiên học tối ưu cho Mobile (App-lik
             const _notifStreakDuration = {{ config.NOTIF_STREAK_DURATION | default (2000) }};
             const _notifAchievementDuration = {{ config.NOTIF_ACHIEVEMENT_DURATION | default (5000) }};
 
+            // [SSR] Initial Data
+            window.initialFlashcardBatch = {{ (initial_batch or[]) | tojson }};
+
             window.FlashcardConfig = {
                 getFlashcardBatchUrl: "{{ url_for('vocab_flashcard.api_get_flashcard_batch') }}",
                 flashcardItemApiUrlTemplate: "{{ url_for('vocab_flashcard.api_get_flashcard_item_details', item_id=0) }}",

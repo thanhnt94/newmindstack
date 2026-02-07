@@ -139,6 +139,29 @@ async function ensureFlashcardBuffer(immediate = false) {
     if (!immediate && remaining > 1) return null;
 
     console.log('[Batch] Refilling buffer... (immediate:', immediate, 'remaining:', remaining, ')');
+
+    // [SSR] Check for initial batched data injected from server
+    if (window.initialFlashcardBatch && window.initialFlashcardBatch.length > 0) {
+        console.log('[Batch] Using Server-Side Initial Batch (SSR)', window.initialFlashcardBatch.length, 'items');
+        const initialItems = window.initialFlashcardBatch;
+        window.initialFlashcardBatch = null; // Clear it
+
+        // Process initial items similar to fetch result
+        currentFlashcardBatch.push(...initialItems);
+
+        // Update total if passed in config or derived
+        if (window.FlashcardConfig && window.FlashcardConfig.totalItems) {
+            sessionStatsLocal.total = window.FlashcardConfig.totalItems;
+        }
+
+        // Trigger audio prefetch
+        if (window.prefetchAudioForUpcomingCards) {
+            window.prefetchAudioForUpcomingCards(1);
+        }
+
+        return Promise.resolve(initialItems);
+    }
+
     isFetchingBatch = true;
 
     activeFetchPromise = (async () => {
