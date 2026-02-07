@@ -608,7 +608,7 @@
         const relearnEl = document.querySelector('.js-fc-relearn');
 
         // Initial Load
-        fetch(`/learn/vocabulary/listening/api/items/${setId}?count=${count}&v=${Date.now()}`)
+        fetch("{{ url_for('vocab_listening.api_get_items', set_id=container.container_id) }}?count=" + count + "&v=" + Date.now())
             .then(r => r.json())
             .then(data => {
                 if (data.success) {
@@ -732,7 +732,7 @@
             const duration_ms = Date.now() - startTime;
             const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
 
-            fetch('/learn/vocabulary/listening/api/check', {
+            fetch("{{ url_for('vocab_listening.api_check_answer') }}", {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

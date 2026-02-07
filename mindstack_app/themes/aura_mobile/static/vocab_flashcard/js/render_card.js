@@ -60,7 +60,11 @@ window.renderCardHtml = function (data, o) {
             <div class="text-area"><div class="flashcard-content-text">${o.bTxt}</div></div>
             ${o.backImg ? `<div class="media-container"><img src="${o.backImg}" alt="Mặt sau" onerror="this.onerror=null;this.src='https://placehold.co/200x120?text=Image+not+found';"></div>` : ''}
           </div>
-          <!-- Internal actions removed for mobile -->
+          <div class="card-actions-wrapper">
+            <div class="actions js-internal-actions">
+              ${o.buttonsHtml}
+            </div>
+          </div>
           <audio id="back-audio-mobile" class="hidden" src="${o.backAudioUrl || ''}"></audio>
         </div>
       </div>

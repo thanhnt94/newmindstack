@@ -2,7 +2,7 @@
 from datetime import datetime, timezone
 from mindstack_app.modules.fsrs.interface import FSRSInterface as FsrsInterface
 
-def get_listening_items(user_id, mode='new', limit=10):
+def get_listening_items(user_id, container_id=None, mode='new', limit=10):
     """
     Lấy danh sách item cho luyện nghe.
     mode: 'new', 'review', 'hard', 'mixed'
@@ -10,7 +10,8 @@ def get_listening_items(user_id, mode='new', limit=10):
     # Fetch candidate items using FSRS Interface
     # Limit bumped to 2x to account for audio filtering
     candidate_items = FsrsInterface.get_items_for_practice(
-        user_id=user_id, 
+        user_id=user_id,
+        container_id=container_id,
         mode=mode, 
         limit=limit * 2, 
         item_type='FLASHCARD'
