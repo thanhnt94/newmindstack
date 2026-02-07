@@ -410,4 +410,120 @@ class LearningMetricsService:
                 'review_count': int(row.review_count or 0)
             })
             
+            
         return leaderboard
+
+    @classmethod
+    def get_extended_dashboard_stats(cls, user_id: int) -> Dict[str, Any]:
+        """
+        Get extended statistics for dashboard including averages and chart data.
+        Calculates based on the last 30 days.
+        """
+        end_date = date.today()
+        start_date = end_date - timedelta(days=29) # 30 days total inclusive
+        
+        # 1. Fetch daily stats for the period
+        daily_stats_map = {}
+        
+        # We need a range of dates
+        date_range = [end_date - timedelta(days=x) for x in range(30)]
+        date_range.reverse() # Oldest to newest
+        
+        labels = []
+        reviews_data = []
+        new_items_data = []
+        score_data = []
+        
+        total_items_reviewed_30d = 0
+        total_new_items_30d = 0
+        total_quiz_sets_30d = 0 # Placeholder if we track quiz sets specifically in daily stats
+        
+        # Using DailyStatsService logic but iterating for 30 days
+        # Optimization: Fetch all sessions in range and aggregate in memory
+        from mindstack_app.modules.learning.services.daily_stats_service import DailyStatsService
+        
+        # Since DailyStatsService.get_daily_stats might be heavy to call 30 times, 
+        # let's try to do a consolidated query if possible, or just loop if data volume is low.
+        # For now, looping is safer to reuse logic, but might be slow.
+        # BETTER: Query ScoreLog and FSRS data for the range directly here.
+        
+        # A. Daily Scores (from ScoreLog)
+        score_query = db.session.query(
+            func.date(ScoreLog.timestamp).label('date'),
+            func.sum(ScoreLog.score_change).label('score')
+        ).filter(
+            ScoreLog.user_id == user_id,
+            ScoreLog.timestamp >= datetime.combine(start_date, datetime.min.time()).replace(tzinfo=timezone.utc)
+        ).group_by(func.date(ScoreLog.timestamp)).all()
+        
+        score_map = {str(row.date): int(row.score) for row in score_query}
+        
+        # B. Daily Reviews & New Items (FSRS)
+        # Using FsrsInterface to get counts map
+        reviews_map = FsrsInterface.get_daily_reviews_map(user_id, start_date, end_date)
+        new_items_map = FsrsInterface.get_daily_new_items_map(user_id, start_date, end_date)
+        
+        for d in date_range:
+            d_str = d.isoformat()
+            
+            # Formatted label (e.g., "07/02")
+            label = d.strftime('%d/%m')
+            labels.append(label)
+            
+            # Scores
+            score = score_map.get(d_str, 0)
+            score_data.append(score)
+            
+            # Reviews
+            reviews = reviews_map.get(d_str, 0)
+            reviews_data.append(reviews)
+            total_items_reviewed_30d += reviews
+            
+            # New Items
+            new_items = new_items_map.get(d_str, 0)
+            new_items_data.append(new_items)
+            total_new_items_30d += new_items
+            
+        # Averages (Global)
+        avg_reviews_per_day = round(total_items_reviewed_30d / 30, 1)
+        avg_new_items_per_day = round(total_new_items_30d / 30, 1)
+
+        # Averages (Split by Type)
+        # Flashcard
+        reviews_map_fc = FsrsInterface.get_daily_reviews_map(user_id, start_date, end_date, item_types=['FLASHCARD'])
+        new_items_map_fc = FsrsInterface.get_daily_new_items_map(user_id, start_date, end_date, item_types=['FLASHCARD'])
+        
+        avg_reviews_fc = round(sum(reviews_map_fc.values()) / 30, 1)
+        avg_new_fc = round(sum(new_items_map_fc.values()) / 30, 1)
+
+        # Quiz
+        reviews_map_quiz = FsrsInterface.get_daily_reviews_map(user_id, start_date, end_date, item_types=['QUIZ_MCQ'])
+        new_items_map_quiz = FsrsInterface.get_daily_new_items_map(user_id, start_date, end_date, item_types=['QUIZ_MCQ'])
+        
+        avg_reviews_quiz = round(sum(reviews_map_quiz.values()) / 30, 1)
+        avg_new_quiz = round(sum(new_items_map_quiz.values()) / 30, 1)
+        
+        return {
+            'averages': {
+                'avg_reviews_per_day': avg_reviews_per_day, # Global
+                'avg_new_items_per_day': avg_new_items_per_day, # Global
+                'vocab': {
+                    'avg_reviews_per_day': avg_reviews_fc,
+                    'avg_new_items_per_day': avg_new_fc
+                },
+                'quiz': {
+                    'avg_reviews_per_day': avg_reviews_quiz,
+                    'avg_new_items_per_day': avg_new_quiz
+                },
+                'total_reviews_30d': total_items_reviewed_30d,
+                'total_new_items_30d': total_new_items_30d
+            },
+            'charts': {
+                'labels': labels,
+                'datasets': {
+                    'reviews': reviews_data,
+                    'new_items': new_items_data,
+                    'scores': score_data
+                }
+            }
+        }

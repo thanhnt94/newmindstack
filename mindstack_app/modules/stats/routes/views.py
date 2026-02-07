@@ -37,6 +37,10 @@ def dashboard():
         'course_avg_completion_percent': summary['course']['avg_completion'],
     }
     
+    # NEW: Merge extended stats
+    extended_stats = LearningInterface.get_extended_dashboard_stats(current_user.user_id)
+    dashboard_data.update(extended_stats)
+    
     recent_activity = LearningInterface.get_recent_activity(current_user.user_id)
 
     return render_dynamic_template('modules/analytics/dashboard.html',

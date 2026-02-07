@@ -55,6 +55,15 @@ class LearningInterface:
     def get_recent_sessions(user_id: int, limit: int = 10) -> List[Dict[str, Any]]:
         return LearningMetricsService.get_recent_sessions(user_id, limit)
 
+    @staticmethod
+    def get_recent_sessions(user_id: int, limit: int = 10) -> List[Dict[str, Any]]:
+        return LearningMetricsService.get_recent_sessions(user_id, limit)
+
+    @staticmethod
+    def get_extended_dashboard_stats(user_id: int) -> Dict[str, Any]:
+        """Get extended dashboard statistics (charts, averages)."""
+        return LearningMetricsService.get_extended_dashboard_stats(user_id)
+
     # === EVALUATION ===
     
     @staticmethod

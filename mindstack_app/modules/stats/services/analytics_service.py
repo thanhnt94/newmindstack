@@ -235,3 +235,69 @@ class AnalyticsService:
             },
             'streak': {'current_streak': 0, 'longest_streak': 0}
         }
+
+    @staticmethod
+    def get_dashboard_overview(
+        user_id: int, 
+        timeframe: str = 'all_time',
+        sort_by: str = 'total_score',
+        viewer_user = None
+    ) -> Dict[str, Any]:
+        """
+        Get all dashboard data in a single call.
+        """
+        # REFACTORED: Use LearningInterface
+        from mindstack_app.modules.learning.interface import LearningInterface
+        
+        # 1. Get leaderboard
+        leaderboard_data = LearningInterface.get_leaderboard(
+            sort_by=sort_by,
+            timeframe=timeframe or 'all_time',
+            viewer_user=viewer_user
+        )
+        
+        # 2. Get learning summary
+        summary = LearningInterface.get_user_learning_summary(user_id)
+        
+        # NEW: Get extended stats for charts/averages
+        extended_stats = LearningInterface.get_extended_dashboard_stats(user_id)
+        
+        # 3. Get container options
+        containers = AnalyticsService.get_all_container_options(user_id)
+        
+        # 4. Build dashboard_data dict
+        dashboard_data = AnalyticsService._build_dashboard_data(
+            user_id, summary, containers['flashcard_sets']
+        )
+        
+        # Merge extended stats into dashboard_data or return separately
+        dashboard_data.update(extended_stats)
+        
+        # 5. Get daily summary
+        try:
+            # REFACTORED: Use LearningInterface
+            daily_summary = LearningInterface.get_daily_summary(user_id)
+            if daily_summary and 'streak' in daily_summary:
+                dashboard_data['current_learning_streak'] = daily_summary['streak']['current_streak']
+                dashboard_data['longest_learning_streak'] = daily_summary['streak']['longest_streak']
+        except Exception as e:
+            current_app.logger.error(f"Error fetching daily stats: {e}")
+            daily_summary = AnalyticsService._get_fallback_daily_summary()
+        
+        # 6. Get recent activity
+        # REFACTORED: Use LearningInterface
+        recent_activity = LearningInterface.get_recent_activity(user_id)
+        recent_sessions = LearningInterface.get_recent_sessions(user_id)
+        
+        return {
+            'leaderboard_data': leaderboard_data,
+            'dashboard_data': dashboard_data,
+            'daily_summary': daily_summary,
+            'current_sort_by': sort_by,
+            'current_timeframe': timeframe,
+            'flashcard_sets': containers['flashcard_sets'],
+            'quiz_sets': containers['quiz_sets'],
+            'course_sets': containers['course_sets'],
+            'recent_activity': recent_activity,
+            'recent_sessions': recent_sessions,
+        }

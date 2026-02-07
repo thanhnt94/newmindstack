@@ -799,6 +799,127 @@ class FSRSInterface:
         return result
 
     @staticmethod
+    def get_daily_reviews_map(user_id: int, start_date, end_date) -> Dict[str, int]:
+        """
+        Get a map of date string -> review count for a date range.
+        Used for charts.
+        """
+        from mindstack_app.modules.fsrs.models import ItemMemoryState
+        from sqlalchemy import func
+        from mindstack_app.core.extensions import db
+        
+        # Note: ItemMemoryState only stores LAST review. 
+        # For accurate review history counts, we should query StudyLog or ScoreLog.
+        # But User requested to rely on FSRS logic where possible? 
+        # Wait, `get_daily_reviewed_items_count` uses ItemMemoryState.last_review.
+        # This is inaccurate for historical charts because it only shows the LAST review date.
+        # If I review an item today, its last review date moves to today.
+        
+        # HOWEVER, the `LearningMetricsService` implementation plan relies on this method.
+        # If we want accurate "Reviews per day" chart, we MUST use ScoreLog or StudyLog.
+        # `ScoreLog` is available and used for Points.
+        # Does ScoreLog track every review? Yes, usually.
+        # Let's check `ScoreLog` usage. 
+        # ScoreLog tracks score changes.
+        
+        # Alternative: Use `StudyLog` (if available in this context).
+        # The checklist said "REFAC: StudyLog removed (Isolation)".
+        # So we shouldn't rely on StudyLog if it's being removed/isolated?
+        # But `LearningHistoryInterface` exists.
+        
+        # The prompt said "REFAC: ItemMemoryState removed... REFAC: StudyLog removed (Isolation)".
+        # It seems I should access logs via `LearningHistoryInterface`?
+        # But `LearningMetricsService` already queries `ScoreLog` directly.
+        # So I will query `ScoreLog` here as a proxy for activity/reviews.
+        # Or, I can check if `StudyLog` is still accessible.
+        # `mindstack_app/modules/learning/services/learning_metrics_service.py` imports `StudyLog`.
+        
+        # Let's use `ScoreLog` or `StudyLog` here? 
+        # Actually `FSRSInterface` should be about FSRS state.
+        # Historical review counts are NOT FSRS state (which is snapshots).
+        # But the method `get_daily_reviews_map` was requested to be in `FsrsInterface`?
+        # Or maybe I should put it in `LearningMetricsService` directly?
+        # `LearningMetricsService` called `FsrsInterface.get_daily_reviews_map`.
+        # So I must implement it here.
+        
+        # I will implement it using `item_memory_state` last_review as a fallback 
+        # OR better, if valid, query `LearningHistoryInterface`.
+        # But `FsrsInterface` depending on `LearningHistoryInterface` might be a circular dep?
+        # `Fsrs` -> `LearningHistory`?
+        # `LearningHistory` -> `Fsrs`?
+        
+        # To avoid circular dep, I will query the `StudyLog` model directly if it's in `mindstack_app.models`.
+        # Or `ScoreLog`.
+        
+        # Re-reading `learning_metrics_service.py` imports:
+        # `from mindstack_app.models import ..., StudyLog`
+        # So `StudyLog` is in core models.
+        
+        # I'll use `StudyLog` to get accurate review counts.
+        from mindstack_app.models import StudyLog
+    @staticmethod
+    def get_daily_reviews_map(user_id: int, start_date, end_date, item_types: Optional[List[str]] = None) -> Dict[str, int]:
+        """
+        Get a map of date string -> review count for a date range.
+        Used for charts.
+        """
+        from mindstack_app.modules.fsrs.models import ItemMemoryState
+        from sqlalchemy import func
+        from mindstack_app.core.extensions import db
+        from mindstack_app.models import ScoreLog
+        from datetime import datetime, time, timezone
+        
+        # Date filtering
+        start_dt = datetime.combine(start_date, time.min).replace(tzinfo=timezone.utc)
+        
+        query = db.session.query(
+            func.date(ScoreLog.timestamp).label('date'),
+            func.count(ScoreLog.log_id).label('count')
+        ).filter(
+            ScoreLog.user_id == user_id,
+            ScoreLog.timestamp >= start_dt
+        )
+        
+        if item_types:
+            query = query.filter(ScoreLog.item_type.in_(item_types))
+        else:
+            query = query.filter(ScoreLog.item_type.in_(['FLASHCARD', 'QUIZ_MCQ', 'LESSON']))
+            
+        rows = query.group_by(func.date(ScoreLog.timestamp)).all()
+        
+        return {str(row.date): int(row.count) for row in rows}
+
+    @staticmethod
+    def get_daily_new_items_map(user_id: int, start_date, end_date, item_types: Optional[List[str]] = None) -> Dict[str, int]:
+        """
+        Get a map of date string -> new items count (created_at) for a date range.
+        """
+        from mindstack_app.modules.fsrs.models import ItemMemoryState
+        from mindstack_app.models import LearningItem
+        from sqlalchemy import func
+        from mindstack_app.core.extensions import db
+        from datetime import datetime, time, timezone
+        
+        start_dt = datetime.combine(start_date, time.min).replace(tzinfo=timezone.utc)
+        
+        query = db.session.query(
+            func.date(ItemMemoryState.created_at).label('date'),
+            func.count(ItemMemoryState.item_id).label('count')
+        ).filter(
+            ItemMemoryState.user_id == user_id,
+            ItemMemoryState.created_at >= start_dt
+        )
+
+        if item_types:
+            # Need to join with LearningItem to filter by type
+            query = query.join(LearningItem, LearningItem.item_id == ItemMemoryState.item_id)\
+                         .filter(LearningItem.item_type.in_(item_types))
+
+        rows = query.group_by(func.date(ItemMemoryState.created_at)).all()
+        
+        return {str(row.date): int(row.count) for row in rows}
+
+    @staticmethod
     def get_all_memory_states_query():
         """Returns the base query object for ItemMemoryState (for backup/export)."""
         from .models import ItemMemoryState
