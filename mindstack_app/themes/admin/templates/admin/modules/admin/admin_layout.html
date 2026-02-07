@@ -131,8 +131,8 @@
 <body class="h-full bg-slate-100 text-slate-800">
     <div class="min-h-screen flex flex-col lg:flex-row admin-shell">
         <aside id="adminSidebar"
-            class="bg-slate-900 text-slate-100 w-full lg:w-72 xl:w-80 flex-shrink-0 lg:flex lg:flex-col shadow-xl hidden admin-sidebar-fixed">
-            <div class="px-6 py-6 border-b border-slate-800 flex items-center justify-between">
+            class="bg-slate-900 text-slate-100 w-full lg:w-72 xl:w-80 flex-shrink-0 flex flex-col shadow-xl hidden admin-sidebar-fixed h-[100dvh] overflow-hidden">
+            <div class="px-6 py-6 border-b border-slate-800 flex items-center justify-between flex-shrink-0">
                 <div>
                     <div class="text-lg font-semibold tracking-wide">Mindstack Admin</div>
                     <p class="text-xs text-slate-400 mt-1">Điều hướng và quản trị hệ thống</p>
@@ -142,121 +142,130 @@
                 </button>
             </div>
 
-            <nav class="px-4 py-6 space-y-1 overflow-y-auto flex-1">
-                {% set nav_groups = [
-                {
-                'title': 'Tổng quan',
-                'items': [
-                {'key': 'dashboard', 'label': 'Dashboard', 'icon': 'fa-chart-line', 'endpoint':
-                'admin.admin_dashboard'},
-                {'key': 'session_monitor', 'label': 'Quản lý Session', 'icon': 'fa-clock-rotate-left', 'endpoint':
-                'session.admin_manage_sessions'},
-                ]
-                },
-                {
-                'title': 'Học tập & AI',
-                'items': [
-                {'key': 'content', 'label': 'Quản lý Dữ liệu (Admin)', 'icon': 'fa-database', 'endpoint':
-                'admin.content_dashboard'},
-                {'key': 'creator_studio', 'label': 'Creator Studio', 'icon': 'fa-pen-nib', 'endpoint':
-                'content_management.content_dashboard'},
-                {'key': 'api_keys', 'label': 'AI Console', 'icon': 'fa-robot', 'endpoint': 'AI.dashboard'},
-                {'key': 'audio_studio', 'label': 'Audio Studio', 'icon': 'fa-microphone-lines', 'endpoint':
-                'audio.admin_audio_studio'},
-                ]
-                },
-                {
-                'title': 'Người dùng & Game',
-                'items': [
-                {'key': 'users', 'label': 'Người dùng', 'icon': 'fa-users', 'endpoint': 'user_management.manage_users'},
-                {'key': 'badges', 'label': 'Huy hiệu (Badges)', 'icon': 'fa-medal', 'endpoint':
-                'gamification.list_badges'},
-                {'key': 'access_control', 'label': 'Phân quyền & Giới hạn', 'icon': 'fa-shield-halved', 'endpoint':
-                'access_control.admin_dashboard'},
-                ]
-                },
-                {
-                'title': 'Cấu hình hệ thống',
-                'items': [
-                {'key': 'content_config', 'label': 'Cấu hình Upload & Quyền', 'icon': 'fa-sliders-h', 'endpoint':
-                'admin.content_config_page'},
-                {'key': 'scoring', 'label': 'Quản lý Điểm số', 'icon': 'fa-trophy', 'endpoint': 'scoring.dashboard'},
-                {'key': 'fsrs_config', 'label': 'Cấu hình FSRS', 'icon': 'fa-brain', 'endpoint': 'fsrs.config_page'},
-                {'key': 'maintenance', 'label': 'Chế độ Bảo trì', 'icon': 'fa-wrench', 'endpoint':
-                'maintenance.admin_dashboard'},
-                {'key': 'settings', 'label': 'Cài đặt hệ thống', 'icon': 'fa-cogs', 'endpoint':
-                'admin.manage_system_settings'},
-                {'key': 'templates', 'label': 'Giao diện (Themes)', 'icon': 'fa-palette', 'endpoint':
-                'admin.manage_templates'},
-                {'key': 'modules', 'label': 'Modules', 'icon': 'fa-puzzle-piece', 'endpoint': 'admin.manage_modules'},
-                ]
-                },
-                {
-                'title': 'Vận hành (Ops)',
-                'items': [
-                {'key': 'content_generator', 'label': 'Content Generator', 'icon': 'fa-robot', 'endpoint':
-                'content_generator.index'},
-                {'key': 'media', 'label': 'File Manager', 'icon': 'fa-folder-open', 'endpoint': 'admin.media_library'},
-                {'key': 'backup', 'label': 'Backup & Restore', 'icon': 'fa-database', 'endpoint':
-                'backup.sys_backup_view'},
-                {'key': 'ops_reset', 'label': 'System Reset', 'icon': 'fa-radiation', 'endpoint': 'ops.reset_page'},
-                ]
-                }
-                ] %}
+            <div class="flex-1 overflow-y-auto min-h-0 lg:overflow-hidden lg:flex lg:flex-col">
+                <nav class="px-4 py-6 space-y-1 lg:flex-1 lg:overflow-y-auto lg:min-h-0">
+                    {% set nav_groups = [
+                    {
+                    'title': 'Tổng quan',
+                    'items': [
+                    {'key': 'dashboard', 'label': 'Dashboard', 'icon': 'fa-chart-line', 'endpoint':
+                    'admin.admin_dashboard'},
+                    {'key': 'session_monitor', 'label': 'Quản lý Session', 'icon': 'fa-clock-rotate-left', 'endpoint':
+                    'session.admin_manage_sessions'},
+                    ]
+                    },
+                    {
+                    'title': 'Học tập & AI',
+                    'items': [
+                    {'key': 'content', 'label': 'Quản lý Dữ liệu (Admin)', 'icon': 'fa-database', 'endpoint':
+                    'admin.content_dashboard'},
+                    {'key': 'creator_studio', 'label': 'Creator Studio', 'icon': 'fa-pen-nib', 'endpoint':
+                    'content_management.content_dashboard'},
+                    {'key': 'api_keys', 'label': 'AI Console', 'icon': 'fa-robot', 'endpoint': 'AI.dashboard'},
+                    {'key': 'audio_studio', 'label': 'Audio Studio', 'icon': 'fa-microphone-lines', 'endpoint':
+                    'audio.admin_audio_studio'},
+                    ]
+                    },
+                    {
+                    'title': 'Người dùng & Game',
+                    'items': [
+                    {'key': 'users', 'label': 'Người dùng', 'icon': 'fa-users', 'endpoint':
+                    'user_management.manage_users'},
+                    {'key': 'badges', 'label': 'Huy hiệu (Badges)', 'icon': 'fa-medal', 'endpoint':
+                    'gamification.list_badges'},
+                    {'key': 'access_control', 'label': 'Phân quyền & Giới hạn', 'icon': 'fa-shield-halved', 'endpoint':
+                    'access_control.admin_dashboard'},
+                    ]
+                    },
+                    {
+                    'title': 'Cấu hình hệ thống',
+                    'items': [
+                    {'key': 'content_config', 'label': 'Cấu hình Upload & Quyền', 'icon': 'fa-sliders-h', 'endpoint':
+                    'admin.content_config_page'},
+                    {'key': 'scoring', 'label': 'Quản lý Điểm số', 'icon': 'fa-trophy', 'endpoint':
+                    'scoring.dashboard'},
+                    {'key': 'fsrs_config', 'label': 'Cấu hình FSRS', 'icon': 'fa-brain', 'endpoint':
+                    'fsrs.config_page'},
+                    {'key': 'maintenance', 'label': 'Chế độ Bảo trì', 'icon': 'fa-wrench', 'endpoint':
+                    'maintenance.admin_dashboard'},
+                    {'key': 'settings', 'label': 'Cài đặt hệ thống', 'icon': 'fa-cogs', 'endpoint':
+                    'admin.manage_system_settings'},
+                    {'key': 'templates', 'label': 'Giao diện (Themes)', 'icon': 'fa-palette', 'endpoint':
+                    'admin.manage_templates'},
+                    {'key': 'modules', 'label': 'Modules', 'icon': 'fa-puzzle-piece', 'endpoint':
+                    'admin.manage_modules'},
+                    ]
+                    },
+                    {
+                    'title': 'Vận hành (Ops)',
+                    'items': [
+                    {'key': 'content_generator', 'label': 'Content Generator', 'icon': 'fa-robot', 'endpoint':
+                    'content_generator.index'},
+                    {'key': 'media', 'label': 'File Manager', 'icon': 'fa-folder-open', 'endpoint':
+                    'admin.media_library'},
+                    {'key': 'backup', 'label': 'Backup & Restore', 'icon': 'fa-database', 'endpoint':
+                    'backup.sys_backup_view'},
+                    {'key': 'ops_reset', 'label': 'System Reset', 'icon': 'fa-radiation', 'endpoint': 'ops.reset_page'},
+                    ]
+                    }
+                    ] %}
 
-                {% for group in nav_groups %}
-                <div class="pt-4 pb-2 px-3 text-xs font-bold text-slate-500 uppercase tracking-wider">{{ group.title }}
-                </div>
-                {% for item in group['items'] %}
-                <a href="{{ url_for(item.endpoint) }}"
-                    class="admin-sidebar-link {% if active_page == item.key %}is-active{% else %}text-slate-200{% endif %}">
-                    <span class="w-5 text-center"><i class="fas {{ item.icon }}"></i></span>
-                    <span>{{ item.label }}</span>
-                    {% if item.key == 'settings' and admin_sidebar_metrics.maintenance_mode %}
-                    <span class="ml-auto admin-chip bg-rose-100 text-rose-700">Bảo trì</span>
-                    {% endif %}
-                    {% if item.key == 'templates' %}
-                    <span class="ml-auto admin-chip bg-indigo-100 text-indigo-700">{{ template_version|upper }}</span>
-                    {% endif %}
-                </a>
-                {% endfor %}
-                {% endfor %}
-            </nav>
+                    {% for group in nav_groups %}
+                    <div class="pt-4 pb-2 px-3 text-xs font-bold text-slate-500 uppercase tracking-wider">{{ group.title
+                        }}
+                    </div>
+                    {% for item in group['items'] %}
+                    <a href="{{ url_for(item.endpoint) }}"
+                        class="admin-sidebar-link {% if active_page == item.key %}is-active{% else %}text-slate-200{% endif %}">
+                        <span class="w-5 text-center"><i class="fas {{ item.icon }}"></i></span>
+                        <span>{{ item.label }}</span>
+                        {% if item.key == 'settings' and admin_sidebar_metrics.maintenance_mode %}
+                        <span class="ml-auto admin-chip bg-rose-100 text-rose-700">Bảo trì</span>
+                        {% endif %}
+                        {% if item.key == 'templates' %}
+                        <span class="ml-auto admin-chip bg-indigo-100 text-indigo-700">{{ template_version|upper
+                            }}</span>
+                        {% endif %}
+                    </a>
+                    {% endfor %}
+                    {% endfor %}
+                </nav>
 
-            <div class="px-6 py-5 border-t border-slate-800 text-sm space-y-3 bg-slate-950/30">
-                <div>
-                    <p class="text-slate-300 text-xs uppercase tracking-wide">Thống kê nhanh</p>
-                    <div class="mt-3 space-y-2 text-sm">
-                        <div class="flex items-center justify-between">
-                            <span class="text-slate-400">Tổng người dùng</span>
-                            <span class="font-semibold">{{ admin_sidebar_metrics.total_users or 0 }}</span>
-                        </div>
-                        <div class="flex items-center justify-between">
-                            <span class="text-slate-400">Hoạt động 7 ngày</span>
-                            <span class="font-semibold">{{ admin_sidebar_metrics.active_weekly_users or 0 }}</span>
-                        </div>
-                        <div class="flex items-center justify-between">
-                            <span class="text-slate-400">Kho học liệu</span>
-                            <span class="font-semibold">{{ admin_sidebar_metrics.content_total or 0 }}</span>
-                        </div>
-                        <div class="flex items-center justify-between">
-                            <span class="text-slate-400">API đang dùng</span>
-                            <span class="font-semibold">{{ admin_sidebar_metrics.active_api_keys or 0 }}</span>
-                        </div>
-                        <div class="flex items-center justify-between">
-                            <span class="text-slate-400">Lần sao lưu cuối</span>
-                            <span class="font-semibold text-right">{{ admin_sidebar_metrics.last_backup or 'Chưa có'
-                                }}</span>
+                <div class="px-6 py-5 border-t border-slate-800 text-sm space-y-3 bg-slate-950/30 lg:flex-shrink-0">
+                    <div>
+                        <p class="text-slate-300 text-xs uppercase tracking-wide">Thống kê nhanh</p>
+                        <div class="mt-3 space-y-2 text-sm">
+                            <div class="flex items-center justify-between">
+                                <span class="text-slate-400">Tổng người dùng</span>
+                                <span class="font-semibold">{{ admin_sidebar_metrics.total_users or 0 }}</span>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <span class="text-slate-400">Hoạt động 7 ngày</span>
+                                <span class="font-semibold">{{ admin_sidebar_metrics.active_weekly_users or 0 }}</span>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <span class="text-slate-400">Kho học liệu</span>
+                                <span class="font-semibold">{{ admin_sidebar_metrics.content_total or 0 }}</span>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <span class="text-slate-400">API đang dùng</span>
+                                <span class="font-semibold">{{ admin_sidebar_metrics.active_api_keys or 0 }}</span>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <span class="text-slate-400">Lần sao lưu cuối</span>
+                                <span class="font-semibold text-right">{{ admin_sidebar_metrics.last_backup or 'Chưa có'
+                                    }}</span>
+                            </div>
                         </div>
                     </div>
-                </div>
-                <div class="border border-slate-700 rounded-lg px-4 py-3 text-xs text-slate-300">
-                    <p class="font-semibold text-slate-100">{{ current_user.username }}</p>
-                    <p class="mt-1">Bạn đang đăng nhập với quyền <strong>quản trị viên</strong>.</p>
-                    <a href="{{ url_for('auth.logout') }}"
-                        class="inline-flex items-center gap-2 mt-3 text-slate-200 hover:text-white transition">
-                        <i class="fas fa-sign-out-alt"></i> Đăng xuất
-                    </a>
+                    <div class="border border-slate-700 rounded-lg px-4 py-3 text-xs text-slate-300">
+                        <p class="font-semibold text-slate-100">{{ current_user.username }}</p>
+                        <p class="mt-1">Bạn đang đăng nhập với quyền <strong>quản trị viên</strong>.</p>
+                        <a href="{{ url_for('auth.logout') }}"
+                            class="inline-flex items-center gap-2 mt-3 text-slate-200 hover:text-white transition">
+                            <i class="fas fa-sign-out-alt"></i> Đăng xuất
+                        </a>
+                    </div>
                 </div>
             </div>
         </aside>
