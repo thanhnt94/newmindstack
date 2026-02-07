@@ -110,7 +110,7 @@ def create_database_backup():
         current_app.logger.error('Lỗi khi tạo bản sao lưu database: %s', exc)
         flash(f'Lỗi khi tạo bản sao lưu cơ sở dữ liệu: {exc}', 'danger')
 
-    return redirect(url_for('backup.manage_backup_restore'))
+    return redirect(url_for('backup.sys_backup_view'))
 
 
 @blueprint.route('/create/full', methods=['POST'])
@@ -158,7 +158,7 @@ def download_full_backup():
     except Exception as exc:
         current_app.logger.error('Lỗi khi tạo bản sao lưu toàn bộ: %s', exc)
         flash(f'Lỗi khi tạo bản sao lưu toàn bộ: {exc}', 'danger')
-        return redirect(url_for('backup.manage_backup_restore'))
+        return redirect(url_for('backup.sys_backup_view'))
 
 
 @blueprint.route('/files/<path:filename>')
@@ -168,7 +168,7 @@ def download_backup_file(filename):
 
     if not target_path or not os.path.isfile(target_path):
         flash('File sao lưu không tồn tại.', 'danger')
-        return redirect(url_for('backup.manage_backup_restore'))
+        return redirect(url_for('backup.sys_backup_view'))
 
     return send_file(target_path, as_attachment=True, download_name=os.path.basename(target_path))
 
@@ -180,7 +180,7 @@ def delete_backup_file(filename):
 
     if not target_path or not os.path.isfile(target_path):
         flash('File sao lưu không tồn tại.', 'danger')
-        return redirect(url_for('backup.manage_backup_restore'))
+        return redirect(url_for('backup.sys_backup_view'))
 
     try:
         os.remove(target_path)
@@ -188,13 +188,13 @@ def delete_backup_file(filename):
     except Exception as e:
         flash(f'Lỗi khi xóa file: {str(e)}', 'danger')
 
-    return redirect(url_for('backup.manage_backup_restore'))
+    return redirect(url_for('backup.sys_backup_view'))
 
 
 def _build_dataset_export_response(dataset_key):
     if dataset_key not in DATASET_CATALOG:
         flash('Dataset không hợp lệ.', 'danger')
-        return redirect(url_for('backup.manage_backup_restore'))
+        return redirect(url_for('backup.sys_backup_view'))
 
     config = DATASET_CATALOG[dataset_key]
 
@@ -216,7 +216,7 @@ def _build_dataset_export_response(dataset_key):
         current_app.logger.error('Lỗi khi xuất dataset %s: %s', dataset_key, exc)
         flash(f'Lỗi khi xuất dữ liệu: {exc}', 'danger')
 
-    return redirect(url_for('backup.manage_backup_restore'))
+    return redirect(url_for('backup.sys_backup_view'))
 
 
 @blueprint.route('/export', methods=['POST'])
@@ -224,7 +224,7 @@ def export_dataset_from_form():
     dataset_key = request.form.get('dataset_key', '')
     if not dataset_key:
         flash('Vui lòng chọn gói dữ liệu cần xuất.', 'warning')
-        return redirect(url_for('backup.manage_backup_restore'))
+        return redirect(url_for('backup.sys_backup_view'))
 
     return _build_dataset_export_response(dataset_key)
 
@@ -239,12 +239,12 @@ def restore_dataset():
     file = request.files.get('dataset_file')
     if not file or not file.filename:
         flash('Vui lòng chọn file để khôi phục.', 'warning')
-        return redirect(url_for('backup.manage_backup_restore'))
+        return redirect(url_for('backup.sys_backup_view'))
 
     try:
         if not (file.filename.endswith('.json') or file.filename.endswith('.zip')):
             flash('Định dạng file không hợp lệ. Vui lòng chọn file .json hoặc .zip.', 'warning')
-            return redirect(url_for('backup.manage_backup_restore'))
+            return redirect(url_for('backup.sys_backup_view'))
 
         file_bytes = file.read()
         file_name = file.filename
@@ -261,7 +261,7 @@ def restore_dataset():
         current_app.logger.error(f"Restore error: {e}")
         flash(f"Đã xảy ra lỗi khi khôi phục: {str(e)}", 'danger')
 
-    return redirect(url_for('backup.manage_backup_restore'))
+    return redirect(url_for('backup.sys_backup_view'))
 
 
 @blueprint.route('/restore', methods=['POST'])
@@ -270,14 +270,14 @@ def restore_backup():
     
     if not filename:
         flash('Không xác định được file sao lưu.', 'danger')
-        return redirect(url_for('backup.manage_backup_restore'))
+        return redirect(url_for('backup.sys_backup_view'))
         
     backup_folder = get_backup_folder()
     file_path = safe_join(backup_folder, filename)
     
     if not file_path or not os.path.exists(file_path):
         flash('File sao lưu không tồn tại.', 'danger')
-        return redirect(url_for('backup.manage_backup_restore'))
+        return redirect(url_for('backup.sys_backup_view'))
 
     try:
         # Read file bytes from server
@@ -299,4 +299,4 @@ def restore_backup():
         current_app.logger.error(f"Restore from server error: {e}")
         flash(f"Lỗi khi khôi phục: {str(e)}", 'danger')
 
-    return redirect(url_for('backup.manage_backup_restore'))
+    return redirect(url_for('backup.sys_backup_view'))
