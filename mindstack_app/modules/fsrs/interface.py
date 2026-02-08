@@ -994,3 +994,103 @@ class FSRSInterface:
         ).all()
         
         return {r.item_id: r for r in records}
+
+    @staticmethod
+    def get_upcoming_reviews(user_id: int) -> Dict[str, Any]:
+        """
+        Get upcoming reviews count for the next 7 days.
+        """
+        from datetime import datetime, timedelta, timezone
+        from sqlalchemy import func
+        from .models import ItemMemoryState
+        from mindstack_app.core.extensions import db
+        
+        start_date = datetime.now(timezone.utc)
+        end_date = start_date + timedelta(days=6)
+        
+        query = db.session.query(
+            func.date(ItemMemoryState.due_date).label('due_date'),
+            func.count(ItemMemoryState.state_id).label('count')
+        ).filter(
+            ItemMemoryState.user_id == user_id,
+            ItemMemoryState.due_date >= start_date,
+            ItemMemoryState.due_date <= end_date
+        ).group_by(func.date(ItemMemoryState.due_date)).all()
+        
+        data_map = {}
+        for row in query:
+            d_val = row.due_date
+            if isinstance(d_val, str):
+                 data_map[d_val] = row.count
+            elif hasattr(d_val, 'isoformat'):
+                 data_map[d_val.isoformat()[:10]] = row.count
+            else:
+                 data_map[str(d_val)] = row.count
+
+        labels = []
+        counts = []
+        
+        current = start_date
+        for _ in range(7):
+            d_str = current.strftime('%Y-%m-%d')
+            labels.append(current.strftime('%d/%m'))
+            counts.append(data_map.get(d_str, 0))
+            current += timedelta(days=1)
+            
+        return {
+            'labels': labels,
+            'data': counts
+        }
+
+    @staticmethod
+    def get_memory_state_distribution(user_id: int) -> Dict[str, Any]:
+        """
+        Get distribution of items by FSRS state.
+        0=New, 1=Learning, 2=Review, 3=Relearning
+        """
+        from sqlalchemy import func
+        from .models import ItemMemoryState
+        from mindstack_app.core.extensions import db
+        
+        query = db.session.query(
+            ItemMemoryState.state,
+            func.count(ItemMemoryState.state_id).label('count')
+        ).filter(
+            ItemMemoryState.user_id == user_id
+        ).group_by(ItemMemoryState.state).all()
+        
+        counts = {0: 0, 1: 0, 2: 0, 3: 0}
+        for row in query:
+            if row.state in counts:
+                counts[row.state] = row.count
+                
+        return {
+            'labels': ['Mới', 'Đang học', 'Ôn tập', 'Học lại'],
+            'data': [counts[0], counts[1], counts[2], counts[3]],
+            'colors': ['#10b981', '#3b82f6', '#f59e0b', '#ef4444']
+        }
+
+    @staticmethod
+    def apply_due_exclusion_filter(query, user_id: int, item_ids: List[int]):
+        """
+        Exclude specific item IDs, UNLESS they are currently due.
+        Moves logic out of vocab_flashcard/query_builder.py.
+        """
+        from sqlalchemy import or_, and_
+        from datetime import datetime, timezone
+        from .models import ItemMemoryState
+        from mindstack_app.models import LearningItem
+        
+        if not item_ids:
+            return query
+            
+        now = datetime.now(timezone.utc)
+        return query.filter(
+            or_(
+                LearningItem.item_id.notin_(item_ids),
+                and_(
+                    ItemMemoryState.item_id.in_(item_ids),
+                    ItemMemoryState.due_date <= now
+                )
+            )
+        )

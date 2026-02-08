@@ -162,14 +162,8 @@ class LearningItem(db.Model):
         """
         Compatibility property: returns the content of the primary AI explanation.
         """
-        # Avoid circular import
-        from mindstack_app.modules.AI.models import AiContent
-        primary = AiContent.query.filter_by(
-            item_id=self.item_id, 
-            content_type='explanation', 
-            is_primary=True
-        ).first()
-        return primary.content_text if primary else None
+        from mindstack_app.modules.AI.interface import AIInterface
+        return AIInterface.get_primary_explanation(self.item_id)
 
     @ai_explanation.setter
     def ai_explanation(self, value):
@@ -179,34 +173,8 @@ class LearningItem(db.Model):
         if not value:
             return
             
-        from mindstack_app.modules.AI.models import AiContent
-        from mindstack_app.core.extensions import db
-        
-        # Check if already exists as primary to avoid recursion/duplicates
-        existing = AiContent.query.filter_by(
-            item_id=self.item_id, 
-            content_type='explanation',
-            is_primary=True
-        ).first()
-        
-        if existing and existing.content_text == value:
-            return
-
-        # Unset existing primary
-        AiContent.query.filter_by(
-            item_id=self.item_id, 
-            content_type='explanation'
-        ).update({'is_primary': False})
-        
-        # Create new content
-        new_content = AiContent(
-            item_id=self.item_id,
-            content_type='explanation',
-            content_text=value,
-            is_primary=True,
-            model_name='System Migration'
-        )
-        db.session.add(new_content)
+        from mindstack_app.modules.AI.interface import AIInterface
+        AIInterface.set_primary_explanation(self.item_id, value)
 
     def update_search_text(self):
         if not self.content: return

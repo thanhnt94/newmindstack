@@ -129,3 +129,47 @@ class AIInterface:
                 'is_primary': ai_content.is_primary
             } for ai_content, username in results
         ]
+
+    @staticmethod
+    def get_primary_explanation(item_id: int) -> Optional[str]:
+        """Get the primary AI explanation for an item."""
+        from .models import AiContent
+        primary = AiContent.query.filter_by(
+            item_id=item_id, 
+            content_type='explanation', 
+            is_primary=True
+        ).first()
+        return primary.content_text if primary else None
+
+    @staticmethod
+    def set_primary_explanation(item_id: int, content_text: str):
+        """Set or update the primary AI explanation for an item."""
+        from .models import AiContent
+        from mindstack_app.core.extensions import db
+        
+        # Check if already exists as primary to avoid redundancy
+        existing = AiContent.query.filter_by(
+            item_id=item_id, 
+            content_type='explanation',
+            is_primary=True
+        ).first()
+        
+        if existing and existing.content_text == content_text:
+            return
+
+        # Unset existing primary
+        AiContent.query.filter_by(
+            item_id=item_id, 
+            content_type='explanation'
+        ).update({'is_primary': False})
+        
+        # Create new primary content
+        new_content = AiContent(
+            item_id=item_id,
+            content_type='explanation',
+            content_text=content_text,
+            is_primary=True,
+            model_name='System Migration'
+        )
+        db.session.add(new_content)
+        # Note: No commit here, let the caller handle transaction if needed (e.g. models.py)
