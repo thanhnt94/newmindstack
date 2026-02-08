@@ -34,9 +34,22 @@ def get_mode_description(session):
 def manage_sessions():
     """Trang quản lý các phiên học đang hoạt động (Thay thế /learn/session cũ)."""
     try:
-        sessions = LearningSessionService.get_active_sessions(current_user.user_id)
+        # Standard Pagination Params
+        page_active = request.args.get('page_active', 1, type=int)
+        page_history = request.args.get('page_history', 1, type=int)
+        per_page = 10 
+
+        # 1. Active Sessions
+        all_sessions = LearningSessionService.get_active_sessions(current_user.user_id)
+        
+        # Manual Pagination for Active List
+        total_active = len(all_sessions)
+        start_active = (page_active - 1) * per_page
+        end_active = start_active + per_page
+        current_sessions = all_sessions[start_active:end_active]
+        
         session_list = []
-        for s in sessions:
+        for s in current_sessions:
             container_name = "Bộ học tập"
             try:
                 if isinstance(s.set_id_data, int):
@@ -73,15 +86,33 @@ def manage_sessions():
                 'container_name': container_name,
                 'done': len(s.processed_item_ids or []),
                 'total': s.total_items,
-                'total': s.total_items,
                 'resume_url': resume_url,
                 'start_time': s.start_time,
                 'learning_mode': s.learning_mode
             })
+            
+        pagination_active = {
+            'page': page_active,
+            'per_page': per_page,
+            'total': total_active,
+            'pages': (total_active + per_page - 1) // per_page,
+            'has_prev': page_active > 1,
+            'has_next': end_active < total_active,
+            'prev_num': page_active - 1,
+            'next_num': page_active + 1
+        }
         
-        history_raw = LearningSessionService.get_session_history(current_user.user_id)
+        # 2. History
+        all_history = LearningSessionService.get_session_history(current_user.user_id)
+        
+        # Manual Pagination for History List
+        total_history = len(all_history)
+        start_history = (page_history - 1) * per_page
+        end_history = start_history + per_page
+        current_history = all_history[start_history:end_history]
+
         history_list = []
-        for h in history_raw:
+        for h in current_history:
             container_name = "Bộ học tập"
             try:
                 if isinstance(h.set_id_data, int):
@@ -103,8 +134,23 @@ def manage_sessions():
                 'total': h.total_items,
                 'points': h.points_earned
             })
+            
+        pagination_history = {
+            'page': page_history,
+            'per_page': per_page,
+            'total': total_history,
+            'pages': (total_history + per_page - 1) // per_page,
+            'has_prev': page_history > 1,
+            'has_next': end_history < total_history,
+            'prev_num': page_history - 1,
+            'next_num': page_history + 1
+        }
         
-        return render_template('aura_mobile/modules/learning/sessions.html', sessions=session_list, history=history_list)
+        return render_template('aura_mobile/modules/learning/sessions.html', 
+                             sessions=session_list, 
+                             history=history_list,
+                             pagination_active=pagination_active,
+                             pagination_history=pagination_history)
     except Exception as e:
         current_app.logger.error(f"Error loading sessions page: {e}", exc_info=True)
         return f"Error loading sessions: {e}", 500
