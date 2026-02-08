@@ -46,19 +46,41 @@
         {# TAB 1: THỐNG KÊ CÁ NHÂN #}
         <template x-if="activeTab === 'personal'">
             <div class="animate-fadeIn">
-                {# Header #}
-                <div class="px-5 pt-5 pb-4">
-                    <h1 class="text-2xl font-black text-slate-900 tracking-tight">Thống kê cá nhân</h1>
-                    <p class="text-sm text-slate-600 mt-1">Tiến độ và thành tích học tập của bạn</p>
+                {# Header with Navigation #}
+                <div class="px-5 pt-5 pb-4 flex items-end justify-between" x-data="{ 
+                    scrollLeft() { 
+                        document.getElementById('stats-overview-scroll').scrollBy({ left: -200, behavior: 'smooth' }); 
+                    },
+                    scrollRight() { 
+                        document.getElementById('stats-overview-scroll').scrollBy({ left: 200, behavior: 'smooth' }); 
+                    }
+                }">
+                    <div>
+                        <h1 class="text-2xl font-black text-slate-900 tracking-tight">Thống kê cá nhân</h1>
+                        <p class="text-sm text-slate-600 mt-1">Tiến độ và thành tích học tập của bạn</p>
+                    </div>
+
+                    {# Navigation Buttons (Style matched to 'Quick Options') #}
+                    <div class="flex gap-2">
+                        <button @click="scrollLeft()"
+                            class="w-8 h-8 rounded-full bg-white border border-slate-200 text-slate-400 hover:text-indigo-600 hover:border-indigo-200 flex items-center justify-center shadow-sm active:scale-95 transition-all">
+                            <i class="fas fa-chevron-left text-xs"></i>
+                        </button>
+                        <button @click="scrollRight()"
+                            class="w-8 h-8 rounded-full bg-white border border-slate-200 text-slate-400 hover:text-indigo-600 hover:border-indigo-200 flex items-center justify-center shadow-sm active:scale-95 transition-all">
+                            <i class="fas fa-chevron-right text-xs"></i>
+                        </button>
+                    </div>
                 </div>
 
                 {# Key Metrics (Horizontal Scroll) #}
                 <div class="px-5 pb-4">
                     <div id="stats-overview-scroll"
-                        class="flex overflow-x-auto gap-3 no-scrollbar snap-x scroll-smooth">
+                        class="flex overflow-x-auto gap-3 no-scrollbar snap-x scroll-smooth pb-2 px-1">
+
                         {# Card 1: Tổng điểm #}
                         <div
-                            class="snap-start flex-shrink-0 w-40 bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-3xl p-5 shadow-lg flex flex-col justify-between h-32 relative overflow-hidden">
+                            class="snap-start flex-shrink-0 w-40 bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-3xl p-5 shadow-lg flex flex-col justify-between h-32 relative overflow-hidden active:scale-95 transition-transform">
                             <div class="absolute right-0 top-0 p-3 opacity-20"><i class="fas fa-star text-6xl"></i>
                             </div>
                             <span class="text-xs uppercase font-bold tracking-wide opacity-90">Tổng điểm</span>
@@ -68,9 +90,10 @@
                                 <p class="text-xs opacity-80 mt-1">Tất cả thời gian</p>
                             </div>
                         </div>
-                        {# Card 2: Streak #}
+
+                        {# Card 2: Chuỗi #}
                         <div
-                            class="snap-start flex-shrink-0 w-40 bg-gradient-to-br from-orange-400 to-orange-500 text-white rounded-3xl p-5 shadow-lg flex flex-col justify-between h-32 relative overflow-hidden">
+                            class="snap-start flex-shrink-0 w-40 bg-gradient-to-br from-orange-400 to-orange-500 text-white rounded-3xl p-5 shadow-lg flex flex-col justify-between h-32 relative overflow-hidden active:scale-95 transition-transform">
                             <div class="absolute right-0 top-0 p-3 opacity-20"><i class="fas fa-fire text-6xl"></i>
                             </div>
                             <span class="text-xs uppercase font-bold tracking-wide opacity-90">Chuỗi</span>
@@ -81,19 +104,58 @@
                                     ngày</p>
                             </div>
                         </div>
-                        {# Card 3: 30 Ngày #}
+
+                        {# Card 3: Từ vựng (Flashcard) #}
                         <div
-                            class="snap-start flex-shrink-0 w-40 bg-gradient-to-br from-emerald-400 to-emerald-500 text-white rounded-3xl p-5 shadow-lg flex flex-col justify-between h-32 relative overflow-hidden">
-                            <div class="absolute right-0 top-0 p-3 opacity-20"><i
-                                    class="fas fa-chart-line text-6xl"></i></div>
-                            <span class="text-xs uppercase font-bold tracking-wide opacity-90">30 Ngày</span>
+                            class="snap-start flex-shrink-0 w-40 bg-gradient-to-br from-indigo-500 to-purple-600 text-white rounded-3xl p-5 shadow-lg flex flex-col justify-between h-32 relative overflow-hidden active:scale-95 transition-transform">
+                            <div class="absolute right-0 top-0 p-3 opacity-20"><i class="fas fa-language text-6xl"></i>
+                            </div>
+                            <span class="text-xs uppercase font-bold tracking-wide opacity-90">Từ vựng</span>
                             <div>
-                                <p class="text-3xl font-black leading-none">{{
-                                    "{:,}".format(dashboard_data.total_score_last_30_days) }}</p>
-                                <p class="text-xs opacity-80 mt-1">~{{
-                                    "{:,.1f}".format(dashboard_data.average_daily_score_recent) }}/ngày</p>
+                                {# Uses 'total' distinct items instead of 'mastered' #}
+                                <p class="text-3xl font-black leading-none">{{ dashboard_data.learned_distinct_overall
+                                    }}</p>
+                                <p class="text-xs opacity-80 mt-1">Đã học</p>
                             </div>
                         </div>
+
+                        {# Card 4: Trắc nghiệm (Quiz Items) #}
+                        <div
+                            class="snap-start flex-shrink-0 w-40 bg-gradient-to-br from-emerald-400 to-emerald-600 text-white rounded-3xl p-5 shadow-lg flex flex-col justify-between h-32 relative overflow-hidden active:scale-95 transition-transform">
+                            <div class="absolute right-0 top-0 p-3 opacity-20"><i
+                                    class="fas fa-question-circle text-6xl"></i></div>
+                            <span class="text-xs uppercase font-bold tracking-wide opacity-90">Trắc nghiệm</span>
+                            <div>
+                                <p class="text-3xl font-black leading-none">{{ dashboard_data.quiz_questions_done_count }}
+                                </p>
+                                <p class="text-xs opacity-80 mt-1">Câu đã giải</p>
+                            </div>
+                        </div>
+
+                        {# Card 5: Bộ Vocab #}
+                        <div
+                            class="snap-start flex-shrink-0 w-40 bg-gradient-to-br from-amber-400 to-amber-500 text-white rounded-3xl p-5 shadow-lg flex flex-col justify-between h-32 relative overflow-hidden active:scale-95 transition-transform">
+                            <div class="absolute right-0 top-0 p-3 opacity-20"><i class="fas fa-layer-group text-6xl"></i>
+                            </div>
+                            <span class="text-xs uppercase font-bold tracking-wide opacity-90">Bộ Vocab</span>
+                            <div>
+                                <p class="text-3xl font-black leading-none">{{ dashboard_data.flashcard_sets_started_count }}</p>
+                                <p class="text-xs opacity-80 mt-1">Đã học</p>
+                            </div>
+                        </div>
+
+                        {# Card 6: Bộ Quiz #}
+                        <div
+                            class="snap-start flex-shrink-0 w-40 bg-gradient-to-br from-cyan-400 to-cyan-500 text-white rounded-3xl p-5 shadow-lg flex flex-col justify-between h-32 relative overflow-hidden active:scale-95 transition-transform">
+                            <div class="absolute right-0 top-0 p-3 opacity-20"><i class="fas fa-tasks text-6xl"></i>
+                            </div>
+                            <span class="text-xs uppercase font-bold tracking-wide opacity-90">Bộ Quiz</span>
+                            <div>
+                                <p class="text-3xl font-black leading-none">{{ dashboard_data.quiz_sets_started_count }}</p>
+                                <p class="text-xs opacity-80 mt-1">Đã làm</p>
+                            </div>
+                        </div>
+
                     </div>
                 </div>
 
@@ -138,8 +200,9 @@
                                     </div>
                                     <div>
                                         <p class="text-base font-bold text-slate-900">Từ vựng</p>
-                                        <p class="text-xs text-slate-500">Đã thuộc: {{
-                                            dashboard_data.flashcard_mastered_count }} từ</p>
+                                        <p class="text-xs text-slate-500">Đã học: {{
+                                            dashboard_data.flashcard_sets_started_count }} bộ ({{
+                                            dashboard_data.learned_distinct_overall }} từ)</p>
                                     </div>
                                 </div>
                                 <div class="text-right">
@@ -156,9 +219,9 @@
                                         dashboard_data.averages.vocab.avg_new_items_per_day }}</p>
                                 </div>
                                 <div class="bg-slate-50 p-2 rounded-xl text-center">
-                                    <p class="text-[10px] text-slate-500 uppercase font-bold">Ôn tập / ngày</p>
+                                    <p class="text-[10px] text-slate-500 uppercase font-bold">Thành thạo</p>
                                     <p class="text-sm font-black text-slate-800">{{
-                                        dashboard_data.averages.vocab.avg_reviews_per_day }}</p>
+                                        dashboard_data.flashcard_mastered_count }}</p>
                                 </div>
                             </div>
                         </div>
@@ -174,7 +237,8 @@
                                     <div>
                                         <p class="text-base font-bold text-slate-900">Trắc nghiệm</p>
                                         <p class="text-xs text-slate-500">Đã làm: {{
-                                            dashboard_data.quiz_sets_started_count }} bộ</p>
+                                            dashboard_data.quiz_sets_started_count }} bộ ({{
+                                            dashboard_data.quiz_questions_done_count }} câu)</p>
                                     </div>
                                 </div>
                                 <div class="text-right">
@@ -186,14 +250,14 @@
                             {# Extended Stats for Quiz #}
                             <div class="grid grid-cols-2 gap-2 pt-3 border-t border-slate-100">
                                 <div class="bg-slate-50 p-2 rounded-xl text-center">
-                                    <p class="text-[10px] text-slate-500 uppercase font-bold">Câu hỏi mới / ngày</p>
+                                    <p class="text-[10px] text-slate-500 uppercase font-bold">Làm mới / ngày</p>
                                     <p class="text-sm font-black text-slate-800">{{
                                         dashboard_data.averages.quiz.avg_new_items_per_day }}</p>
                                 </div>
                                 <div class="bg-slate-50 p-2 rounded-xl text-center">
-                                    <p class="text-[10px] text-slate-500 uppercase font-bold">Làm lại / ngày</p>
+                                    <p class="text-[10px] text-slate-500 uppercase font-bold">Thành thạo</p>
                                     <p class="text-sm font-black text-slate-800">{{
-                                        dashboard_data.averages.quiz.avg_reviews_per_day }}</p>
+                                        dashboard_data.quiz_mastered_count|default(0) }}</p>
                                 </div>
                             </div>
                         </div>

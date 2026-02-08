@@ -81,8 +81,12 @@ class LearningMetricsService:
         attempts = correct + incorrect
         accuracy = round((correct / attempts) * 100, 1) if attempts > 0 else 0.0
 
+        # REFACTORED: Use FsrsInterface for started stats
+        sets_started = FsrsInterface.get_started_container_count(user_id, 'FLASHCARD_SET', 'FLASHCARD')
+
         return {
             'total': total,
+            'learned': total - stats['new'],
             'mastered': mastered,
             'learning': stats['learning'],
             'new': stats['new'],
@@ -94,6 +98,7 @@ class LearningMetricsService:
             'incorrect_total': incorrect,
             'attempt_total': attempts,
             'accuracy_percent': accuracy,
+            'sets_started': sets_started,
             'avg_streak': stats['avg_streak'],
             'best_streak': stats['best_streak'],
             'avg_stability': round(stats['avg_stability'], 1),
@@ -118,6 +123,7 @@ class LearningMetricsService:
 
         return {
             'total_questions_encountered': total,
+            'learned': total - stats['new'],
             'mastered': mastered,
             'learning': stats['learning'],
             'completion_percent': round((mastered / total) * 100) if total else 0,

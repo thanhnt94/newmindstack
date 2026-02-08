@@ -29,9 +29,13 @@ def dashboard():
         'longest_learning_streak': summary['longest_streak'],
         'total_score_last_30_days': 0, # Sẽ bổ sung sau
         'average_daily_score_recent': 0,
+        'learned_distinct_overall': summary['flashcard']['learned'],
         'flashcard_mastered_count': summary['flashcard']['mastered'],
+        'flashcard_sets_started_count': summary['flashcard']['sets_started'],
         'flashcard_accuracy_percent': summary['flashcard']['accuracy_percent'],
+        'quiz_questions_done_count': summary['quiz']['learned'],
         'quiz_sets_started_count': summary['quiz']['sets_started'],
+        'quiz_mastered_count': summary['quiz']['mastered'],
         'quiz_accuracy_percent': summary['quiz']['accuracy_percent'],
         'courses_in_progress_count': summary['course']['in_progress_lessons'],
         'course_avg_completion_percent': summary['course']['avg_completion'],
@@ -39,6 +43,16 @@ def dashboard():
     
     # NEW: Merge extended stats
     extended_stats = LearningInterface.get_extended_dashboard_stats(current_user.user_id)
+    
+    # Calculate 30-day score stats from chart data
+    score_history = extended_stats.get('charts', {}).get('datasets', {}).get('scores', [])
+    total_30d = sum(score_history) if score_history else 0
+    avg_30d = total_30d / len(score_history) if score_history else 0
+
+    dashboard_data.update({
+        'total_score_last_30_days': total_30d,
+        'average_daily_score_recent': avg_30d
+    })
     dashboard_data.update(extended_stats)
     
     recent_activity = LearningInterface.get_recent_activity(current_user.user_id)
