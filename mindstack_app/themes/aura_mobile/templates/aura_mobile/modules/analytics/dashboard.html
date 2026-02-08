@@ -10,7 +10,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-
+{# Move Chart.js here to ensure it loads before Alpine init #}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js" crossorigin="anonymous"></script>
 
 <div class="fixed inset-0 z-[100] flex flex-col h-[100dvh] w-full safe-area-inset-bottom mobile-dashboard"
     style="font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;" x-data="{ 
@@ -159,26 +160,209 @@
                     </div>
                 </div>
 
-                {# === GROWTH CHARTS === #}
-                <div class="px-5 mt-6">
-                    <h3 class="text-base font-bold text-slate-800 mb-4 flex items-center gap-2">
-                        <i class="fas fa-chart-area text-blue-500"></i>
-                        <span>Biểu đồ phát triển</span>
-                    </h3>
+                {# === UNIFIED ANALYTICS CAROUSEL === #}
+                <div class="px-5 mt-6" x-data="{ 
+                    activeChart: 0, 
+                    chartCount: 5,
+                    charts: [],
+                    titles: [
+                        'Hoạt động 30 ngày qua',
+                        'Khung giờ học tập',
+                        'Xu hướng chính xác (30 ngày)',
+                        'Dự báo ôn tập (7 ngày tới)',
+                        'Phân bố trạng thái bộ nhớ'
+                    ],
+                    next() { 
+                        this.activeChart = (this.activeChart + 1) % this.chartCount;
+                        this.refreshCharts();
+                    },
+                    prev() { 
+                        this.activeChart = (this.activeChart - 1 + this.chartCount) % this.chartCount;
+                        this.refreshCharts();
+                    },
+                    goto(index) {
+                        this.activeChart = index;
+                        this.refreshCharts();
+                    },
+                    refreshCharts() {
+                        this.$nextTick(() => {
+                            if (this.charts[this.activeChart]) {
+                                this.charts[this.activeChart].resize();
+                            }
+                        });
+                    },
+                    init() {
+                        const chartData = {{ dashboard_data.charts | tojson | forceescape }};
+                        if (!chartData) return;
 
-                    {# Main Chart Card #}
-                    <div class="bg-white border border-slate-200 p-4 rounded-3xl shadow-sm mb-4">
+                        // Polling to wait for Chart.js library to load from CDN
+                        const checkChart = () => {
+                            if (typeof Chart !== 'undefined') {
+                                this.setupCharts(chartData);
+                            } else {
+                                setTimeout(checkChart, 100);
+                            }
+                        };
+                        checkChart();
+                    },
+                    setupCharts(chartData) {
+                        this.$nextTick(() => {
+                            const commonOptions = {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                animation: { duration: 500 }
+                            };
+
+                            const createChart = (refName, config) => {
+                                const ctx = this.$refs[refName];
+                                if (ctx) {
+                                    // Cleanup existing instance if any
+                                    const existing = Chart.getChart(ctx);
+                                    if (existing) existing.destroy();
+                                    
+                                    const chart = new Chart(ctx, config);
+                                    this.charts.push(chart);
+                                } else {
+                                    this.charts.push(null);
+                                }
+                            };
+
+                            // 0. Activity
+                            createChart('activityChart', {
+                                type: 'bar',
+                                data: {
+                                    labels: chartData.labels,
+                                    datasets: [
+                                        { label: 'Ôn tập', data: chartData.datasets.reviews, backgroundColor: '#6366f1', borderRadius: 4, stack: 'Stack 0' },
+                                        { label: 'Học mới', data: chartData.datasets.new_items, backgroundColor: '#10b981', borderRadius: 4, stack: 'Stack 0' }
+                                    ]
+                                },
+                                options: { ...commonOptions, plugins: { legend: { display: false } }, scales: { x: { grid: { display: false }, ticks: { font: { size: 10 }, maxTicksLimit: 7 } }, y: { display: false } } }
+                            });
+
+                            // 1. Hourly
+                            if (chartData.hourly_activity) {
+                                createChart('hourlyChart', {
+                                    type: 'bar',
+                                    data: {
+                                        labels: chartData.hourly_activity.labels,
+                                        datasets: [{ label: 'Hoạt động', data: chartData.hourly_activity.data, backgroundColor: '#f59e0b', borderRadius: 4 }]
+                                    },
+                                    options: { ...commonOptions, plugins: { legend: { display: false } }, scales: { x: { grid: { display: false }, ticks: { font: { size: 10 }, maxTicksLimit: 8 } }, y: { display: false } } }
+                                });
+                            } else this.charts.push(null);
+
+                            // 2. Accuracy
+                            if (chartData.accuracy_trend) {
+                                createChart('accuracyChart', {
+                                    type: 'line',
+                                    data: {
+                                        labels: chartData.accuracy_trend.labels,
+                                        datasets: [{ label: 'Chính xác (%)', data: chartData.accuracy_trend.data, borderColor: '#10b981', backgroundColor: 'rgba(16, 185, 129, 0.1)', tension: 0.4, fill: true, pointRadius: 0 }]
+                                    },
+                                    options: { ...commonOptions, plugins: { legend: { display: false } }, scales: { x: { grid: { display: false }, ticks: { font: { size: 10 }, maxTicksLimit: 7 } }, y: { display: false, min: 0, max: 100 } } }
+                                });
+                            } else this.charts.push(null);
+
+                            // 3. Upcoming
+                            if (chartData.upcoming_reviews) {
+                                createChart('upcomingChart', {
+                                    type: 'bar',
+                                    data: {
+                                        labels: chartData.upcoming_reviews.labels,
+                                        datasets: [{ label: 'Cần ôn tập', data: chartData.upcoming_reviews.data, backgroundColor: '#ef4444', borderRadius: 4 }]
+                                    },
+                                    options: { ...commonOptions, plugins: { legend: { display: false } }, scales: { x: { grid: { display: false }, ticks: { font: { size: 10 } } }, y: { display: false } } }
+                                });
+                            } else this.charts.push(null);
+
+                            // 4. Memory State
+                            if (chartData.memory_state) {
+                                createChart('memoryStateChart', {
+                                    type: 'doughnut',
+                                    data: {
+                                        labels: chartData.memory_state.labels,
+                                        datasets: [{ data: chartData.memory_state.data, backgroundColor: chartData.memory_state.colors, borderWidth: 0 }]
+                                    },
+                                    options: { ...commonOptions, cutout: '70%', plugins: { legend: { position: 'bottom', labels: { usePointStyle: true, font: { size: 10 } } } } }
+                                });
+                            } else this.charts.push(null);
+                        });
+                    }
+                }">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-base font-bold text-slate-800 flex items-center gap-2">
+                            <i class="fas fa-chart-line text-blue-500"></i>
+                            <span>Phân tích & Biểu đồ</span>
+                        </h3>
+                        
+                        {# Navigation Buttons #}
+                        <div class="flex gap-2">
+                            <button @click="prev()"
+                                class="w-8 h-8 rounded-full bg-white border border-slate-200 text-slate-400 hover:text-indigo-600 hover:border-indigo-200 flex items-center justify-center shadow-sm active:scale-95 transition-all">
+                                <i class="fas fa-chevron-left text-xs"></i>
+                            </button>
+                            <button @click="next()"
+                                class="w-8 h-8 rounded-full bg-white border border-slate-200 text-slate-400 hover:text-indigo-600 hover:border-indigo-200 flex items-center justify-center shadow-sm active:scale-95 transition-all">
+                                <i class="fas fa-chevron-right text-xs"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    {# Main Chart Container #}
+                    <div class="bg-white border border-slate-200 p-5 rounded-3xl shadow-sm mb-4 relative min-h-[320px] flex flex-col">
+                        {# Dynamic Title #}
                         <div class="flex items-center justify-between mb-4">
-                            <h4 class="text-sm font-bold text-slate-700">Hoạt động 30 ngày qua</h4>
-                            <div class="flex items-center gap-2 text-xs">
-                                <span class="flex items-center gap-1"><span
-                                        class="w-2 h-2 rounded-full bg-indigo-500"></span> Ôn tập</span>
-                                <span class="flex items-center gap-1"><span
-                                        class="w-2 h-2 rounded-full bg-emerald-500"></span> Mới</span>
+                            <h4 class="text-sm font-bold text-slate-700" x-text="titles[activeChart]"></h4>
+                            
+                            {# Specific Legend for Activity Chart (Slide 0) #}
+                            <template x-if="activeChart === 0">
+                                <div class="flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider">
+                                    <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-indigo-500"></span> Ôn tập</span>
+                                    <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-emerald-500"></span> Mới</span>
+                                </div>
+                            </template>
+                        </div>
+
+                        {# Charts Wrapper #}
+                        <div class="flex-grow relative overflow-hidden">
+                            <!-- 1. Activity Chart -->
+                            <div x-show="activeChart === 0" class="h-56 w-full absolute inset-0 transition-opacity duration-300" 
+                                :class="activeChart === 0 ? 'opacity-100 z-10' : 'opacity-0 z-0 pointer-events-none'">
+                                <canvas x-ref="activityChart"></canvas>
+                            </div>
+
+                            <!-- 2. Hourly Activity Chart -->
+                            <div x-show="activeChart === 1" class="h-56 w-full absolute inset-0 transition-opacity duration-300"
+                                :class="activeChart === 1 ? 'opacity-100 z-10' : 'opacity-0 z-0 pointer-events-none'">
+                                <canvas x-ref="hourlyChart"></canvas>
+                            </div>
+
+                            <!-- 3. Accuracy Trend Chart -->
+                            <div x-show="activeChart === 2" class="h-56 w-full absolute inset-0 transition-opacity duration-300"
+                                :class="activeChart === 2 ? 'opacity-100 z-10' : 'opacity-0 z-0 pointer-events-none'">
+                                <canvas x-ref="accuracyChart"></canvas>
+                            </div>
+
+                            <!-- 4. Upcoming Reviews Chart -->
+                            <div x-show="activeChart === 3" class="h-56 w-full absolute inset-0 transition-opacity duration-300"
+                                :class="activeChart === 3 ? 'opacity-100 z-10' : 'opacity-0 z-0 pointer-events-none'">
+                                <canvas x-ref="upcomingChart"></canvas>
+                            </div>
+
+                            <!-- 5. Memory State Chart -->
+                            <div x-show="activeChart === 4" class="h-64 w-full absolute inset-0 flex items-center justify-center transition-opacity duration-300"
+                                :class="activeChart === 4 ? 'opacity-100 z-10' : 'opacity-0 z-0 pointer-events-none'">
+                                <canvas x-ref="memoryStateChart"></canvas>
                             </div>
                         </div>
-                        <div class="h-48 w-full">
-                            <canvas id="activityChart"></canvas>
+
+                        {# Indicators #}
+                        <div class="flex justify-center gap-1.5 mt-auto pt-4 relative z-20">
+                            <template x-for="(t, i) in titles">
+                                <button @click="goto(i)" class="h-1 rounded-full transition-all duration-300" 
+                                     :class="activeChart === i ? 'w-6 bg-indigo-500' : 'w-2 bg-slate-200'"></button>
+                            </template>
                         </div>
                     </div>
                 </div>
@@ -309,81 +493,6 @@
                         {% endfor %}
                     </div>
                 </div>
-
-
-
-                {# Thói quen học tập (Restored) #}
-                <div class="px-5 mt-4">
-                    <h3 class="text-base font-bold text-slate-800 mb-4 flex items-center gap-2">
-                        <i class="fas fa-clock text-amber-500"></i>
-                        <span>Thói quen học tập</span>
-                    </h3>
-
-                    {# Hourly Activity #}
-                    <div class="bg-white border border-slate-200 p-4 rounded-3xl shadow-sm mb-4">
-                        <h4 class="text-sm font-bold text-slate-700 mb-4">Khung giờ học tập</h4>
-                        <div class="h-48 w-full">
-                            <canvas id="hourlyChart"></canvas>
-                        </div>
-                    </div>
-
-                    {# Accuracy Trend #}
-                    <div class="bg-white border border-slate-200 p-4 rounded-3xl shadow-sm">
-                        <h4 class="text-sm font-bold text-slate-700 mb-4">Xu hướng chính xác (30 ngày)</h4>
-                        <div class="h-48 w-full">
-                            <canvas id="accuracyChart"></canvas>
-                        </div>
-                    </div>
-                </div>
-
-                {# Advanced Stats (Collapsible) #}
-                <div class="px-5 mt-4 pb-24" x-data="{ expanded: false }">
-                    <button
-                        @click="expanded = !expanded; setTimeout(() => { window.dispatchEvent(new Event('resize')); }, 350)"
-                        class="w-full flex items-center justify-between p-4 bg-white border border-slate-200 rounded-2xl shadow-sm text-slate-700 font-bold transition-all duration-300"
-                        :class="{ 'bg-slate-50': expanded }">
-                        <span class="flex items-center gap-2">
-                            <i class="fas fa-chart-pie text-purple-500"></i>
-                            Xem thêm chỉ số
-                        </span>
-                        <i class="fas fa-chevron-down transition-transform duration-300"
-                            :class="{ 'rotate-180': expanded }"></i>
-                    </button>
-
-                    <div x-show="expanded" x-collapse class="mt-4 space-y-4">
-                        {# Streak Info #}
-                        <div class="bg-gradient-to-r from-orange-500 to-red-500 p-5 rounded-3xl shadow-sm text-white">
-                            <div class="flex items-center justify-between">
-                                <div>
-                                    <p class="text-sm font-medium opacity-90">Chuỗi hiện tại</p>
-                                    <p class="text-3xl font-black">{{ dashboard_data.streak_info.current_streak }} <span
-                                            class="text-base font-normal">ngày</span></p>
-                                </div>
-                                <div class="text-right">
-                                    <p class="text-xs font-medium opacity-90">Kỷ lục</p>
-                                    <p class="text-xl font-bold">{{ dashboard_data.streak_info.longest_streak }} ngày
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-
-                        {# Upcoming Reviews #}
-                        <div class="bg-white border border-slate-200 p-4 rounded-3xl shadow-sm">
-                            <h4 class="text-sm font-bold text-slate-700 mb-4">Dự báo ôn tập (7 ngày tới)</h4>
-                            <div class="h-48 w-full">
-                                <canvas id="upcomingChart"></canvas>
-                            </div>
-                        </div>
-
-                        {# Memory State #}
-                        <div class="bg-white border border-slate-200 p-4 rounded-3xl shadow-sm">
-                            <h4 class="text-sm font-bold text-slate-700 mb-4">Phân bố trạng thái</h4>
-                            <div class="h-64 w-full flex items-center justify-center">
-                                <canvas id="memoryStateChart"></canvas>
-                            </div>
-                        </div>
-                    </div>
-                </div>
             </div>
         </template>
 
@@ -488,198 +597,8 @@
         animation: fadeIn 0.3s ease-out forwards;
     }
 </style>
-
-<script>
-    document.addEventListener('alpine:init', () => {
-        // Alpine initialization logic if needed
-    });
-
-    document.addEventListener('DOMContentLoaded', () => {
-        const activityCtx = document.getElementById('activityChart');
-        const hourlyCtx = document.getElementById('hourlyChart');
-        const accuracyCtx = document.getElementById('accuracyChart');
-        const upcomingCtx = document.getElementById('upcomingChart');
-        const memoryCtx = document.getElementById('memoryStateChart');
-
-        const chartData = {{ dashboard_data.charts | tojson
-    }};
-
-    // 1. Activity Chart (Existing)
-    if (activityCtx && chartData) {
-        new Chart(activityCtx, {
-            type: 'bar',
-            data: {
-                labels: chartData.labels,
-                datasets: [
-                    {
-                        label: 'Ôn tập',
-                        data: chartData.datasets.reviews,
-                        backgroundColor: '#6366f1', // Indigo 500
-                        borderRadius: 4,
-                        stack: 'Stack 0',
-                    },
-                    {
-                        label: 'Học mới',
-                        data: chartData.datasets.new_items,
-                        backgroundColor: '#10b981', // Emerald 500
-                        borderRadius: 4,
-                        stack: 'Stack 0',
-                    }
-                ]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { display: false },
-                    tooltip: {
-                        mode: 'index',
-                        intersect: false,
-                        backgroundColor: 'rgba(255, 255, 255, 0.9)',
-                        titleColor: '#1e293b',
-                        bodyColor: '#475569',
-                        borderColor: '#e2e8f0',
-                        borderWidth: 1,
-                        padding: 10,
-                        bodyFont: { family: 'Inter' },
-                        titleFont: { family: 'Inter', weight: 'bold' }
-                    }
-                },
-                scales: {
-                    x: {
-                        grid: { display: false },
-                        ticks: { font: { size: 10 }, maxTicksLimit: 7 }
-                    },
-                    y: {
-                        display: false,
-                        grid: { display: false }
-                    }
-                },
-                interaction: {
-                    mode: 'nearest',
-                    axis: 'x',
-                    intersect: false
-                }
-            }
-        });
-    }
-
-    // 2. Hourly Activity Chart
-    if (hourlyCtx && chartData && chartData.hourly_activity) {
-        new Chart(hourlyCtx, {
-            type: 'bar',
-            data: {
-                labels: chartData.hourly_activity.labels,
-                datasets: [{
-                    label: 'Hoạt động',
-                    data: chartData.hourly_activity.data,
-                    backgroundColor: '#f59e0b',
-                    borderRadius: 4
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: { legend: { display: false } },
-                scales: {
-                    x: { grid: { display: false }, ticks: { font: { size: 10 }, maxTicksLimit: 8 } },
-                    y: { display: false, grid: { display: false } }
-                }
-            }
-        });
-    }
-
-    // 3. Accuracy Trend Chart
-    if (accuracyCtx && chartData && chartData.accuracy_trend) {
-        new Chart(accuracyCtx, {
-            type: 'line',
-            data: {
-                labels: chartData.accuracy_trend.labels,
-                datasets: [{
-                    label: 'Chính xác (%)',
-                    data: chartData.accuracy_trend.data,
-                    borderColor: '#10b981',
-                    backgroundColor: 'rgba(16, 185, 129, 0.1)',
-                    tension: 0.4,
-                    fill: true,
-                    pointRadius: 0,
-                    pointHoverRadius: 4
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: { legend: { display: false } },
-                scales: {
-                    x: { grid: { display: false }, ticks: { font: { size: 10 }, maxTicksLimit: 7 } },
-                    y: { display: false, grid: { display: false }, min: 0, max: 100 }
-                }
-            }
-        });
-    }
-
-    // 4. Upcoming Reviews Chart
-    if (upcomingCtx && chartData && chartData.upcoming_reviews) {
-        new Chart(upcomingCtx, {
-            type: 'bar',
-            data: {
-                labels: chartData.upcoming_reviews.labels,
-                datasets: [{
-                    label: 'Cần ôn tập',
-                    data: chartData.upcoming_reviews.data,
-                    backgroundColor: '#ef4444',
-                    borderRadius: 4
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: { legend: { display: false } },
-                scales: {
-                    x: { grid: { display: false }, ticks: { font: { size: 10 } } },
-                    y: { display: false, grid: { display: false } }
-                }
-            }
-        });
-    }
-
-    // 5. Memory State Chart
-    if (memoryCtx && chartData && chartData.memory_state) {
-        new Chart(memoryCtx, {
-            type: 'doughnut',
-            data: {
-                labels: chartData.memory_state.labels,
-                datasets: [{
-                    data: chartData.memory_state.data,
-                    backgroundColor: chartData.memory_state.colors,
-                    borderWidth: 0
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                cutout: '70%',
-                plugins: {
-                    legend: {
-                        position: 'bottom',
-                        labels: { usePointStyle: true, font: { size: 10, family: 'Inter' } }
-                    }
-                }
-            }
-        });
-    }
-    });
-</script>
-
-{# === BOTTOM NAV === #}
-{% set active_page = 'stats' %}
-{% include _v ~ '/components/_bottom_nav.html' %}
-</div>
-
-
 {% endblock %}
 
 {% block scripts %}
 {{ super() }}
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js" crossorigin="anonymous"></script>
 {% endblock %}

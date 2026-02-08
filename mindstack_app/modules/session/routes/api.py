@@ -19,7 +19,7 @@ def get_mode_description(session):
         'new_only': 'Học từ mới',
         'due_only': 'Ôn tập tới hạn',
         'hard_only': 'Các từ khó',
-        'mixed_srs': 'Học ngẫu nhiên (SRS)',
+        'mixed_srs': 'Học theo lộ trình (SRS)',
         'all_review': 'Ôn tập tất cả',
         'typing': 'Gõ từ',
         'listening': 'Nghe chép chính tả',
