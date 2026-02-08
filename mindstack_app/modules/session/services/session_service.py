@@ -117,6 +117,29 @@ class LearningSessionService:
         return None
 
     @staticmethod
+    def reset_session_progress(session_id):
+        """
+        Reset session progress (processed items and stats).
+        Used for 'Rescue Logic' when session gets stuck.
+        """
+        try:
+            session = db.session.get(LearningSession, session_id)
+            if session:
+                session.processed_item_ids = []
+                session.current_item_id = None
+                session.correct_count = 0
+                session.incorrect_count = 0
+                session.vague_count = 0
+                db.session.add(session)
+                safe_commit(db.session)
+                return True
+            return False
+        except Exception as e:
+            db.session.rollback()
+            current_app.logger.error(f"Error resetting session progress {session_id}: {e}", exc_info=True)
+            return False
+
+    @staticmethod
     def update_progress(session_id, item_id, result_type, points=0):
         """Update session progress and stats."""
         try:

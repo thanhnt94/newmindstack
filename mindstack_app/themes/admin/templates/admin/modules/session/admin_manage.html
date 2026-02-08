@@ -70,6 +70,11 @@
 
             <!-- Actions -->
             <div class="flex justify-end pt-3 border-t border-slate-100">
+                <button onclick="resetSessionCache({{ session.session_id }})"
+                    title="Xoá cache tiến độ (nhằm rescue nếu bị kẹt)"
+                    class="px-4 py-2 mr-2 bg-amber-50 text-amber-600 hover:bg-amber-100 hover:text-amber-700 rounded-lg text-sm font-semibold transition-colors flex items-center">
+                    <i class="fas fa-sync-alt mr-2"></i> Xoá Cache
+                </button>
                 <button onclick="clearSession({{ session.session_id }})"
                     class="px-4 py-2 bg-rose-50 text-rose-600 hover:bg-rose-100 hover:text-rose-700 rounded-lg text-sm font-semibold transition-colors flex items-center">
                     <i class="fas fa-power-off mr-2"></i>
@@ -95,6 +100,43 @@
 
 {% block extra_scripts %}
 <script>
+    async function resetSessionCache(sessionId) {
+        if (!confirm('Bạn có chắc chắn muốn xoá cache (reset tiến độ) của phiên học này không?\nHành động này giúp cứu phiên học nếu người dùng bị kẹt không thấy thẻ mới.')) {
+            return;
+        }
+
+        const btn = event.currentTarget;
+        const originalContent = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-circle-notch fa-spin mr-2"></i> Đang reset...';
+
+        try {
+            const response = await fetch(`/session/api/admin/reset-session-cache/${sessionId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                }
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                alert('Thành công: ' + result.message);
+                location.reload(); // Refresh to see updated progress counts
+            } else {
+                alert('Lỗi: ' + result.message);
+                btn.disabled = false;
+                btn.innerHTML = originalContent;
+            }
+        } catch (error) {
+            console.error('Error resetting session cache:', error);
+            alert('Đã có lỗi xảy ra khi kết nối máy chủ.');
+            btn.disabled = false;
+            btn.innerHTML = originalContent;
+        }
+    }
+
     async function clearSession(sessionId) {
         if (!confirm('CẢNH BÁO: Bạn có chắc chắn muốn đóng phiên học này không?\nHành động này sẽ dừng ngay lập tức phiên học của người dùng.')) {
             return;

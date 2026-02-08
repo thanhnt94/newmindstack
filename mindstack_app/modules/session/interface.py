@@ -121,6 +121,10 @@ class SessionInterface:
         return LearningSessionService.get_session_by_id(session_id)
     
     @staticmethod
+    def reset_session_progress(session_id):
+        return LearningSessionService.reset_session_progress(session_id)
+
+    @staticmethod
     def get_session_history(user_id: int, limit: int = 50):
         """Get completed/cancelled sessions for a user."""
         return LearningSessionService.get_session_history(user_id, limit)

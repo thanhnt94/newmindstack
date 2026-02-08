@@ -9,7 +9,7 @@
     /* Custom polished styling for setup page */
     .setup-container {
         padding: 1.5rem;
-        max-width: 600px;
+        width: 100%;
         margin: 0 auto;
         min-height: 100vh;
         /* Ensure full height */
@@ -184,8 +184,8 @@
             class="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200 transition-colors">
             <i class="fa-solid fa-arrow-left"></i>
         </a>
-        <div class="flex-1 min-w-0">
-            <h1 class="font-bold text-slate-800 truncate">{{ container_title }}</h1>
+        <div class="flex-1">
+            <h1 class="font-bold text-slate-800">{{ container_title }}</h1>
         </div>
     </div>
 
@@ -207,7 +207,7 @@
             <div class="flex items-start justify-between">
                 <div>
                     <h3 class="text-lg font-bold text-slate-800">{{ mode.label }}</h3>
-                    <p class="text-sm text-slate-500 font-medium leading-snug max-w-[85%] mt-1">
+                    <p class="text-sm text-slate-500 font-medium leading-snug mt-1">
                         {{ mode.description }}
                     </p>
                 </div>

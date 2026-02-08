@@ -67,9 +67,23 @@ class FlashcardQueryBuilder:
         return self
 
     def exclude_items(self, item_ids):
-        """Exclude specific item IDs."""
+        """Exclude specific item IDs, UNLESS they are currently due."""
+        from mindstack_app.modules.fsrs.models import ItemMemoryState
+        from datetime import datetime, timezone
         if item_ids:
-            self._query = self._query.filter(LearningItem.item_id.notin_(item_ids))
+            now = datetime.now(timezone.utc)
+            # Logic: (Not in exclusion list) OR (In exclusion list BUT it is due)
+            # This allows due items to reappear if they were reviewed earlier in the session
+            # and their due date has already passed (common for short intervals).
+            self._query = self._query.filter(
+                or_(
+                    LearningItem.item_id.notin_(item_ids),
+                    and_(
+                        ItemMemoryState.item_id.in_(item_ids),
+                        ItemMemoryState.due_date <= now
+                    )
+                )
+            )
         return self
 
     def get_query(self):

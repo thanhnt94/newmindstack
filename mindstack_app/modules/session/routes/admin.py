@@ -30,9 +30,20 @@ def admin_manage_sessions():
 @login_required
 @admin_required
 def api_clear_session(session_id):
-    """API for admins to force-clear a session."""
+    """API for admins to force-clear (cancel) a session."""
     success = LearningSessionService.cancel_session(session_id)
     if success:
         return jsonify({'success': True, 'message': f'Phiên học {session_id} đã được đóng thành công.'})
     else:
         return jsonify({'success': False, 'message': f'Không thể đóng phiên học {session_id}.'})
+
+@blueprint.route('/api/admin/reset-session-cache/<int:session_id>', methods=['POST'])
+@login_required
+@admin_required
+def api_reset_session_progress(session_id):
+    """API for admins to reset session progress (cache)."""
+    success = LearningSessionService.reset_session_progress(session_id)
+    if success:
+        return jsonify({'success': True, 'message': f'Cache phiên học {session_id} đã được xoá sạch.'})
+    else:
+        return jsonify({'success': False, 'message': f'Không thể xoá cache phiên học {session_id}.'})
