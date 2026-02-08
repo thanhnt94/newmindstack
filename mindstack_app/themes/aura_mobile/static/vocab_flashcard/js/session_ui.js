@@ -196,6 +196,44 @@
     window.addEventListener('resize', setAppHeight);
     setAppHeight();
 
+    /**
+     * Auto-shrink/expand text to fit container width
+     */
+    window.adjustTitleFontSize = function() {
+        const titleEl = document.querySelector('.js-fc-title');
+        if (!titleEl) return;
+
+        // Start from a reasonable size
+        let currentSize = 20; 
+        titleEl.style.fontSize = currentSize + 'px';
+        
+        // Allowed height for the title view container
+        // 34px is tight enough to force shrink if it wraps too much
+        const maxHeight = 34; 
+        
+        // Loop to shrink until it fits or reaches minimum
+        while (titleEl.scrollHeight > maxHeight && currentSize > 11) {
+            currentSize -= 0.5;
+            titleEl.style.fontSize = currentSize + 'px';
+        }
+    };
+
+    // Run font adjustment whenever the title might have changed or window resized
+    const titleObserver = new MutationObserver(() => {
+        window.adjustTitleFontSize();
+    });
+
+    window.addEventListener('resize', () => {
+        window.adjustTitleFontSize();
+    });
+
+    const targetTitle = document.querySelector('.js-fc-title');
+    if (targetTitle) {
+        titleObserver.observe(targetTitle, { childList: true, characterData: true, subtree: true });
+        // Initial run
+        setTimeout(window.adjustTitleFontSize, 100);
+    }
+
     // Note button in header - open note panel for current card
     const noteBtn = document.querySelector('.js-fc-note-btn');
     if (noteBtn) {

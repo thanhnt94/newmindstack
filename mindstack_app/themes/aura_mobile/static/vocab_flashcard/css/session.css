@@ -1446,14 +1446,32 @@ body>main {
     box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
 }
 
-/* Selected State */
+/* Selected State - Premium Glow Effect */
 .flashcard-mobile-view .fc-rating-btn.selected {
-    transform: scale(1.05);
-    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    transform: scale(1.08);
     z-index: 10;
-    border: 2px solid #3b82f6;
-    /* Blue border to highlight */
+    border: none !important;
     opacity: 1 !important;
+}
+
+.flashcard-mobile-view .fc-rating-btn.selected.again {
+    box-shadow: 0 0 20px rgba(229, 57, 53, 0.8), 0 0 40px rgba(229, 57, 53, 0.4);
+}
+
+.flashcard-mobile-view .fc-rating-btn.selected.hard {
+    box-shadow: 0 0 20px rgba(245, 124, 0, 0.8), 0 0 40px rgba(245, 124, 0, 0.4);
+}
+
+.flashcard-mobile-view .fc-rating-btn.selected.good {
+    box-shadow: 0 0 20px rgba(67, 160, 71, 0.8), 0 0 40px rgba(67, 160, 71, 0.4);
+}
+
+.flashcard-mobile-view .fc-rating-btn.selected.easy {
+    box-shadow: 0 0 20px rgba(30, 136, 229, 0.8), 0 0 40px rgba(30, 136, 229, 0.4);
+}
+
+.flashcard-mobile-view .fc-rating-btn.selected.veryeasy {
+    box-shadow: 0 0 20px rgba(101, 31, 255, 0.8), 0 0 40px rgba(101, 31, 255, 0.4);
 }
 
 /* Dimmed State */
@@ -1668,6 +1686,27 @@ body>main {
 #learning-header-container {
     box-shadow: 0 4px 20px -5px rgba(0, 0, 0, 0.15);
     z-index: 60;
+    padding-top: 0.5rem !important;
+    padding-bottom: 0.5rem !important;
+}
+
+#header-right-actions {
+    gap: 0.5rem !important;
+}
+
+#header-right-actions button,
+#header-right-actions a {
+    width: 32px !important;
+    height: 32px !important;
+}
+
+#header-right-actions .fa-right-from-bracket,
+#header-right-actions .fa-house {
+    font-size: 0.875rem !important;
+}
+
+#header-right-actions .px-3.py-1.5 {
+    padding: 0.25rem 0.5rem !important;
 }
 
 /* Glassmorphism Utilities (in case not in tailwind) */
@@ -1676,9 +1715,26 @@ body>main {
     -webkit-backdrop-filter: blur(12px);
 }
 
-/* Header Title Refinement */
-#header-title-view span {
-    letter-spacing: -0.015em;
+/* Header Title Refinement - Support Auto-shrink */
+#header-title-view {
+    justify-content: center;
+    height: 40px; /* Strict height */
+    padding: 0;
+    overflow: hidden;
+}
+
+#header-title-view span.js-fc-title {
+    letter-spacing: -0.02em;
+    display: block;
+    width: 100%;
+    white-space: normal;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    transition: font-size 0.1s ease;
+    word-break: break-word;
+    line-height: 1.05; /* Tighter line height */
 }
 
 /* Badge styling refinement */
