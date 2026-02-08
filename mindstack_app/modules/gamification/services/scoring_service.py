@@ -202,7 +202,6 @@ class ScoreService:
             
         db.session.commit()
         return {'success': True, 'synced_count': synced_count}
-        return {'success': True, 'synced_count': synced_count}
 
     @staticmethod
     def delete_user_data(user_id: int) -> bool:

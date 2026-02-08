@@ -403,9 +403,9 @@
                                         dashboard_data.averages.vocab.avg_new_items_per_day }}</p>
                                 </div>
                                 <div class="bg-slate-50 p-2 rounded-xl text-center">
-                                    <p class="text-[10px] text-slate-500 uppercase font-bold">Thành thạo</p>
+                                    <p class="text-[10px] text-slate-500 uppercase font-bold">Ôn tập / ngày</p>
                                     <p class="text-sm font-black text-slate-800">{{
-                                        dashboard_data.flashcard_mastered_count }}</p>
+                                        dashboard_data.averages.vocab.avg_reviews_per_day }}</p>
                                 </div>
                             </div>
                         </div>
@@ -434,14 +434,14 @@
                             {# Extended Stats for Quiz #}
                             <div class="grid grid-cols-2 gap-2 pt-3 border-t border-slate-100">
                                 <div class="bg-slate-50 p-2 rounded-xl text-center">
-                                    <p class="text-[10px] text-slate-500 uppercase font-bold">Làm mới / ngày</p>
+                                    <p class="text-[10px] text-slate-500 uppercase font-bold">Mới / ngày</p>
                                     <p class="text-sm font-black text-slate-800">{{
                                         dashboard_data.averages.quiz.avg_new_items_per_day }}</p>
                                 </div>
                                 <div class="bg-slate-50 p-2 rounded-xl text-center">
-                                    <p class="text-[10px] text-slate-500 uppercase font-bold">Thành thạo</p>
+                                    <p class="text-[10px] text-slate-500 uppercase font-bold">Ôn tập / ngày</p>
                                     <p class="text-sm font-black text-slate-800">{{
-                                        dashboard_data.quiz_mastered_count|default(0) }}</p>
+                                        dashboard_data.averages.quiz.avg_reviews_per_day }}</p>
                                 </div>
                             </div>
                         </div>

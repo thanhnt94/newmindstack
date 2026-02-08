@@ -74,6 +74,11 @@ def record_daily_login(user_id: int):
     return ScoreService.record_daily_login(user_id)
 
 
+def sync_all_users_scores() -> Dict[str, Any]:
+    """Sync all users' total scores from ScoreLogs."""
+    return ScoreService.sync_all_users_scores()
+
+
 def delete_user_gamification_data(user_id: int) -> bool:
     """
     Delete all gamification data for a user.
