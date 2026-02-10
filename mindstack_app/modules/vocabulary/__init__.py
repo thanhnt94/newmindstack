@@ -22,6 +22,17 @@ def setup_module(app):
     from .logics.flashcard_modes import register_vocabulary_flashcard_modes
     register_vocabulary_flashcard_modes()
 
+    # ── Session Driver Registration ──────────────────────────────────
+    # Register VocabularyDriver for all vocabulary-type learning modes.
+    # The Session module will resolve the correct driver via DriverRegistry.
+    from mindstack_app.modules.session.drivers.registry import DriverRegistry
+    from .driver import VocabularyDriver
+
+    _VOCAB_MODES = ['flashcard', 'mcq', 'typing', 'listening', 'matching', 'speed']
+    for mode in _VOCAB_MODES:
+        if not DriverRegistry.is_registered(mode):
+            DriverRegistry.register(mode, VocabularyDriver)
+
     # Register Signals, Context Processors, etc.
     @app.context_processor
     def inject_vocab_metadata():

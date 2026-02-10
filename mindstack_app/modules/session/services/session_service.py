@@ -276,3 +276,118 @@ class LearningSessionService:
             db.session.rollback()
             current_app.logger.error(f"Error setting current item in session: {e}", exc_info=True)
             return False
+
+    # ══════════════════════════════════════════════════════════════════
+    # Session Driver Pattern - New Unified Methods
+    # ══════════════════════════════════════════════════════════════════
+
+    @staticmethod
+    def start_driven_session(user_id, container_id, learning_mode, settings=None):
+        """
+        Create a new session using the Driver Pattern.
+
+        1. Resolve the driver via DriverRegistry.
+        2. Call driver.initialize_session() to build the item queue.
+        3. Persist a LearningSession record in the DB.
+        4. Return (db_session, driver_state).
+        """
+        from mindstack_app.modules.session.drivers.registry import DriverRegistry
+
+        settings = settings or {}
+        settings['mode'] = learning_mode
+
+        # 1. Resolve driver
+        driver = DriverRegistry.resolve(learning_mode)
+
+        # 2. Initialize via driver (builds item queue)
+        driver_state = driver.initialize_session(
+            container_id=container_id,
+            user_id=user_id,
+            settings=settings,
+        )
+
+        # 3. Persist to DB
+        db_session = LearningSessionService.create_session(
+            user_id=user_id,
+            learning_mode=learning_mode,
+            mode_config_id=settings.get('mode_config_id', learning_mode),
+            set_id_data=container_id,
+            total_items=driver_state.total_items,
+        )
+
+        if db_session is None:
+            return None, None
+
+        return db_session, driver_state
+
+    @staticmethod
+    def submit_answer(session_id, user_input):
+        """
+        Process a learner's submission via the Driver Pattern.
+
+        Steps:
+        1. Load the LearningSession from DB.
+        2. Resolve the driver for the session's learning_mode.
+        3. Call driver.process_submission().
+        4. Sync the result back to the DB session record.
+        5. Return the SubmissionResult as a dict.
+
+        Args:
+            session_id: ID of the active LearningSession.
+            user_input: Dict with mode-specific data, must include 'item_id'.
+
+        Returns:
+            Dict with submission result on success, None on failure.
+
+        Raises:
+            ValueError: If session not found or not active.
+            KeyError: If no driver registered for the session's mode.
+        """
+        from mindstack_app.modules.session.drivers.registry import DriverRegistry
+        from mindstack_app.modules.session.drivers.base import SessionState
+        import dataclasses
+
+        # 1. Load session
+        session = db.session.get(LearningSession, session_id)
+        if not session:
+            raise ValueError(f"Session {session_id} not found")
+        if session.status != 'active':
+            raise ValueError(f"Session {session_id} is not active (status={session.status})")
+
+        item_id = user_input.get('item_id')
+        if item_id is None:
+            raise ValueError("'item_id' is required in user_input")
+
+        # 2. Resolve driver
+        learning_mode = session.learning_mode
+        driver = DriverRegistry.resolve(learning_mode)
+
+        # 3. Build a minimal SessionState from the DB record
+        state = SessionState(
+            user_id=session.user_id,
+            container_id=session.set_id_data if isinstance(session.set_id_data, int) else 0,
+            mode=learning_mode,
+            item_queue=[],
+            processed_ids=list(session.processed_item_ids or []),
+            correct_count=session.correct_count or 0,
+            incorrect_count=session.incorrect_count or 0,
+            total_items=session.total_items or 0,
+            started_at=session.start_time.isoformat() if session.start_time else '',
+        )
+
+        # 4. Process via driver
+        result = driver.process_submission(state, item_id, user_input)
+
+        # 5. Sync state back to DB
+        try:
+            LearningSessionService.update_progress(
+                session_id=session_id,
+                item_id=item_id,
+                result_type='correct' if result.is_correct else 'incorrect',
+                points=result.score_change,
+            )
+        except Exception as e:
+            current_app.logger.error(f"Error syncing session progress: {e}", exc_info=True)
+
+        # 6. Return as dict
+        return dataclasses.asdict(result)

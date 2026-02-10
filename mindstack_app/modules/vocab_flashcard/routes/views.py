@@ -450,7 +450,8 @@ def flashcard_session(session_id):
         saved_visual_settings=session.get('flashcard_visual_settings', {}),
         saved_auto_save=saved_auto_save,
         display_settings=display_settings,
-        initial_batch=initial_batch # Pass to template
+        initial_batch=initial_batch, # Pass to template
+        db_session_id=session_id,    # Pass DB session ID for Driver API
     )
 
 

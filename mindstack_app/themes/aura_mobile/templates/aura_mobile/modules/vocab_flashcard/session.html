@@ -252,6 +252,7 @@ MỤC ĐÍCH: Giao diện thống kê phiên học tối ưu cho Mobile (App-lik
             const _notifScorePosition = "{{ config.NOTIF_SCORE_POSITION | default('center') }}";
             const _notifStreakDuration = {{ config.NOTIF_STREAK_DURATION | default (2000) }};
             const _notifAchievementDuration = {{ config.NOTIF_ACHIEVEMENT_DURATION | default (5000) }};
+            const _dbSessionId = {{ db_session_id|default (0) }};
 
             // [SSR] Initial Data
             window.initialFlashcardBatch = {{ (initial_batch or[]) | tojson }};
@@ -276,7 +277,8 @@ MỤC ĐÍCH: Giao diện thống kê phiên học tối ưu cho Mobile (App-lik
                 autoSaveOn: _autoSaveOn,
                 modeDisplayName: "{{ mode_display_text }}",
                 displaySettings: {{ (display_settings or { }) | tojson }},
-            scores: {
+            dbSessionId: _dbSessionId,
+                scores: {
                 again: _scoreAgain,
                     hard: _scoreHard,
                         good: _scoreGood,

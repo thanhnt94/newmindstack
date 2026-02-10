@@ -111,9 +111,24 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // 5. Start Session
+    // 5. Start Session — Driver API or Legacy fallback
     if (window.updateSessionSummary) window.updateSessionSummary();
-    if (window.getNextFlashcardBatch) window.getNextFlashcardBatch();
+
+    const _dbSessionId = window.FlashcardConfig?.dbSessionId;
+    if (_dbSessionId && _dbSessionId > 0 && window.setDriverSessionId) {
+        // ── Driver Path ──────────────────────────────────────────
+        console.log('🚀 [Init] Activating Driver session:', _dbSessionId);
+        window.setDriverSessionId(_dbSessionId);
+
+        // Use getNextFlashcardBatch which fetches AND displays the card
+        if (window.getNextFlashcardBatch) {
+            window.getNextFlashcardBatch();
+        }
+    } else {
+        // ── Legacy Path ──────────────────────────────────────────
+        console.log('[Init] Using legacy batch flow');
+        if (window.getNextFlashcardBatch) window.getNextFlashcardBatch();
+    }
 
     // 6. Mode display toggle logic (New)
     const modeBtns = document.querySelectorAll('#js-fc-mode-btn, #js-fc-mode-btn-desktop');

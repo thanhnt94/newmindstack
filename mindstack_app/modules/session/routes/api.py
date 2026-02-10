@@ -133,3 +133,151 @@ def check_active_vocab_session(set_id):
         current_app.logger.error(f"Error checking active session: {e}", exc_info=True)
         return jsonify({'has_active': False, 'error': str(e)}), 500
 
+
+# ══════════════════════════════════════════════════════════════════════
+# Unified Session Driver API
+# ══════════════════════════════════════════════════════════════════════
+
+
+@blueprint.route('/api/<int:session_id>/submit', methods=['POST'])
+@login_required
+def api_submit_answer(session_id):
+    """
+    Unified submission endpoint.
+
+    POST /session/api/<session_id>/submit
+    Payload: { "item_id": 123, "answer_index": 2, ... }
+
+    Returns: { "item_id", "is_correct", "quality", "score_change",
+               "feedback", "srs_update" }
+    """
+    try:
+        user_input = request.get_json(silent=True) or {}
+
+        # Security: ensure session belongs to current user
+        session = LearningSessionService.get_session_by_id(session_id)
+        if not session or session.user_id != current_user.user_id:
+            return jsonify({'error': 'Session not found'}), 404
+
+        result = LearningSessionService.submit_answer(session_id, user_input)
+        return jsonify(result)
+
+    except ValueError as e:
+        return jsonify({'error': str(e)}), 400
+    except KeyError as e:
+        return jsonify({'error': f'Driver not available: {e}'}), 422
+    except Exception as e:
+        current_app.logger.error(f"Error in submit_answer API: {e}", exc_info=True)
+        return jsonify({'error': 'Internal server error'}), 500
+
+
+@blueprint.route('/api/start', methods=['POST'])
+@login_required
+def api_start_driven_session():
+    """
+    Start a new session via the Driver Pattern.
+
+    POST /session/api/start
+    Payload: {
+        "container_id": 42,
+        "learning_mode": "mcq",
+        "settings": { "num_choices": 4, "filter": "mixed" }
+    }
+
+    Returns: { "session_id", "total_items", "learning_mode" }
+    """
+    try:
+        data = request.get_json(silent=True) or {}
+        container_id = data.get('container_id')
+        learning_mode = data.get('learning_mode', 'flashcard')
+        settings = data.get('settings', {})
+
+        if not container_id:
+            return jsonify({'error': 'container_id is required'}), 400
+
+        db_session, driver_state = LearningSessionService.start_driven_session(
+            user_id=current_user.user_id,
+            container_id=container_id,
+            learning_mode=learning_mode,
+            settings=settings,
+        )
+
+        if db_session is None:
+            return jsonify({'error': 'Failed to create session'}), 500
+
+        return jsonify({
+            'session_id': db_session.session_id,
+            'total_items': driver_state.total_items,
+            'learning_mode': learning_mode,
+            'item_queue_length': len(driver_state.item_queue),
+        })
+
+    except KeyError as e:
+        return jsonify({'error': f'Driver not available: {e}'}), 422
+    except Exception as e:
+        current_app.logger.error(f"Error starting driven session: {e}", exc_info=True)
+        return jsonify({'error': 'Internal server error'}), 500
+
+
+@blueprint.route('/api/<int:session_id>/next')
+@login_required
+def api_get_next_interaction(session_id):
+    """
+    Get the next interaction for a session.
+
+    GET /session/api/<session_id>/next
+
+    Returns: InteractionPayload or { "finished": true }
+    """
+    try:
+        from mindstack_app.modules.session.drivers.registry import DriverRegistry
+        from mindstack_app.modules.session.drivers.base import SessionState
+
+        session = LearningSessionService.get_session_by_id(session_id)
+        if not session or session.user_id != current_user.user_id:
+            return jsonify({'error': 'Session not found'}), 404
+        if session.status != 'active':
+            return jsonify({'error': 'Session is not active'}), 400
+
+        # Resolve driver
+        driver = DriverRegistry.resolve(session.learning_mode)
+
+        # Rebuild state from DB
+        container_id = session.set_id_data if isinstance(session.set_id_data, int) else 0
+        from mindstack_app.models import LearningItem
+        all_item_ids = [
+            i.item_id for i in
+            LearningItem.query.filter_by(container_id=container_id)
+            .order_by(LearningItem.order_in_container.asc()).all()
+        ]
+
+        state = SessionState(
+            user_id=session.user_id,
+            container_id=container_id,
+            mode=session.learning_mode,
+            item_queue=all_item_ids,
+            processed_ids=list(session.processed_item_ids or []),
+            correct_count=session.correct_count or 0,
+            incorrect_count=session.incorrect_count or 0,
+            total_items=session.total_items or 0,
+            started_at=session.start_time.isoformat() if session.start_time else '',
+        )
+
+        payload = driver.get_next_interaction(state)
+
+        if payload is None:
+            # Auto-complete when queue is exhausted
+            LearningSessionService.complete_session(session_id)
+            summary = driver.finalize_session(state)
+            import dataclasses
+            return jsonify({'finished': True, 'summary': dataclasses.asdict(summary)})
+
+        import dataclasses
+        return jsonify(dataclasses.asdict(payload))
+
+    except KeyError as e:
+        return jsonify({'error': f'Driver not available: {e}'}), 422
+    except Exception as e:
+        current_app.logger.error(f"Error getting next interaction: {e}", exc_info=True)
+        return jsonify({'error': 'Internal server error'}), 500
+

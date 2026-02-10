@@ -1,5 +1,6 @@
 /**
  * Session Manager for Flashcard Session
+ * [v2] SessionDriverClient integration
  */
 
 // Global State
@@ -15,6 +16,40 @@ let isSubmitting = false; // [LOCK] Prevent double submissions
 let isFetchingBatch = false; // [LOCK] Prevent multiple background fetches
 let activeFetchPromise = null; // [PROMISE] Track the current batch fetch
 let isSessionEnding = false; // [STATE] Track if we reached the end
+
+// ── Driver API State ────────────────────────────────────────────────
+let _driverSessionId = null;
+
+/**
+ * Quality map: rating string → numeric quality (1-4).
+ */
+const _QUALITY_MAP = {
+    'again': 1, 'quên': 1,
+    'hard': 2, 'mơ_hồ': 2,
+    'good': 3, 'nhớ': 3,
+    'easy': 4, 'very_easy': 4,
+};
+
+/**
+ * Map Driver /next response → legacy card format for renderCard().
+ *
+ * Driver returns: { item_id, interaction_type, data: { type, item_id, container_id, front, back, content }, progress, is_last }
+ * renderCard expects: { item_id, container_id, content: { front, back, front_img, ... }, initial_stats, can_edit, container_title }
+ */
+function _mapDriverItemToLegacy(driverPayload) {
+    const d = driverPayload.data || {};
+    return {
+        item_id: driverPayload.item_id || d.item_id,
+        container_id: d.container_id,
+        content: d.content || { front: d.front || '', back: d.back || '' },
+        initial_stats: d.initial_stats || {},
+        can_edit: d.can_edit || false,
+        container_title: d.container_title || '',
+        // progress metadata from driver
+        _progress: driverPayload.progress || {},
+        _is_last: driverPayload.is_last || false,
+    };
+}
 
 
 
@@ -167,13 +202,69 @@ async function ensureFlashcardBuffer(immediate = false) {
     activeFetchPromise = (async () => {
         try {
             const config = window.FlashcardConfig;
+
+            // ── [v2] Use Driver API if session is active ────────────
+            if (_driverSessionId) {
+                const nextUrl = `/session/api/${_driverSessionId}/next`;
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 8000);
+
+                console.log('[Batch/Driver] Fetching next from:', nextUrl);
+                const res = await fetch(nextUrl, {
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                    signal: controller.signal
+                });
+                clearTimeout(timeoutId);
+
+                if (!res.ok) {
+                    throw new Error('HTTP ' + res.status);
+                }
+
+                const payload = await res.json();
+
+                // Session finished?
+                if (payload.finished) {
+                    isSessionEnding = true;
+                    if (immediate && remaining <= 0) {
+                        handleSessionEnd(payload.summary?.message || 'Hoàn thành phiên học!');
+                    }
+                    return;
+                }
+
+                // Map to legacy format & push
+                const legacyItem = _mapDriverItemToLegacy(payload);
+
+                // Deduplicate
+                const existingIds = new Set(currentFlashcardBatch.map(i => i.item_id));
+                if (!existingIds.has(legacyItem.item_id)) {
+                    currentFlashcardBatch.push(legacyItem);
+                    console.log('[Batch/Driver] Added item', legacyItem.item_id, 'Buffer size:', currentFlashcardBatch.length);
+                }
+
+                // Update stats from progress
+                if (legacyItem._progress) {
+                    sessionStatsLocal.total = legacyItem._progress.total_items || sessionStatsLocal.total;
+                }
+
+                if (legacyItem._is_last) {
+                    console.log('[Batch/Driver] This is the last item in queue.');
+                }
+
+                // Audio prefetch
+                if (window.prefetchAudioForUpcomingCards) {
+                    window.prefetchAudioForUpcomingCards(1);
+                }
+
+                return;
+            }
+
+            // ── Legacy fallback (old batch API) ─────────────────────
             if (!config || !config.getFlashcardBatchUrl) {
                 console.error('[Batch] FlashcardConfig.getFlashcardBatchUrl is missing.');
                 return null;
             }
             const getFlashcardBatchUrl = config.getFlashcardBatchUrl;
 
-            // [SSR + BATCH 1 FIX] Send exclude_items (ids in buffer)
             const excludedIds = currentFlashcardBatch.map(item => item.item_id).join(',');
             let urlWithBatch = `${getFlashcardBatchUrl}${getFlashcardBatchUrl.includes('?') ? '&' : '?'}batch_size=1`;
             if (excludedIds) {
@@ -181,7 +272,7 @@ async function ensureFlashcardBuffer(immediate = false) {
             }
 
             const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 8000); // 8s timeout
+            const timeoutId = setTimeout(() => controller.abort(), 8000);
 
             console.log('[Batch] Fetching from:', urlWithBatch);
             const res = await fetch(urlWithBatch, {
@@ -194,7 +285,6 @@ async function ensureFlashcardBuffer(immediate = false) {
             if (!res.ok) {
                 if (res.status === 404) {
                     isSessionEnding = true;
-                    // Attempt to parse JSON error message, fallback to status text
                     let endMessage = "Hết thẻ.";
                     try {
                         const end = await res.json();
@@ -222,12 +312,9 @@ async function ensureFlashcardBuffer(immediate = false) {
                 return;
             }
 
-            // Update session stats
             sessionStatsLocal.total = batch.total_items_in_session || sessionStatsLocal.total;
             if (batch.session_points !== undefined) sessionScore = batch.session_points;
 
-            // [FIX] Deduplicate items (Backend sends dispatched items first for reload safety,
-            // but for prefetch we might already have them).
             const existingIds = new Set(currentFlashcardBatch.map(i => i.item_id));
             const uniqueNewItems = newItems.filter(i => !existingIds.has(i.item_id));
 
@@ -242,7 +329,6 @@ async function ensureFlashcardBuffer(immediate = false) {
                 document.querySelectorAll('.js-fc-title').forEach(el => { el.textContent = batch.container_name; });
             }
 
-            // Trigger audio prefetch for the newly added items
             if (window.prefetchAudioForUpcomingCards) {
                 console.log('[Batch] Triggering audio pre-generation for the new batch');
                 window.prefetchAudioForUpcomingCards(1);
@@ -452,22 +538,56 @@ async function submitFlashcardAnswer(itemId, answer) {
     if (window.hideRatingButtons) window.hideRatingButtons();
 
     window.stopAllFlashcardAudio();
-    const submitAnswerUrl = window.FlashcardConfig.submitAnswerUrl;
 
     // [NEW] Calculate duration
     const durationMs = currentCardStartTime > 0 ? (Date.now() - currentCardStartTime) : 0;
     try {
-        const res = await fetch(submitAnswerUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', ...window.FlashcardConfig.csrfHeaders },
-            body: JSON.stringify({ item_id: itemId, user_answer: answer, duration_ms: durationMs })
-        });
-        // ...
-        if (!res.ok) {
-            const errorText = await res.text();
-            throw new Error(`HTTP error! status: ${res.status}, body: ${errorText}`);
+        let data;
+
+        // ── [v2] Use Driver API if session is active ────────────
+        if (_driverSessionId) {
+            const submitUrl = `/session/api/${_driverSessionId}/submit`;
+            const quality = _QUALITY_MAP[String(answer).toLowerCase()] || 3;
+
+            const res = await fetch(submitUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', ...window.FlashcardConfig.csrfHeaders },
+                body: JSON.stringify({ item_id: itemId, quality: quality, duration_ms: durationMs })
+            });
+
+            if (!res.ok) {
+                const errorText = await res.text();
+                throw new Error(`HTTP error! status: ${res.status}, body: ${errorText}`);
+            }
+
+            const driverResult = await res.json();
+
+            // Map Driver result → legacy response shape
+            data = {
+                success: true,
+                score_change: driverResult.score_change || 0,
+                updated_total_score: currentUserTotalScore + (driverResult.score_change || 0),
+                is_correct: driverResult.is_correct,
+                new_progress_status: driverResult.feedback?.rated_quality >= 2 ? 'review' : 'learning',
+                statistics: driverResult.srs_update || {},
+                srs_data: driverResult.srs_update || {},
+                answer_result: answer,
+            };
+        } else {
+            // ── Legacy fallback ─────────────────────────────────
+            const submitAnswerUrl = window.FlashcardConfig.submitAnswerUrl;
+            const res = await fetch(submitAnswerUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', ...window.FlashcardConfig.csrfHeaders },
+                body: JSON.stringify({ item_id: itemId, user_answer: answer, duration_ms: durationMs })
+            });
+
+            if (!res.ok) {
+                const errorText = await res.text();
+                throw new Error(`HTTP error! status: ${res.status}, body: ${errorText}`);
+            }
+            data = await res.json();
         }
-        const data = await res.json();
 
         sessionScore += data.score_change;
         currentUserTotalScore = data.updated_total_score;
@@ -730,4 +850,20 @@ window.updateFlashcardCard = updateFlashcardCard;
 window.displayCurrentCard = displayCurrentCard;
 window.ensureFlashcardBuffer = ensureFlashcardBuffer;
 window.syncSettingsToServer = syncSettingsToServer;
+
+// ── Driver session control ──────────────────────────────────────────
+/**
+ * Activate Driver-based session flow.
+ * Called externally (e.g., from template or index.js) after starting
+ * a driven session via POST /session/api/start.
+ *
+ * @param {number} sessionId - The DB session ID from start response.
+ */
+window.setDriverSessionId = function (sessionId) {
+    _driverSessionId = sessionId;
+    console.log('[Driver] Session activated, ID:', sessionId);
+};
+window.getDriverSessionId = function () {
+    return _driverSessionId;
+};
 
