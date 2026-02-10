@@ -644,6 +644,7 @@ class FSRSInterface:
     @staticmethod
     def get_hard_count(user_id: int, container_id: int) -> int:
         """Get count of hard items in a container."""
+        from sqlalchemy import func
         from mindstack_app.modules.fsrs.models import ItemMemoryState
         from mindstack_app.models import LearningItem, db
         
@@ -704,6 +705,7 @@ class FSRSInterface:
         Get count of learned items (state != 0) in a container.
         Optimized SQL query.
         """
+        from sqlalchemy import func
         from mindstack_app.modules.fsrs.models import ItemMemoryState
         from mindstack_app.models import LearningItem, db
         

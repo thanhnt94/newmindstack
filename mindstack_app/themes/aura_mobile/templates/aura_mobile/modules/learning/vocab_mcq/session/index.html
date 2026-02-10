@@ -876,7 +876,8 @@
     // Helper for redirection
     window.goToSummary = function () {
         if (dbSessionId) {
-            window.location.href = `/learn/session/${dbSessionId}/summary`;
+            let summaryUrl = "{{ url_for('session.session_summary', session_id='SESSION_ID') }}".replace('SESSION_ID', dbSessionId);
+            window.location.href = summaryUrl;
         } else {
             // Fallback if session ID missing
             location.href = "{{ url_for('vocab_mcq.mcq_setup', set_id=container.container_id) }}";
@@ -921,7 +922,7 @@
             btn.disabled = true;
         }
 
-        fetch("{{ url_for('vocabulary.mcq.end_session') }}", {
+        fetch("{{ url_for('vocab_mcq.mcq_end_session') }}", {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -932,7 +933,8 @@
             .then(response => response.json())
         .then(data => {
             if (data.success && data.session_id) {
-                window.location.href = `/learn/session/${data.session_id}/summary`;
+                let summaryUrl = "{{ url_for('session.session_summary', session_id='SESSION_ID') }}".replace('SESSION_ID', data.session_id);
+                window.location.href = summaryUrl;
             } else {
                 window.location.href = "{{ url_for('session.manage_sessions') }}";
             }
@@ -953,7 +955,8 @@
         window.addEventListener('resize', updateFooterPadding);
 
         // Build API URL
-        let apiUrl = `/learn/vocabulary/mcq/api/items/${setId}?count=${count}&mode=${mode}&choices=${numChoices}`;
+        let baseUrl = "{{ url_for('vocab_mcq.mcq_api_get_items', set_id=container.container_id) }}";
+        let apiUrl = `${baseUrl}?count=${count}&mode=${mode}&choices=${numChoices}`;
         if (customPairs) apiUrl += '&custom_pairs=' + encodeURIComponent(JSON.stringify(customPairs));
 
         // Fetch Data
@@ -1148,7 +1151,7 @@
             duration_ms: duration_ms
         };
 
-        fetch('/learn/vocabulary/mcq/api/check', {
+        fetch("{{ url_for('vocab_mcq.mcq_api_check_answer') }}", {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -1188,7 +1191,8 @@
     async function nextQuestion() {
         // Call backend to advance index
         try {
-            const res = await fetch(`/learn/vocabulary/mcq/api/next/${setId}`, {
+            let nextUrl = "{{ url_for('vocab_mcq.mcq_api_next_question', set_id=container.container_id) }}";
+            const res = await fetch(nextUrl, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

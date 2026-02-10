@@ -7,7 +7,7 @@ from mindstack_app.utils.template_helpers import render_dynamic_template
 from flask_login import login_required, current_user
 
 from .. import blueprint
-from ..logics.mcq_logic import get_mcq_eligible_items, get_available_content_keys, get_mcq_mode_counts
+from ..interface import VocabMCQInterface as MCQInterface
 from mindstack_app.models import LearningContainer, UserContainerState, db
 from mindstack_app.utils.db_session import safe_commit
 
@@ -20,12 +20,14 @@ def mcq_setup(set_id):
     if not container.is_public and container.creator_user_id != current_user.user_id:
         abort(403)
     
-    items = get_mcq_eligible_items(set_id)
+    items = MCQInterface.get_mcq_eligible_items(set_id, current_user.user_id)
     if len(items) < 2:
-        abort(400, description="Cần ít nhất 2 thẻ để chơi trắc nghiệm")
+        abort(400, description="Cần ít nhất 2 thẻ đã học để chơi trắc nghiệm (Chế độ ôn tập)")
     
-    available_keys = get_available_content_keys(set_id)
-    mode_counts = get_mcq_mode_counts(current_user.user_id, set_id)
+    available_keys = MCQInterface.get_available_content_keys(set_id)
+    # Using module-specific logic for counts if needed, or delegation
+    from mindstack_app.modules.vocabulary.interface import VocabularyInterface
+    mode_counts = VocabularyInterface.get_mode_counts(current_user.user_id, set_id)
 
     saved_settings = {}
     default_settings = {}
@@ -56,7 +58,7 @@ def mcq_setup(set_id):
 @login_required
 def mcq_api_get_keys(set_id):
     """API to get available content keys for a set."""
-    keys = get_available_content_keys(set_id)
+    keys = MCQInterface.get_available_content_keys(set_id)
     return jsonify({
         'success': True,
         'keys': keys
@@ -72,9 +74,9 @@ def mcq_session(set_id):
     if not container.is_public and container.creator_user_id != current_user.user_id:
         abort(403)
     
-    items = get_mcq_eligible_items(set_id)
+    items = MCQInterface.get_mcq_eligible_items(set_id, current_user.user_id)
     if len(items) < 2:
-        abort(400, description="Cần ít nhất 2 thẻ để chơi trắc nghiệm")
+        abort(400, description="Cần ít nhất 2 thẻ đã học để chơi trắc nghiệm (Chế độ ôn tập)")
     
     ucs = UserContainerState.query.filter_by(user_id=current_user.user_id, container_id=set_id).first()
     saved_mcq = ucs.settings.get('mcq', {}) if ucs and ucs.settings else {}
@@ -87,7 +89,7 @@ def mcq_session(set_id):
 
     mode = request.args.get('mode', saved_mcq.get('mode', 'front_back'))
     count = request.args.get('count', saved_mcq.get('count', 10), type=int)
-    choices = request.args.get('choices', saved_mcq.get('choices', 4), type=int)
+    choices = request.args.get('choices', saved_mcq.get('choices', 0), type=int)
     
     custom_pairs = None
     custom_pairs_str = request.args.get('custom_pairs', '')
@@ -164,7 +166,7 @@ def mcq_save_setup(set_id):
         else:
              new_settings['mcq']['count'] = 10
              
-        new_settings['mcq']['choices'] = int(choices) if choices else 4
+        new_settings['mcq']['choices'] = int(choices) if choices is not None else 0
         new_settings['mcq']['use_custom_config'] = bool(use_custom_config)
         
         if custom_pairs:
@@ -199,7 +201,7 @@ def mcq_api_get_items(set_id):
         
         count = request.args.get('count', 10, type=int)
         mode = request.args.get('mode', 'front_back')
-        num_choices = request.args.get('choices', 4, type=int)
+        num_choices = request.args.get('choices', 0, type=int)
         custom_pairs_str = request.args.get('custom_pairs', '')
         
         custom_pairs = None

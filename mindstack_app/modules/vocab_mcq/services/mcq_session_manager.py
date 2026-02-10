@@ -4,7 +4,7 @@
 import json
 import random
 from flask import session, current_app
-from ..logics.mcq_logic import get_mcq_eligible_items, generate_mcq_question
+from ..interface import VocabMCQInterface
 
 class MCQSessionManager:
     """
@@ -96,34 +96,23 @@ class MCQSessionManager:
 
     def initialize_session(self, count, mode, choices, custom_pairs):
         """Generates new questions and sets up the session."""
+        from ..services.mcq_service import MCQService
         self.params = {
             'count': count,
             'mode': mode,
-            'choices': choices,
+            'choices': choices if choices is not None else 0,
             'custom_pairs': custom_pairs
         }
         
-        items = get_mcq_eligible_items(self.set_id)
-        if len(items) < 2:
-            return False, "Cần ít nhất 2 thẻ để chơi trắc nghiệm"
-            
-        random.shuffle(items)
+        # Use Service to generate questions (filters for learned items automatically)
+        questions = MCQService.generate_session_questions(
+            self.set_id, 
+            config=self.params,
+            user_id=self.user_id
+        )
         
-        # If count <= 0, use all items (Unlimited mode)
-        if count <= 0:
-            selected_items = items
-        else:
-            selected_items = items[:min(count, len(items))]
-        
-        questions = []
-        for item in selected_items:
-            question = generate_mcq_question(
-                item, items, 
-                num_choices=choices, 
-                mode=mode,
-                custom_pairs=custom_pairs
-            )
-            questions.append(question)
+        if not questions:
+            return False, "Không tìm thấy đủ từ vựng đã học để tạo trắc nghiệm"
             
         self.questions = questions
         self.currentIndex = 0

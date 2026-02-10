@@ -345,44 +345,17 @@
         <!-- STEP 1: MODE SELECTION -->
         <div class="step-screen active" id="step-1">
             <div class="title-area">
-                <h2>Chọn chế độ làm bài</h2>
-                <p>Bạn muốn kiểm tra theo cách nào?</p>
+                <h2>Bắt đầu luyện tập</h2>
+                <p>Hệ thống sẽ dựa vào các từ bạn đã học để tạo câu hỏi</p>
             </div>
 
             <div class="mode-grid">
-                <!-- Mixed SRS (NEW + DUE) -->
-                <div class="mode-card selected" data-value="mixed_srs">
-                    <div class="mode-icon"><i class="fas fa-brain"></i></div>
-                    <div class="mode-info">
-                        <span class="mode-title">Luyện tập thông minh</span>
-                        <span class="mode-desc">Ưu tiên từ mới và từ đến hạn</span>
-                    </div>
-                </div>
-
-                <!-- All Review -->
-                <div class="mode-card" data-value="all_review">
+                <!-- Review Mode Only -->
+                <div class="mode-card selected" data-value="all_review">
                     <div class="mode-icon"><i class="fas fa-history"></i></div>
                     <div class="mode-info">
-                        <span class="mode-title">Ôn tất cả</span>
-                        <span class="mode-desc">Làm lại toàn bộ câu hỏi đã học</span>
-                    </div>
-                </div>
-
-                <!-- Hard -->
-                <div class="mode-card" data-value="hard_only">
-                    <div class="mode-icon"><i class="fas fa-fire-alt"></i></div>
-                    <div class="mode-info">
-                        <span class="mode-title">Câu hỏi khó</span>
-                        <span class="mode-desc">Tập trung vào câu hay làm sai</span>
-                    </div>
-                </div>
-
-                <!-- Random -->
-                <div class="mode-card" data-value="random">
-                    <div class="mode-icon"><i class="fas fa-random"></i></div>
-                    <div class="mode-info">
-                        <span class="mode-title">Ngẫu nhiên</span>
-                        <span class="mode-desc">Chọn ngẫu nhiên câu hỏi</span>
+                        <span class="mode-title">Chế độ Ôn tập</span>
+                        <span class="mode-desc">Tạo câu hỏi từ các từ vựng bạn đã thuộc</span>
                     </div>
                 </div>
             </div>
@@ -461,17 +434,14 @@
 <script>
     let currentStep = 1;
     let config = {
-        mode: 'mixed_srs',
+        mode: 'all_review',
         limit: 0, // 0 = all
         timer: 0,
         auto_audio: true
     };
 
     const modeLabels = {
-        'mixed_srs': 'Luyện tập thông minh',
-        'all_review': 'Ôn tất cả',
-        'hard_only': 'Câu hỏi khó',
-        'random': 'Ngẫu nhiên'
+        'all_review': 'Chế độ Ôn tập'
     };
 
     function showStep(step) {
@@ -570,7 +540,7 @@
 
         // Build URL
         // /learn/vocabulary/mcq/session/START?set_id=...&mode=...
-        const baseUrl = "{{ url_for('vocabulary.mcq.session', set_id=container.container_id) }}";
+        const baseUrl = "{{ url_for('vocab_mcq.mcq_session', set_id=container.container_id) }}";
         const query = new URLSearchParams({
             mode: config.mode,
             limit: config.limit,
@@ -582,4 +552,3 @@
     }
 </script>
 {% endblock %}
-
