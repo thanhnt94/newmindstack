@@ -11,7 +11,7 @@ from mindstack_app.utils.pagination import get_pagination_data
 from mindstack_app.utils.search import apply_search_filter
 from mindstack_app.services.config_service import get_runtime_config
 from mindstack_app.core.config import Config
-from mindstack_app.modules.vocab_flashcard.interface import FlashcardInterface
+from mindstack_app.modules.vocabulary.flashcard.interface import FlashcardInterface
 from mindstack_app.modules.quiz.interface import get_all_quiz_configs
 
 from .. import blueprint

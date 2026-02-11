@@ -68,7 +68,7 @@ class FlashcardMode(BaseVocabMode):
                     rendered_content[field] = f"/media/{rel_path}"
 
         # 3. Fetch Stats (Local import to avoid cycle with core -> vocab_mode -> core)
-        from mindstack_app.modules.vocab_flashcard.engine.core import FlashcardEngine
+        from mindstack_app.modules.vocabulary.flashcard.engine.core import FlashcardEngine
         from flask_login import current_user
         
         # Assuming current_user is available in context (it usually is for web requests)

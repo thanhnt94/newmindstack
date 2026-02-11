@@ -174,10 +174,21 @@ class VocabularyDriver(BaseSessionDriver):
             )
 
             srs_update = {
-                'next_due': srs_result.next_due.isoformat() if srs_result.next_due else None,
-                'interval': srs_result.interval,
+                'next_due': srs_result.next_review.isoformat() if srs_result.next_review else None,
+                'interval': srs_result.interval_minutes,
                 'stability': srs_result.stability,
             }
+
+            # Fetch full item statistics for the HUD (the JS expects
+            # correct_count, difficulty, retrievability, etc.)
+            try:
+                from .flashcard.engine.core import FlashcardEngine
+                full_stats = FlashcardEngine.get_item_statistics(
+                    state.user_id, item_id
+                )
+                srs_update.update(full_stats)
+            except Exception:
+                pass
         except Exception:
             # FSRS failure should not block the session
             pass

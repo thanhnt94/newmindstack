@@ -17,7 +17,7 @@ from mindstack_app.modules.fsrs.models import ItemMemoryState
 from mindstack_app.modules.learning_history.models import StudyLog
 
 # Core learning models (without collab)
-from mindstack_app.modules.vocab_flashcard.models import (
+from mindstack_app.modules.vocabulary.flashcard.models import (
     FlashcardSet,
     Flashcard,
 )

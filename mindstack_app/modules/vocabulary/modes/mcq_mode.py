@@ -40,7 +40,7 @@ class MCQMode(BaseVocabMode):
         Delegates to ``MCQEngine.generate_question`` so all the
         distractor-selection and shuffling logic is reused.
         """
-        from mindstack_app.modules.vocab_mcq.engine.mcq_engine import MCQEngine
+        from mindstack_app.modules.vocabulary.mcq.engine.mcq_engine import MCQEngine
 
         settings = settings or {}
         config = {
@@ -84,7 +84,7 @@ class MCQMode(BaseVocabMode):
                 "correct_index": 0   # echoed from the interaction
             }
         """
-        from mindstack_app.modules.vocab_mcq.engine.mcq_engine import MCQEngine
+        from mindstack_app.modules.vocabulary.mcq.engine.mcq_engine import MCQEngine
 
         correct_index = user_input.get('correct_index', 0)
         user_answer_index = user_input.get('answer_index', -1)

@@ -1,5 +1,5 @@
 # mindstack_app/modules/vocabulary/logics/flashcard_modes.py
-from mindstack_app.modules.vocab_flashcard.interface import FlashcardInterface
+from mindstack_app.modules.vocabulary.flashcard.interface import FlashcardInterface
 
 FlashcardMode = FlashcardInterface.get_flashcard_mode_class()
 

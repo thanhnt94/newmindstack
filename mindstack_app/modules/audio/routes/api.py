@@ -64,7 +64,7 @@ def start_audio_task():
         data = request.get_json()
         task_name = data.get('task_name')
         
-        from mindstack_app.modules.vocab_flashcard.interface import FlashcardInterface
+        from mindstack_app.modules.vocabulary.flashcard.interface import FlashcardInterface
         from mindstack_app.modules.quiz.interface import transcribe_quiz_audio
         
         task = BackgroundTask.query.filter_by(task_name=task_name).first()

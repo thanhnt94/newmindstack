@@ -7,7 +7,7 @@ from . import blueprint
 from mindstack_app.core.error_handlers import error_response
 from mindstack_app.modules.vocabulary.services.vocabulary_service import VocabularyService
 from mindstack_app.modules.stats.interface import StatsInterface as VocabularyContainerStats
-from mindstack_app.modules.vocab_flashcard.interface import FlashcardInterface
+from mindstack_app.modules.vocabulary.flashcard.interface import FlashcardInterface
 from mindstack_app.modules.AI.interface import AIInterface
 from mindstack_app.services.template_service import TemplateService
 

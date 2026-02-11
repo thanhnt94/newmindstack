@@ -235,7 +235,7 @@ def start_task(task_id):
     task.message = f"Đang khởi chạy cho {scope_label}..."
     db.session.commit()
 
-    from mindstack_app.modules.vocab_flashcard.interface import FlashcardInterface
+    from mindstack_app.modules.vocabulary.flashcard.interface import FlashcardInterface
     from mindstack_app.modules.quiz.interface import transcribe_quiz_audio
     
     audio_service = FlashcardInterface.get_audio_service_instance()
