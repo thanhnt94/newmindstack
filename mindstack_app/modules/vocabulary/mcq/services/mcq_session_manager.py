@@ -207,3 +207,22 @@ class MCQSessionManager:
             self.save_to_db()
             return True
         return False
+
+    def clear_session(self):
+        """Clears the session data from the database."""
+        from mindstack_app.models import UserContainerState, db
+        from mindstack_app.utils.db_session import safe_commit
+        
+        try:
+            ucs = UserContainerState.query.filter_by(user_id=self.user_id, container_id=self.set_id).first()
+            if ucs and ucs.settings and 'mcq_session_data' in ucs.settings:
+                new_settings = dict(ucs.settings)
+                del new_settings['mcq_session_data']
+                ucs.settings = new_settings
+                
+                from sqlalchemy.orm.attributes import flag_modified
+                flag_modified(ucs, "settings")
+                
+                safe_commit(db.session)
+        except Exception as e:
+            print(f"Error clearing MCQ session: {e}")

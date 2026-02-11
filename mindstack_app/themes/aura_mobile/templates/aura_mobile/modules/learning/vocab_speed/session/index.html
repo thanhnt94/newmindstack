@@ -496,7 +496,7 @@
 
             // Render UI
             var q = questions[idx];
-            qText.textContent = q.question;
+            qText.innerHTML = q.question;
             answersGrid.innerHTML = '';
 
             q.choices.forEach((choice, i) => {
@@ -700,4 +700,3 @@
     })();
 </script>
 {% endblock %}
-

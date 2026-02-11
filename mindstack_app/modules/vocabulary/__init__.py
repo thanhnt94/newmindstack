@@ -25,7 +25,7 @@ def setup_module(app):
     # ── Session Driver Registration ──────────────────────────────────
     # Register VocabularyDriver for all vocabulary-type learning modes.
     # The Session module will resolve the correct driver via DriverRegistry.
-    from mindstack_app.modules.session.drivers.registry import DriverRegistry
+    from mindstack_app.modules.session.interface import DriverRegistry
     from .driver import VocabularyDriver
 
     _VOCAB_MODES = ['flashcard', 'mcq', 'typing', 'listening', 'matching', 'speed']

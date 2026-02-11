@@ -21,7 +21,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
-from mindstack_app.modules.session.drivers.base import (
+from mindstack_app.modules.session.interface import (
     BaseSessionDriver,
     InteractionPayload,
     SessionState,

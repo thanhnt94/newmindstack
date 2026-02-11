@@ -317,7 +317,11 @@ def mcq_end_session():
             from mindstack_app.modules.session.interface import SessionInterface
             if manager.db_session_id:
                 SessionInterface.complete_session(manager.db_session_id)
-                return jsonify({'success': True, 'session_id': manager.db_session_id})
+            
+            # [FIX] Clear session data so it doesn't resume
+            manager.clear_session()
+            
+            return jsonify({'success': True, 'session_id': manager.db_session_id})
             
         return jsonify({'success': True})
     except Exception as e:

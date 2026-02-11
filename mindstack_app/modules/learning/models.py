@@ -91,7 +91,14 @@ class LearningContainer(db.Model):
 
     def capability_flags(self) -> set[str]:
         normalized = self._normalize_capabilities(self.ai_capabilities)
-        flags = set(normalized) if normalized else set()
+        flags = set()
+        if normalized:
+            for cap in normalized:
+                # normalize legacy capabilities (e.g. 'quiz' -> 'supports_quiz')
+                if not cap.startswith('supports_'):
+                    flags.add(f'supports_{cap}')
+                else:
+                    flags.add(cap)
         
         # Always ensure supports_flashcard for FLASHCARD_SET
         if self.container_type == 'FLASHCARD_SET':

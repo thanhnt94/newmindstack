@@ -2,6 +2,7 @@ from flask import render_template, request, redirect, url_for, flash, abort, cur
 from mindstack_app.utils.template_helpers import render_dynamic_template
 from flask_login import login_required, current_user
 from mindstack_app.models import LearningContainer, UserContainerState, LearningSession, LearningItem, db
+from mindstack_app.utils.bbcode_parser import bbcode_to_html
 # REFAC: Remove ItemMemoryState import
 from mindstack_app.modules.fsrs.interface import FSRSInterface as FsrsInterface
 from .. import typing_bp as blueprint
@@ -61,8 +62,8 @@ def api_get_items(set_id):
     for item in items:
         formatted_items.append({
             'item_id': item.item_id,
-            'prompt': item.front or item.content.get('front', ''),
-            'answer': item.back or item.content.get('back', '')
+            'prompt': bbcode_to_html(item.front or item.content.get('front', '')),
+            'answer': bbcode_to_html(item.back or item.content.get('back', ''))
         })
     
     return jsonify({

@@ -1,17 +1,26 @@
-// Filter modes based on container capabilities
-(function () {
-
-    const capabilities = window.ComponentConfig.capabilities || [];
+// [REFACTORED] Filter modes based on container capabilities
+function updateModeVisibility(capabilities) {
+    capabilities = capabilities || [];
+    console.log("Updating mode visibility with capabilities:", capabilities);
     const modeCards = document.querySelectorAll('.mode-select-card[data-capability]');
-
     modeCards.forEach(card => {
         const requiredCapability = card.getAttribute('data-capability');
-        if (requiredCapability && !capabilities.includes(requiredCapability)) {
-            card.style.display = 'none';
+        if (requiredCapability) {
+            // Logic: If capability is present in list -> Show. Else -> Hide.
+            // Using includes because we fixed the backend to save full keys (supports_xxx)
+            // But also handle legacy keys just in case (though models.py normalizes them)
+            const hasCap = capabilities.includes(requiredCapability) ||
+                capabilities.includes(requiredCapability.replace('supports_', ''));
+
+            if (hasCap) {
+                card.style.display = 'flex';
+                card.classList.remove('disabled');
+            } else {
+                card.style.display = 'none';
+            }
         }
     });
-
-})();
+}
 
 document.addEventListener('DOMContentLoaded', function () {
 
@@ -746,7 +755,17 @@ document.addEventListener('DOMContentLoaded', function () {
 
                         renderSetDetail(data.set, data.course_stats, false, data.pagination_html);
 
-                        // [NEW] Check for active session in this set
+                        // [NEW] Update Mode Visibility based on Set Capabilities
+                        if (data.set.ai_capabilities) {
+                            updateModeVisibility(data.set.ai_capabilities);
+                        } else {
+                            // If None/Empty, handle as "Enable All" OR "Disable All"?
+                            // Based on logic, if capabilities is empty, updateModeVisibility hides all.
+                            // But usually empty means legacy/all allowed? 
+                            // Current Logic: Empty list -> Hide All. 
+                            // If user wants all, they must be in the list.
+                            updateModeVisibility(data.set.ai_capabilities);
+                        }
                         checkSetActiveSession(setId);
 
                         // [NEW] Init settings modal for this set immediately

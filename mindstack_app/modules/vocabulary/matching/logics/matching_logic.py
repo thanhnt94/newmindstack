@@ -3,6 +3,7 @@
 
 import random
 from mindstack_app.models import LearningItem
+from mindstack_app.utils.bbcode_parser import bbcode_to_html
 
 
 def get_matching_items(container_id, count=6):
@@ -26,8 +27,8 @@ def get_matching_items(container_id, count=6):
         if content.get('front') and content.get('back'):
             eligible.append({
                 'item_id': item.item_id,
-                'term': content.get('front'),
-                'definition': content.get('back'),
+                'term': bbcode_to_html(content.get('front')),
+                'definition': bbcode_to_html(content.get('back')),
             })
     
     # Shuffle and pick items

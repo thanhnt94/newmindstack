@@ -205,10 +205,11 @@ def edit_container(container_id):
         if hasattr(form, 'audio_base_folder'):
             form.audio_base_folder.data = container.media_audio_folder
             
-        # Map ai_capabilities list ['flashcard', 'quiz'] to supports_xxx checkboxes
+        # Map ai_capabilities list to supports_xxx checkboxes
         if container.ai_capabilities and isinstance(container.ai_capabilities, list):
             for cap in container.ai_capabilities:
-                field_name = f'supports_{cap}'
+                # Handle both legacy 'quiz' and new 'supports_quiz'
+                field_name = cap if cap.startswith('supports_') else f'supports_{cap}'
                 if hasattr(form, field_name):
                     getattr(form, field_name).data = True
                     
@@ -257,8 +258,7 @@ def edit_container(container_id):
             for cap_field in possible_caps:
                 field_obj = getattr(form, cap_field, None)
                 if field_obj and field_obj.data:
-                    # Strip 'supports_' to get the actual capability key
-                    capabilities.append(cap_field.replace('supports_', ''))
+                    capabilities.append(cap_field)
             
             update_data['ai_capabilities'] = capabilities
             

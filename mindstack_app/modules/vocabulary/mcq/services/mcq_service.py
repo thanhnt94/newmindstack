@@ -44,21 +44,15 @@ class MCQService:
         Get processed items ready for MCQ engine.
         Filters for learned items (state != 0) if user_id is provided.
         """
-        from mindstack_app.modules.fsrs.models import ItemMemoryState
-        
         query = LearningItem.query.filter(
             LearningItem.container_id == container_id,
             LearningItem.item_type.in_(['FLASHCARD', 'VOCABULARY'])
         )
         
         if user_id:
-            query = query.join(
-                ItemMemoryState, 
-                ItemMemoryState.item_id == LearningItem.item_id
-            ).filter(
-                ItemMemoryState.user_id == user_id,
-                ItemMemoryState.state != 0
-            )
+            from mindstack_app.modules.fsrs.interface import FSRSInterface
+            learned_ids = FSRSInterface.get_learned_item_ids_for_container(container_id, user_id)
+            query = query.filter(LearningItem.item_id.in_(learned_ids))
 
         items = query.all()
         
@@ -76,6 +70,14 @@ class MCQService:
             })
         
         return eligible
+
+    @staticmethod
+    def get_all_items_for_distractors(container_id: int) -> list:
+        """
+        Get ALL items from container to be used as distractors pool.
+        No user_id filtering (state agnostic).
+        """
+        return MCQService.get_eligible_items(container_id, user_id=None)
 
     @staticmethod
     def generate_session_questions(container_id: int, config: dict, user_id: int = None) -> list:
@@ -96,22 +98,30 @@ class MCQService:
             'count': config.get('count') if config.get('count') is not None else mcq_settings.get('count', 10)
         }
 
-        # 2. Get learned items
-        items = MCQService.get_eligible_items(container_id, user_id)
-        if len(items) < 2:
+        # 2. Get learned items (Questions Source) - ONLY items with state != 0
+        eligible_questions = MCQService.get_eligible_items(container_id, user_id)
+        if len(eligible_questions) < 1:
             return []
             
-        random.shuffle(items)
+        # 3. Get all items (Distractors Source) - Whole container
+        all_distractors = MCQService.get_all_items_for_distractors(container_id)
+        
+        # Ensure we have enough distractors in total (though engine handles graceful degradation)
+        if len(all_distractors) < 2:
+             return []
+
+        random.shuffle(eligible_questions)
         
         count = merged_config.get('count', 10)
         if count > 0:
-            selected_items = items[:min(count, len(items))]
+            selected_items = eligible_questions[:min(count, len(eligible_questions))]
         else:
-            selected_items = items
+            selected_items = eligible_questions
             
         questions = []
         for item in selected_items:
-            question = MCQEngine.generate_question(item, items, merged_config)
+            # Pass ALL items as distractor pool
+            question = MCQEngine.generate_question(item, all_distractors, merged_config)
             questions.append(question)
             
         return questions

@@ -8,11 +8,8 @@ Central registry that maps ``learning_mode`` strings to concrete
 Usage (at app startup – e.g. in ``module_registry.py``)::
 
     from mindstack_app.modules.session.drivers import DriverRegistry
-    from mindstack_app.modules.vocabulary.driver import VocabularyDriver
 
-    DriverRegistry.register('flashcard', VocabularyDriver)
-    DriverRegistry.register('mcq',      VocabularyDriver)
-    DriverRegistry.register('typing',   VocabularyDriver)
+    # (Drivers register themselves during their module's setup_module)
 
 Usage (at runtime)::
 

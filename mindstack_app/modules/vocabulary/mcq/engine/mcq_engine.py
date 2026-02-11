@@ -5,6 +5,7 @@ Pure logic, no Database access.
 
 import random
 from ..logics.algorithms import get_content_value, select_choices
+from mindstack_app.utils.bbcode_parser import bbcode_to_html
 
 class MCQEngine:
     @staticmethod
@@ -43,35 +44,72 @@ class MCQEngine:
             distractor_pool = []
             for other in all_items_data:
                 if other['item_id'] != item_data['item_id']:
-                    val = get_content_value(other.get('content', {}), answer_key)
+                    c = other.get('content', {})
+                    val = get_content_value(c, answer_key)
                     if val and val != correct_answer:
-                        distractor_pool.append({'text': val, 'item_id': other['item_id']})
+                        distractor_pool.append({
+                            'text': val, 
+                            'item_id': other['item_id'],
+                            'type': c.get('type') or c.get('pos') or ''
+                        })
         
         elif current_mode == 'back_front':
             question_text = item_data.get('back', '')
             correct_answer = item_data.get('front', '')
-            distractor_pool = [
-                {'text': i.get('front', ''), 'item_id': i['item_id']} 
-                for i in all_items_data 
-                if i['item_id'] != item_data['item_id'] and i.get('front')
-            ]
+            distractor_pool = []
+            for i in all_items_data:
+                if i['item_id'] != item_data['item_id'] and i.get('front'):
+                    c = i.get('content', {})
+                    distractor_pool.append({
+                        'text': i.get('front', ''),
+                        'item_id': i['item_id'],
+                        'type': c.get('type') or c.get('pos') or ''
+                    })
         else:  # front_back (default)
             question_text = item_data.get('front', '')
             correct_answer = item_data.get('back', '')
-            distractor_pool = [
-                {'text': i.get('back', ''), 'item_id': i['item_id']} 
-                for i in all_items_data 
-                if i['item_id'] != item_data['item_id'] and i.get('back')
-            ]
+            distractor_pool = []
+            for i in all_items_data:
+                if i['item_id'] != item_data['item_id'] and i.get('back'):
+                    c = i.get('content', {})
+                    distractor_pool.append({
+                        'text': i.get('back', ''),
+                        'item_id': i['item_id'],
+                        'type': c.get('type') or c.get('pos') or ''
+                    })
             
         # Select distractors using algorithms
         # Note: Correct item_id is handled in service or passed here
-        choices_data = select_choices(correct_answer, distractor_pool, num_choices)
         
-        # Patch the correct item_id back into the choices_data if it matches correct_answer
-        for choice in choices_data:
-            if choice['text'] == correct_answer:
-                choice['item_id'] = item_data['item_id']
+        # Prepare correct item data for scoring
+        correct_item_data = {
+            'text': correct_answer,
+            'item_id': item_data['item_id'],
+            'type': content.get('type') or content.get('pos') or '' # Try to find type/pos
+        }
+        
+        # Pass full distractor pool to smart selector
+        # We need to enrich distractor pool with type info for scoring if possible
+        rich_distractor_pool = []
+        for d in distractor_pool:
+            rich_distractor_pool.append({
+                'text': d['text'],
+                'item_id': d['item_id'],
+                'type': d.get('type') # Assuming passed distractor pool might have it, or we extract it
+            })
+
+        # Wait, constructed distractor_pool above only has text and item_id. 
+        # We should update the construction logic above to include type/content if we want "type match" feature.
+        # However, modifying the loops above is also needed.
+        
+        choices_data = select_choices(correct_item_data, distractor_pool, num_choices)
+        
+        # Smart selector returns full choice objects, no need to patch item_id manually 
+        # unless it was missing (but select_smart_choices handles correct item inclusion)
+        
+        choices = [c['text'] for c in choices_data]
+        choice_item_ids = [c.get('item_id') for c in choices_data]
+        correct_index = choices.index(correct_answer) if correct_answer in choices else 0
         
         choices = [c['text'] for c in choices_data]
         choice_item_ids = [c.get('item_id') for c in choices_data]
@@ -79,11 +117,11 @@ class MCQEngine:
         
         return {
             'item_id': item_data['item_id'],
-            'question': question_text,
-            'choices': choices,
+            'question': bbcode_to_html(question_text),
+            'choices': [bbcode_to_html(c) for c in choices],
             'choice_item_ids': choice_item_ids,
             'correct_index': correct_index,
-            'correct_answer': correct_answer,
+            'correct_answer': bbcode_to_html(correct_answer),
             'question_key': question_key,
             'answer_key': answer_key
         }

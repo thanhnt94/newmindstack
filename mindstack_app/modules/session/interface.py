@@ -9,6 +9,16 @@ All cross-module session operations must go through this interface.
 from typing import Optional, List, Union
 from .services.session_service import LearningSessionService
 
+# Re-export driver components for cross-module usage
+from .drivers import (
+    BaseSessionDriver,
+    SessionState,
+    InteractionPayload,
+    SubmissionResult,
+    SessionSummary,
+    DriverRegistry
+)
+
 
 class SessionInterface:
     """Public interface for session module operations."""

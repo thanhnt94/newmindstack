@@ -213,6 +213,19 @@ class FSRSInterface:
         }
 
     @staticmethod
+    def get_learned_item_ids_for_container(container_id: int, user_id: int) -> List[int]:
+        """Get IDs of learned items within a specific container for a user."""
+        from mindstack_app.models import LearningItem
+        from mindstack_app.core.extensions import db
+        return [r[0] for r in db.session.query(ItemMemoryState.item_id).join(
+            LearningItem, LearningItem.item_id == ItemMemoryState.item_id
+        ).filter(
+            LearningItem.container_id == container_id,
+            ItemMemoryState.user_id == user_id,
+            ItemMemoryState.state != 0
+        ).all()]
+
+    @staticmethod
     def get_learned_item_ids(user_id: int) -> List[int]:
         """Get IDs of all items that have been learned (state != 0)."""
         from mindstack_app.core.extensions import db

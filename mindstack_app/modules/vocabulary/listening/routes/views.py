@@ -2,6 +2,7 @@ from flask import render_template, request, redirect, url_for, flash, abort, cur
 from mindstack_app.utils.template_helpers import render_dynamic_template
 from flask_login import login_required, current_user
 from mindstack_app.models import LearningContainer, UserContainerState, LearningItem, db
+from mindstack_app.utils.bbcode_parser import bbcode_to_html
 # REFAC: Remove ItemMemoryState
 from .. import listening_bp as blueprint
 from ..logics.listening_logic import get_listening_items
@@ -68,8 +69,8 @@ def api_get_items(set_id):
             'item_id': item.item_id,
             'audio_url': item.content.get('front_audio_url') or item.content.get('back_audio_url') or '',
             'audio_content': item.content.get('front_audio_content') or item.content.get('back_audio_content') or '',
-            'answer': item.back or item.content.get('back', ''),
-            'prompt': item.front or item.content.get('front', '') # Optional hint
+            'answer': bbcode_to_html(item.back or item.content.get('back', '')),
+            'prompt': bbcode_to_html(item.front or item.content.get('front', '')) # Optional hint
         })
     
     return jsonify({
