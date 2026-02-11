@@ -325,4 +325,11 @@ def mcq_end_session():
             
         return jsonify({'success': True})
     except Exception as e:
+        # [FALLBACK] If load_from_db fails (e.g. corrupt data), FORCE CLEAR
+        try:
+            MCQSessionManager.static_clear_session(current_user.user_id, set_id)
+            return jsonify({'success': True, 'message': 'Session force cleared'})
+        except:
+            pass
+            
         return jsonify({'success': False, 'message': str(e)}), 500

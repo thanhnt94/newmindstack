@@ -58,7 +58,9 @@ class MCQSessionManager:
         from mindstack_app.models import UserContainerState
         ucs = UserContainerState.query.filter_by(user_id=user_id, container_id=set_id).first()
         if ucs and ucs.settings and 'mcq_session_data' in ucs.settings:
-            return cls.from_dict(ucs.settings['mcq_session_data'])
+            data = ucs.settings['mcq_session_data']
+            if data:
+                return cls.from_dict(data)
         return None
 
     def save_to_db(self):
@@ -226,3 +228,28 @@ class MCQSessionManager:
                 safe_commit(db.session)
         except Exception as e:
             print(f"Error clearing MCQ session: {e}")
+
+    @staticmethod
+    def static_clear_session(user_id, set_id):
+        """
+        Statically clears session data. 
+        Useful when load_from_db fails but we still want to clean up.
+        """
+        from mindstack_app.models import UserContainerState, db
+        from mindstack_app.utils.db_session import safe_commit
+        
+        try:
+            ucs = UserContainerState.query.filter_by(user_id=user_id, container_id=set_id).first()
+            if ucs and ucs.settings and 'mcq_session_data' in ucs.settings:
+                new_settings = dict(ucs.settings)
+                del new_settings['mcq_session_data']
+                ucs.settings = new_settings
+                
+                from sqlalchemy.orm.attributes import flag_modified
+                flag_modified(ucs, "settings")
+                
+                safe_commit(db.session)
+                return True
+        except Exception as e:
+            print(f"Error static clearing MCQ session: {e}")
+        return False
