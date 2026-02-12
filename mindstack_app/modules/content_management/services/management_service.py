@@ -213,9 +213,10 @@ class ManagementService:
                     pass
 
     @staticmethod
-    def get_container_content_keys(container_id: int, limit: int = 20) -> List[str]:
+    def get_container_content_keys(container_id: int, limit: int = 50) -> List[str]:
         """
         Scans a sample of items in the container to find all available content keys.
+        Checks both 'content' and 'custom_data' fields.
         Returns a sorted list of unique keys.
         """
         from mindstack_app.models import LearningItem
@@ -229,10 +230,15 @@ class ManagementService:
         keys.add('back')
         
         for item in items:
+            # Scan content JSON
             if item.content and isinstance(item.content, dict):
                 keys.update(item.content.keys())
+            
+            # Scan custom_data JSON
+            if item.custom_data and isinstance(item.custom_data, dict):
+                keys.update(item.custom_data.keys())
         
         # Filter out keys starting with underscores or system keys if needed
-        return sorted([k for k in keys if not k.startswith('_')])
+        return sorted([k for k in keys if k and not str(k).startswith('_')])
 
 
