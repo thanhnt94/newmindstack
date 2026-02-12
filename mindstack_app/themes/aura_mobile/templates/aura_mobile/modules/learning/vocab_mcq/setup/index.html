@@ -433,11 +433,16 @@
 
 <script>
     let currentStep = 1;
+
+    // Initialize config from saved or default settings
+    const saved = {{ saved_settings | tojson if saved_settings else '{}' }};
+    const defaults = {{ default_settings | tojson if default_settings else '{}' }};
+
     let config = {
-        mode: 'all_review',
-        limit: 0, // 0 = all
-        timer: 0,
-        auto_audio: true
+        mode: saved.mode || defaults.mode || 'all_review',
+        count: saved.count !== undefined ? saved.count : (defaults.count !== undefined ? defaults.count : 10),
+        timer: saved.timer || defaults.timer || 0,
+        auto_audio: saved.auto_audio !== undefined ? saved.auto_audio : (defaults.auto_audio !== undefined ? defaults.auto_audio : true)
     };
 
     const modeLabels = {
@@ -512,7 +517,7 @@
                 chip.classList.add('selected');
 
                 if (row.id === 'limit-options') {
-                    config.limit = parseInt(chip.dataset.value);
+                    config.count = parseInt(chip.dataset.value);
                 } else if (chip.dataset.value !== undefined) {
                     // Timer settings
                     config.timer = parseInt(chip.dataset.value);
@@ -543,7 +548,7 @@
         const baseUrl = "{{ url_for('vocab_mcq.mcq_session', set_id=container.container_id) }}";
         const query = new URLSearchParams({
             mode: config.mode,
-            limit: config.limit,
+            count: config.count,
             timer: config.timer,
             auto_audio: config.auto_audio
         });

@@ -630,9 +630,10 @@
         currentSettings.selectable_columns = availableKeys.length > 0 ? [...availableKeys] : ['front', 'back'];
     }
 
-    // Final check for availableKeys to avoid empty UI
-    if (!availableKeys || availableKeys.length === 0) {
-        availableKeys = ['front', 'back'];
+    // Final check for effectiveKeys to avoid empty UI
+    let effectiveKeys = [...availableKeys];
+    if (!effectiveKeys || effectiveKeys.length === 0) {
+        effectiveKeys = ['front', 'back'];
     }
 
     console.log("Initialized currentSettings:", currentSettings);

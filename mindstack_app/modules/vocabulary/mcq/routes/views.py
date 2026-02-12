@@ -81,15 +81,16 @@ def mcq_session(set_id):
     ucs = UserContainerState.query.filter_by(user_id=current_user.user_id, container_id=set_id).first()
     saved_mcq = ucs.settings.get('mcq', {}) if ucs and ucs.settings else {}
 
-    if not saved_mcq and container.settings and container.settings.get('mcq'):
-        default_mcq = container.settings.get('mcq')
-        saved_mcq = default_mcq.copy()
-        if 'pairs' in default_mcq:
-             saved_mcq['custom_pairs'] = default_mcq['pairs']
-
-    mode = request.args.get('mode', saved_mcq.get('mode', 'front_back'))
-    count = request.args.get('count', saved_mcq.get('count', 10), type=int)
-    choices = request.args.get('choices', saved_mcq.get('choices', 0), type=int)
+    # Load defaults from container if not specified in user settings
+    container_mcq = (container.settings or {}).get('mcq', {})
+    
+    # Mode, Count, Choices fallbacks
+    # Note: setup page passes 'limit' instead of 'count' in JS, handle both
+    req_count = request.args.get('count') or request.args.get('limit')
+    count = int(req_count) if req_count is not None else saved_mcq.get('count', container_mcq.get('count', 10))
+    
+    mode = request.args.get('mode', saved_mcq.get('mode', container_mcq.get('mode', 'front_back')))
+    choices = request.args.get('choices', saved_mcq.get('choices', container_mcq.get('choices', 0)), type=int)
     
     custom_pairs = None
     custom_pairs_str = request.args.get('custom_pairs', '')
@@ -98,8 +99,9 @@ def mcq_session(set_id):
             custom_pairs = json.loads(custom_pairs_str)
         except: pass
     
-    if not custom_pairs and 'custom_pairs' in saved_mcq:
-        custom_pairs = saved_mcq['custom_pairs']
+    if not custom_pairs:
+        # User wants it ALWAYS from container. Priority: Container Defaults -> User Saved
+        custom_pairs = container_mcq.get('pairs') or container_mcq.get('custom_pairs') or saved_mcq.get('custom_pairs')
             
     try:
         if not ucs:

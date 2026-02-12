@@ -213,32 +213,44 @@ class ManagementService:
                     pass
 
     @staticmethod
-    def get_container_content_keys(container_id: int, limit: int = 50) -> List[str]:
-        """
+    def get_container_content_keys(container_id: int, limit: int = 100) -> List[str]:
+         """
         Scans a sample of items in the container to find all available content keys.
-        Checks both 'content' and 'custom_data' fields.
+        Checks both 'content' and 'custom_data' fields with robust JSON handling.
         Returns a sorted list of unique keys.
         """
-        from mindstack_app.models import LearningItem
-        
-        # Query a sample of items
-        items = LearningItem.query.filter_by(container_id=container_id).limit(limit).all()
-        
-        keys = set()
-        # Always include defaults
-        keys.add('front')
-        keys.add('back')
-        
-        for item in items:
-            # Scan content JSON
-            if item.content and isinstance(item.content, dict):
-                keys.update(item.content.keys())
-            
-            # Scan custom_data JSON
-            if item.custom_data and isinstance(item.custom_data, dict):
-                keys.update(item.custom_data.keys())
-        
-        # Filter out keys starting with underscores or system keys if needed
-        return sorted([k for k in keys if k and not str(k).startswith('_')])
+         import json
+         from collections.abc import Mapping
+         from mindstack_app.models import LearningItem
+         
+         # 1. Broad sample of items
+         items = LearningItem.query.filter_by(container_id=container_id).limit(limit).all()
+         
+         # 2. Specifically sample items that have custom_data (if none found in broad sample)
+         if not any(item.custom_data for item in items):
+             custom_items = LearningItem.query.filter_by(container_id=container_id).filter(LearningItem.custom_data != None).limit(limit).all()
+             items.extend(custom_items)
+         
+         keys = set()
+         # Always include defaults
+         keys.add('front')
+         keys.add('back')
+         
+         def extract_keys(data):
+             if not data: return
+             # Handle both pre-parsed dicts and raw strings (SQLite fallback)
+             if isinstance(data, str):
+                 try: data = json.loads(data)
+                 except: return
+             
+             if isinstance(data, Mapping):
+                 keys.update(data.keys())
+
+         for item in items:
+             extract_keys(item.content)
+             extract_keys(item.custom_data)
+         
+         # Filter out internal/system keys
+         return sorted([str(k) for k in keys if k and not str(k).startswith('_')])
 
 
