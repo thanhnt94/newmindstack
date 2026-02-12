@@ -207,4 +207,32 @@ class ManagementService:
 
         finally:
             if temp_filepath and os.path.exists(temp_filepath):
-                os.remove(temp_filepath)
+                try:
+                    os.remove(temp_filepath)
+                except:
+                    pass
+
+    @staticmethod
+    def get_container_content_keys(container_id: int, limit: int = 20) -> List[str]:
+        """
+        Scans a sample of items in the container to find all available content keys.
+        Returns a sorted list of unique keys.
+        """
+        from mindstack_app.models import LearningItem
+        
+        # Query a sample of items
+        items = LearningItem.query.filter_by(container_id=container_id).limit(limit).all()
+        
+        keys = set()
+        # Always include defaults
+        keys.add('front')
+        keys.add('back')
+        
+        for item in items:
+            if item.content and isinstance(item.content, dict):
+                keys.update(item.content.keys())
+        
+        # Filter out keys starting with underscores or system keys if needed
+        return sorted([k for k in keys if not k.startswith('_')])
+
+

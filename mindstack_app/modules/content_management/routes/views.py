@@ -224,11 +224,8 @@ def edit_container(container_id):
         if hasattr(form, 'settings') and container.settings:
             form.settings.data = json.dumps(container.settings, ensure_ascii=False)
     
-    # [NEW] Get available keys for column pairing (from existing items)
-    available_keys = ['front', 'back']
-    first_item = LearningItem.query.filter_by(container_id=container_id).first()
-    if first_item and first_item.content:
-        available_keys = list(first_item.content.keys())
+    # [NEW] Get available keys for column pairing (from all items)
+    available_keys = ManagementService.get_container_content_keys(container_id)
     
     if hasattr(form, 'is_public') and current_user.user_role == User.ROLE_FREE:
         form.is_public.data = False
@@ -379,6 +376,8 @@ def list_items(container_id):
     
     pagination = get_pagination_data(base_query.order_by(LearningItem.order_in_container, LearningItem.item_id), page)
     items = pagination.items
+    
+    FlashcardConfigService = FlashcardInterface.get_config_service()
     
     template_vars = {
         'container': container,
