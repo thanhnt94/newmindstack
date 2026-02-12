@@ -217,8 +217,9 @@
             </div>
 
             <!-- Custom Stats Display -->
+            <!-- Custom Stats Display -->
             <div class="mode-stats">
-                {% if mode.id == 'mixed_srs' %}
+                {% if mode.id in ['srs', 'mixed_srs'] %}
                 <span class="stat-badge">
                     <i class="fas fa-clock text-amber-500"></i> {{ mode_counts.get('due', 0) }} đến hạn
                 </span>

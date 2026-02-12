@@ -74,7 +74,23 @@ class FlashcardMode(BaseVocabMode):
         # Assuming current_user is available in context (it usually is for web requests)
         initial_stats = {}
         if current_user and current_user.is_authenticated:
-            initial_stats = FlashcardEngine.get_item_statistics(current_user.user_id, item.get('item_id'))
+            try:
+                initial_stats = FlashcardEngine.get_item_statistics(current_user.user_id, item.get('item_id'))
+                # [DEBUG] Log the stats retrieved
+                print(f" [FMODE] Stats for Item {item.get('item_id')}: Reps={initial_stats.get('repetitions')}, Streak={initial_stats.get('current_streak')}")
+                
+                # [DEBUG] Check directly
+                from mindstack_app.modules.fsrs.interface import FSRSInterface
+                direct_state = FSRSInterface.get_item_state(current_user.user_id, item.get('item_id'))
+                if direct_state:
+                    print(f" [FMODE] DIRECT STATE: Reps={direct_state.repetitions}, Stb={direct_state.stability}")
+                else:
+                    print(f" [FMODE] DIRECT STATE: None")
+                    
+            except Exception as e:
+                print(f" [FMODE] Error fetching stats: {e}")
+        else:
+            print(f" [FMODE] User not authenticated or missing for Item {item.get('item_id')}")
 
         # 4. Construct Final Payload
         return {

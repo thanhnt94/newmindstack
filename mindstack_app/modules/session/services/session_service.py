@@ -10,7 +10,7 @@ class LearningSessionService:
     """
 
     @staticmethod
-    def create_session(user_id, learning_mode, mode_config_id, set_id_data, total_items=0):
+    def create_session(user_id, learning_mode, mode_config_id, set_id_data, total_items=0, item_queue=None):
         """Create a new session in the database."""
         try:
             # [UPDATED] Enforce Single Active Mode Policy for Vocabulary
@@ -34,6 +34,10 @@ class LearningSessionService:
                 )
             # OLD: LearningSessionService.cancel_active_sessions(user_id, learning_mode, set_id_data)
 
+            session_data = {}
+            if item_queue:
+                session_data['item_queue'] = item_queue
+
             new_session = LearningSession(
                 user_id=user_id,
                 learning_mode=learning_mode,
@@ -41,7 +45,8 @@ class LearningSessionService:
                 set_id_data=set_id_data,
                 total_items=total_items,
                 status='active',
-                processed_item_ids=[]
+                processed_item_ids=[],
+                session_data=session_data
             )
             db.session.add(new_session)
             safe_commit(db.session)
@@ -313,6 +318,7 @@ class LearningSessionService:
             mode_config_id=settings.get('mode_config_id', learning_mode),
             set_id_data=container_id,
             total_items=driver_state.total_items,
+            item_queue=driver_state.item_queue,
         )
 
         if db_session is None:

@@ -103,11 +103,24 @@ class FSRSInterface:
         Returns a dictionary mapping item_id -> ItemMemoryState.
         """
         if not item_ids: return {}
-        states = ItemMemoryState.query.filter(
-            ItemMemoryState.user_id == user_id,
-            ItemMemoryState.item_id.in_(item_ids)
-        ).all()
-        return {s.item_id: s for s in states}
+        
+        # SQLite has limit on variables (999 usually). Break into chunks.
+        chunk_size = 500
+        all_states = []
+        import math
+        
+        print(f" [FSRS] Batch Get U:{user_id} IDs:{len(item_ids)} (Chunked)")
+        
+        for i in range(0, len(item_ids), chunk_size):
+            chunk = item_ids[i:i + chunk_size]
+            batch = ItemMemoryState.query.filter(
+                ItemMemoryState.user_id == user_id,
+                ItemMemoryState.item_id.in_(chunk)
+            ).all()
+            all_states.extend(batch)
+            
+        print(f" [FSRS] Batch Get Found Total: {len(all_states)}")
+        return {s.item_id: s for s in all_states}
         
     @staticmethod
     def get_memory_states(user_id: int, item_ids: List[int]) -> Dict[int, ItemMemoryState]:
@@ -177,19 +190,20 @@ class FSRSInterface:
     def get_container_stats(user_id: int, container_id: int) -> Dict[str, Any]:
         """Get FSRS statistics for a specific container."""
         from datetime import datetime, timezone
-        from sqlalchemy import func
+        from sqlalchemy import func, select
         from mindstack_app.core.extensions import db
         from mindstack_app.models import LearningItem
         
         now = datetime.now(timezone.utc)
         
-        item_ids = db.session.query(LearningItem.item_id).filter(
+        # Use explicit select for IN clause to avoid SAWarning
+        item_ids_select = select(LearningItem.item_id).filter(
             LearningItem.container_id == container_id
-        ).subquery()
+        )
         
         base_query = ItemMemoryState.query.filter(
             ItemMemoryState.user_id == user_id,
-            ItemMemoryState.item_id.in_(item_ids)
+            ItemMemoryState.item_id.in_(item_ids_select)
         )
         
         total = base_query.count()
@@ -200,7 +214,7 @@ class FSRSInterface:
             func.avg(ItemMemoryState.stability)
         ).filter(
             ItemMemoryState.user_id == user_id,
-            ItemMemoryState.item_id.in_(item_ids),
+            ItemMemoryState.item_id.in_(item_ids_select),
             ItemMemoryState.state != 0
         ).scalar() or 0.0
         
@@ -211,6 +225,28 @@ class FSRSInterface:
             'mastered': mastered,
             'avg_stability': round(avg_stability, 2)
         }
+
+    @staticmethod
+    def get_learned_item_ids_for_container(container_id: int, user_id: int) -> List[int]:
+        """Get IDs of learned items within a specific container for a user."""
+        from mindstack_app.models import LearningItem
+        from mindstack_app.core.extensions import db
+        return [r[0] for r in db.session.query(ItemMemoryState.item_id).join(
+            LearningItem, LearningItem.item_id == ItemMemoryState.item_id
+        ).filter(
+            LearningItem.container_id == container_id,
+            ItemMemoryState.user_id == user_id,
+            ItemMemoryState.state != 0
+        ).all()]
+
+    @staticmethod
+    def get_learned_item_ids(user_id: int) -> List[int]:
+        """Get IDs of all items that have been learned (state != 0)."""
+        from mindstack_app.core.extensions import db
+        return [r[0] for r in db.session.query(ItemMemoryState.item_id).filter(
+            ItemMemoryState.user_id == user_id,
+            ItemMemoryState.state != 0
+        ).all()]
 
     @staticmethod
     def get_learned_item_ids_for_container(container_id: int, user_id: int) -> List[int]:
@@ -555,6 +591,10 @@ class FSRSInterface:
         from mindstack_app.modules.fsrs.models import ItemMemoryState
         from mindstack_app.models import LearningItem, db
         from datetime import datetime, timezone
+        from flask import current_app
+        
+        current_app.logger.info(f"[FSRS] Apply filter '{filter_type}' User {user_id}")
+        print(f" [FSRS] Apply filter '{filter_type}' User {user_id} (Type: {type(user_id)})")
         
         # Helper to join if not already joined? 
         # QueryBuilder manages joins, but here we assume we can add join or filter directly.
@@ -571,6 +611,13 @@ class FSRSInterface:
             (ItemMemoryState.item_id == LearningItem.item_id) &
             (ItemMemoryState.user_id == user_id)
         )
+        
+        # DEBUG: Print query SQL
+        try:
+            compiled = query.statement.compile(db.session.bind, compile_kwargs={"literal_binds": True})
+            print(f" [FSRS] Query SQL: {compiled}")
+        except Exception as e:
+            print(f" [FSRS] Query SQL (raw): {query}")
         
         now = datetime.now(timezone.utc)
         
@@ -610,13 +657,11 @@ class FSRSInterface:
                 )
             )
         
-        elif filter_type == 'mixed':
-            # Priority 1: Due cards first (R < 90%), shuffled
+        elif filter_type == 'srs' or filter_type == 'mixed':
+            # Priority 1: Due cards first (based on FSRS scheduling), shuffled
             # Priority 2: New cards second (Sequential)
-            is_due = (ItemMemoryState.due_date <= now)
-            is_new = (or_(ItemMemoryState.state_id.is_(None), ItemMemoryState.state == 0))
             
-            # Apply filter (available items only)
+            # Apply filter (available items only: New or Due)
             query = query.filter(
                 or_(
                     ItemMemoryState.state_id.is_(None),
@@ -632,13 +677,11 @@ class FSRSInterface:
             from sqlalchemy import case
             
             # Use explicit CASE for sorting to ensure 1/0 values (handling NULLs from outerjoin)
-            # is_due: 1 if due, 0 otherwise
             is_due_case = case(
-                (ItemMemoryState.due_date <= now, 1),
+                (and_(ItemMemoryState.state != 0, ItemMemoryState.due_date <= now), 1),
                 else_=0
             )
             
-            # is_new: 1 if new (state is None or 0), 0 otherwise
             is_new_case = case(
                 (or_(ItemMemoryState.state_id.is_(None), ItemMemoryState.state == 0), 1),
                 else_=0
@@ -646,9 +689,9 @@ class FSRSInterface:
             
             return query.order_by(
                 is_due_case.desc(),  # Due items (1) first
-                is_new_case.desc(),  # New items (1) second (if not due)
+                is_new_case.desc(),  # New items (1) second (backup if not due)
                 case(
-                    (ItemMemoryState.due_date <= now, func.random()), # Randomize if Due
+                    (and_(ItemMemoryState.state != 0, ItemMemoryState.due_date <= now), func.random()), # Randomize if Due
                     else_=LearningItem.order_in_container # Sequential if New
                 )
             )

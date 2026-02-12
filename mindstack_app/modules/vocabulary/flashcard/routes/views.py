@@ -18,10 +18,6 @@ from .. import flashcard_bp as flashcard_learning_bp
 from ..services.query_builder import FlashcardQueryBuilder
 from ..engine.config import FlashcardLearningConfig
 from ..engine.algorithms import (
-    get_new_only_items,
-    get_due_items,
-    get_hard_items,
-    get_mixed_items,
     get_filtered_flashcard_sets,
     get_flashcard_mode_counts,
     get_accessible_flashcard_set_ids,
@@ -119,24 +115,21 @@ def start_flashcard_session_all(mode):
     accessible_ids = get_accessible_flashcard_set_ids(current_user.user_id)
     qb.filter_by_containers(accessible_ids)
     
-    mode_obj = get_flashcard_mode_by_id(mode)
-    if mode_obj and hasattr(qb, mode_obj.filter_method):
-        getattr(qb, mode_obj.filter_method)()
-    else:
-        qb.filter_mixed()
+    mode = 'srs'
+    qb.filter_srs()
         
     total_items = qb.count()
     if total_items == 0:
         flash('Không có thẻ nào cho chế độ này.', 'warning')
         return redirect(url_for('vocabulary.dashboard'))
 
-    # Create DB Session
-    db_sess = SessionInterface.create_session(
+    # Create DB Session using Driver API
+    from mindstack_app.modules.session.services.session_service import LearningSessionService
+    db_sess, driver_state = LearningSessionService.start_driven_session(
         user_id=current_user.user_id,
+        container_id='all',
         learning_mode='flashcard',
-        mode_config_id=mode,
-        set_id_data='all',
-        total_items=total_items
+        settings={'filter': 'srs', 'mode_config_id': mode}
     )
     
     if db_sess:
@@ -185,23 +178,23 @@ def start_flashcard_session_multi(mode):
     qb = FlashcardQueryBuilder(current_user.user_id)
     qb.filter_by_containers(set_ids)
     
-    mode_obj = get_flashcard_mode_by_id(mode)
-    if mode_obj and hasattr(qb, mode_obj.filter_method):
-        getattr(qb, mode_obj.filter_method)()
-    else:
-        qb.filter_mixed()
+    mode = 'srs'
+    qb.filter_srs()
         
     total_items = qb.count()
     if total_items == 0:
         flash('Không có thẻ nào cho chế độ này.', 'warning')
         return redirect(url_for('vocabulary.dashboard'))
 
-    db_sess = SessionInterface.create_session(
+    # Create DB Session using Driver API
+    from mindstack_app.modules.session.services.session_service import LearningSessionService
+    # For multi-set, use first set as container_id (Driver will handle multi-set)
+    container_id = set_ids[0] if isinstance(set_ids, list) and len(set_ids) > 0 else set_ids
+    db_sess, driver_state = LearningSessionService.start_driven_session(
         user_id=current_user.user_id,
+        container_id=container_id,
         learning_mode='flashcard',
-        mode_config_id=mode,
-        set_id_data=set_ids, # List of ints
-        total_items=total_items
+        settings={'filter': 'srs', 'mode_config_id': mode, 'set_ids': set_ids}
     )
     
     if db_sess:
@@ -254,23 +247,21 @@ def start_flashcard_session_by_id(set_id, mode):
     qb = FlashcardQueryBuilder(current_user.user_id)
     qb.filter_by_containers([set_id])
     
-    mode_obj = get_flashcard_mode_by_id(mode)
-    if mode_obj and hasattr(qb, mode_obj.filter_method):
-        getattr(qb, mode_obj.filter_method)()
-    else:
-        qb.filter_mixed()
+    mode = 'srs'
+    qb.filter_srs()
         
     total_items = qb.count()
     if total_items == 0:
         flash('Không có thẻ nào cho chế độ này.', 'warning')
         return redirect(url_for('vocabulary.dashboard'))
 
-    db_sess = SessionInterface.create_session(
+    # Create DB Session using Driver API
+    from mindstack_app.modules.session.services.session_service import LearningSessionService
+    db_sess, driver_state = LearningSessionService.start_driven_session(
         user_id=current_user.user_id,
+        container_id=set_id,
         learning_mode='flashcard',
-        mode_config_id=mode,
-        set_id_data=set_id, # Int
-        total_items=total_items
+        settings={'filter': 'srs', 'mode_config_id': mode}
     )
     
     if db_sess:
@@ -376,14 +367,8 @@ def flashcard_session(session_id):
 
 
 
-    # [UPDATED v4] Priority: session override > User.last_preferences > session_state > default
-    user_button_count = 4  # Default
-    if 'flashcard_button_count_override' in session:
-        user_button_count = session.get('flashcard_button_count_override')
-    elif current_user.get_flashcard_button_count():
-        user_button_count = current_user.get_flashcard_button_count()
-    elif current_user.session_state:
-        user_button_count = current_user.session_state.flashcard_button_count
+    # [UPDATED] Mandatory 4-button UI for SRS
+    user_button_count = 4
 
     session_data = session.get('flashcard_session', {})
     session_mode = session_data.get('mode')
@@ -429,8 +414,12 @@ def flashcard_session(session_id):
         batch_limit = 1
         initial_batch_data = FlashcardEngine.get_next_batch(
             user_id=current_user.user_id,
-            session_id=session_id,
-            batch_size=batch_limit
+            set_id=session_data.get('set_id'),
+            mode=session_mode,
+            processed_ids=session_data.get('processed_item_ids', []),
+            db_session_id=session_id,
+            batch_size=batch_limit,
+            current_db_item_id=session_data.get('current_item_id')
         )
         if initial_batch_data and 'items' in initial_batch_data:
             initial_batch = initial_batch_data['items']
@@ -470,7 +459,7 @@ def flashcard_setup():
     from mindstack_app.modules.learning.interface import LearningInterface
     
     set_ids_str = request.args.get('sets', '')
-    mode = request.args.get('mode', 'mixed_srs')
+    mode = 'srs'
     context = request.args.get('context', 'vocab')
     
     selected_sets = []
@@ -501,7 +490,7 @@ def flashcard_setup():
             'flashcard_button_count': 3
         }
             
-    # Load Mode Counts
+    # Load Mode Counts (Always SRS for Flashcard)
     set_identifier = set_id if set_id else (selected_sets if selected_sets else 'all')
     mode_counts = get_flashcard_mode_counts(current_user.user_id, set_identifier, context=context)
     
@@ -527,7 +516,7 @@ def start():
     data = request.values or {}
     
     set_ids_str = data.get('set_ids', '')
-    mode = data.get('mode', 'mixed_srs')
+    mode = 'srs'
     
     # Parse set IDs
     if set_ids_str == 'all':
@@ -554,23 +543,29 @@ def start():
         # set_ids is list of ints
         qb.filter_by_containers(set_ids)
         
-    mode_obj = get_flashcard_mode_by_id(mode)
-    if mode_obj and hasattr(qb, mode_obj.filter_method):
-        getattr(qb, mode_obj.filter_method)()
-    else:
-        qb.filter_mixed()
+    # Always use SRS mode logic
+    qb.filter_srs()
         
     total_items = qb.count()
     if total_items == 0:
         flash('Không có thẻ nào.', 'warning')
         return redirect(url_for('vocabulary.dashboard'))
 
-    db_sess = SessionInterface.create_session(
+    # Create DB Session using Driver API
+    from mindstack_app.modules.session.services.session_service import LearningSessionService
+    # Handle 'all' or list of set IDs
+    if set_ids == 'all':
+        container_id = 'all'
+    elif isinstance(set_ids, list) and len(set_ids) > 0:
+        container_id = set_ids[0]
+    else:
+        container_id = set_ids
+    
+    db_sess, driver_state = LearningSessionService.start_driven_session(
         user_id=current_user.user_id,
+        container_id=container_id,
         learning_mode='flashcard',
-        mode_config_id=mode,
-        set_id_data=set_ids,
-        total_items=total_items
+        settings={'filter': 'srs', 'mode_config_id': mode, 'set_ids': set_ids if set_ids != 'all' else None}
     )
     
     if db_sess:

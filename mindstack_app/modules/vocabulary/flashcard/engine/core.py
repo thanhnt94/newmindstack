@@ -275,6 +275,10 @@ class FlashcardEngine:
         """
         # REFAC: Use FSRSInterface
         state_record = FSRSInterface.get_item_state(user_id, item_id)
+        if state_record:
+            print(f" [ENGINE] Stats for U{user_id} I{item_id}: Reps={state_record.repetitions} State={state_record.state}")
+        else:
+            print(f" [ENGINE] Stats for U{user_id} I{item_id}: NO RECORD FOUND")
         
         base_stats = {
             'times_reviewed': 0, 'correct_count': 0, 'incorrect_count': 0, 'vague_count': 0,

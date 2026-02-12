@@ -356,20 +356,10 @@ def api_submit_flashcard_answer():
                 ucs.last_accessed = func.now()
         safe_commit(db.session)
 
-    # 2. Determine Quality
-    user_button_count = 4
-    if 'flashcard_button_count_override' in session:
-        user_button_count = session.get('flashcard_button_count_override')
-    elif current_user.get_flashcard_button_count():
-        user_button_count = current_user.get_flashcard_button_count()
-
+    # [UPDATED] Mandatory 4-button UI for SRS
+    user_answer_quality = 3 # Default Good
     normalized_answer = str(user_answer).lower()
-    quality_map = {}
-    if user_button_count == 3:
-        quality_map = {'quên': 1, 'mơ_hồ': 2, 'nhớ': 3}
-    elif user_button_count == 4:
-        quality_map = {'again': 1, 'hard': 2, 'good': 3, 'easy': 4}
-    
+    quality_map = {'again': 1, 'hard': 2, 'good': 3, 'easy': 4}
     user_answer_quality = quality_map.get(normalized_answer, 3)
     duration_ms = data.get('duration_ms', 0)
     
@@ -467,6 +457,7 @@ def api_save_flashcard_settings():
         update_payload['flashcard'].update(visual_settings)
         session['flashcard_visual_settings'] = visual_settings
 
+    settings = {}
     for sid in target_set_ids:
         if isinstance(sid, int):
             # REFAC: Use Interface

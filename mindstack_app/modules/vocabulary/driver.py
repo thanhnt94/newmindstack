@@ -19,7 +19,7 @@ mode name.
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union
 
 from mindstack_app.modules.session.interface import (
     BaseSessionDriver,
@@ -44,7 +44,7 @@ class VocabularyDriver(BaseSessionDriver):
 
     def initialize_session(
         self,
-        container_id: int,
+        container_id: Union[int, str],
         user_id: int,
         settings: Dict[str, Any],
     ) -> SessionState:
@@ -52,25 +52,90 @@ class VocabularyDriver(BaseSessionDriver):
         Build the item queue for a vocabulary session.
 
         Steps:
-        1. Load all items belonging to *container_id*.
+        1. Load all items belonging to *container_id* (or multiple containers).
         2. (Optionally) apply FSRS-based filtering via settings['filter'].
         3. Return a ``SessionState`` ready for iteration.
         """
         from mindstack_app.models import LearningItem
+        from .flashcard.engine.algorithms import get_accessible_flashcard_set_ids
+        from flask import current_app
 
         mode = settings.get('mode', 'flashcard')
+        current_app.logger.info(f"[VOCAB_DRIVER] Init Session U:{user_id} C:{container_id} Settings:{settings}")
+        print(f" [VOCAB_DRIVER] Init Session U:{user_id} C:{container_id} Settings:{settings}")
 
-        # 1. Load items
-        items_query = LearningItem.query.filter_by(
-            container_id=container_id
-        ).order_by(LearningItem.order_in_container.asc())
+        # 1. Load items - handle 'all', single ID, or multi-set
+        set_ids_override = settings.get('set_ids')
+        
+        if container_id == 'all' or set_ids_override == 'all':
+            # Load all accessible sets for this user
+            accessible_ids = get_accessible_flashcard_set_ids(user_id)
+            items_query = LearningItem.query.filter(
+                LearningItem.container_id.in_(accessible_ids)
+            )
+            # Use first container as representative ID
+            container_id = accessible_ids[0] if accessible_ids else 0
+        elif set_ids_override and isinstance(set_ids_override, list):
+            # Multi-set scenario
+            items_query = LearningItem.query.filter(
+                LearningItem.container_id.in_(set_ids_override)
+            )
+        else:
+            # Single container
+            items_query = LearningItem.query.filter_by(
+                container_id=container_id
+            )
 
-        item_ids: List[int] = [i.item_id for i in items_query.all()]
-
-        # 2. Apply FSRS filter if requested
-        fsrs_filter = settings.get('filter')  # e.g. 'due', 'new', 'mixed'
-        if fsrs_filter:
-            item_ids = self._apply_fsrs_filter(user_id, item_ids, fsrs_filter)
+        # 2. Apply FSRS filter if requested (DB Level)
+        fsrs_filter = settings.get('filter')  # e.g. 'due', 'new', 'mixed', 'srs'
+        
+        if fsrs_filter in ['srs', 'mixed', 'mixed_srs']:
+            current_app.logger.info(f"[VOCAB_DRIVER] Applying Split Limit for {fsrs_filter}")
+            print(f" [VOCAB_DRIVER] Applying Split Limit for {fsrs_filter}")
+            from mindstack_app.modules.fsrs.interface import FSRSInterface
+            
+            # Base query is `items_query`
+            
+            # 1. Due Items (Unlimited)
+            q_due = items_query
+            q_due = FSRSInterface.apply_memory_filter(q_due, user_id, 'due')
+            due_ids = [i.item_id for i in q_due.all()]
+            
+            # 2. New Items (Limit 20)
+            new_limit = settings.get('new_limit', 20)
+            q_new = items_query
+            q_new = FSRSInterface.apply_memory_filter(q_new, user_id, 'new')
+            q_new = q_new.limit(new_limit)
+            new_ids = [i.item_id for i in q_new.all()]
+            
+            item_ids = due_ids + new_ids
+            current_app.logger.info(f"[VOCAB_DRIVER] Split Load: {len(due_ids)} Due + {len(new_ids)} New (Limit {new_limit})")
+            print(f" [VOCAB_DRIVER] Split Load: {len(due_ids)} Due + {len(new_ids)} New (Limit {new_limit})")
+            print(f" [VOCAB_DRIVER] Due IDs (first 10): {due_ids[:10]}")
+            print(f" [VOCAB_DRIVER] New IDs (first 10): {new_ids[:10]}")
+            
+            if 2640 in item_ids:
+                print(f" [VOCAB_DRIVER] !!! CRITICAL: Item 2640 FOUND in queue!")
+                if 2640 in due_ids: print("   -> It is in DUE list.")
+                if 2640 in new_ids: print("   -> It is in NEW list.")
+            else:
+                print(f" [VOCAB_DRIVER] Item 2640 NOT in queue (Correct).")
+            
+        elif fsrs_filter:
+            current_app.logger.info(f"[VOCAB_DRIVER] Applying DB Filter: {fsrs_filter}")
+            print(f" [VOCAB_DRIVER] Applying DB Filter: {fsrs_filter}")
+            from mindstack_app.modules.fsrs.interface import FSRSInterface
+            items_query = FSRSInterface.apply_memory_filter(items_query, user_id, fsrs_filter)
+            item_ids = [i.item_id for i in items_query.all()]
+        else:
+            # Default sort if no filter
+            print(f" [VOCAB_DRIVER] NO FILTER SET! Using default sequential sort.")
+            items_query = items_query.order_by(LearningItem.container_id.asc(), LearningItem.order_in_container.asc())
+            item_ids = [i.item_id for i in items_query.all()]
+            if 2640 in item_ids: print(f" [VOCAB_DRIVER] Item 2640 found in unfiltered sequential list.")
+        
+        current_app.logger.info(f"[VOCAB_DRIVER] Optimized Session Init: {len(item_ids)} items loaded.")
+        print(f" [VOCAB_DRIVER] Optimized Session Init: {len(item_ids)} items loaded.")
 
         # 3. Build state
         state = SessionState(
@@ -149,6 +214,10 @@ class VocabularyDriver(BaseSessionDriver):
         """
         Grade the submission, update FSRS, and mutate session state.
         """
+        from flask import current_app
+        current_app.logger.info(f"[VOCAB_DRIVER] Processing submission User {state.user_id} Item {item_id} Input {user_input}")
+        print(f" [VOCAB_DRIVER] Processing submission User {state.user_id} Item {item_id} Input {user_input}")
+
         # 1. Load item
         item_data = self._load_item_data(item_id)
 
@@ -172,26 +241,45 @@ class VocabularyDriver(BaseSessionDriver):
                 mode=state.mode,
                 container_id=state.container_id,
             )
-
-            srs_update = {
-                'next_due': srs_result.next_review.isoformat() if srs_result.next_review else None,
-                'interval': srs_result.interval_minutes,
-                'stability': srs_result.stability,
-            }
+            current_app.logger.info(f"[VOCAB_DRIVER] FSRS Update Success: Stb={srs_result.stability}, Due={srs_result.next_review}")
+            print(f" [VOCAB_DRIVER] FSRS Update Success: Stb={srs_result.stability}, Due={srs_result.next_review}")
 
             # Fetch full item statistics for the HUD (the JS expects
-            # correct_count, difficulty, retrievability, etc.)
+            # correct_count, difficulty, retrievability, repetitions, etc.)
             try:
                 from .flashcard.engine.core import FlashcardEngine
                 full_stats = FlashcardEngine.get_item_statistics(
                     state.user_id, item_id
                 )
-                srs_update.update(full_stats)
-            except Exception:
-                pass
-        except Exception:
-            # FSRS failure should not block the session
-            pass
+                
+                # Build srs_update with all necessary metrics
+                srs_update = {
+                    'next_due': srs_result.next_review.isoformat() if srs_result.next_review else None,
+                    'interval': srs_result.interval_minutes,
+                    'stability': full_stats.get('stability', srs_result.stability),
+                    'difficulty': full_stats.get('difficulty', srs_result.difficulty),
+                    'retrievability': full_stats.get('retrievability', 0),
+                    'repetitions': full_stats.get('repetitions', 0),
+                    'times_reviewed': full_stats.get('times_reviewed', 0),
+                    'current_streak': full_stats.get('current_streak', 0),
+                    'status': full_stats.get('status', 'new'),
+                }
+            except Exception as e:
+                current_app.logger.error(f"[VOCAB_DRIVER] Error fetching stats: {e}")
+                print(f" [VOCAB_DRIVER] Error fetching stats: {e}")
+                # Fallback to basic SRS result if stats fetch fails
+                srs_update = {
+                    'next_due': srs_result.next_review.isoformat() if srs_result.next_review else None,
+                    'interval': srs_result.interval_minutes,
+                    'stability': srs_result.stability,
+                    'difficulty': srs_result.difficulty,
+                    'retrievability': 0,
+                    'repetitions': 0,
+                }
+        except Exception as e:
+            # FSRS failure should be logged
+            current_app.logger.error(f"[VOCAB_DRIVER] FSRS Update FAILED: {e}", exc_info=True)
+            print(f" [VOCAB_DRIVER] FSRS Update FAILED: {e}")
 
         # 4. Mutate state
         if item_id not in state.processed_ids:
@@ -283,65 +371,4 @@ class VocabularyDriver(BaseSessionDriver):
             for i in items
         ]
 
-    @staticmethod
-    def _apply_fsrs_filter(
-        user_id: int,
-        item_ids: List[int],
-        filter_type: str,
-    ) -> List[int]:
-        """
-        Filter and reorder item IDs based on FSRS memory state.
 
-        Supported filters: 'due', 'new', 'mixed', 'hard'.
-        Falls back to the original order if the filter is unknown.
-        """
-        from datetime import datetime, timezone
-        from mindstack_app.modules.fsrs.interface import FSRSInterface
-
-        if not item_ids:
-            return []
-
-        states = FSRSInterface.batch_get_memory_states(user_id, item_ids)
-        now = datetime.now(timezone.utc)
-
-        if filter_type == 'due':
-            return [
-                iid for iid in item_ids
-                if iid in states
-                and states[iid].state != 0
-                and states[iid].due_date
-                and states[iid].due_date <= now
-            ]
-
-        elif filter_type == 'new':
-            return [
-                iid for iid in item_ids
-                if iid not in states or states[iid].state == 0
-            ]
-
-        elif filter_type == 'hard':
-            return [
-                iid for iid in item_ids
-                if iid in states and states[iid].difficulty >= 7.0
-            ]
-
-        elif filter_type == 'mixed':
-            # Due items first (shuffled), then new items (sequential)
-            import random
-
-            due = [
-                iid for iid in item_ids
-                if iid in states
-                and states[iid].state != 0
-                and states[iid].due_date
-                and states[iid].due_date <= now
-            ]
-            new = [
-                iid for iid in item_ids
-                if iid not in states or states[iid].state == 0
-            ]
-            random.shuffle(due)
-            return due + new
-
-        # Fallback: return as-is
-        return item_ids

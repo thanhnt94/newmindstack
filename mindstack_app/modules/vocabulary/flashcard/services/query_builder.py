@@ -48,6 +48,11 @@ class FlashcardQueryBuilder:
         self._query = FsrsInterface.apply_memory_filter(self._query, self.user_id, 'available')
         return self
 
+    def filter_srs(self):
+        """Unified SRS mode: Prioritize Due items, then New items."""
+        self._query = FsrsInterface.apply_memory_filter(self._query, self.user_id, 'srs')
+        return self
+
     def filter_mixed(self):
         """Smart mix of Due & New items."""
         self._query = FsrsInterface.apply_memory_filter(self._query, self.user_id, 'mixed')

@@ -900,6 +900,12 @@
         setText('.js-card-streak', stats.current_streak || 0);
         setText('.js-card-overlay-streak', stats.current_streak || 0);
 
+        // Update repetitions (FSRS reps count)
+        if (stats.repetitions !== undefined) {
+            setText('.js-card-repetitions', stats.repetitions || 0);
+            setText('.js-card-overlay-repetitions', stats.repetitions || 0);
+        }
+
         // Update FSRS metrics (Stability, Difficulty, Retrievability)
         const sVal = stats.stability !== undefined ? parseFloat(stats.stability).toFixed(1) : '0';
         setText('.js-card-overlay-stability', (sVal === '0.0' || sVal === '0.00') ? '0' : sVal);

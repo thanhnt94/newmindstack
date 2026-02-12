@@ -68,11 +68,17 @@ def api_get_active_sessions():
                 if resume_url == '#':
                      resume_url = safe_url_for('vocabulary.listening_session_page')
             elif mode == 'matching':
-                resume_url = safe_url_for('vocab_matching.matching_session_page', set_id=s.set_id_data)
+                sid = s.set_id_data
+                if isinstance(sid, list): sid = sid[0] if sid else 0
+                resume_url = safe_url_for('vocab_matching.matching_session_page', set_id=sid)
             elif mode == 'mcq':
-                resume_url = safe_url_for('vocab_mcq.mcq_session', set_id=s.set_id_data)
+                sid = s.set_id_data
+                if isinstance(sid, list): sid = sid[0] if sid else 0
+                resume_url = safe_url_for('vocab_mcq.mcq_session', set_id=sid)
             elif mode == 'speed':
-                resume_url = safe_url_for('vocab_speed.speed_session_page', set_id=s.set_id_data)
+                sid = s.set_id_data
+                if isinstance(sid, list): sid = sid[0] if sid else 0
+                resume_url = safe_url_for('vocab_speed.speed_session_page', set_id=sid)
             else:
                 # Default to Flashcard
                 resume_url = safe_url_for('vocab_flashcard.flashcard_session', session_id=s.session_id)
@@ -108,10 +114,14 @@ def check_active_vocab_session(set_id):
                 resume_url = safe_url_for('vocab_typing.typing_session_page')
             elif mode == 'listening': 
                 resume_url = safe_url_for('vocab_listening.listening_session_page')
-            elif mode == 'matching': 
-                resume_url = safe_url_for('vocab_matching.matching_session_page', set_id=set_id)
-            elif mode == 'speed': 
-                resume_url = safe_url_for('vocab_speed.speed_session_page', set_id=set_id)
+            elif mode == 'matching':
+                sid = set_id
+                if isinstance(sid, list): sid = sid[0] if sid else 0
+                resume_url = safe_url_for('vocab_matching.matching_session_page', set_id=sid)
+            elif mode == 'speed':
+                sid = set_id
+                if isinstance(sid, list): sid = sid[0] if sid else 0
+                resume_url = safe_url_for('vocab_speed.speed_session_page', set_id=sid)
             
             mode_names = {
                 'flashcard': 'Flashcard', 
@@ -242,14 +252,29 @@ def api_get_next_interaction(session_id):
         # Resolve driver
         driver = DriverRegistry.resolve(session.learning_mode)
 
+        # [FIX] Ensure we get fresh data (stats) from DB
+        from mindstack_app.core.extensions import db
+        db.session.expire_all()
+
         # Rebuild state from DB
         container_id = session.set_id_data if isinstance(session.set_id_data, int) else 0
         from mindstack_app.models import LearningItem
-        all_item_ids = [
-            i.item_id for i in
-            LearningItem.query.filter_by(container_id=container_id)
-            .order_by(LearningItem.order_in_container.asc()).all()
-        ]
+        
+        # [FIX] Try to load persisted queue first
+        stored_queue = None
+        if session.session_data and isinstance(session.session_data, dict):
+            stored_queue = session.session_data.get('item_queue')
+            
+        if stored_queue:
+            current_app.logger.info(f"[SESSION_API] Using persisted queue of length {len(stored_queue)}")
+            all_item_ids = stored_queue
+        else:
+            current_app.logger.warning(f"[SESSION_API] No persisted queue found. Loading ALL items (legacy).")
+            all_item_ids = [
+                i.item_id for i in
+                LearningItem.query.filter_by(container_id=container_id)
+                .order_by(LearningItem.order_in_container.asc()).all()
+            ]
 
         state = SessionState(
             user_id=session.user_id,
@@ -273,7 +298,14 @@ def api_get_next_interaction(session_id):
             return jsonify({'finished': True, 'summary': dataclasses.asdict(summary)})
 
         import dataclasses
-        return jsonify(dataclasses.asdict(payload))
+        resp_data = dataclasses.asdict(payload)
+        
+        # [DEBUG] Log the stats in the payload
+        if 'data' in resp_data and 'initial_stats' in resp_data['data']:
+            stats = resp_data['data']['initial_stats']
+            current_app.logger.info(f"[API] Next Item {resp_data['item_id']} Stats: Reps={stats.get('repetitions')}, Streak={stats.get('current_streak')}")
+            
+        return jsonify(resp_data)
 
     except KeyError as e:
         return jsonify({'error': f'Driver not available: {e}'}), 422

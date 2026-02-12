@@ -302,6 +302,12 @@ MỤC ĐÍCH: Giao diện thống kê phiên học tối ưu cho Mobile (App-lik
             window.currentUserTotalScoreInit = _currentUserTotalScore;
             window.sessionScore = 0;
 
+            // [CRITICAL] Activate Driver API if we have a DB session ID
+            if (_dbSessionId && window.setDriverSessionId) {
+                window.setDriverSessionId(_dbSessionId);
+                console.log('[Session Init] Driver API activated with session ID:', _dbSessionId);
+            }
+
             // Global Exit Modal Logic for Flashcard
             window.showExitModal = function () {
                 const exitModal = document.getElementById('exit-confirm-modal');

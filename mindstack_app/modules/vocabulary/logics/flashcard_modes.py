@@ -5,20 +5,12 @@ FlashcardMode = FlashcardInterface.get_flashcard_mode_class()
 
 VOCAB_MODES = [
     FlashcardMode(
-        id='mixed_srs',
-        label='Học tập',
+        id='srs',
+        label='Học tập (SRS)',
         icon='fa-brain',
         color='emerald',
-        filter_method='filter_mixed',
-        description='Ưu tiên thẻ cần ôn tập (ngẫu nhiên), sau đó đến thẻ mới.'
-    ),
-    FlashcardMode(
-        id='all_review',
-        label='Ôn tập',
-        icon='fa-rotate',
-        color='blue',
-        filter_method='filter_all_review',
-        description='Ôn lại tất cả các từ đã học (ngẫu nhiên).'
+        filter_method='filter_srs',
+        description='Học tập theo thuật toán FSRS: Ưu tiên thẻ đến hạn, sau đó đến thẻ mới.'
     )
 ]
 
