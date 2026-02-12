@@ -63,8 +63,10 @@
                         </div>
                     </div>
 
-                    {# Top-Right: Stats Detail Button #}
-                    <div class="absolute top-3 right-3 pointer-events-auto z-30">
+                    {# Top-Right: Stats Detail Button & Item ID #}
+                    <div class="absolute top-3 right-3 pointer-events-auto z-30 flex items-center gap-2">
+                        <span
+                            class="js-card-overlay-item-id bg-slate-900/40 backdrop-blur-sm text-white/90 text-[10px] px-2 py-1 rounded-lg font-mono tracking-wider opacity-0 transition-opacity duration-300">#0</span>
                         <button
                             class="js-fc-stats-detail-overlay w-10 h-10 rounded-full bg-indigo-600/90 backdrop-blur-sm text-white flex items-center justify-center hover:bg-indigo-700 transition-all shadow-lg hover:scale-110"
                             title="Chi tiết thống kê">

@@ -199,23 +199,26 @@
     /**
      * Auto-shrink/expand text to fit container width
      */
-    window.adjustTitleFontSize = function() {
+    window.adjustTitleFontSize = function () {
         const titleEl = document.querySelector('.js-fc-title');
         if (!titleEl) return;
 
-        // Start from a reasonable size
-        let currentSize = 20; 
-        titleEl.style.fontSize = currentSize + 'px';
-        
-        // Allowed height for the title view container
-        // 34px is tight enough to force shrink if it wraps too much
-        const maxHeight = 34; 
-        
-        // Loop to shrink until it fits or reaches minimum
-        while (titleEl.scrollHeight > maxHeight && currentSize > 11) {
-            currentSize -= 0.5;
+        // Reset to default before measuring
+        titleEl.style.fontSize = '';
+
+        // Use a small timeout to let the browser compute the new width/layout
+        setTimeout(() => {
+            let currentSize = 20;
             titleEl.style.fontSize = currentSize + 'px';
-        }
+
+            const maxHeight = 34;
+
+            // Loop to shrink until it fits or reaches minimum
+            while (titleEl.scrollHeight > maxHeight && currentSize > 11) {
+                currentSize -= 0.5;
+                titleEl.style.fontSize = currentSize + 'px';
+            }
+        }, 10);
     };
 
     // Run font adjustment whenever the title might have changed or window resized

@@ -731,12 +731,26 @@ function renderCard(data) {
 
     applyMediaVisibility();
 
+    // [NEW] Update Item ID Overlay
+    const overlayIdEl = document.querySelector('.js-card-overlay-item-id');
+    if (overlayIdEl) {
+        overlayIdEl.textContent = '#' + itemId;
+        overlayIdEl.style.opacity = '1';
+    }
+
     // RPG HUD Update: Ensure "THẺ NÀY" stats are shown for the new card
     if (initialStats) {
         window.updateCardHudStats(initialStats);
     }
 
-    setTimeout(adjustCardLayout, 0);
+    setTimeout(() => {
+        adjustCardLayout();
+        // Also trigger title resize just in case
+        if (window.adjustTitleFontSize) window.adjustTitleFontSize();
+    }, 50);
+
+    // Run again after a bit more time to handle slower renders
+    setTimeout(adjustCardLayout, 300);
 
     // [UX-FIX] Only play audio immediately if NOT waiting for notification to complete
     // When notification is active, the notificationComplete handler will trigger audio
