@@ -519,37 +519,35 @@ function renderCard(data) {
         }
     }
 
-    const renderOptions = {
-        itemId, setId, fTxt, bTxt, cardCategory,
-        isMediaHidden, isAudioAutoplayEnabled: window.isAudioAutoplayEnabled,
-        hasFrontAudio, hasBackAudio,
-        buttonsHtml, buttonCount,
-        frontImg: c.front_img,
-        backImg: c.back_img,
-        frontAudioUrl: c.front_audio_url,
-        backAudioUrl: c.back_audio_url,
-        frontAudioContent: c.front_audio_content,
-        backAudioContent: c.back_audio_content,
-        canEditCurrentCard,
-        editUrl
-    };
-
-    // Unified Mobile Rendering
-    let mobileHtml = "";
-
-    if (window.renderCardHtml) {
-        mobileHtml = window.renderCardHtml(data, renderOptions);
-    } else {
-        console.error("renderCardHtml function not found!");
-        return;
-    }
+    // Unified Mobile Rendering (Backend-Driven) [Refactor - Thin Client]
+    const mobileHtml = data.html_full;
 
     if (!mobileHtml) {
-        console.error("renderCardHtml returned empty content!");
-        return;
+        console.error("Backend did not provide pre-rendered HTML (html_full)!");
+        // Fallback to legacy if still available, or fail
+        if (window.renderCardHtml) {
+            console.warn("Falling back to legacy client-side rendering");
+            const renderOptions = {
+                itemId, setId, fTxt, bTxt, cardCategory,
+                isMediaHidden, isAudioAutoplayEnabled: window.isAudioAutoplayEnabled,
+                hasFrontAudio, hasBackAudio,
+                buttonsHtml, buttonCount,
+                frontImg: c.front_img,
+                backImg: c.back_img,
+                frontAudioUrl: c.front_audio_url,
+                backAudioUrl: c.back_audio_url,
+                frontAudioContent: c.front_audio_content,
+                backAudioContent: c.back_audio_content,
+                canEditCurrentCard,
+                editUrl: data.edit_url || ""
+            };
+            setFlashcardContent(window.renderCardHtml(data, renderOptions));
+        } else {
+            return;
+        }
+    } else {
+        setFlashcardContent(mobileHtml);
     }
-
-    setFlashcardContent(mobileHtml);
 
     // Explicitly update buttons state
     const btns = document.querySelectorAll('.audio-autoplay-toggle-btn');
@@ -1001,8 +999,6 @@ function renderCardStatsHtml(stats, scoreChange = 0, cardContent = {}, isInitial
     const correctRateDisplay = typeof stats.correct_rate === 'number' ? Math.round(stats.correct_rate) : correctPercentDisplay;
     const repetitions = Number(stats.repetitions) || 0;
     const easinessFactor = typeof stats.easiness_factor === 'number' ? Number(stats.easiness_factor).toFixed(2) : '—';
-    const currentStreak = Number(stats.current_streak) || 0;
-    const longestStreak = Number(stats.longest_streak) || 0;
     const recentReviews = Array.isArray(stats.recent_reviews) ? [...stats.recent_reviews].slice(-10).reverse() : [];
     const recentReviewConfig = {
         'correct': { label: 'Nhớ', icon: 'fas fa-check-circle' },
@@ -1091,16 +1087,7 @@ function renderCardStatsHtml(stats, scoreChange = 0, cardContent = {}, isInitial
                     <span class="insight-card__value">${totalReviews}</span>
                     <span class="insight-card__muted">${previewCount > 0 ? `${previewCount} lần xem thử` : 'Chưa xem trước'}</span>
                 </div>
-                <div class="insight-card">
-                    <span class="insight-card__label">Chuỗi hiện tại</span>
-                    <span class="insight-card__value">${currentStreak}</span>
-                    <span class="insight-card__muted">${currentStreak > 0 ? 'Lượt đúng liên tiếp' : 'Chưa có chuỗi'}</span>
-                </div>
-                <div class="insight-card">
-                    <span class="insight-card__label">Chuỗi dài nhất</span>
-                    <span class="insight-card__value">${longestStreak}</span>
-                    <span class="insight-card__muted">${longestStreak > 0 ? 'Kỷ lục ghi nhớ' : 'Chưa xác định'}</span>
-                </div>
+
             </div>
         </div>
     `;
@@ -1206,7 +1193,6 @@ function renderMobileCardStatsHtml(stats, scoreChange = 0, cardContent = {}, isI
     const correctRate = totalReviews > 0 ? Math.round((correctCount / totalReviews) * 100) : 0;
     const nextReview = formatDateTime(stats.next_review, 'Sẵn sàng');
     const statusLabel = (stats.status || 'New').toString().toUpperCase();
-    const streak = stats.current_streak || 0;
     const ef = Number(stats.easiness_factor || 2.5).toFixed(2);
 
     // Status Colors
@@ -1282,10 +1268,7 @@ function renderMobileCardStatsHtml(stats, scoreChange = 0, cardContent = {}, isI
 
             <!-- Metrics Grid -->
             <div class="grid grid-cols-2 gap-3 mb-6">
-                <div class="bg-slate-50 p-3 rounded-2xl flex flex-col items-center justify-center text-center">
-                    <span class="text-[10px] uppercase font-bold text-slate-400 mb-1">Chuỗi</span>
-                    <span class="text-lg font-black text-slate-700">${streak}</span>
-                </div>
+
                 <div class="bg-slate-50 p-3 rounded-2xl flex flex-col items-center justify-center text-center">
                     <span class="text-[10px] uppercase font-bold text-slate-400 mb-1">Lượt ôn</span>
                     <span class="text-lg font-black text-slate-700">${totalReviews}</span>
@@ -1637,19 +1620,23 @@ Object.defineProperty(window, 'flashcardSessionStats', {
 window.updateCardHudStats = function (stats) {
     if (!stats) return;
 
-    // SRS metrics (Memory Score) removed as per user request
-
     // 2. Correct Count for this card
-    const correctEls = document.querySelectorAll('.js-fc-card-right');
-    correctEls.forEach(el => {
-        el.textContent = stats.correct_count || 0;
-    });
+    if (stats.correct_count !== undefined) {
+        const correctEls = document.querySelectorAll('.js-fc-card-right');
+        correctEls.forEach(el => {
+            el.textContent = stats.correct_count || 0;
+        });
+    }
 
     // 3. Incorrect Count for this card
-    const incorrectEls = document.querySelectorAll('.js-fc-card-wrong');
-    incorrectEls.forEach(el => {
-        el.textContent = (stats.incorrect_count || 0) + (stats.vague_count || 0);
-    });
+    if (stats.incorrect_count !== undefined || stats.vague_count !== undefined) {
+        const incorrectEls = document.querySelectorAll('.js-fc-card-wrong');
+        incorrectEls.forEach(el => {
+            const inc = stats.incorrect_count || 0;
+            const vag = stats.vague_count || 0;
+            el.textContent = inc + vag;
+        });
+    }
 };
 // --- Marker Interactions (Difficult, Ignore, Favorite) ---
 

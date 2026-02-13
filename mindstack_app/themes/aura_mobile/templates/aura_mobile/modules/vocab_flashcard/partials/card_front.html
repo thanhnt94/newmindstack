@@ -1,0 +1,23 @@
+{# Partial: card_front.html #}
+<div
+    class="face front {{ 'display-center' if item.front_align == 'center' else '' }} {{ 'force-bold-override' if item.force_bold_front else '' }}">
+    {% include 'aura_mobile/modules/vocab_flashcard/partials/toolbar.html' with context %}
+    {% set label = "MẶT TRƯỚC" %}
+    {% set side = "front" %}
+
+    <div class="_card-container">
+        <div class="text-area">
+            <div class="flashcard-content-text">{{ item.front_text | safe }}</div>
+        </div>
+        {% if item.front_image %}
+        <div class="media-container">
+            <img src="{{ item.front_image }}" alt="Mặt trước"
+                onerror="this.onerror=null;this.src='https://placehold.co/200x120?text=Image+not+found';">
+        </div>
+        {% endif %}
+        <audio id="front-audio-mobile" class="hidden" src="{{ item.front_audio_url or '' }}"></audio>
+    </div>
+    <div class="flip-btn-container">
+        <button class="js-flip-card-btn flip-card-btn"><i class="fas fa-sync-alt mr-2"></i>Lật thẻ</button>
+    </div>
+</div>

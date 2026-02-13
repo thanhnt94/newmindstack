@@ -69,12 +69,18 @@ class FSRSEngine:
 
     def get_realtime_retention(self, card_state: CardStateDTO, now: datetime.datetime) -> float:
         """Calculate current retention probability."""
-        if card_state.state == CardStateEnum.NEW or card_state.reps == 0:
+        # A NEW card always has 0 retrievability until first review
+        if card_state.state == CardStateEnum.NEW:
             return 0.0
+
+        # If we have no stability, it's effectively 100% if seen once, or 0% if new
         if card_state.stability <= 0:
-            return 1.0
+            return 1.0 if card_state.reps > 0 else 0.0
+
         if not card_state.last_review:
-            return 0.0 if card_state.reps == 0 else 1.0
+            # If no last review, we can't calculate decay. 
+            # If it's not NEW, assume it was just seen to avoid 0% shock.
+            return 1.0
             
         last_review = card_state.last_review
         if last_review.tzinfo is None:

@@ -1,0 +1,44 @@
+{# Partial: toolbar.html #}
+<div class="card-toolbar">
+    <div class="toolbar-left">
+        <button class="icon-btn open-stats-modal-btn"><i class="fas fa-bars"></i></button>
+        <button class="icon-btn open-ai-modal-btn" data-item-id="{{ item.id }}"><i class="fas fa-robot"></i></button>
+        <button class="icon-btn open-note-panel-btn" data-item-id="{{ item.id }}"><i
+                class="fas fa-sticky-note"></i></button>
+    </div>
+    <span class="label">{{ label }}</span>
+    <div class="toolbar-right">
+        {% set audio_id = "front-audio-mobile" if side == "front" else "back-audio-mobile" %}
+        {% set has_audio = item.has_front_audio if side == "front" else item.has_back_audio %}
+        {% set audio_content = item.front_audio_content if side == "front" else item.back_audio_content %}
+
+        <button class="icon-btn play-audio-btn {{ '' if has_audio else 'is-disabled' }}"
+            data-audio-target="#{{ audio_id }}" data-side="{{ side }}" data-item-id="{{ item.id }}"
+            data-content-to-read="{{ audio_content or '' }}" {{ '' if has_audio else 'disabled' }}>
+            <i class="fas fa-volume-up"></i>
+        </button>
+
+        <div class="toolbar-settings">
+            <div class="settings-panel">
+                <button class="icon-btn open-feedback-modal-btn" data-item-id="{{ item.id }}"><i
+                        class="fas fa-flag"></i></button>
+                {% if can_edit %}
+                <button class="icon-btn edit-card-btn" onclick="window.parent.openModal('{{ edit_url }}')"><i
+                        class="fas fa-pencil-alt"></i></button>
+                {% endif %}
+                <button class="icon-btn image-toggle-btn {{ 'is-active' if is_media_hidden else '' }}"
+                    aria-pressed="{{ 'true' if is_media_hidden else 'false' }}"
+                    title="{{ 'Bật ảnh' if is_media_hidden else 'Tắt ảnh' }}">
+                    <i class="fas {{ 'fa-image-slash' if is_media_hidden else 'fa-image' }}"></i>
+                </button>
+                <button class="icon-btn audio-autoplay-toggle-btn {{ 'is-active' if is_audio_autoplay else '' }}"
+                    aria-pressed="{{ 'true' if is_audio_autoplay else 'false' }}"
+                    title="{{ 'Tắt tự động phát audio' if is_audio_autoplay else 'Bật tự động phát audio' }}">
+                    <i class="fas {{ 'fa-volume-up' if is_audio_autoplay else 'fa-volume-mute' }}"></i>
+                </button>
+            </div>
+            <button type="button" class="icon-btn settings-toggle-btn" aria-expanded="false" title="Mở cài đặt"><i
+                    class="fas fa-ellipsis-v"></i></button>
+        </div>
+    </div>
+</div>

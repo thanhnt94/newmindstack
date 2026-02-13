@@ -244,6 +244,42 @@ class VocabularyDriver(BaseSessionDriver):
             current_app.logger.info(f"[VOCAB_DRIVER] FSRS Update Success: Stb={srs_result.stability}, Due={srs_result.next_review}")
             print(f" [VOCAB_DRIVER] FSRS Update Success: Stb={srs_result.stability}, Due={srs_result.next_review}")
 
+            # 4. Record Study Log [NEW FIX - Moved up so HUD stats see it]
+            try:
+                from mindstack_app.modules.learning_history.interface import LearningHistoryInterface
+                
+                result_data = {
+                    'rating': evaluation.quality,
+                    'user_answer': user_input.get('user_answer'),
+                    'is_correct': evaluation.is_correct,
+                    'review_duration': user_input.get('duration_ms', 0)
+                }
+                
+                context_data = {
+                    'session_id': state.session_id,
+                    'container_id': state.container_id,
+                    'learning_mode': state.mode
+                }
+                
+                # Snapshot of SRS state after review
+                fsrs_snapshot = {
+                    'stability': srs_result.stability,
+                    'difficulty': srs_result.difficulty,
+                    'repetitions': srs_result.repetitions,
+                    'next_review': srs_result.next_review.isoformat() if srs_result.next_review else None
+                }
+                
+                LearningHistoryInterface.record_log(
+                    user_id=state.user_id,
+                    item_id=item_id,
+                    result_data=result_data,
+                    context_data=context_data,
+                    fsrs_snapshot=fsrs_snapshot
+                )
+                current_app.logger.info(f"[VOCAB_DRIVER] StudyLog recorded for session {state.session_id}")
+            except Exception as e:
+                current_app.logger.error(f"[VOCAB_DRIVER] Failed to record StudyLog: {e}")
+
             # Fetch full item statistics for the HUD (the JS expects
             # correct_count, difficulty, retrievability, repetitions, etc.)
             try:
@@ -259,10 +295,10 @@ class VocabularyDriver(BaseSessionDriver):
                     'stability': full_stats.get('stability', srs_result.stability),
                     'difficulty': full_stats.get('difficulty', srs_result.difficulty),
                     'retrievability': full_stats.get('retrievability', 0),
-                    'repetitions': full_stats.get('repetitions', 0),
-                    'times_reviewed': full_stats.get('times_reviewed', 0),
-                    'current_streak': full_stats.get('current_streak', 0),
+                    'repetitions': srs_result.repetitions, 
+                    'times_reviewed': srs_result.repetitions, 
                     'status': full_stats.get('status', 'new'),
+                    'display': full_stats.get('display', {}), # For immediate HUD display-ready strings
                 }
             except Exception as e:
                 current_app.logger.error(f"[VOCAB_DRIVER] Error fetching stats: {e}")
@@ -276,9 +312,10 @@ class VocabularyDriver(BaseSessionDriver):
                     'retrievability': 0,
                     'repetitions': 0,
                 }
+
         except Exception as e:
             # FSRS failure should be logged
-            current_app.logger.error(f"[VOCAB_DRIVER] FSRS Update FAILED: {e}", exc_info=True)
+            current_app.logger.error(f"[VOCAB_DRIVER] FSRS/Logging Update FAILED: {e}", exc_info=True)
             print(f" [VOCAB_DRIVER] FSRS Update FAILED: {e}")
 
         # 4. Mutate state

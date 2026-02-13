@@ -720,36 +720,57 @@
         }
 
         // 4. Secondary Row Stats (Current Card Context)
-
-        // 4a. Streak (Fire)
-        document.querySelectorAll('.js-fc-streak-count').forEach(el => {
-            el.textContent = stats.streak || 0;
-        });
+        // [FIX] Guard these updates: only update if the specific key exists in stats.
+        // This prevents session-wide updates (which lack card-specific stats)
+        // from resetting these fields to 0 or default values.
 
         // 4d. Difficulty (D)
-        document.querySelectorAll('.js-fc-difficulty-val, .js-card-overlay-difficulty').forEach(el => {
-            const val = stats.difficulty !== undefined ? parseFloat(stats.difficulty).toFixed(1) :
-                (stats.easiness_factor !== undefined ? parseFloat(stats.easiness_factor).toFixed(1) : '0.0');
-            el.textContent = val;
-        });
+        if (stats.display && stats.display.difficulty) {
+            document.querySelectorAll('.js-fc-difficulty-val, .js-card-overlay-difficulty').forEach(el => {
+                el.textContent = stats.display.difficulty;
+            });
+        } else if (stats.difficulty !== undefined || stats.easiness_factor !== undefined) {
+            document.querySelectorAll('.js-fc-difficulty-val, .js-card-overlay-difficulty').forEach(el => {
+                const val = stats.difficulty !== undefined ? parseFloat(stats.difficulty).toFixed(1) :
+                    (stats.easiness_factor !== undefined ? parseFloat(stats.easiness_factor).toFixed(1) : '0.0');
+                el.textContent = val;
+            });
+        }
 
         // 4e. Stability (S)
-        document.querySelectorAll('.js-fc-stability-days, .js-card-overlay-stability').forEach(el => {
-            const val = stats.stability !== undefined ? parseFloat(stats.stability).toFixed(1) : '0';
-            // If it's 0.0, show 0
-            el.textContent = (val === '0.0' || val === '0.00') ? '0' : val;
-        });
+        if (stats.display && stats.display.stability) {
+            document.querySelectorAll('.js-fc-stability-days, .js-card-overlay-stability').forEach(el => {
+                el.textContent = stats.display.stability;
+            });
+        } else if (stats.stability !== undefined) {
+            document.querySelectorAll('.js-fc-stability-days, .js-card-overlay-stability').forEach(el => {
+                const val = parseFloat(stats.stability).toFixed(1);
+                el.textContent = (val === '0.0' || val === '0.00') ? '0' : val;
+            });
+        }
 
         // 4f. Retention (R)
-        document.querySelectorAll('.js-fc-retention-percent, .js-card-overlay-retrievability').forEach(el => {
-            const val = stats.retrievability !== undefined ? Math.round(stats.retrievability) : 0;
-            el.textContent = val;
-        });
+        if (stats.display && stats.display.retrievability) {
+            document.querySelectorAll('.js-fc-retention-percent, .js-card-overlay-retrievability').forEach(el => {
+                el.textContent = stats.display.retrievability.replace('%', '');
+            });
+        } else if (stats.retrievability !== undefined) {
+            document.querySelectorAll('.js-fc-retention-percent, .js-card-overlay-retrievability').forEach(el => {
+                const val = Math.round(stats.retrievability);
+                el.textContent = val;
+            });
+        }
 
         // 4g. Review Counts (Refresh Icon)
-        document.querySelectorAll('.js-fc-review-count').forEach(el => {
-            el.textContent = (stats.times_reviewed || 0) + ' lần';
-        });
+        if (stats.display && stats.display.times_reviewed) {
+            document.querySelectorAll('.js-fc-review-count, .js-card-overlay-times-reviewed').forEach(el => {
+                el.textContent = stats.display.times_reviewed;
+            });
+        } else if (stats.times_reviewed !== undefined) {
+            document.querySelectorAll('.js-fc-review-count, .js-card-overlay-times-reviewed').forEach(el => {
+                el.textContent = (stats.times_reviewed || 0);
+            });
+        }
 
         // 5. State Badge (MỚI / learning...) - controlled by updateStateBadge
         // converting status 'new', 'learning', etc to display text happens in updateStateBadge
@@ -895,8 +916,8 @@
         const stats = data.statistics;
 
         // Update basic counts
-        setText('.js-card-times-reviewed', stats.times_reviewed || 0);
-        setText('.js-card-overlay-times-reviewed', stats.times_reviewed || 0);
+        setText('.js-card-times-reviewed', (stats.times_reviewed || 0));
+        setText('.js-card-overlay-times-reviewed', (stats.times_reviewed || 0));
         setText('.js-card-streak', stats.current_streak || 0);
         setText('.js-card-overlay-streak', stats.current_streak || 0);
 

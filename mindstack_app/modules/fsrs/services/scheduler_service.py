@@ -105,13 +105,10 @@ class SchedulerService:
             item_state.times_incorrect = (item_state.times_incorrect or 0) + 1
             
         # 5. Commit
-        print(f" [FSRS] Committing state for User {user_id} Item {item_id} State {item_state.state} Reps {item_state.repetitions}")
         try:
             db.session.add(item_state)
             db.session.commit()
-            print(f" [FSRS] Commit SUCCESS.")
         except Exception as e:
-            print(f" [FSRS] Commit FAILED: {e}")
             db.session.rollback()
             raise e
         

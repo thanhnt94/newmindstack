@@ -452,12 +452,12 @@ async function displayCurrentCard(force = false) {
     if (window.updateFlashcardStats && currentCardData.initial_stats) {
         const statsForReset = {
             statistics: {
-                times_reviewed: currentCardData.initial_stats.times_reviewed,
-                current_streak: currentCardData.initial_stats.current_streak,
+                repetitions: currentCardData.initial_stats.repetitions,
                 easiness_factor: currentCardData.initial_stats.easiness_factor,
                 difficulty: currentCardData.initial_stats.difficulty,
                 stability: currentCardData.initial_stats.stability,
-                retrievability: currentCardData.initial_stats.retrievability
+                retrievability: currentCardData.initial_stats.retrievability,
+                times_reviewed: currentCardData.initial_stats.times_reviewed
             },
             srs_data: {
                 next_review: currentCardData.initial_stats.next_review || null
@@ -510,13 +510,13 @@ async function displayCurrentCard(force = false) {
         incorrect: sessionStatsLocal.incorrect,
         vague: sessionStatsLocal.vague,
         session_score: sessionScore,
-        current_streak: currentCardData.initial_stats ? (currentCardData.initial_stats.current_streak || 0) : 0,
 
         // [FIX] Add FSRS stats to prevent overwrite with 0s
         difficulty: currentCardData.initial_stats ? currentCardData.initial_stats.difficulty : 0,
         stability: currentCardData.initial_stats ? currentCardData.initial_stats.stability : 0,
         retrievability: currentCardData.initial_stats ? currentCardData.initial_stats.retrievability : 0,
-        times_reviewed: currentCardData.initial_stats ? currentCardData.initial_stats.times_reviewed : 0,
+        repetitions: currentCardData.initial_stats ? (currentCardData.initial_stats.repetitions || 0) : 0,
+        times_reviewed: currentCardData.initial_stats ? (currentCardData.initial_stats.times_reviewed || 0) : 0,
         status: currentCardData.initial_stats ? (currentCardData.initial_stats.status || 'new') : 'new'
     };
     document.dispatchEvent(new CustomEvent('flashcardStatsUpdated', { detail: window.flashcardSessionStats }));
@@ -648,16 +648,13 @@ async function submitFlashcardAnswer(itemId, answer) {
         const answerResult = data.answer_result || answer;
         if (['good', 'easy', 'very_easy', 'nhớ', 'medium'].includes(answerResult)) {
             sessionStatsLocal.correct++;
-            window.currentStreak = (window.currentStreak || 0) + 1;
         } else if (['fail', 'again', 'quên'].includes(answerResult)) {
             sessionStatsLocal.incorrect++;
-            window.currentStreak = 0;
         } else {
             sessionStatsLocal.vague++;
             // Vague answers typically break streak or keep it? Let's keep it but not increment?
             // Or treat as break? Let's reset for now to be strict, or keep. 
             // Let's reset if it's not "correct".
-            window.currentStreak = 0;
         }
         sessionStatsLocal.processed++;
 
@@ -673,7 +670,6 @@ async function submitFlashcardAnswer(itemId, answer) {
             correct: sessionStatsLocal.correct,
             incorrect: sessionStatsLocal.incorrect,
             vague: sessionStatsLocal.vague,
-            streak: window.currentStreak,
             accuracy: accuracy,
             session_score: sessionScore,
             // Include card-specific stats (Box B)
@@ -684,8 +680,7 @@ async function submitFlashcardAnswer(itemId, answer) {
             stability: data.statistics ? data.statistics.stability : 0,
             retrievability: data.statistics ? data.statistics.retrievability : 0,
             status: data.new_progress_status || data.statistics?.status || 'new',
-            times_reviewed: data.statistics ? data.statistics.times_reviewed : 0,
-            current_streak: data.statistics ? (data.statistics.current_streak || 0) : 0,
+            repetitions: data.statistics ? (data.statistics.repetitions || 0) : 0,
             rating_counts: data.statistics?.rating_counts || { 1: 0, 2: 0, 3: 0, 4: 0 }
         };
 

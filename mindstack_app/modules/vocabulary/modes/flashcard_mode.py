@@ -12,6 +12,7 @@ Good / Easy → quality 1-4).
 from __future__ import annotations
 
 from typing import Any, Dict, List, Optional
+import flask
 
 from .base_mode import BaseVocabMode, EvaluationResult
 
@@ -76,23 +77,49 @@ class FlashcardMode(BaseVocabMode):
         if current_user and current_user.is_authenticated:
             try:
                 initial_stats = FlashcardEngine.get_item_statistics(current_user.user_id, item.get('item_id'))
-                # [DEBUG] Log the stats retrieved
-                print(f" [FMODE] Stats for Item {item.get('item_id')}: Reps={initial_stats.get('repetitions')}, Streak={initial_stats.get('current_streak')}")
-                
-                # [DEBUG] Check directly
-                from mindstack_app.modules.fsrs.interface import FSRSInterface
-                direct_state = FSRSInterface.get_item_state(current_user.user_id, item.get('item_id'))
-                if direct_state:
-                    print(f" [FMODE] DIRECT STATE: Reps={direct_state.repetitions}, Stb={direct_state.stability}")
-                else:
-                    print(f" [FMODE] DIRECT STATE: None")
-                    
+                # Remove streak as requested
+                if 'current_streak' in initial_stats:
+                    del initial_stats['current_streak']
             except Exception as e:
-                print(f" [FMODE] Error fetching stats: {e}")
+                pass # Silent fail in production
         else:
-            print(f" [FMODE] User not authenticated or missing for Item {item.get('item_id')}")
+            pass
 
-        # 4. Construct Final Payload
+        # 4. Backend Rendering [Refactor - Thin Client]
+        from ..flashcard.engine.renderer import FlashcardRenderer
+        
+        display_settings = {
+            'can_edit': (container.creator_user_id == current_user.user_id) if container and current_user.is_authenticated else False,
+            'edit_url': flask.url_for('content_management.edit_item', container_id=container_id, item_id=item.get('item_id')) if container else '',
+            'is_media_hidden': settings.get('hide_media', False),
+            'is_audio_autoplay': settings.get('autoplay', True)
+        }
+        
+        # Merge theme-specific display settings from config
+        from ..flashcard.interface import FlashcardInterface
+        flash_config = FlashcardInterface.get_all_configs()
+        display_settings.update(flash_config.get('displaySettings', {}))
+        
+        # We need to bridge some fields for the renderer
+        item_for_renderer = {
+            'id': item.get('item_id'),
+            'front_text': rendered_content.get('front', ''),
+            'back_text': rendered_content.get('back', ''),
+            'front_image': rendered_content.get('front_img'),
+            'back_image': rendered_content.get('back_img'),
+            'front_audio_url': rendered_content.get('front_audio_url'),
+            'back_audio_url': rendered_content.get('back_audio_url'),
+            'has_front_audio': bool(rendered_content.get('front_audio_url')),
+            'has_back_audio': bool(rendered_content.get('back_audio_url')),
+            'front_audio_content': rendered_content.get('front_audio_content') or rendered_content.get('front', ''),
+            'back_audio_content': rendered_content.get('back_audio_content') or rendered_content.get('back', ''),
+            'category': rendered_content.get('category', 'default'),
+            'buttons_html': rendered_content.get('buttons_html', '') # This might come from elsewhere
+        }
+        
+        html_payload = FlashcardRenderer.render_item(item_for_renderer, initial_stats, display_settings=display_settings)
+
+        # 5. Construct Final Payload
         return {
             'type': 'flashcard',
             'item_id': item.get('item_id'),
@@ -100,11 +127,14 @@ class FlashcardMode(BaseVocabMode):
             'container_title': container.title if container else '',
             'front': rendered_content.get('front', ''),
             'back': rendered_content.get('back', ''),
+            'html_front': html_payload['front'],
+            'html_back': html_payload['back'],
+            'html_full': html_payload['full_html'],
             'content': rendered_content, # Includes resolved media URLs
             'initial_stats': initial_stats,
             'ai_explanation': item.get('ai_explanation', ''),
             # Helpers for frontend logic
-            'can_edit': (container.creator_user_id == current_user.user_id) if container and current_user.is_authenticated else False,
+            'can_edit': display_settings['can_edit'],
         }
 
     # ── evaluate ─────────────────────────────────────────────────────

@@ -1,0 +1,26 @@
+{# Partial: card_back.html #}
+<div
+    class="face back {{ 'display-center' if item.back_align == 'center' else '' }} {{ 'force-bold-override' if item.force_bold_back else '' }}">
+    {% include 'aura_mobile/modules/vocab_flashcard/partials/toolbar.html' with context %}
+    {% set label = "MẶT SAU" %}
+    {% set side = "back" %}
+
+    <div class="_card-container">
+        <div class="text-area">
+            <div class="flashcard-content-text">{{ item.back_text | safe }}</div>
+        </div>
+        {% if item.back_image %}
+        <div class="media-container">
+            <img src="{{ item.back_image }}" alt="Mặt sau"
+                onerror="this.onerror=null;this.src='https://placehold.co/200x120?text=Image+not+found';">
+        </div>
+        {% endif %}
+    </div>
+    <div class="card-actions-wrapper">
+        <div class="actions js-internal-actions">
+            {# This will be populated by JS or rendered by another macro #}
+            {{ item.buttons_html | safe }}
+        </div>
+    </div>
+    <audio id="back-audio-mobile" class="hidden" src="{{ item.back_audio_url or '' }}"></audio>
+</div>
