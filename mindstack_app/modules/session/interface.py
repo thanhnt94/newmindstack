@@ -143,3 +143,26 @@ class SessionInterface:
     def set_current_item(session_id: int, item_id: int) -> bool:
         """Update the active item for a session."""
         return LearningSessionService.set_current_item(session_id, item_id)
+
+    @staticmethod
+    def start_driven_session(
+        user_id: int, 
+        container_id: Union[int, str], 
+        learning_mode: str, 
+        settings: Optional[dict] = None
+    ):
+        """
+        Start a new session using the Driver Pattern.
+        Returns (db_session, driver_state).
+        """
+        return LearningSessionService.start_driven_session(
+            user_id=user_id,
+            container_id=container_id,
+            learning_mode=learning_mode,
+            settings=settings
+        )
+
+    @staticmethod
+    def get_driver_state(session_id: int):
+        """Get the current driver state for a session."""
+        return LearningSessionService.get_driver_state(session_id)

@@ -135,6 +135,7 @@ class FlashcardMode(BaseVocabMode):
             'ai_explanation': item.get('ai_explanation', ''),
             # Helpers for frontend logic
             'can_edit': display_settings['can_edit'],
+            'edit_url': display_settings['edit_url'],
         }
 
     # ── evaluate ─────────────────────────────────────────────────────

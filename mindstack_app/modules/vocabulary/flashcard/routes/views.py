@@ -124,8 +124,8 @@ def start_flashcard_session_all(mode):
         return redirect(url_for('vocabulary.dashboard'))
 
     # Create DB Session using Driver API
-    from mindstack_app.modules.session.services.session_service import LearningSessionService
-    db_sess, driver_state = LearningSessionService.start_driven_session(
+    from mindstack_app.modules.session.interface import SessionInterface
+    db_sess, driver_state = SessionInterface.start_driven_session(
         user_id=current_user.user_id,
         container_id='all',
         learning_mode='flashcard',
@@ -187,10 +187,10 @@ def start_flashcard_session_multi(mode):
         return redirect(url_for('vocabulary.dashboard'))
 
     # Create DB Session using Driver API
-    from mindstack_app.modules.session.services.session_service import LearningSessionService
+    from mindstack_app.modules.session.interface import SessionInterface
     # For multi-set, use first set as container_id (Driver will handle multi-set)
     container_id = set_ids[0] if isinstance(set_ids, list) and len(set_ids) > 0 else set_ids
-    db_sess, driver_state = LearningSessionService.start_driven_session(
+    db_sess, driver_state = SessionInterface.start_driven_session(
         user_id=current_user.user_id,
         container_id=container_id,
         learning_mode='flashcard',
@@ -256,8 +256,8 @@ def start_flashcard_session_by_id(set_id, mode):
         return redirect(url_for('vocabulary.dashboard'))
 
     # Create DB Session using Driver API
-    from mindstack_app.modules.session.services.session_service import LearningSessionService
-    db_sess, driver_state = LearningSessionService.start_driven_session(
+    from mindstack_app.modules.session.interface import SessionInterface
+    db_sess, driver_state = SessionInterface.start_driven_session(
         user_id=current_user.user_id,
         container_id=set_id,
         learning_mode='flashcard',
@@ -552,20 +552,20 @@ def start():
         return redirect(url_for('vocabulary.dashboard'))
 
     # Create DB Session using Driver API
-    from mindstack_app.modules.session.services.session_service import LearningSessionService
+    from mindstack_app.modules.session.interface import SessionInterface
     # Handle 'all' or list of set IDs
     if set_ids == 'all':
         container_id = 'all'
     elif isinstance(set_ids, list) and len(set_ids) > 0:
         container_id = set_ids[0]
     else:
-        container_id = set_ids
+        container_id = 'all'
     
-    db_sess, driver_state = LearningSessionService.start_driven_session(
+    db_sess, driver_state = SessionInterface.start_driven_session(
         user_id=current_user.user_id,
         container_id=container_id,
         learning_mode='flashcard',
-        settings={'filter': 'srs', 'mode_config_id': mode, 'set_ids': set_ids if set_ids != 'all' else None}
+        settings={'filter': 'srs', 'set_ids': set_ids}
     )
     
     if db_sess:
