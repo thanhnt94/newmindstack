@@ -639,6 +639,28 @@
             border-radius: 0;
         }
     }
+
+    /* Force full width for main containers */
+    .fc-header,
+    .session-container,
+    .app-container,
+    body>main {
+        max-width: none !important;
+        width: 100% !important;
+        padding: 0 !important;
+        margin: 0 !important;
+    }
+
+    /* Fix Footer Button Width */
+    .next-btn {
+        max-width: none !important;
+        width: 100% !important;
+    }
+
+    .session-footer {
+        padding: 0.75rem 1rem !important;
+        padding-bottom: calc(0.75rem + env(safe-area-inset-bottom, 0)) !important;
+    }
 </style>
 {% endblock %}
 
@@ -672,7 +694,7 @@
                 <div class="flex items-center justify-between px-3 py-2">
                     {# Stats Pills #}
                     <div id="fc-mobile-stats-pills"
-                        class="flex items-center gap-1.5 text-xs overflow-x-auto no-scrollbar max-w-[60%] transition-all duration-300">
+                        class="flex items-center gap-1.5 text-xs overflow-x-auto no-scrollbar transition-all duration-300">
 
                         {# Progress Pill #}
                         <div class="stat-pill flex-shrink-0 flex items-center gap-1 px-2 py-1 bg-slate-100 rounded-lg">
