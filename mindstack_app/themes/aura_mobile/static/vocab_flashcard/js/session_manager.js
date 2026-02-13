@@ -45,6 +45,10 @@ function _mapDriverItemToLegacy(driverPayload) {
         initial_stats: d.initial_stats || {},
         can_edit: d.can_edit || false,
         container_title: d.container_title || '',
+        // Backend pre-rendered HTML
+        html_front: d.html_front,
+        html_back: d.html_back,
+        html_full: d.html_full,
         // progress metadata from driver
         _progress: driverPayload.progress || {},
         _is_last: driverPayload.is_last || false,
@@ -326,7 +330,10 @@ async function ensureFlashcardBuffer(immediate = false) {
             }
 
             if (batch.container_name && batch.container_name !== 'Bộ thẻ') {
-                document.querySelectorAll('.js-fc-title').forEach(el => { el.textContent = batch.container_name; });
+                document.querySelectorAll('.js-fc-title').forEach(el => {
+                    el.textContent = batch.container_name;
+                    el.title = batch.container_name;
+                });
             }
 
             if (window.prefetchAudioForUpcomingCards) {

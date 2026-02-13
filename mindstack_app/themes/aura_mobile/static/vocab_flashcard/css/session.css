@@ -1727,14 +1727,11 @@ body>main {
     letter-spacing: -0.02em;
     display: block;
     width: 100%;
-    white-space: normal;
+    white-space: nowrap;
     overflow: hidden;
-    display: -webkit-box;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 2;
+    text-overflow: ellipsis;
     transition: font-size 0.1s ease;
-    word-break: break-word;
-    line-height: 1.05; /* Tighter line height */
+    line-height: 1.25;
 }
 
 /* Badge styling refinement */

@@ -6,7 +6,7 @@ hide_left_btn=False, align_left=False) %}
 
     {# --- Row 1: Navigation & Title (Themed) --- #}
     <div id="learning-header-container"
-        class="relative flex items-center gap-3 px-4 py-3 {{ theme_gradient }} text-white shadow-sm transition-all duration-500">
+        class="relative flex items-center gap-2 pl-4 pr-1.5 py-2.5 {{ theme_gradient }} text-white shadow-sm transition-all duration-500">
 
         {# Left Button (Back / Toggle) #}
         {% if not hide_left_btn %}
@@ -23,8 +23,8 @@ hide_left_btn=False, align_left=False) %}
 
             {# View 1: Title (Default) - Enhanced Premium Typography #}
             <div id="header-title-view"
-                class="flex flex-col {% if align_left %} items-start {% else %} items-center justify-center {% endif %} w-full transition-all duration-300 opacity-100 scale-100 overflow-hidden">
-                <div class="flex items-center gap-2 opacity-90 mb-0.5 pointer-events-auto">
+                class="flex flex-col {% if align_left %} items-start {% else %} items-center justify-center {% endif %} w-full transition-all duration-300 opacity-100 scale-100 py-1 min-w-0 overflow-hidden">
+                <div class="flex items-center gap-2 opacity-90 mb-1.5 pointer-events-auto">
                     <i class="{{ badge_icon }} text-[10px] {{ badge_icon_color }}"></i>
                     <span
                         class="text-[9px] font-black uppercase tracking-[0.15em] {{ badge_text_color }} cursor-pointer">
@@ -32,8 +32,8 @@ hide_left_btn=False, align_left=False) %}
                     </span>
                 </div>
                 <span
-                    class="font-extrabold text-white w-full {% if align_left %} text-left {% else %} text-center {% endif %} {{ title_selector }} leading-tight pointer-events-auto tracking-tight"
-                    style="font-size: 20px;">
+                    class="font-extrabold text-white w-full {% if align_left %} text-left {% else %} text-center {% endif %} {{ title_selector }} leading-snug pointer-events-auto tracking-tight truncate whitespace-nowrap block overflow-hidden"
+                    style="font-size: 15px;" title="MindStack">
                     ...
                 </span>
             </div>
@@ -49,11 +49,11 @@ hide_left_btn=False, align_left=False) %}
 
         {# Right Actions #}
         <div id="header-right-actions"
-            class="flex items-center gap-2.5 z-10 relative transition-all duration-300 flex-shrink-0">
+            class="flex items-center gap-1 z-10 relative transition-all duration-300 flex-shrink-0">
             {# Score Display #}
             {% if show_score %}
             <div
-                class="px-3 py-1.5 rounded-full bg-white/20 backdrop-blur-md border border-white/20 flex items-center gap-2 animate-fadeIn shadow-inner">
+                class="px-2 py-1 rounded-full bg-white/20 backdrop-blur-md border border-white/20 flex items-center gap-1.5 animate-fadeIn shadow-inner">
                 <i class="fas fa-gem text-[11px] text-yellow-300 drop-shadow-sm"></i>
                 <span class="{{ score_selector }} text-xs font-black text-white font-mono">{{ score_value }}</span>
             </div>
@@ -62,7 +62,7 @@ hide_left_btn=False, align_left=False) %}
             {# Exit Button #}
             {% if exit_func %}
             <button onclick="{{ exit_func }}"
-                class="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition-all backdrop-blur-md text-red-100 hover:text-white border border-white/5 active:scale-90"
+                class="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition-all backdrop-blur-md text-red-100 hover:text-white border border-white/5 active:scale-90"
                 title="Thoát">
                 <i class="fa-solid fa-right-from-bracket text-base"></i>
             </button>
@@ -70,7 +70,7 @@ hide_left_btn=False, align_left=False) %}
 
             {# Home Button #}
             <a href="/"
-                class="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition-all backdrop-blur-md text-white border border-white/5 active:scale-90">
+                class="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition-all backdrop-blur-md text-white border border-white/5 active:scale-90">
                 <i class="fa-solid fa-house text-base"></i>
             </a>
         </div>

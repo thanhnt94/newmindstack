@@ -198,7 +198,9 @@
 
     /**
      * Auto-shrink/expand text to fit container width
+     * DISABLED: User requested fixed font size with ellipsis
      */
+    /*
     window.adjustTitleFontSize = function () {
         const titleEl = document.querySelector('.js-fc-title');
         if (!titleEl) return;
@@ -236,6 +238,7 @@
         // Initial run
         setTimeout(window.adjustTitleFontSize, 100);
     }
+    */
 
     // Note button in header - open note panel for current card
     const noteBtn = document.querySelector('.js-fc-note-btn');

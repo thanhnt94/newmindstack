@@ -482,6 +482,7 @@ function renderCard(data) {
     if (data.container_title) {
         document.querySelectorAll('.js-fc-title').forEach(el => {
             el.textContent = data.container_title;
+            el.title = data.container_title; // Add title for tooltip on truncation
         });
     }
 

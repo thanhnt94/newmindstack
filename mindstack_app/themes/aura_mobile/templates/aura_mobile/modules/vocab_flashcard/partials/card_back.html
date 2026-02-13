@@ -1,9 +1,9 @@
 {# Partial: card_back.html #}
 <div
     class="face back {{ 'display-center' if item.back_align == 'center' else '' }} {{ 'force-bold-override' if item.force_bold_back else '' }}">
-    {% include 'aura_mobile/modules/vocab_flashcard/partials/toolbar.html' with context %}
     {% set label = "MẶT SAU" %}
     {% set side = "back" %}
+    {% include 'aura_mobile/modules/vocab_flashcard/partials/toolbar.html' with context %}
 
     <div class="_card-container">
         <div class="text-area">

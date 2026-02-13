@@ -184,22 +184,68 @@ def api_get_flashcard_item_details(item_id):
                 return None
 
         initial_stats = FlashcardEngine.get_item_statistics(current_user.user_id, item_id)
+        can_edit = _user_can_edit_flashcard(item.container_id)
+        
+        edit_url = ''
+        if can_edit:
+            edit_url = url_for('content_management.edit_item', container_id=item.container_id, item_id=item.item_id)
+
+        # Backend Rendering [Refactor - Thin Client]
+        from ..engine.renderer import FlashcardRenderer
+        
+        # Prepare content dict (BBCode rendering)
+        from mindstack_app.utils.content_renderer import render_content_dict
+        rendered_content = render_content_dict(item.content) if item.content else {}
+
+        item_for_renderer = {
+            'id': item.item_id,
+            'front_text': rendered_content.get('front', ''),
+            'back_text': rendered_content.get('back', ''),
+            'front_image': resolve_media_url(rendered_content.get('front_img'), 'image'),
+            'back_image': resolve_media_url(rendered_content.get('back_img'), 'image'),
+            'front_audio_url': resolve_media_url(rendered_content.get('front_audio_url'), 'audio'),
+            'back_audio_url': resolve_media_url(rendered_content.get('back_audio_url'), 'audio'),
+            'has_front_audio': bool(rendered_content.get('front_audio_url')),
+            'has_back_audio': bool(rendered_content.get('back_audio_url')),
+            'front_audio_content': rendered_content.get('front_audio_content') or rendered_content.get('front', ''),
+            'back_audio_content': rendered_content.get('back_audio_content') or rendered_content.get('back', ''),
+            'category': rendered_content.get('category', 'default'),
+            'buttons_html': rendered_content.get('buttons_html', '')
+        }
+
+        display_settings = {
+            'can_edit': can_edit,
+            'edit_url': edit_url,
+            'is_media_hidden': False,
+            'is_audio_autoplay': True
+        }
+        
+        if item.container and item.container.settings:
+            container_display = item.container.settings.get('display', {})
+            display_settings.update(container_display)
+
+        html_payload = FlashcardRenderer.render_item(item_for_renderer, initial_stats, display_settings=display_settings)
 
         item_payload = {
             'item_id': item.item_id,
             'container_id': item.container_id,
             'content': {
-                'front': item.content.get('front', ''),
-                'back': item.content.get('back', ''),
-                'front_audio_content': item.content.get('front_audio_content', ''),
-                'front_audio_url': resolve_media_url(item.content.get('front_audio_url'), 'audio'),
-                'back_audio_content': item.content.get('back_audio_content', ''),
-                'back_audio_url': resolve_media_url(item.content.get('back_audio_url'), 'audio'),
-                'front_img': resolve_media_url(item.content.get('front_img'), 'image'),
-                'back_img': resolve_media_url(item.content.get('back_img'), 'image'),
+                'front': rendered_content.get('front', ''),
+                'back': rendered_content.get('back', ''),
+                'front_audio_content': rendered_content.get('front_audio_content', ''),
+                'front_audio_url': item_for_renderer['front_audio_url'],
+                'back_audio_content': rendered_content.get('back_audio_content', ''),
+                'back_audio_url': item_for_renderer['back_audio_url'],
+                'front_img': item_for_renderer['front_image'],
+                'back_img': item_for_renderer['back_image'],
             },
+            'html_front': html_payload['front'],
+            'html_back': html_payload['back'],
+            'html_full': html_payload['full_html'],
             'ai_explanation': item.ai_explanation,
             'initial_stats': initial_stats,
+            'can_edit': can_edit,
+            'edit_url': edit_url
         }
 
         return jsonify({'success': True, 'item': item_payload})
