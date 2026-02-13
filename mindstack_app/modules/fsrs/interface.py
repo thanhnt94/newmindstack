@@ -1,4 +1,5 @@
 from typing import Optional, Tuple, List, Dict, Any
+import datetime
 from mindstack_app.modules.fsrs.models import ItemMemoryState
 from mindstack_app.modules.fsrs.services.scheduler_service import SchedulerService
 from mindstack_app.modules.fsrs.services.optimizer_service import FSRSOptimizerService
@@ -477,7 +478,7 @@ class FSRSInterface:
 
 
     @staticmethod
-    def get_items_for_practice(user_id: int, mode: str = 'new', limit: int = 10, item_type: str = 'FLASHCARD') -> List[Any]:
+    def get_items_for_practice(user_id: int, mode: str = 'new', limit: int = 10, item_type: str = 'FLASHCARD', container_id: Optional[int] = None) -> List[Any]:
         """
         Get items for practice based on mode.
         Supported modes: 'review', 'mixed', 'hard', 'new'.
@@ -491,6 +492,9 @@ class FSRSInterface:
         base_query = LearningItem.query.filter(
             LearningItem.item_type == item_type
         )
+        
+        if container_id:
+            base_query = base_query.filter(LearningItem.container_id == container_id)
         
         now = datetime.now(timezone.utc)
         items = []
@@ -517,6 +521,14 @@ class FSRSInterface:
             items = base_query.outerjoin(ItemMemoryState, (ItemMemoryState.item_id == LearningItem.item_id) & (ItemMemoryState.user_id == user_id)).filter(
                 (ItemMemoryState.state == None) | (ItemMemoryState.state == 0)
             ).limit(limit).all()
+            
+        elif mode == 'all':
+            # Fetch ALL items in container, regardless of state
+            # If limit is None, fetch all.
+            query = base_query
+            if limit:
+                query = query.limit(limit)
+            items = query.all()
             
         return items
 
@@ -1127,6 +1139,33 @@ class FSRSInterface:
             'data': [counts[0], counts[1], counts[2], counts[3]],
             'colors': ['#10b981', '#3b82f6', '#f59e0b', '#ef4444']
         }
+
+    @staticmethod
+    def calculate_retrievability_for_record(record: Any, now: Optional[datetime.datetime] = None) -> float:
+        """
+        Calculates retrievability for a given ItemMemoryState record.
+        """
+        from .engine.core import FSRSEngine
+        from .services.scheduler_service import SchedulerService
+        from .services.optimizer_service import FSRSOptimizerService
+        from .services.settings_service import FSRSSettingsService
+        
+        if not record:
+            return 0.0
+
+        if now is None:
+            now = datetime.datetime.now(datetime.timezone.utc)
+
+        # 1. Convert to DTO
+        dto = SchedulerService._model_to_dto(record)
+        
+        # 2. Get Engine
+        effective_weights = FSRSOptimizerService.get_user_parameters(record.user_id)
+        desired_retention = float(FSRSSettingsService.get('FSRS_DESIRED_RETENTION', 0.9))
+        engine = FSRSEngine(custom_weights=effective_weights, desired_retention=desired_retention)
+        
+        # 3. Calculate
+        return engine.get_realtime_retention(dto, now)
 
     @staticmethod
     def apply_due_exclusion_filter(query, user_id: int, item_ids: List[int]):

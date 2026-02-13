@@ -170,19 +170,8 @@ class QuizSessionManager:
         elif mode == 'hard_only':
             algorithm_func = get_hard_items
         elif mode in ['custom', 'mixed', 'front_back', 'back_front']:
-            # For custom modes on Flashcards, we usually just want ALL items (new + reviewed) or specific logic.
-            # Assuming 'new_only' logic base for now, or maybe get_all_items (which we don't have yet).
-            # Let's reuse get_new_only_items combined with get_reviewed_items logic?
-            # Or simplified: Get ALL items.
-            # Since algorithms.py doesn't have get_all_items, let's use get_reviewed_items as a base fallback or creating a new one.
-            # Ideally, specific algorithm for these modes.
-            # But for now, let's use get_new_only_items as a placeholder if we need functionality.
-            # Actually, `vocabulary/mcq` typically quizzes on ALL items.
-            # We can use `_get_base_items_query` directly inside a lambda or wrapper.
-            algorithm_func = lambda u, c, s: _get_base_items_query(u, c) # Return query for all items
-            # Imports inside function to avoid circular dependency if _get_base_items_query is not exported.
-            # Ensure _get_base_items_query is imported.
-            from .algorithms import _get_base_items_query
+            # Use get_reviewed_items to only include learned items (FSRS state != 0)
+            algorithm_func = get_reviewed_items
         
         if not algorithm_func:
             current_app.logger.error(f"SessionManager: Không tìm thấy hàm thuật toán cho chế độ: {mode}")
@@ -379,9 +368,8 @@ class QuizSessionManager:
         elif self.mode == 'hard_only':
             algorithm_func = get_hard_items
         elif self.mode in ['custom', 'mixed', 'front_back', 'back_front']:
-            # Fallback for custom modes
-             from .algorithms import _get_base_items_query
-             algorithm_func = lambda u, c, s: _get_base_items_query(u, c)
+            # Use get_reviewed_items for learned items only
+            algorithm_func = get_reviewed_items
         
         if not algorithm_func:
             current_app.logger.error(f"Không tìm thấy hàm thuật toán cho chế độ: {self.mode}")

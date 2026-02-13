@@ -164,6 +164,31 @@
         overflow: hidden;
     }
 
+    .fsrs-stats-hud {
+        position: absolute;
+        top: 0.5rem;
+        right: 0.75rem;
+        display: flex;
+        gap: 0.5rem;
+        font-family: 'JetBrains Mono', 'Fira Code', monospace;
+        font-size: 10px;
+        font-weight: 700;
+        color: #94a3b8;
+    }
+
+    .fsrs-stat-item {
+        background: #f1f5f9;
+        padding: 2px 6px;
+        border-radius: 4px;
+        border: 1px solid #e2e8f0;
+    }
+
+    .fsrs-stat-item.id {
+        background: #fef3c7;
+        color: #92400e;
+        border-color: #fde68a;
+    }
+
     .question-label-v {
         position: absolute;
         left: 0;
@@ -200,12 +225,11 @@
 
     .question-text {
         font-size: 1.75rem;
-        font-weight: 800;
+        font-weight: 500;
         color: #0f172a;
         line-height: 1.3;
         width: 100%;
-        letter-spacing: -0.02em;
-        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+        letter-spacing: -0.01em;
     }
 
     /* Main Content */
@@ -248,7 +272,7 @@
         width: 100%;
         padding: 1rem 1.25rem;
         font-size: 1.1rem;
-        font-weight: 600;
+        font-weight: 500;
         border: 2px solid #e2e8f0;
         border-radius: 0.75rem;
         text-align: center;
@@ -312,29 +336,50 @@
 
     .feedback-msg {
         display: flex;
-        align-items: center;
-        justify-content: center;
+        flex-direction: column;
+        align-items: flex-start;
+        justify-content: flex-start;
         gap: 0.75rem;
-        padding: 1rem 1.5rem;
+        padding: 1.5rem;
         border-radius: 1rem;
-        font-weight: 700;
+        font-weight: 500;
         font-size: 1.1rem;
         animation: fadeIn 0.3s ease;
-        text-align: center;
-        width: 90%;
-        max-width: 600px;
+        text-align: left;
+        width: 100%;
+        line-height: 1.6;
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        max-height: 45vh;
+        overflow-y: auto;
+        word-break: break-word;
+    }
+
+    .feedback-header {
+        font-weight: 700;
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin-bottom: 0.25rem;
+        opacity: 0.8;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
     }
 
     .feedback-msg.success {
         background: #ecfdf5;
         color: var(--success);
         border: 1px solid #d1fae5;
+        border-left: 5px solid #10b981;
     }
 
     .feedback-msg.error {
         background: #fef2f2;
         color: var(--error);
         border: 1px solid #fee2e2;
+        border-left: 5px solid #ef4444;
     }
 
     @keyframes fadeIn {
@@ -536,6 +581,23 @@
         flex-direction: column;
         gap: 0.75rem;
     }
+
+    /* Force full width for header and containers */
+    .fc-header,
+    .session-container,
+    .app-container,
+    body>main,
+    .footer-actions {
+        max-width: none !important;
+        width: 100% !important;
+        padding: 0 !important;
+        margin: 0 !important;
+    }
+
+    .session-footer {
+        padding: 0.75rem 1rem !important;
+        padding-bottom: calc(0.75rem + env(safe-area-inset-bottom, 0)) !important;
+    }
 </style>
 {% endblock %}
 
@@ -574,7 +636,7 @@
                 <div class="flex items-center justify-between px-3 py-2">
                     {# Stats Pills #}
                     <div id="fc-mobile-stats-pills"
-                        class="flex items-center gap-1.5 text-xs overflow-x-auto no-scrollbar max-w-[80%] transition-all duration-300">
+                        class="flex items-center gap-1.5 text-xs overflow-x-auto no-scrollbar transition-all duration-300">
 
                         {# Progress Pill #}
                         <div class="stat-pill flex-shrink-0 flex items-center gap-1 px-2 py-1 bg-slate-100 rounded-lg">
@@ -630,6 +692,12 @@
             <div class="question-label-v">
                 <i class="fas fa-pen-fancy"></i>
                 <span>TYPING</span>
+            </div>
+            <div class="fsrs-stats-hud">
+                <div class="fsrs-stat-item id">#<span id="card-id">---</span></div>
+                <div class="fsrs-stat-item">S: <span id="stat-s">0.0</span></div>
+                <div class="fsrs-stat-item">D: <span id="stat-d">0.0</span></div>
+                <div class="fsrs-stat-item">R: <span id="stat-r">0</span>%</div>
             </div>
             <div class="question-text" id="prompt">Đang tải...</div>
         </div>
@@ -757,12 +825,18 @@
         var liveSessionScoreEl = document.getElementById('live-session-score');
         var totalScoreValEl = document.getElementById('mcq-total-score-val');
 
+        // FSRS Elements
+        var cardIdEl = document.getElementById('card-id');
+        var statSEl = document.getElementById('stat-s');
+        var statDEl = document.getElementById('stat-d');
+        var statREl = document.getElementById('stat-r');
+
         // Logic: Get count from Data Attribute
-        var count = dataEl.dataset.count || '10';
+        var count = dataEl.dataset.count || '';
 
         // Auto focus (ensure it handles footer position)
         setTimeout(() => {
-            if (inputEl) {
+            if (inputEl && !answered) {
                 inputEl.focus();
                 // Prevent mobile keyboard from scrolling view strangely
                 inputEl.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -809,12 +883,13 @@
                 headers: {
                     'Content-Type': 'application/json',
                     'X-CSRFToken': "{{ csrf_token() if csrf_token else '' }}"
-                }
+                },
+                body: JSON.stringify({ session_id: dbSessionId })
             })
                 .then(response => response.json())
                 .then(data => {
                     if (data.success && data.session_id) {
-                        window.location.href = `/learn/session/${data.session_id}/summary`;
+                        window.location.href = `/session/${data.session_id}/summary`;
                     } else {
                         window.location.href = "{{ url_for('session.manage_sessions') }}";
                     }
@@ -845,8 +920,33 @@
                     var finalTotalEl = document.getElementById('final-total');
                     if (finalTotalEl) finalTotalEl.textContent = items.length;
 
+                    // Restore Session State
+                    if (data.progress) {
+                        scoreCorrect = data.progress.correct_count || 0;
+                        scoreWrong = data.progress.incorrect_count || 0;
+                        sessionPoints = data.progress.points_earned || 0;
+
+                        // Strict state recovery
+                        current = data.progress.current_index || 0;
+
+                        if (data.progress.is_showing_answer) {
+                            showItem(true);
+                            if (data.progress.last_user_answer) {
+                                inputEl.value = data.progress.last_user_answer;
+                            }
+                            restoreAnswerState(data.progress.last_user_answer);
+                        } else {
+                            showItem();
+                        }
+                    } else {
+                        showItem();
+                    }
+
+                    if (data.session_id) {
+                        dbSessionId = data.session_id;
+                    }
+
                     updateStats();
-                    showItem();
                 } else {
                     promptEl.textContent = 'Lỗi tải dữ liệu';
                 }
@@ -865,19 +965,27 @@
             if (liveSessionScoreEl) liveSessionScoreEl.textContent = sessionPoints;
         }
 
-        function showItem() {
+        function showItem(waitState = false) {
             if (current >= items.length) {
                 showComplete();
                 return;
             }
             updateStats();
-            answered = false;
+            answered = waitState;
+
+            var item = items[current];
+
+            // Update FSRS UI
+            if (cardIdEl) cardIdEl.textContent = item.item_id;
+            if (statSEl) statSEl.textContent = (item.fsrs.stability || 0).toFixed(1);
+            if (statDEl) statDEl.textContent = (item.fsrs.difficulty || 0).toFixed(1);
+            if (statREl) statREl.textContent = (item.fsrs.retrievability || 0).toFixed(1);
 
             // Reset Input
             inputEl.value = '';
             inputEl.className = 'typing-input';
-            inputEl.disabled = false;
-            inputEl.focus();
+            inputEl.disabled = waitState;
+            if (!waitState) inputEl.focus();
 
             feedbackEl.innerHTML = '';
 
@@ -891,8 +999,6 @@
                 hintBtn.style.display = 'none';
             }
 
-            var item = items[current];
-
             // Setup Hint Button (Stats)
             if (hintBtn) {
                 hintBtn.onclick = function () {
@@ -902,8 +1008,39 @@
                 };
             }
 
-            promptEl.textContent = item.prompt;
+            promptEl.innerHTML = item.prompt;
             startTime = Date.now();
+        }
+
+        function restoreAnswerState(userAnswer) {
+            var item = items[current];
+            if (!item) return;
+
+            var correctText = item.answer.trim().toLowerCase();
+            var userText = (userAnswer || '').trim().toLowerCase();
+
+            inputEl.disabled = true;
+            if (userText === correctText) {
+                inputEl.classList.add('correct');
+                feedbackEl.innerHTML = `
+                    <div class="feedback-msg success">
+                        <div class="feedback-header"><i class="fas fa-check-circle text-emerald-500"></i> Chính xác!</div>
+                        <div class="feedback-content">${item.answer}</div>
+                    </div>`;
+            } else {
+                inputEl.classList.add('wrong');
+                feedbackEl.innerHTML = `
+                    <div class="feedback-msg error">
+                        <div class="feedback-header"><i class="fas fa-times-circle text-rose-500"></i> Đáp án đúng:</div>
+                        <div class="feedback-content">${item.answer}</div>
+                    </div>`;
+            }
+
+            submitBtn.innerHTML = 'Tiếp theo <i class="fas fa-arrow-right ms-2"></i>';
+            if (hintBtn) {
+                hintBtn.classList.remove('hidden');
+                hintBtn.style.display = 'flex';
+            }
         }
 
         async function checkAnswer() {
@@ -924,11 +1061,19 @@
 
             if (userAnswer === correctAnswer) {
                 inputEl.classList.add('correct');
-                feedbackEl.innerHTML = '<div class="feedback-msg success"><i class="fas fa-check-circle"></i> Chính xác!</div>';
+                feedbackEl.innerHTML = `
+                    <div class="feedback-msg success">
+                        <div class="feedback-header"><i class="fas fa-check-circle text-emerald-500"></i> Chính xác!</div>
+                        <div class="feedback-content">${item.answer}</div>
+                    </div>`;
                 scoreCorrect++;
             } else {
                 inputEl.classList.add('wrong');
-                feedbackEl.innerHTML = '<div class="feedback-msg error"><i class="fas fa-times-circle"></i> Đáp án: ' + item.answer + '</div>';
+                feedbackEl.innerHTML = `
+                    <div class="feedback-msg error">
+                        <div class="feedback-header"><i class="fas fa-times-circle text-rose-500"></i> Đáp án đúng:</div>
+                        <div class="feedback-content">${item.answer}</div>
+                    </div>`;
                 scoreWrong++;
             }
 
@@ -983,6 +1128,22 @@
             submitBtn.innerHTML = 'Tiếp theo <i class="fas fa-arrow-right ms-2"></i>';
         }
 
+        async function nextItem() {
+            // Notify backend before moving locally
+            if (dbSessionId) {
+                fetch("{{ url_for('vocab_typing.api_next_item') }}", {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': '{{ csrf_token() }}'
+                    },
+                    body: JSON.stringify({ session_id: dbSessionId })
+                });
+            }
+            current++;
+            showItem();
+        }
+
         function showComplete() {
             var finalCorrectEl = document.getElementById('final-correct');
             var finalWrongEl = document.getElementById('final-wrong');
@@ -998,8 +1159,7 @@
             if (!answered) {
                 checkAnswer();
             } else {
-                current++;
-                showItem();
+                nextItem();
             }
         };
 
@@ -1007,13 +1167,10 @@
             if (e.key === 'Enter') {
                 if (!answered) checkAnswer();
                 else {
-                    current++;
-                    showItem();
+                    nextItem();
                 }
             }
         };
-
-
 
         // Helper
         window.goToSummary = function () {

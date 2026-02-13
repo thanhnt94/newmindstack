@@ -1,7 +1,7 @@
 # File: mindstack_app/modules/vocab_typing/logics/typing_logic.py
 from mindstack_app.modules.fsrs.interface import FSRSInterface as FsrsInterface
 
-def get_typing_items(user_id, container_id=None, mode='new', limit=10):
+def get_typing_items(user_id, container_id=None, mode='all', limit=10):
     """
     Lấy danh sách item cho luyện gõ.
     Delegates to FsrsInterface.
