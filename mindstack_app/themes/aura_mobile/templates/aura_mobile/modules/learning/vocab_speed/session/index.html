@@ -467,7 +467,7 @@
         }
 
         function fetchQuestions() {
-            var url = '/learn/vocabulary/speed/api/items/' + setId + '?count=' + count + '&choices=' + choicesNum;
+            var url = "{{ url_for('vocab_speed.speed_api_get_items', set_id=container.container_id) }}?count=" + count + "&choices=" + choicesNum;
             if (customPairs) url += '&custom_pairs=' + encodeURIComponent(JSON.stringify(customPairs));
 
             fetch(url)
@@ -502,7 +502,7 @@
             q.choices.forEach((choice, i) => {
                 var btn = document.createElement('button');
                 btn.className = 'answer-btn';
-                btn.textContent = choice;
+                btn.innerHTML = choice;
                 btn.onclick = () => handleAnswer(i);
                 answersGrid.appendChild(btn);
             });
@@ -674,7 +674,7 @@
         }
 
         function submitResult(itemId, isCorrect, duration, answerText) {
-            fetch('/learn/vocabulary/speed/api/check', {
+            fetch("{{ url_for('vocab_speed.speed_api_check_answer') }}", {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({

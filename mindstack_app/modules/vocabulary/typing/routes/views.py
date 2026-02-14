@@ -262,6 +262,61 @@ def api_next_item():
         
     session_data = dict(session.session_data or {})
     current_index = session_data.get('current_index', 0)
+    item_ids = session_data.get('item_ids', [])
+    
+    # [NEW] Check for End of Cycle (Unlimited Mode)
+    # If we are about to move past the last item
+    if current_index >= len(item_ids) - 1:
+        # Check if unlimited (assuming count was not set or we just want infinite loop)
+        # We can just always loop in this mode as requested by user ("all unlimited")
+        import random
+        random.shuffle(item_ids)
+        session_data['item_ids'] = item_ids
+        session_data['current_index'] = 0
+        session_data['is_showing_answer'] = False
+        session_data['last_user_answer'] = ''
+        
+        session.session_data = session_data
+        db.session.add(session)
+        db.session.commit()
+        
+        # Fetch new items to return
+        items = LearningItem.query.filter(LearningItem.item_id.in_(item_ids)).all()
+        # Sort items to match new order
+        item_map = {item.item_id: item for item in items}
+        formatted_items = []
+        for iid in item_ids:
+            if iid in item_map:
+                item = item_map[iid]
+                # Re-serialize item if needed, or use a helper
+                # Using ad-hoc serialization matching api_get_items logic (simplified)
+                content = item.content if item.content else {}
+                from mindstack_app.utils.content_renderer import strip_bbcode, bbcode_to_html_simple
+                prompt = bbcode_to_html_simple(getattr(item, 'front', content.get('front', '')))
+                
+                # Get FSRS stats
+                fsrs_state = None
+                from mindstack_app.models import ItemMemoryState
+                params = getattr(item, 'fsrs_memory_state', None)
+                if params and isinstance(params, dict):
+                    fsrs_state = params
+                
+                formatted_items.append({
+                    'item_id': item.item_id,
+                    'prompt': prompt,
+                    'answer': strip_bbcode(getattr(item, 'back', content.get('back', ''))),
+                    # Simplified fsrs for re-fetch
+                    'fsrs': fsrs_state or {'stability':0, 'difficulty':0, 'retrievability':0}
+                })
+
+        return jsonify({
+            'success': True,
+            'new_cycle': True,
+            'items': formatted_items,
+            'next_index': 0
+        })
+
+    # Normal progression
     session_data['current_index'] = current_index + 1
     session_data['is_showing_answer'] = False
     session_data['last_user_answer'] = ''

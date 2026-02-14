@@ -227,8 +227,7 @@
 {% block content %}
 <div class="setup-container">
     <header class="setup-header">
-        <a href="{{ url_for('vocabulary.dashboard') }}" class="setup-back-btn"><i
-                class="fas fa-arrow-left"></i></a>
+        <a href="{{ url_for('vocabulary.dashboard') }}" class="setup-back-btn"><i class="fas fa-arrow-left"></i></a>
         <div class="header-nav">
             <div class="breadcrumb">
                 <span>TỪ VỰNG</span> <i class="fas fa-chevron-right"></i> <span style="color:var(--primary)">ÔN
@@ -421,7 +420,7 @@
             return;
         }
 
-        var url = "{{ url_for('vocabulary.vocab_speed.session_page', set_id=container.container_id) }}";
+        var url = "{{ url_for('vocab_speed.speed_session_page', set_id=container.container_id) }}";
         url += `?count=${Math.min(config.count, totalItems)}`;
         url += `&time_limit=${config.time_limit}`;
         url += `&lives=${config.lives}`;
@@ -436,4 +435,3 @@
     }) ();
 </script>
 {% endblock %}
-

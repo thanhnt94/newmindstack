@@ -210,6 +210,19 @@ class MCQSessionManager:
             return True
         return False
 
+    def start_next_cycle(self):
+        """
+        Reshuffles the current questions and starts a new cycle.
+        Preserves the question pool but changes the order.
+        """
+        if self.questions:
+            # Fisher-Yates shuffle (random.shuffle is in-place)
+            random.shuffle(self.questions)
+            self.currentIndex = 0
+            self.save_to_db()
+            return True
+        return False
+
     def clear_session(self):
         """Clears the session data from the database."""
         from mindstack_app.models import UserContainerState, db

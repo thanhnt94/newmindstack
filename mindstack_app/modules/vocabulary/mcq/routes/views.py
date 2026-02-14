@@ -87,7 +87,8 @@ def mcq_session(set_id):
     # Mode, Count, Choices fallbacks
     # Note: setup page passes 'limit' instead of 'count' in JS, handle both
     req_count = request.args.get('count') or request.args.get('limit')
-    count = int(req_count) if req_count is not None else saved_mcq.get('count', container_mcq.get('count', 10))
+    # Default to 0 (Unlimited) instead of 10
+    count = int(req_count) if req_count is not None else saved_mcq.get('count', container_mcq.get('count', 0))
     
     mode = request.args.get('mode', saved_mcq.get('mode', container_mcq.get('mode', 'front_back')))
     choices = request.args.get('choices', saved_mcq.get('choices', container_mcq.get('choices', 0)), type=int)
@@ -200,8 +201,10 @@ def mcq_api_get_items(set_id):
     """API to get MCQ items for a session, with session persistence."""
     try:
         from ..services.mcq_session_manager import MCQSessionManager
+        from mindstack_app.modules.session.interface import SessionInterface
         
-        count = request.args.get('count', 10, type=int)
+        # Default to 0 (Unlimited) instead of 10
+        count = request.args.get('count', 0, type=int)
         mode = request.args.get('mode', 'front_back')
         num_choices = request.args.get('choices', 0, type=int)
         custom_pairs_str = request.args.get('custom_pairs', '')
@@ -216,10 +219,25 @@ def mcq_api_get_items(set_id):
                 pass
 
         manager = MCQSessionManager.load_from_db(current_user.user_id, set_id)
+        
+        # Auto-restart if user requests Unlimited (count=0/None) but active session is limited (e.g. 10 items)
+        # This matches the logic added to Typing mode
+        if manager and count == 0:
+             # Check if current session was created with a limit (implied by total questions being exactly 10, often default)
+             # Better: Check manager params if available
+             current_count = manager.params.get('count', 10)
+             if current_count != 0 and len(manager.questions) <= 10:
+                 # Restart session to get full list
+                 if manager.db_session_id:
+                     SessionInterface.complete_session(manager.db_session_id)
+                 manager = None
+
         if manager:
             request_params = {
                 'count': count, 'mode': mode, 'choices': num_choices, 'custom_pairs': custom_pairs
             }
+            # Only resume if params match (simple check)
+            # Relaxed check: if we are unlimited, and session is unlimited, resume.
             if manager.params == request_params:
                 response = manager.get_session_data()
                 response['is_restored'] = True
@@ -251,6 +269,17 @@ def mcq_api_next_question(set_id):
         return jsonify({'success': False, 'message': 'No active session'}), 404
         
     success = manager.next_item()
+    
+    # [NEW] Auto-start next cycle for Unlimited mode
+    if not success and manager.params.get('count') == 0:
+        if manager.start_next_cycle():
+            return jsonify({
+                'success': True, 
+                'currentIndex': 0,
+                'new_cycle': True,
+                'questions': manager.questions
+            })
+
     return jsonify({'success': success, 'currentIndex': manager.currentIndex})
 
 
@@ -301,6 +330,33 @@ def mcq_api_check_answer():
         result['session_id'] = manager.db_session_id
     
     return jsonify(result)
+
+@blueprint.route('/mcq/api/cycle/next', methods=['POST'])
+@login_required
+def mcq_next_cycle():
+    """Starts the next random cycle for unlimited mode."""
+    from ..services.mcq_session_manager import MCQSessionManager
+    try:
+        data = request.get_json(silent=True) or {}
+        set_id = data.get('set_id') or request.args.get('set_id')
+        
+        if not set_id:
+             return jsonify({'success': False, 'message': 'Missing set_id'}), 400
+
+        manager = MCQSessionManager.load_from_db(current_user.user_id, set_id)
+        if manager:
+            if manager.start_next_cycle():
+                return jsonify({
+                    'success': True, 
+                    'questions': manager.questions,
+                    'currentIndex': 0
+                })
+            else:
+                return jsonify({'success': False, 'message': 'Failed to start next cycle (no questions?)'})
+        
+        return jsonify({'success': False, 'message': 'Session not found'})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
 
 @blueprint.route('/mcq/api/end_session', methods=['POST'])
 @login_required

@@ -58,6 +58,7 @@
         margin: 0 0 0.5rem 0;
         letter-spacing: -0.02em;
         background: linear-gradient(135deg, #0f172a 0%, #4f46e5 100%);
+        background-clip: text;
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
     }
@@ -358,8 +359,10 @@
             </div>
 
             {# Matching #}
-            <div onclick='checkSession("matching", "{{ url_for("vocab_matching.matching_session_page", set_id=container.container_id) }}")'
-                class="mode-card mode-matching">
+            {% set matching_enabled = show_all or 'supports_matching' in caps %}
+            <div {% if matching_enabled
+                %}onclick='checkSession("matching", "{{ url_for("vocab_matching.matching_session_page", set_id=container.container_id) }}")'
+                {% endif %} class="mode-card mode-matching {% if not matching_enabled %}mode-disabled{% endif %}">
                 <div class="mode-icon-box"
                     style="background: linear-gradient(135deg, #ec4899, #f472b6); box-shadow: 0 8px 20px -4px rgba(236, 72, 153, 0.4);">
                     <i class="fas fa-puzzle-piece"></i>
@@ -369,17 +372,21 @@
                     <span class="mode-desc">Ghép các cặp từ tương ứng nhanh nhất có thể.</span>
                 </div>
                 <div class="mode-arrow"><i class="fas fa-arrow-right"></i></div>
+                {% if not matching_enabled %}<div class="mode-lock-badge"><i class="fas fa-lock"></i></div>{% endif %}
             </div>
 
             {# Speed #}
-            <div onclick='checkSession("speed", "{{ url_for("vocab_speed.speed_setup", set_id=container.container_id) }}")'
-                class="mode-card mode-speed">
+            {% set speed_enabled = show_all or 'supports_speed' in caps %}
+            <div {% if speed_enabled
+                %}onclick='checkSession("speed", "{{ url_for("vocab_speed.speed_setup", set_id=container.container_id) }}")'
+                {% endif %} class="mode-card mode-speed {% if not speed_enabled %}mode-disabled{% endif %}">
                 <div class="mode-icon-box"><i class="fas fa-bolt"></i></div>
                 <div class="mode-info">
                     <span class="mode-name">Ôn nhanh</span>
                     <span class="mode-desc">Phản ứng cực nhanh với các câu hỏi trắc nghiệm.</span>
                 </div>
                 <div class="mode-arrow"><i class="fas fa-arrow-right"></i></div>
+                {% if not speed_enabled %}<div class="mode-lock-badge"><i class="fas fa-lock"></i></div>{% endif %}
             </div>
 
         </div>

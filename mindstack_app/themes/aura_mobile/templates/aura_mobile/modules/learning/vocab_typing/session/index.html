@@ -642,7 +642,9 @@
                         <div class="stat-pill flex-shrink-0 flex items-center gap-1 px-2 py-1 bg-slate-100 rounded-lg">
                             <i class="fa-solid fa-bars-progress text-slate-500 text-[9px]"></i>
                             <span class="text-slate-700 font-semibold">
-                                <span id="current-q-num">1</span>/<span id="total-q-num">...</span>
+                                <span class="hidden" id="current-q-num">1</span>
+                                <span class="text-slate-700 font-bold text-[10px]">UNLIMITED</span>
+                                <span class="hidden" id="total-q-num">...</span>
                             </span>
                         </div>
 
@@ -832,7 +834,7 @@
         var statREl = document.getElementById('stat-r');
 
         // Logic: Get count from Data Attribute
-        var count = dataEl.dataset.count || '';
+        var count = 0; // Forced Unlimited as per requirement
 
         // Auto focus (ensure it handles footer position)
         setTimeout(() => {
@@ -1131,17 +1133,47 @@
         async function nextItem() {
             // Notify backend before moving locally
             if (dbSessionId) {
-                fetch("{{ url_for('vocab_typing.api_next_item') }}", {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRFToken': '{{ csrf_token() }}'
-                    },
-                    body: JSON.stringify({ session_id: dbSessionId })
-                });
+                try {
+                    const res = await fetch("{{ url_for('vocab_typing.api_next_item') }}", {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': '{{ csrf_token() }}'
+                        },
+                        body: JSON.stringify({ session_id: dbSessionId })
+                    });
+                    const data = await res.json();
+
+                    if (data.success) {
+                        if (data.new_cycle && data.items) {
+                            items = data.items;
+                            current = data.next_index; // Should be 0
+                            // Optional: Toast
+                            if (typeof window.showScoreToast === 'function') {
+                                // showScoreToast("Chu kỳ mới!", "info");
+                            }
+                        } else {
+                            // Sync index just in case, or just increment local
+                            if (data.next_index !== undefined) {
+                                // We could sync, but local increment is smoother if no cycle change
+                            }
+                            current++;
+                        }
+                        showItem();
+                    } else {
+                        console.error("Next item failed", data);
+                        current++;
+                        showItem();
+                    }
+                } catch (e) {
+                    console.error(e);
+                    current++;
+                    showItem();
+                }
+            } else {
+                current++;
+                showItem();
             }
-            current++;
-            showItem();
         }
 
         function showComplete() {
