@@ -71,38 +71,75 @@ render_unified_header with context %}
         width: 100%;
     }
 
-    /* Fixed bottom elements styling */
-    /* Fixed bottom elements styling */
+
+
+
+
+    /* Truly Seamless Footer HUD (Absolute Pure White Block) */
+    .vocab-footer {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        z-index: 200;
+        background: white !important;
+        /* Solid White */
+        padding: 0.5rem 0 !important;
+        padding-bottom: calc(0.5rem + env(safe-area-inset-bottom)) !important;
+        border-top: 1px solid #f1f5f9 !important;
+        box-shadow: 0 -15px 50px rgba(0, 0, 0, 0.12);
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0 !important;
+    }
+
     .vocab-pagination-bar {
-        flex-shrink: 0;
-        background: white;
-        border-top: 1px solid #f1f5f9;
-        z-index: 50;
-        /* Increased */
         display: none;
         align-items: center;
         justify-content: center;
-        padding: 0.75rem;
+        background: white !important;
+        /* Solid White */
+        border: none !important;
+        box-shadow: none !important;
+        padding: 0.75rem 1rem 0.25rem 1rem !important;
+        margin: 0 !important;
+        gap: 0.5rem !important;
     }
 
-    /* Hide mobile pagination bar on desktop even if 'visible' class is added by JS */
-    @media (min-width: 1024px) {
-        .vocab-pagination-bar.visible {
-            display: none !important;
-        }
+    .vocab-pagination-bar.visible {
+        display: flex !important;
     }
 
-    /* Standard visible style for mobile */
-    @media (max-width: 1023px) {
-        .vocab-pagination-bar.visible {
-            display: flex !important;
-        }
+    .vocab-pagination-bar>*,
+    .pagination-nav-btn,
+    .pagination-pages {
+        background: white !important;
+        /* Pure White Buttons */
+        border: none !important;
+        /* NO BORDERS on items */
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04) !important;
+        /* Very faint shadow */
+        margin: 0 !important;
+        border-radius: 0.75rem !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
     }
 
-    .vocab-footer {
-        flex-shrink: 0;
-        z-index: 10;
-        background: white;
+    .pagination-pages {
+        padding: 0 0.5rem !important;
+        height: 40px !important;
+        gap: 4px !important;
+    }
+
+    .vocab-start-btn {
+        margin: 0.5rem 1rem 0.75rem 1rem !important;
+        width: auto !important;
+        border-radius: 1.25rem !important;
+        background: var(--vocab-primary) !important;
+        color: white !important;
+        box-shadow: 0 10px 25px rgba(79, 70, 229, 0.2) !important;
     }
 
 
@@ -267,104 +304,102 @@ render_unified_header with context %}
                             </div>
                         </div>
 
-                        <!-- Fixed Pagination for Detail View (Moved inside Tab) -->
-                        <div id="detail-pagination-bar" class="vocab-pagination-bar md:hidden">
-                            <button class="pagination-nav-btn js-detail-prev-page" disabled>
-                                <i class="fas fa-chevron-left"></i>
-                            </button>
-                            <div class="pagination-pages js-detail-page-numbers">
-                                <span class="page-num active">1</span>
+                    </div>
+                </div>
+
+                <!-- Tab Content: Statistics (Leaderboard) -->
+                <div id="tab-content-stats" class="hidden px-4 pb-24">
+                    <div
+                        class="bg-gradient-to-br from-indigo-500 to-purple-600 rounded-3xl p-6 text-white mb-6 shadow-xl relative overflow-hidden">
+                        <div class="absolute top-0 right-0 -mt-4 -mr-4 w-32 h-32 bg-white/10 rounded-full blur-2xl">
+                        </div>
+                        <div class="relative z-10">
+                            <h3 class="text-lg font-bold mb-1">Bảng vàng thành tích</h3>
+                            <p class="text-indigo-100 text-sm mb-4">Top những người học chăm chỉ nhất bộ thẻ
+                                này.
+                            </p>
+
+                            <!-- Timeframe Filters -->
+                            <div class="flex gap-2 bg-black/20 p-1 rounded-lg backdrop-blur-sm inline-flex">
+                                <button
+                                    class="px-3 py-1 text-xs font-semibold rounded-md transition-all js-lb-filter active bg-white text-indigo-700 shadow-sm"
+                                    data-tf="all">Toàn bộ</button>
+                                <button
+                                    class="px-3 py-1 text-xs font-semibold rounded-md transition-all text-indigo-100 hover:bg-white/10 js-lb-filter"
+                                    data-tf="month">Tháng</button>
+                                <button
+                                    class="px-3 py-1 text-xs font-semibold rounded-md transition-all text-indigo-100 hover:bg-white/10 js-lb-filter"
+                                    data-tf="week">Tuần</button>
+                                <button
+                                    class="px-3 py-1 text-xs font-semibold rounded-md transition-all text-indigo-100 hover:bg-white/10 js-lb-filter"
+                                    data-tf="day">Hôm nay</button>
                             </div>
-                            <button class="pagination-nav-btn js-detail-next-page" disabled>
-                                <i class="fas fa-chevron-right"></i>
-                            </button>
                         </div>
 
-                        <!-- Pagination Desktop (Closer to content) -->
-                        <div class="hidden md:flex justify-center py-4 js-detail-pagination-bar-desktop"
-                            id="detail-pagination-bar-desktop">
-                            <!-- Pagination rendered by JS here -->
-                        </div>
                     </div>
 
-                    <!-- Tab Content: Statistics (Leaderboard) -->
-                    <div id="tab-content-stats" class="hidden px-4 pb-24">
-                        <div
-                            class="bg-gradient-to-br from-indigo-500 to-purple-600 rounded-3xl p-6 text-white mb-6 shadow-xl relative overflow-hidden">
-                            <div class="absolute top-0 right-0 -mt-4 -mr-4 w-32 h-32 bg-white/10 rounded-full blur-2xl">
-                            </div>
-                            <div class="relative z-10">
-                                <h3 class="text-lg font-bold mb-1">Bảng vàng thành tích</h3>
-                                <p class="text-indigo-100 text-sm mb-4">Top những người học chăm chỉ nhất bộ thẻ này.
-                                </p>
-
-                                <!-- Timeframe Filters -->
-                                <div class="flex gap-2 bg-black/20 p-1 rounded-lg backdrop-blur-sm inline-flex">
-                                    <button
-                                        class="px-3 py-1 text-xs font-semibold rounded-md transition-all js-lb-filter active bg-white text-indigo-700 shadow-sm"
-                                        data-tf="all">Toàn bộ</button>
-                                    <button
-                                        class="px-3 py-1 text-xs font-semibold rounded-md transition-all text-indigo-100 hover:bg-white/10 js-lb-filter"
-                                        data-tf="month">Tháng</button>
-                                    <button
-                                        class="px-3 py-1 text-xs font-semibold rounded-md transition-all text-indigo-100 hover:bg-white/10 js-lb-filter"
-                                        data-tf="week">Tuần</button>
-                                    <button
-                                        class="px-3 py-1 text-xs font-semibold rounded-md transition-all text-indigo-100 hover:bg-white/10 js-lb-filter"
-                                        data-tf="day">Hôm nay</button>
-                                </div>
-                            </div>
-
-                        </div>
-
-                        <div id="set-leaderboard-container" class="space-y-3">
-                            <!-- Leaderboard items rendered by JS -->
-                            <div class="text-center py-8 text-slate-400">
-                                <i class="fas fa-spinner fa-spin text-2xl mb-2"></i>
-                                <p>Đang tải dữ liệu...</p>
-                            </div>
+                    <div id="set-leaderboard-container" class="space-y-3">
+                        <!-- Leaderboard items rendered by JS -->
+                        <div class="text-center py-8 text-slate-400">
+                            <i class="fas fa-spinner fa-spin text-2xl mb-2"></i>
+                            <p>Đang tải dữ liệu...</p>
                         </div>
                     </div>
                 </div>
             </div>
+        </div>
 
 
 
-            <div class="vocab-footer">
-                <button class="vocab-start-btn js-start-learning">
-                    <i class="fas fa-play-circle"></i> Bắt đầu học
+        <div class="vocab-footer">
+            <!-- Integrated Pagination -->
+            <div id="detail-pagination-bar" class="vocab-pagination-bar">
+                <button class="pagination-nav-btn js-detail-prev-page" disabled>
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+                <div class="pagination-pages js-detail-page-numbers">
+                    <span class="page-num active">1</span>
+                </div>
+                <button class="pagination-nav-btn js-detail-next-page" disabled>
+                    <i class="fas fa-chevron-right"></i>
                 </button>
             </div>
-        </div>
-    </div>
 
-
-
-
-
-    <!-- STEP 3: Mode Selector (Mobile only, Desktop redirects or uses index.html/modes) -->
-    <!-- In this detail.html, we support the mobile wizard flow for consistency -->
-    <div id="step-modes" class="vocab-step">
-        {% include _v ~ '/modules/vocabulary/dashboard/components/steps/_modes.html' %}
-        <div class="step-bottom-bar">
-            <button type="button" class="step-continue-btn js-mode-continue" disabled>
-                <span>Tiếp tục</span>
-                <i class="fas fa-arrow-right"></i>
+            <!-- Learning Button -->
+            <button class="vocab-start-btn js-start-learning">
+                <i class="fas fa-play-circle"></i> Bắt đầu học
             </button>
         </div>
     </div>
+</div>
 
-    <!-- STEP 4: Flashcard Options -->
-    <div id="step-flashcard-options" class="vocab-step">
-        {% include _v ~ '/modules/vocabulary/dashboard/components/steps/_flashcard_options.html' %}
-    </div>
 
-    <!-- STEP 5: MCQ Options -->
-    <div id="step-mcq-options" class="vocab-step">
-        <div id="mcq-options-container" class="step-content-container">
-            <!-- Content loaded dynamically -->
-        </div>
+
+
+
+<!-- STEP 3: Mode Selector (Mobile only, Desktop redirects or uses index.html/modes) -->
+<!-- In this detail.html, we support the mobile wizard flow for consistency -->
+<div id="step-modes" class="vocab-step">
+    {% include _v ~ '/modules/vocabulary/dashboard/components/steps/_modes.html' %}
+    <div class="step-bottom-bar">
+        <button type="button" class="step-continue-btn js-mode-continue" disabled>
+            <span>Tiếp tục</span>
+            <i class="fas fa-arrow-right"></i>
+        </button>
     </div>
+</div>
+
+<!-- STEP 4: Flashcard Options -->
+<div id="step-flashcard-options" class="vocab-step">
+    {% include _v ~ '/modules/vocabulary/dashboard/components/steps/_flashcard_options.html' %}
+</div>
+
+<!-- STEP 5: MCQ Options -->
+<div id="step-mcq-options" class="vocab-step">
+    <div id="mcq-options-container" class="step-content-container">
+        <!-- Content loaded dynamically -->
+    </div>
+</div>
 </div>
 
 {# Shared Modals #}
