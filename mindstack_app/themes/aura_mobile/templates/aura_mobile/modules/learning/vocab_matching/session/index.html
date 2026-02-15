@@ -195,14 +195,14 @@
         <div class="match-column" id="left-col">
             {% for item in game.left %}
             <div class="match-card" data-side="left" data-item-id="{{ item.item_id }}" data-id="{{ item.id }}">
-                {{ item.text }}
+                {{ item.text | safe }}
             </div>
             {% endfor %}
         </div>
         <div class="match-column" id="right-col">
             {% for item in game.right %}
             <div class="match-card" data-side="right" data-item-id="{{ item.item_id }}" data-id="{{ item.id }}">
-                {{ item.text }}
+                {{ item.text | safe }}
             </div>
             {% endfor %}
         </div>
@@ -253,148 +253,145 @@
 <script>
     (function () {
         var score = 0;
-        var total = {{ game.total }
-    };
-    var dbSessionId = {{ session.get('matching_game', {}).get('db_session_id') | tojson if session.get('matching_game', {}).get('db_session_id') else 'null' }};
-    var selectedLeft = null;
-    var selectedRight = null;
-    var startTime = Date.now();
-    var cards = document.querySelectorAll('.match-card');
-    cards.forEach(function (card) {
-        card.addEventListener('click', function () {
-            if (card.classList.contains('matched')) return;
-            var side = card.dataset.side;
-            if (side === 'left') {
-                if (selectedLeft) selectedLeft.classList.remove('selected');
-                selectedLeft = card;
-                card.classList.add('selected');
-            } else {
-                if (selectedRight) selectedRight.classList.remove('selected');
-                selectedRight = card;
-                card.classList.add('selected');
-            }
-            if (selectedLeft && selectedRight) {
-                checkMatch();
-            }
-        });
-    });
-    function checkMatch() {
-        var leftItemId = selectedLeft.dataset.itemId;
-        var rightItemId = selectedRight.dataset.itemId;
+        var total = {{ game.total }};
+        var dbSessionId = {{ session.get('matching_game', {}).get('db_session_id') | tojson if session.get('matching_game', {}).get('db_session_id') else 'null' }};
+        var selectedLeft = null;
+        var selectedRight = null;
+        var startTime = Date.now();
+        var cards = document.querySelectorAll('.match-card');
 
-        var duration_ms = Date.now() - startTime;
-        var userAnswer = "Ghép: " + selectedLeft.textContent.trim() + " - " + selectedRight.textContent.trim();
-
-        // Setup next start time immediately
-        startTime = Date.now();
-
-        // Send to API
-        fetch('/learn/vocabulary/matching/api/check', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                left_item_id: leftItemId,
-                right_item_id: rightItemId,
-                duration_ms: duration_ms,
-                user_answer: userAnswer
-            })
-        });
-
-        if (leftItemId === rightItemId) {
-            selectedLeft.classList.remove('selected');
-            selectedRight.classList.remove('selected');
-            selectedLeft.classList.add('matched');
-            selectedRight.classList.add('matched');
-            score++;
-            document.getElementById('score').textContent = score;
-            selectedLeft = null;
-            selectedRight = null;
-            if (score === total) {
-                setTimeout(function () {
-                    document.getElementById('final-score').textContent = score;
-                    document.getElementById('complete-modal').style.display = 'flex';
-                }, 300);
-            }
-        } else {
-            selectedLeft.classList.add('wrong');
-            selectedRight.classList.add('wrong');
-            setTimeout(function () {
-                selectedLeft.classList.remove('wrong', 'selected');
-                selectedRight.classList.remove('wrong', 'selected');
-                selectedLeft = null;
-                selectedRight = null;
-            }, 500);
-        }
-    }
-    }
-    // Modal Logic
-    const exitModal = document.getElementById('exit-confirm-modal');
-    const exitPanel = document.getElementById('exit-modal-panel');
-
-    window.endMatchingSession = function () {
-        if (exitModal) {
-            exitModal.style.display = 'flex';
-            // Small delay to allow display:flex to apply before adding opacity class for animation
-            setTimeout(() => {
-                exitModal.classList.remove('opacity-0', 'hidden');
-                exitPanel.classList.remove('scale-95');
-                exitPanel.classList.add('scale-100');
-            }, 10);
-        }
-    };
-
-    window.closeExitModal = function () {
-        if (exitModal) {
-            exitModal.classList.add('opacity-0');
-            exitPanel.classList.remove('scale-100');
-            exitPanel.classList.add('scale-95');
-            setTimeout(() => {
-                exitModal.classList.add('hidden');
-                exitModal.style.display = 'none';
-            }, 300);
-        }
-    };
-
-    window.confirmExit = function () {
-        const btn = document.querySelector('button[onclick="confirmExit()"]');
-        if (btn) {
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Xử lý...';
-            btn.disabled = true;
-        }
-
-        fetch("{{ url_for('vocabulary.matching.end_session') }}", {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': "{{ csrf_token() if csrf_token else '' }}"
-            }
-        })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success && data.session_id) {
-                    window.location.href = `/learn/session/${data.session_id}/summary`;
+        cards.forEach(function (card) {
+            card.addEventListener('click', function () {
+                if (card.classList.contains('matched')) return;
+                var side = card.dataset.side;
+                if (side === 'left') {
+                    if (selectedLeft) selectedLeft.classList.remove('selected');
+                    selectedLeft = card;
+                    card.classList.add('selected');
                 } else {
-                    window.location.href = "{{ url_for('session.manage_sessions') }}";
+                    if (selectedRight) selectedRight.classList.remove('selected');
+                    selectedRight = card;
+                    card.classList.add('selected');
                 }
-            })
-            .catch(err => {
-                console.error(err);
-                alert("Lỗi kết nối. Vui lòng thử lại.");
-                if (btn) {
-                    btn.innerHTML = 'Kết thúc';
-                    btn.disabled = false;
+                if (selectedLeft && selectedRight) {
+                    checkMatch();
                 }
             });
-    };
-    };
+        });
 
-    window.goToSummary = function () {
-        if (dbSessionId) {
-            window.location.href = `/learn/session/${dbSessionId}/summary`;
-        } else {
-            location.href = "{{ url_for('vocabulary.matching.setup', set_id=container.container_id) }}";
+        function checkMatch() {
+            if (!selectedLeft || !selectedRight) return;
+            var leftItemId = selectedLeft.dataset.itemId;
+            var rightItemId = selectedRight.dataset.itemId;
+            var duration_ms = Date.now() - startTime;
+            var userAnswer = "Ghép: " + selectedLeft.textContent.trim() + " - " + selectedRight.textContent.trim();
+
+            startTime = Date.now();
+
+            fetch('/learn/vocabulary/matching/api/check', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    left_item_id: leftItemId,
+                    right_item_id: rightItemId,
+                    duration_ms: duration_ms,
+                    user_answer: userAnswer
+                })
+            });
+
+            if (leftItemId === rightItemId) {
+                selectedLeft.classList.remove('selected');
+                selectedRight.classList.remove('selected');
+                selectedLeft.classList.add('matched');
+                selectedRight.classList.add('matched');
+                score++;
+                document.getElementById('score').textContent = score;
+                selectedLeft = null;
+                selectedRight = null;
+                if (score === total) {
+                    setTimeout(function () {
+                        document.getElementById('final-score').textContent = score;
+                        document.getElementById('complete-modal').style.display = 'flex';
+                    }, 300);
+                }
+            } else {
+                selectedLeft.classList.add('wrong');
+                selectedRight.classList.add('wrong');
+                setTimeout(function () {
+                    selectedLeft.classList.remove('wrong', 'selected');
+                    selectedRight.classList.remove('wrong', 'selected');
+                    selectedLeft = null;
+                    selectedRight = null;
+                }, 500);
+            }
         }
-    };
-}) ();
+
+        // Modal Logic
+        const exitModal = document.getElementById('exit-confirm-modal');
+        const exitPanel = document.getElementById('exit-modal-panel');
+
+        window.endMatchingSession = function () {
+            if (exitModal) {
+                exitModal.style.display = 'flex';
+                setTimeout(() => {
+                    exitModal.classList.remove('opacity-0', 'hidden');
+                    exitPanel.classList.remove('scale-95');
+                    exitPanel.classList.add('scale-100');
+                }, 10);
+            }
+        };
+
+        window.closeExitModal = function () {
+            if (exitModal) {
+                exitModal.classList.add('opacity-0');
+                exitPanel.classList.remove('scale-100');
+                exitPanel.classList.add('scale-95');
+                setTimeout(() => {
+                    exitModal.classList.add('hidden');
+                    exitModal.style.display = 'none';
+                }, 300);
+            }
+        };
+
+        window.confirmExit = function () {
+            const btn = document.querySelector('button[onclick="confirmExit()"]');
+            if (btn) {
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Xử lý...';
+                btn.disabled = true;
+            }
+
+            fetch("{{ url_for('vocab_matching.matching_end_session') }}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': "{{ csrf_token() if csrf_token else '' }}"
+                }
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success && data.session_id) {
+                        window.location.href = `/session/${data.session_id}/summary`;
+                    } else {
+                        window.location.href = "{{ url_for('session.manage_sessions') }}";
+                    }
+                })
+                .catch(err => {
+                    console.error(err);
+                    alert("Lỗi kết nối. Vui lòng thử lại.");
+                    if (btn) {
+                        btn.innerHTML = 'Kết thúc';
+                        btn.disabled = false;
+                    }
+                });
+        };
+
+        window.goToSummary = function () {
+            if (dbSessionId) {
+                window.location.href = `/session/${dbSessionId}/summary`;
+            } else {
+                location.href = "{{ url_for('vocabulary.modes_selection_page', set_id=container.container_id) }}";
+            }
+        };
+    }) ();
 </script>
 {% endblock %}

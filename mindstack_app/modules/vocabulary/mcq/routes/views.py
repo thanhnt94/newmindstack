@@ -152,7 +152,7 @@ def mcq_save_setup(set_id):
             return jsonify({'success': False, 'message': 'No data provided'}), 400
             
         mode = data.get('mode', 'custom')
-        count = data.get('count', 10)
+        count = data.get('count', 0)
         choices = data.get('choices', 4)
         custom_pairs = data.get('custom_pairs')
         use_custom_config = data.get('use_custom_config', False)
@@ -169,7 +169,7 @@ def mcq_save_setup(set_id):
         if count is not None:
              new_settings['mcq']['count'] = int(count)
         else:
-             new_settings['mcq']['count'] = 10
+             new_settings['mcq']['count'] = 0
              
         new_settings['mcq']['choices'] = int(choices) if choices is not None else 0
         new_settings['mcq']['use_custom_config'] = bool(use_custom_config)

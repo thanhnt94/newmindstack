@@ -440,7 +440,7 @@
 
     let config = {
         mode: saved.mode || defaults.mode || 'all_review',
-        count: saved.count !== undefined ? saved.count : (defaults.count !== undefined ? defaults.count : 10),
+        count: saved.count !== undefined ? saved.count : (defaults.count !== undefined ? defaults.count : 0),
         timer: saved.timer || defaults.timer || 0,
         auto_audio: saved.auto_audio !== undefined ? saved.auto_audio : (defaults.auto_audio !== undefined ? defaults.auto_audio : true)
     };
@@ -468,6 +468,21 @@
             startBtn.style.display = 'flex';
             // Update summary
             document.querySelector('#selected-mode-display span').textContent = modeLabels[config.mode];
+
+            // Sync Limit UI
+            const limitToggle = document.getElementById('limit-toggle');
+            const limitOptions = document.getElementById('limit-options');
+            if (config.count > 0) {
+                limitToggle.checked = true;
+                limitOptions.classList.remove('hidden');
+                // Select matching chip
+                document.querySelectorAll('#limit-options .option-chip').forEach(chip => {
+                    chip.classList.toggle('selected', parseInt(chip.dataset.value) === config.count);
+                });
+            } else {
+                limitToggle.checked = false;
+                limitOptions.classList.add('hidden');
+            }
         }
     }
 
@@ -500,10 +515,10 @@
     limitToggle.addEventListener('change', () => {
         if (limitToggle.checked) {
             limitOptions.classList.remove('hidden');
-            config.limit = parseInt(document.querySelector('#limit-options .option-chip.selected')?.dataset.value || 10);
+            config.count = parseInt(document.querySelector('#limit-options .option-chip.selected')?.dataset.value || 10);
         } else {
             limitOptions.classList.add('hidden');
-            config.limit = 0;
+            config.count = 0;
         }
     });
 

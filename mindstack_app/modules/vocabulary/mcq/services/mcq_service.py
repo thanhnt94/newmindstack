@@ -207,7 +207,7 @@ class MCQService:
             'question_key': config.get('question_key') or mcq_settings.get('question_key'),
             'answer_key': config.get('answer_key') or mcq_settings.get('answer_key'),
             'custom_pairs': config.get('custom_pairs') or mcq_settings.get('pairs') or mcq_settings.get('custom_pairs'),
-            'count': config.get('count') if config.get('count') is not None else mcq_settings.get('count', 10)
+            'count': config.get('count') if config.get('count') is not None else mcq_settings.get('count', 0)
         }
 
         # 2. Get learned items (Questions Source) - ONLY items with state != 0
@@ -224,7 +224,7 @@ class MCQService:
 
         random.shuffle(eligible_questions)
         
-        count = merged_config.get('count', 10)
+        count = merged_config.get('count', 0)
         if count > 0:
             selected_items = eligible_questions[:min(count, len(eligible_questions))]
         else:

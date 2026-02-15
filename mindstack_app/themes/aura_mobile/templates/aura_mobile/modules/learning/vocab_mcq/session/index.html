@@ -7,6 +7,7 @@
 {% block head %}
 {{ super() }}
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
     /* CRITICAL: Hide global header/footer on mobile */
     /* CRITICAL: Hide global header/footer always for session */
@@ -441,26 +442,182 @@
         cursor: not-allowed;
     }
 
-    /* Result Modal - Enhanced Report Style */
-    .result-card {
+    /* Detailed Result Modal & Stats Modal Shared Styles */
+    .result-overlay,
+    .stats-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(15, 23, 42, 0.4);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        z-index: 1000;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        padding: 1rem;
+        transition: all 0.3s ease;
+    }
+
+    .result-overlay.active,
+    .stats-overlay.active {
+        display: flex;
+    }
+
+    /* Enhanced Report Style for Result Cards */
+    .result-card,
+    .stats-card {
         background: white;
         padding: 0;
-        /* Remove padding for header/content split */
         border-radius: 24px;
         text-align: center;
         box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
         border: 1px solid var(--border);
         max-width: 800px;
-        /* Wider */
         width: 95%;
         max-height: 90vh;
-        /* Prevent overflow on small screens */
         display: flex;
         flex-direction: column;
         overflow: hidden;
-        /* For border radius */
-        transform: scale(0.9);
-        transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        animation: modalSlide 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    @keyframes modalSlide {
+        from {
+            transform: translateY(20px) scale(0.95);
+            opacity: 0;
+        }
+
+        to {
+            transform: translateY(0) scale(1);
+            opacity: 1;
+        }
+    }
+
+    /* Stats Modal Specifics */
+    .stats-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1.25rem;
+        padding: 1.5rem;
+        flex-shrink: 0;
+    }
+
+    .chart-container {
+        background: white;
+        padding: 1.25rem;
+        border-radius: 20px;
+        border: 1px solid #f1f5f9;
+        margin-bottom: 1rem;
+        position: relative;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    }
+
+    .chart-title {
+        font-size: 0.7rem;
+        font-weight: 800;
+        color: #94a3b8;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        margin-bottom: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .stat-header {
+        padding: 1.5rem 1.5rem 0.5rem 1.5rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-shrink: 0;
+    }
+
+    .stat-title-group {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .stat-title {
+        font-size: 1.5rem;
+        font-weight: 900;
+        color: #0f172a;
+        letter-spacing: -0.02em;
+    }
+
+    .close-stats {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        background: #f1f5f9;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        color: #64748b;
+        transition: all 0.2s;
+    }
+
+    .close-stats:hover {
+        background: #fee2e2;
+        color: #ef4444;
+        transform: rotate(90deg);
+    }
+
+    .stats-mini-metric {
+        background: #f8fafc;
+        padding: 1.25rem;
+        border-radius: 20px;
+        text-align: center;
+        border: 1px solid #f1f5f9;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        min-height: 80px;
+    }
+
+    .mini-metric-val {
+        display: block;
+        font-size: 1.5rem;
+        font-weight: 900;
+        color: #6366f1;
+        line-height: 1;
+        margin-bottom: 0.25rem;
+    }
+
+    .mini-metric-lbl {
+        font-size: 0.6rem;
+        font-weight: 700;
+        color: #94a3b8;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    /* Result Modal Override */
+    .result-card {
+        transform: none;
+        /* Managed by .active and animation */
+        transition: none;
+    }
+
+    background: white;
+    padding: 0;
+    /* Remove padding for header/content split */
+    border-radius: 24px;
+    text-align: center;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    border: 1px solid var(--border);
+    max-width: 800px;
+    /* Wider */
+    width: 95%;
+    max-height: 90vh;
+    /* Prevent overflow on small screens */
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    /* For border radius */
+    transform: scale(0.9);
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
     }
 
     .report-header {
@@ -876,8 +1033,53 @@
         </div>
     </div>
 </div>
+<!-- Session Stats Modal -->
+<div class="stats-overlay" id="session-stats-modal">
+    <div class="stats-card">
+        <div class="stat-header">
+            <div class="stat-title-group">
+                <i class="fas fa-chart-line text-indigo-500 text-xl"></i>
+                <h2 class="stat-title">Thống kê phiên</h2>
+            </div>
+            <div class="close-stats" onclick="closeSessionStatsModal()">
+                <i class="fas fa-times"></i>
+            </div>
+        </div>
 
-{# Explicit Notification Integration #}
+        <div class="stats-grid">
+            <div class="stats-mini-metric">
+                <span class="mini-metric-val" id="stats-total-q">0</span>
+                <span class="mini-metric-lbl">Câu hỏi</span>
+            </div>
+            <div class="stats-mini-metric">
+                <span class="mini-metric-val text-emerald-500" id="stats-accuracy">0%</span>
+                <span class="mini-metric-lbl">Chính xác</span>
+            </div>
+        </div>
+
+        <div class="px-6 pb-6 space-y-4">
+            <div class="chart-container">
+                <div class="chart-title">
+                    <i class="fas fa-chart-pie text-[10px]"></i>
+                    Tỷ lệ đúng/sai
+                </div>
+                <div style="height: 180px;">
+                    <canvas id="accuracyChart"></canvas>
+                </div>
+            </div>
+
+            <div class="chart-container">
+                <div class="chart-title">
+                    <i class="fas fa-stopwatch text-[10px]"></i>
+                    Tốc độ phản hồi (giây)
+                </div>
+                <div style="height: 150px;">
+                    <canvas id="speedChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 {% include _v ~ '/components/_score_toast.html' %}
 {% include _v ~ '/components/_memory_power.html' %}
 {% include _v ~ '/modules/vocabulary/stats/_modal_stats.html' %}
@@ -977,6 +1179,10 @@
     let totalScore = 0;
     let sessionHistory = [];
     let dbSessionId = null;
+
+    // Charts
+    let accuracyChart = null;
+    let speedChart = null;
 
     // Elements
     const els = {
@@ -1233,6 +1439,20 @@
                         restoreAnswerState(answerIndex, currentSavedAnswer);
                     }
 
+                    // Populate sessionHistory from loaded answers
+                    if (data.answers) {
+                        sessionHistory = Object.entries(data.answers)
+                            .map(([idx, ans]) => ({
+                                index: parseInt(idx),
+                                isCorrect: ans.is_correct !== undefined ? ans.is_correct : (ans.user_answer_index === questions[parseInt(idx)].correct_index),
+                                duration: ans.duration_ms || 0,
+                                stability: ans.stability || 0,
+                                question: questions[parseInt(idx)],
+                                selectedIdx: (typeof ans === 'object') ? ans.user_answer_index : ans
+                            }))
+                            .sort((a, b) => a.index - b.index);
+                    }
+
                 } else {
                     els.qText.textContent = data.message || 'Lỗi tải dữ liệu';
                 }
@@ -1288,13 +1508,11 @@
 
         els.qText.innerHTML = q.question;
 
-        // Update Stats Link
+        // Update Stats Link - Now opens Session Stats Modal
         const statsBtn = document.getElementById('single-stats-btn');
         if (statsBtn) {
             statsBtn.onclick = () => {
-                if (window.openVocabularyItemStats && q.item_id) {
-                    window.openVocabularyItemStats(q.item_id);
-                }
+                openSessionStatsModal();
             };
         }
 
@@ -1438,6 +1656,16 @@
         els.nextBtn.focus();
 
         const duration_ms = Date.now() - startTime;
+
+        // Push to history for charts
+        sessionHistory.push({
+            index: currentIndex,
+            isCorrect: isCorrect,
+            duration: duration_ms,
+            stability: 0, // Will be updated if FSRS is active
+            question: q,
+            selectedIdx: selectedIndex
+        });
 
         // [NEW] Auto Action Logic
 
@@ -1637,7 +1865,123 @@
         els.result.classList.add('active');
     }
 
-    // [NEW] Dynamic footer padding calculation
+    window.openSessionStatsModal = function () {
+        const modal = document.getElementById('session-stats-modal');
+        if (modal) {
+            modal.style.display = 'flex';
+            setTimeout(() => modal.classList.add('active'), 10);
+            renderSessionCharts();
+        }
+    };
+
+    window.closeSessionStatsModal = function () {
+        const modal = document.getElementById('session-stats-modal');
+        if (modal) {
+            modal.classList.remove('active');
+            setTimeout(() => {
+                modal.style.display = 'none';
+            }, 300);
+        }
+    };
+
+    function renderSessionCharts() {
+        if (!sessionHistory || sessionHistory.length === 0) return;
+
+        // Data for Accuracy Chart
+        const correctCount = sessionHistory.filter(h => h.isCorrect).length;
+        const wrongCount = sessionHistory.length - correctCount;
+        const accuracy = Math.round((correctCount / sessionHistory.length) * 100);
+
+        // Update Mini Metrics
+        const totalQEl = document.getElementById('stats-total-q');
+        const accuracyEl = document.getElementById('stats-accuracy');
+        if (totalQEl) totalQEl.textContent = sessionHistory.length;
+        if (accuracyEl) accuracyEl.textContent = accuracy + '%';
+
+        // Accuracy Doughnut Chart
+        const accCtx = document.getElementById('accuracyChart').getContext('2d');
+        if (accuracyChart) accuracyChart.destroy();
+        accuracyChart = new Chart(accCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Đúng', 'Sai'],
+                datasets: [{
+                    data: [correctCount, wrongCount],
+                    backgroundColor: ['#10b981', '#ef4444'],
+                    borderWidth: 0,
+                    hoverOffset: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: { boxWidth: 12, font: { weight: 'bold', size: 10 } }
+                    }
+                },
+                cutout: '70%',
+                animation: { animateRotate: true, animateScale: true }
+            }
+        });
+
+        // Speed Line Chart
+        const speedCtx = document.getElementById('speedChart').getContext('2d');
+        if (speedChart) speedChart.destroy();
+
+        // Prepare data: last 20 questions or all
+        const historySlice = sessionHistory.slice(-20);
+        const labels = historySlice.map((_, i) => i + 1);
+        const speedData = historySlice.map(h => (h.duration / 1000).toFixed(1));
+
+        speedChart = new Chart(speedCtx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Giây',
+                    data: speedData,
+                    borderColor: '#6366f1',
+                    backgroundColor: 'rgba(99, 102, 241, 0.1)',
+                    fill: true,
+                    tension: 0.4,
+                    pointRadius: 4,
+                    pointBackgroundColor: '#6366f1',
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: { color: '#f1f5f9' },
+                        ticks: { font: { size: 10 } }
+                    },
+                    x: {
+                        grid: { display: false },
+                        ticks: { font: { size: 10 } }
+                    }
+                },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false,
+                        backgroundColor: 'rgba(15, 23, 42, 0.9)',
+                        padding: 10,
+                        titleFont: { size: 12 },
+                        bodyFont: { size: 12 }
+                    }
+                }
+            }
+        });
+    }
+
+    // [Helper] Dynamic footer padding calculation
     function updateFooterPadding() {
         const footer = document.querySelector('.session-footer');
         const choicesGrid = document.querySelector('.choices-grid');
