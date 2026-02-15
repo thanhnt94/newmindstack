@@ -198,7 +198,7 @@ class CardPresenter:
             try:
                 loop = asyncio.new_event_loop()
                 asyncio.set_event_loop(loop)
-                result = loop.run_until_complete(AudioInterface.generate_audio(text=text))
+                result = loop.run_until_complete(AudioInterface.generate_audio(text=text, auto_voice_parsing=True))
                 loop.close()
                 return result.url if result and result.url else None
             except Exception as e:

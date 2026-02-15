@@ -123,7 +123,12 @@ class MCQEngine:
             'correct_index': correct_index,
             'correct_answer': bbcode_to_html(correct_answer),
             'question_key': question_key,
-            'answer_key': answer_key
+            'answer_key': answer_key,
+            # [NEW] Audio Support - Always use front (target) audio for reinforcement
+            'question_audio': item_data.get('content', {}).get('front_audio') or item_data.get('content', {}).get('front_audio_url'),
+            'answer_audio': item_data.get('content', {}).get('front_audio') or item_data.get('content', {}).get('front_audio_url'),
+            'front_audio': item_data.get('content', {}).get('front_audio') or item_data.get('content', {}).get('front_audio_url'),
+            'back_audio': item_data.get('content', {}).get('back_audio') or item_data.get('content', {}).get('back_audio_url')
         }
 
     @staticmethod

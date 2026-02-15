@@ -46,9 +46,9 @@ def handle_audio_content_change(sender, **kwargs):
                 # to hash based on the new content.
                 from .schemas import AudioRequestDTO
                 if front_text:
-                    loop.run_until_complete(AudioService.get_audio(AudioRequestDTO(text=front_text, is_manual=True)))
+                    loop.run_until_complete(AudioService.get_audio(AudioRequestDTO(text=front_text, is_manual=True, auto_voice_parsing=True)))
                 if back_text:
-                    loop.run_until_complete(AudioService.get_audio(AudioRequestDTO(text=back_text, is_manual=True)))
+                    loop.run_until_complete(AudioService.get_audio(AudioRequestDTO(text=back_text, is_manual=True, auto_voice_parsing=True)))
                     
         thread = threading.Thread(target=run_regen, args=(current_app.app_context(),))
         thread.start()

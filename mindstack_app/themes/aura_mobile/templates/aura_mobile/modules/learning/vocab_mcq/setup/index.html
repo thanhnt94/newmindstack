@@ -538,22 +538,42 @@
         }
     });
 
-    function startSession() {
+    async function startSession() {
         const startBtn = document.getElementById('start-btn');
+        const originalHtml = startBtn.innerHTML;
         startBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang tạo...';
         startBtn.disabled = true;
 
-        // Build URL
-        // /learn/vocabulary/mcq/session/START?set_id=...&mode=...
-        const baseUrl = "{{ url_for('vocab_mcq.mcq_session', set_id=container.container_id) }}";
-        const query = new URLSearchParams({
-            mode: config.mode,
-            count: config.count,
-            timer: config.timer,
-            auto_audio: config.auto_audio
-        });
+        try {
+            // 1. Save settings to DB via API (matches mcq_save_setup route)
+            const saveUrl = "{{ url_for('vocab_mcq.mcq_save_setup', set_id=container.container_id) }}";
+            const res = await fetch(saveUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token() }}'
+                },
+                body: JSON.stringify({
+                    mode: config.mode,
+                    count: config.count,
+                    choices: 4, // Default for vocab mcq
+                    auto_audio: config.auto_audio,
+                    timer: config.timer
+                })
+            });
 
-        window.location.href = `${baseUrl}?${query.toString()}`;
+            if (!res.ok) throw new Error("Failed to save session settings");
+
+            // 2. Redirect to session URL WITHOUT query parameters
+            const sessionUrl = "{{ url_for('vocab_mcq.mcq_session', set_id=container.container_id) }}";
+            window.location.href = sessionUrl;
+
+        } catch (err) {
+            console.error(err);
+            alert("Có lỗi xảy ra khi tạo phiên học: " + err.message);
+            startBtn.innerHTML = originalHtml;
+            startBtn.disabled = false;
+        }
     }
 </script>
 {% endblock %}

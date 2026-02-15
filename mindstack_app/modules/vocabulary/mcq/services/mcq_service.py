@@ -6,8 +6,120 @@ import random
 from mindstack_app.models import LearningItem, db
 from ..engine.mcq_engine import MCQEngine
 from ..logics.algorithms import get_content_value
+import asyncio
+from flask import current_app
+from mindstack_app.modules.audio.interface import AudioInterface
 
 class MCQService:
+    @staticmethod
+    def ensure_audio_urls(item, container: 'LearningContainer' = None) -> dict:
+        """
+        Pre-generate audio if missing for front/back content.
+        Returns the content dict with resolved absolute URLs.
+        """
+        from flask import url_for
+        
+        # 1. Robustly extract item_id and content dict
+        item_id = None
+        content = None
+
+        if hasattr(item, 'item_id'): # Model instance
+            item_id = item.item_id
+            content = dict(item.content or {})
+        elif isinstance(item, dict):
+            if 'content' in item and isinstance(item['content'], dict):
+                item_id = item.get('item_id')
+                content = dict(item.get('content') or {})
+            else:
+                # Direct content dict
+                content = dict(item)
+
+        if content is None:
+            return {}
+
+        front_text = content.get('front_audio_content') or content.get('front', '')
+        back_text = content.get('back_audio_content') or content.get('back', '')
+        
+        # Check multiple keys for existing URLs to maximize compatibility
+        front_url = content.get('front_audio') or content.get('front_audio_url')
+        back_url = content.get('back_audio') or content.get('back_audio_url')
+
+        def _gen(text: str, filename: str, target_dir: str):
+            if not text:
+                return None
+            try:
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+                result = loop.run_until_complete(
+                    AudioInterface.generate_audio(
+                        text=str(text), 
+                        auto_voice_parsing=True,
+                        custom_filename=filename,
+                        target_dir=target_dir
+                    )
+                )
+                loop.close()
+                return result.url if result and result.status in ('generated', 'exists') else None
+            except Exception as e:
+                current_app.logger.warning(f"Failed to generate audio in MCQ: {e}")
+                return None
+
+        # Determine target directory and convention
+        audio_folder = "uploads/audio/cache"
+        if container:
+            from mindstack_app.utils.media_paths import normalize_media_folder
+            container_audio = (container.settings or {}).get('media_folders', {}).get('audio') or container.media_audio_folder
+            if container_audio:
+                audio_folder = f"uploads/{normalize_media_folder(container_audio)}"
+
+        def _resolve_abs_url(val, folder):
+            """Ensure URL is absolute starting with /media/ or external prefix."""
+            if not val:
+                return val
+            
+            val_str = str(val)
+            if val_str.startswith(('http://', 'https://', '/')):
+                return val_str
+                
+            # Use build_relative_media_path to get a clean relative-to-uploads path
+            from mindstack_app.utils.media_paths import build_relative_media_path
+            rel = build_relative_media_path(val, folder.replace('uploads/', '') if folder.startswith('uploads/') else folder)
+            if rel:
+                # Use url_for for full consistency with Flashcards
+                try:
+                    return url_for('media_uploads', filename=rel.lstrip('/'), _external=False)
+                except:
+                    # Fallback to manual if url_for fails in certain contexts
+                    return f"/media/{rel.lstrip('/')}"
+            return val_str
+
+        # Normalize existing URLs first
+        if front_url:
+            front_url = _resolve_abs_url(front_url, audio_folder)
+            content['front_audio'] = front_url
+            content['front_audio_url'] = front_url
+            
+        if back_url:
+            back_url = _resolve_abs_url(back_url, audio_folder)
+            content['back_audio'] = back_url
+            content['back_audio_url'] = back_url
+
+        if front_text and not front_url and str(front_text).strip():
+            filename = f"front_{item_id}.mp3" if item_id else None
+            url = _gen(front_text, filename, audio_folder)
+            if url:
+                content['front_audio'] = url
+                content['front_audio_url'] = url
+            
+        if back_text and not back_url and str(back_text).strip():
+            filename = f"back_{item_id}.mp3" if item_id else None
+            url = _gen(back_text, filename, audio_folder)
+            if url:
+                content['back_audio'] = url
+                content['back_audio_url'] = url
+
+        return content
+
     @staticmethod
     def get_container_keys(container_id: int) -> list:
         """Scan items in container to find available content keys."""
@@ -120,6 +232,15 @@ class MCQService:
             
         questions = []
         for item in selected_items:
+            # [NEW] Ensure audio URLs are present with context - CAPTURE RETURN
+            updated_content = MCQService.ensure_audio_urls(item, container)
+            
+            # Update item content before passing to engine
+            if hasattr(item, 'content'):
+                item.content = updated_content
+            elif isinstance(item, dict) and 'content' in item:
+                item['content'] = updated_content
+            
             # Pass ALL items as distractor pool
             question = MCQEngine.generate_question(item, all_distractors, merged_config)
             questions.append(question)

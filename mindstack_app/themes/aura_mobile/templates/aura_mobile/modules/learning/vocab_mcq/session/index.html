@@ -727,6 +727,13 @@
 
                     {# Action Buttons #}
                     <div class="flex items-center gap-1.5 flex-shrink-0">
+                        {# Settings Button #}
+                        <button onclick="openSettingsModal()"
+                            class="w-7 h-7 rounded-full bg-slate-50 text-slate-500 flex items-center justify-center hover:bg-slate-100"
+                            title="Cài đặt">
+                            <i class="fas fa-cog text-[10px]"></i>
+                        </button>
+
                         {# Stats Button #}
                         <button id="single-stats-btn"
                             class="w-7 h-7 rounded-full bg-purple-50 text-purple-600 flex items-center justify-center hover:bg-purple-100">
@@ -759,7 +766,15 @@
                 <i class="fas fa-bolt"></i>
                 <span>QUIZ</span>
             </div>
-            <div class="question-text" id="question-text">Đang tải...</div>
+            <div class="flex items-center justify-center gap-3 w-full">
+                <div class="question-text" id="question-text">Đang tải...</div>
+                <button id="question-audio-btn"
+                    class="w-10 h-10 rounded-full bg-slate-100/80 text-indigo-600 hover:bg-indigo-50 hover:scale-105 transition-all shadow-sm hidden flex-shrink-0 items-center justify-center backdrop-blur-sm"
+                    onclick="playCurrentAudio()">
+                    <i class="fas fa-volume-up text-lg"></i>
+                </button>
+            </div>
+            <audio id="mcq-audio" class="hidden"></audio>
         </div>
 
         <div class="choices-grid" id="choices-grid">
@@ -857,6 +872,51 @@
         </div>
     </div>
 </div>
+
+<!-- Settings Modal -->
+<div id="settings-modal"
+    class="fixed inset-0 bg-slate-900/40 z-[100] hidden items-center justify-center p-4 backdrop-blur-sm opacity-0 transition-opacity duration-300"
+    style="display: none;">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6 transform scale-95 transition-transform duration-300"
+        id="settings-modal-panel">
+        <div class="flex items-center justify-between mb-6">
+            <h3 class="text-xl font-bold text-slate-800">Cài đặt</h3>
+            <button onclick="closeSettingsModal()" class="text-slate-400 hover:text-slate-600">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+
+        <div class="space-y-4">
+            <!-- Auto Play Audio -->
+            <div class="flex items-center justify-between">
+                <div>
+                    <div class="font-bold text-slate-700">Tự động phát âm thanh</div>
+                    <div class="text-xs text-slate-500">Phát âm thanh khi trả lời đúng</div>
+                </div>
+                <label class="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" id="setting-auto-audio" class="sr-only peer" onchange="saveSettings()">
+                    <div
+                        class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600">
+                    </div>
+                </label>
+            </div>
+
+            <!-- Auto Advance -->
+            <div class="flex items-center justify-between">
+                <div>
+                    <div class="font-bold text-slate-700">Tự động chuyển câu</div>
+                    <div class="text-xs text-slate-500">Chuyển sang câu tiếp theo sau khi trả lời</div>
+                </div>
+                <label class="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" id="setting-auto-advance" class="sr-only peer" onchange="saveSettings()">
+                    <div
+                        class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600">
+                    </div>
+                </label>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block scripts %}
@@ -869,8 +929,9 @@
         // Default to 0 (Unlimited) if count is not provided/None
         // Forced Unlimited Mode as per new requirement
         const count = 0;
-        const numChoices = {{ choices | default (4) }};
-    const customPairs = {{ custom_pairs | tojson if custom_pairs else 'null' }};
+        const numChoices = {{ num_choices | default (4)
+    }};
+    const customPairs = {{ custom_pairs | tojson if custom_pairs else '[]' }};
 
     // State
     let questions = [];
@@ -907,7 +968,92 @@
         }
     };
 
+    // [NEW] Settings & Audio Logic
+    let settings = {
+        autoAudio: false,
+        autoAdvance: false
+    };
+
+    window.openSettingsModal = function () {
+        const modal = document.getElementById('settings-modal');
+        const panel = document.getElementById('settings-modal-panel');
+        if (modal) {
+            modal.style.display = 'flex';
+            setTimeout(() => {
+                modal.classList.remove('opacity-0', 'hidden');
+                panel.classList.remove('scale-95');
+                panel.classList.add('scale-100');
+            }, 10);
+        }
+    };
+
+    window.closeSettingsModal = function () {
+        const modal = document.getElementById('settings-modal');
+        const panel = document.getElementById('settings-modal-panel');
+        if (modal) {
+            modal.classList.add('opacity-0');
+            panel.classList.remove('scale-100');
+            panel.classList.add('scale-95');
+            setTimeout(() => {
+                modal.classList.add('hidden');
+                modal.style.display = 'none';
+            }, 300);
+        }
+    };
+
+    window.saveSettings = function () {
+        settings.autoAudio = document.getElementById('setting-auto-audio').checked;
+        settings.autoAdvance = document.getElementById('setting-auto-advance').checked;
+        localStorage.setItem('mcq_settings', JSON.stringify(settings));
+    };
+
+    function loadSettings() {
+        const saved = localStorage.getItem('mcq_settings');
+        if (saved) {
+            try {
+                const parsed = JSON.parse(saved);
+                settings = { ...settings, ...parsed };
+                // Update UI
+                const chkAudio = document.getElementById('setting-auto-audio');
+                const chkAdvance = document.getElementById('setting-auto-advance');
+                if (chkAudio) chkAudio.checked = settings.autoAudio;
+                if (chkAdvance) chkAdvance.checked = settings.autoAdvance;
+            } catch (e) { console.error("Error loading settings", e); }
+        }
+    }
+
+    window.playCurrentAudio = function () {
+        const q = questions[currentIndex];
+        // Priority: front_audio (Target) -> question_audio -> back_audio
+        const url = (q && (q.front_audio || q.question_audio || q.back_audio));
+        if (url) {
+            if (!isAnswered) {
+                console.log("[Audio] Manual play ignored until answered.");
+                return;
+            }
+            playAudio(url);
+        } else {
+            console.warn("No audio URL found for question", q);
+        }
+    };
+
+    function playAudio(url) {
+        if (!url) return;
+        const audio = document.getElementById('mcq-audio');
+        if (audio) {
+            // Reset to allow restarting the same source
+            try {
+                audio.pause();
+                audio.currentTime = 0;
+            } catch (err) { }
+
+            audio.src = url;
+            audio.play().catch(e => console.log("Audio play failed", e));
+        }
+    }
+
     // Init
+    loadSettings();
     init();
 
     // Modal Logic
@@ -951,25 +1097,25 @@
                 'Content-Type': 'application/json',
                 'X-CSRFToken': "{{ csrf_token() if csrf_token else '' }}"
             },
-            body: JSON.stringify({ set_id: {{ container.container_id }} })
+            body: JSON.stringify({ set_id: setId })
         })
             .then(response => response.json())
-        .then(data => {
-            if (data.success && data.session_id) {
-                let summaryUrl = "{{ url_for('session.session_summary', session_id='SESSION_ID') }}".replace('SESSION_ID', data.session_id);
-                window.location.href = summaryUrl;
-            } else {
-                window.location.href = "{{ url_for('session.manage_sessions') }}";
-            }
-        })
-        .catch(err => {
-            console.error(err);
-            alert("Lỗi kết nối. Vui lòng thử lại.");
-            if (btn) {
-                btn.innerHTML = 'Kết thúc';
-                btn.disabled = false;
-            }
-        });
+            .then(data => {
+                if (data.success && data.session_id) {
+                    let summaryUrl = "{{ url_for('session.session_summary', session_id='SESSION_ID') }}".replace('SESSION_ID', data.session_id);
+                    window.location.href = summaryUrl;
+                } else {
+                    window.location.href = "{{ url_for('session.manage_sessions') }}";
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                alert("Lỗi kết nối. Vui lòng thử lại.");
+                if (btn) {
+                    btn.innerHTML = 'Kết thúc';
+                    btn.disabled = false;
+                }
+            });
     };
 
     function init() {
@@ -1006,6 +1152,12 @@
                     // If we have answers for previous questions, we should technically be at the first unanswered one
                     // The backend manager already handles currentIndex increment.
 
+                    console.log("[VOCAB_MCQ] Session Data Loaded:", {
+                        questions_count: questions.length,
+                        currentIndex: currentIndex,
+                        stats: stats,
+                        db_session_id: data.db_session_id
+                    });
                     renderQuestion();
 
                     // If the current question was already answered (from a previous reload), restore UI
@@ -1048,6 +1200,11 @@
         }
 
         const q = questions[currentIndex];
+        console.log(`[VOCAB_MCQ] Rendering Question ${currentIndex + 1}:`, {
+            item_id: q.item_id,
+            question_key: q.question_key,
+            choices_count: q.choices.length
+        });
         isAnswered = false;
 
         // Update UI
@@ -1069,6 +1226,12 @@
                     window.openVocabularyItemStats(q.item_id);
                 }
             };
+        }
+
+        // [NEW] Audio Button State - Always hidden until answered per user request
+        const audioBtn = document.getElementById('question-audio-btn');
+        if (audioBtn) {
+            audioBtn.classList.add('hidden');
         }
 
         els.nextBtn.disabled = true;
@@ -1101,6 +1264,13 @@
         });
 
         startTime = Date.now();
+
+        // [REMOVED] Auto Play Question Audio - User wants audio ONLY after answering
+        /*
+        if (settings.autoAudio && q.question_audio) {
+            playAudio(q.question_audio);
+        }
+        */
     }
 
     function restoreAnswerState(selectedIndex) {
@@ -1121,6 +1291,13 @@
                 btn.classList.add('dimmed');
             }
         }
+
+        // [NEW] Reveal Audio Button if answered
+        const audioBtn = document.getElementById('question-audio-btn');
+        if (audioBtn && (q.front_audio || q.question_audio)) {
+            audioBtn.classList.remove('hidden');
+        }
+
         els.nextBtn.disabled = false;
     }
 
@@ -1130,6 +1307,11 @@
 
         const q = questions[currentIndex];
         const isCorrect = (selectedIndex === q.correct_index);
+        console.log(`[VOCAB_MCQ] Answer Submitted:`, {
+            selectedIndex: selectedIndex,
+            isCorrect: isCorrect,
+            correctIndex: q.correct_index
+        });
 
         if (isCorrect) {
             stats.correct++;
@@ -1157,6 +1339,27 @@
         els.nextBtn.focus();
 
         const duration_ms = Date.now() - startTime;
+
+        // [NEW] Auto Action Logic
+
+        // 1. Reveal Audio Button if it was hidden
+        const audioBtn = document.getElementById('question-audio-btn');
+        if (audioBtn && q.front_audio) {
+            audioBtn.classList.remove('hidden');
+        }
+
+
+
+        // [NEW] Auto Play Answer Audio - Reinforcement
+        if (settings.autoAudio && q.answer_audio) {
+            console.log("[Audio] Scheduling answer reinforcement:", q.answer_audio);
+            // Small delay to ensure state reset particularly if URLs are identical
+            setTimeout(() => {
+                playAudio(q.answer_audio);
+            }, 500);
+        }
+
+        // 3. Auto Advance (Moved to fetch callback)
 
         // [NEW] Record History
         sessionHistory.push({
@@ -1206,6 +1409,19 @@
                     if (data.session_id) {
                         dbSessionId = data.session_id;
                     }
+
+
+
+                    // [NEW] Auto Advance Logic (Here to ensure toast is seen)
+                    if (settings.autoAdvance) {
+                        setTimeout(() => {
+                            // Ensure we haven't manually advanced or exited
+                            // Also check if we are still on the same question index
+                            if (currentIndex === questions.indexOf(q) && !document.getElementById('exit-confirm-modal').style.display.includes('flex')) {
+                                nextQuestion();
+                            }
+                        }, 1000); // 1s delay (after server response)
+                    }
                 }
             })
             .catch(console.error);
@@ -1214,6 +1430,7 @@
     async function nextQuestion() {
         // Call backend to advance index
         try {
+            console.log("[VOCAB_MCQ] Advancing to next question...");
             let nextUrl = "{{ url_for('vocab_mcq.mcq_api_next_question', set_id=container.container_id) }}";
             const res = await fetch(nextUrl, {
                 method: 'POST',
@@ -1230,6 +1447,7 @@
                     currentIndex = data.currentIndex; // Should be 0
                     // Optional: Show toast
                     if (typeof window.showScoreToast === 'function') {
+                        console.log("[VOCAB_MCQ] New cycle started (Unlimited mode)");
                         // showScoreToast("Chu kỳ mới!", "info"); // Assuming signature
                     }
                 } else {
@@ -1237,7 +1455,7 @@
                 }
                 renderQuestion();
             } else {
-                console.log("Session complete or advance failed. Showing results.");
+                console.log("[VOCAB_MCQ] Session complete or advance failed. Showing results.");
                 showResult();
             }
         } catch (e) {

@@ -2,7 +2,7 @@
 # MCQ (Multiple Choice Quiz) Routes for Vocabulary Learning
 
 import json
-from flask import render_template, request, jsonify, abort, session
+from flask import render_template, request, jsonify, abort, session, current_app
 from mindstack_app.utils.template_helpers import render_dynamic_template
 from flask_login import login_required, current_user
 
@@ -85,13 +85,15 @@ def mcq_session(set_id):
     container_mcq = (container.settings or {}).get('mcq', {})
     
     # Mode, Count, Choices fallbacks
-    # Note: setup page passes 'limit' instead of 'count' in JS, handle both
+    # Prioritize request.args, then saved user settings, then container defaults
     req_count = request.args.get('count') or request.args.get('limit')
-    # Default to 0 (Unlimited) instead of 10
     count = int(req_count) if req_count is not None else saved_mcq.get('count', container_mcq.get('count', 0))
     
-    mode = request.args.get('mode', saved_mcq.get('mode', container_mcq.get('mode', 'front_back')))
-    choices = request.args.get('choices', saved_mcq.get('choices', container_mcq.get('choices', 0)), type=int)
+    req_mode = request.args.get('mode')
+    mode = req_mode if req_mode is not None else saved_mcq.get('mode', container_mcq.get('mode', 'front_back'))
+    
+    req_choices = request.args.get('choices')
+    choices = int(req_choices) if req_choices is not None else saved_mcq.get('choices', container_mcq.get('choices', 0))
     
     custom_pairs = None
     custom_pairs_str = request.args.get('custom_pairs', '')
@@ -101,8 +103,8 @@ def mcq_session(set_id):
         except: pass
     
     if not custom_pairs:
-        # User wants it ALWAYS from container. Priority: Container Defaults -> User Saved
-        custom_pairs = container_mcq.get('pairs') or container_mcq.get('custom_pairs') or saved_mcq.get('custom_pairs')
+        # Fallback to saved or container defaults
+        custom_pairs = saved_mcq.get('custom_pairs') or container_mcq.get('pairs') or container_mcq.get('custom_pairs')
             
     try:
         if not ucs:
@@ -236,9 +238,8 @@ def mcq_api_get_items(set_id):
             request_params = {
                 'count': count, 'mode': mode, 'choices': num_choices, 'custom_pairs': custom_pairs
             }
-            # Only resume if params match (simple check)
-            # Relaxed check: if we are unlimited, and session is unlimited, resume.
             if manager.params == request_params:
+                current_app.logger.info(f"[VOCAB_MCQ] Resuming session for user {current_user.user_id}, set {set_id}. Current index: {manager.currentIndex}")
                 response = manager.get_session_data()
                 response['is_restored'] = True
                 return jsonify(response)
@@ -251,6 +252,7 @@ def mcq_api_get_items(set_id):
         if not success:
             return jsonify({'success': False, 'message': message}), 400
             
+        current_app.logger.info(f"[VOCAB_MCQ] Started NEW session for user {current_user.user_id}, set {set_id}. Mode: {mode}, Count: {count}")
         return jsonify(manager.get_session_data())
 
     except Exception as e:
@@ -268,11 +270,15 @@ def mcq_api_next_question(set_id):
     if not manager:
         return jsonify({'success': False, 'message': 'No active session'}), 404
         
+    old_index = manager.currentIndex
     success = manager.next_item()
+    if success:
+        current_app.logger.info(f"[VOCAB_MCQ] Advanced index from {old_index} to {manager.currentIndex} for user {current_user.user_id}, set {set_id}")
     
     # [NEW] Auto-start next cycle for Unlimited mode
     if not success and manager.params.get('count') == 0:
         if manager.start_next_cycle():
+            current_app.logger.info(f"[VOCAB_MCQ] Starting NEW CYCLE for user {current_user.user_id}, set {set_id} (Unlimited mode)")
             return jsonify({
                 'success': True, 
                 'currentIndex': 0,
@@ -301,6 +307,7 @@ def mcq_api_check_answer():
         return jsonify({'success': False, 'message': 'Session not found'}), 404
 
     result = manager.check_answer(user_answer_index)
+    current_app.logger.info(f"[VOCAB_MCQ] Answer check for user {current_user.user_id}, item {item_id}: Correct={result.get('is_correct')}")
     if not result['success']:
         return jsonify(result), 400
         
@@ -321,6 +328,7 @@ def mcq_api_check_answer():
                 result_data=result
             )
             safe_commit(db.session)
+            current_app.logger.info(f"[VOCAB_MCQ] SRS processed for item {item_id}. New state: {srs_result.get('status')}")
             result.update(srs_result)
         except Exception as e:
             import logging
@@ -379,6 +387,7 @@ def mcq_end_session():
             # [FIX] Clear session data so it doesn't resume
             manager.clear_session()
             
+            current_app.logger.info(f"[VOCAB_MCQ] Session {manager.db_session_id} ENDED for user {current_user.user_id}, set {set_id}")
             return jsonify({'success': True, 'session_id': manager.db_session_id})
             
         return jsonify({'success': True})
