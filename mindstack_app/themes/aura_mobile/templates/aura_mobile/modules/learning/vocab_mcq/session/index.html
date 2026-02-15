@@ -699,9 +699,9 @@
                         {# Progress Pill #}
                         <div class="stat-pill flex-shrink-0 flex items-center gap-1 px-2 py-1 bg-slate-100 rounded-lg">
                             <i class="fa-solid fa-bars-progress text-slate-500 text-[9px]"></i>
-                            <span class="text-slate-700 font-semibold gap-0.5 flex items-center">
-                                <span id="current-q-num" class="hidden">1</span>
-                                <span class="text-slate-700 text-[10px] font-bold">UNLIMITED</span>
+                            <span class="text-slate-700 font-semibold gap-0.5 flex items-center text-[10px]">
+                                <span id="current-q-num">1</span>
+                                <span class="opacity-40 hidden" id="total-q-sep">/</span>
                                 <span id="total-q-num" class="hidden">...</span>
                             </span>
                         </div>
@@ -761,11 +761,48 @@
 
     <main class="session-main">
         <!-- Row 3: Question Area (Sticky inside Main) -->
-        <div class="question-card" id="question-card">
+        <div class="question-card pt-8" id="question-card">
             <div class="question-label-v">
                 <i class="fas fa-bolt"></i>
                 <span>QUIZ</span>
             </div>
+
+            {# FSRS Stats (Inside Card) #}
+            <div id="fsrs-pill"
+                class="absolute top-0 left-8 right-0 flex items-center justify-between px-4 py-1.5 bg-indigo-50/50 backdrop-blur-md rounded-tr-2xl hidden border-b border-indigo-100/30 z-20 transition-all duration-500 transform opacity-0 -translate-y-2">
+                <div class="flex items-center gap-4 text-[10px] font-extrabold tracking-tight">
+                    <div class="flex items-center gap-2">
+                        <span class="w-1.5 h-1.5 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.3)]"></span>
+                        <span class="text-blue-700 uppercase opacity-60 text-[8px]">S</span>
+                        <span id="fsrs-s" class="text-blue-900">0</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="w-1.5 h-1.5 rounded-full bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.3)]"></span>
+                        <span class="text-rose-700 uppercase opacity-60 text-[8px]">D</span>
+                        <span id="fsrs-d" class="text-rose-900">0</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span
+                            class="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.3)]"></span>
+                        <span class="text-emerald-700 uppercase opacity-60 text-[8px]">R</span>
+                        <span id="fsrs-r" class="text-emerald-900">0</span><span
+                            class="text-emerald-900/40 text-[8px] ml-0.5">%</span>
+                    </div>
+                </div>
+                <div
+                    class="flex items-center gap-4 py-0.5 px-3 bg-white/40 rounded-full border border-white/50 shadow-sm">
+                    <div class="flex items-center gap-1.5 text-[9px] font-bold text-slate-500">
+                        <span class="opacity-50 uppercase tracking-widest text-[7px]">MCQ:</span>
+                        <span id="fsrs-mcq-reps" class="text-slate-700">0</span>
+                    </div>
+                    <span class="w-px h-2.5 bg-slate-200"></span>
+                    <div class="flex items-center gap-1.5 text-[9px] font-bold text-slate-500">
+                        <span class="opacity-50 uppercase tracking-widest text-[7px]">Total:</span>
+                        <span id="fsrs-total-reps" class="text-slate-700">0</span>
+                    </div>
+                </div>
+            </div>
+
             <div class="flex items-center justify-center gap-3 w-full">
                 <div class="question-text" id="question-text">Đang tải...</div>
                 <button id="question-audio-btn"
@@ -926,12 +963,10 @@
         // Config
         const setId = Number("{{ container.container_id }}");
         const mode = '{{ mode }}';
-        // Default to 0 (Unlimited) if count is not provided/None
-        // Forced Unlimited Mode as per new requirement
-        const count = 0;
-        const numChoices = {{ num_choices | default (4)
+        const count = Number("{{ count }}") || 0;
+        const numChoices = Number("{{ choices if choices is defined else 4 }}");
+        const customPairs = {{ custom_pairs | tojson | safe if custom_pairs else 'null'
     }};
-    const customPairs = {{ custom_pairs | tojson if custom_pairs else '[]' }};
 
     // State
     let questions = [];
@@ -945,6 +980,7 @@
 
     // Elements
     const els = {
+        setId: setId,
         qNum: document.getElementById('current-q-num'),
         tNum: document.getElementById('total-q-num'),
         lCorrect: document.getElementById('live-correct'),
@@ -954,7 +990,13 @@
         cGrid: document.getElementById('choices-grid'),
         nextBtn: document.getElementById('next-btn'),
         result: document.getElementById('result-overlay'),
-        progressFill: document.getElementById('mcq-progress-fill')
+        progressFill: document.getElementById('mcq-progress-fill'),
+        fsrsPill: document.getElementById('fsrs-pill'),
+        fsrsS: document.getElementById('fsrs-s'),
+        fsrsD: document.getElementById('fsrs-d'),
+        fsrsR: document.getElementById('fsrs-r'),
+        fsrsMcqReps: document.getElementById('fsrs-mcq-reps'),
+        fsrsTotalReps: document.getElementById('fsrs-total-reps')
     };
 
     // Helper for redirection
@@ -1135,7 +1177,7 @@
 
         // Build API URL
         let baseUrl = "{{ url_for('vocab_mcq.mcq_api_get_items', set_id=container.container_id) }}";
-        let apiUrl = `${baseUrl}?count=${count}&mode=${mode}&choices=${numChoices}`;
+        let apiUrl = `${baseUrl}?count=${count}&mode=${mode}&choices=${numChoices}&_=${Date.now()}`;
         if (customPairs) apiUrl += '&custom_pairs=' + encodeURIComponent(JSON.stringify(customPairs));
 
         // Fetch Data
@@ -1143,9 +1185,18 @@
             .then(r => r.json())
             .then(data => {
                 if (data.success) {
+                    console.log("[VOCAB_MCQ] [V3] Session Data Loaded:", {
+                        questions_count: data.questions.length,
+                        currentIndex: data.currentIndex,
+                        stats: data.stats,
+                        db_session_id: data.db_session_id,
+                        answers_keys: Object.keys(data.answers || {})
+                    });
+
                     questions = data.questions;
                     currentIndex = data.currentIndex || 0;
                     stats = data.stats || { correct: 0, wrong: 0 };
+                    dbSessionId = data.db_session_id;
 
                     // Update stats UI
                     els.lCorrect.textContent = stats.correct;
@@ -1153,28 +1204,33 @@
                     if (els.lSessionScore) els.lSessionScore.textContent = stats.points || 0;
 
                     // Set Total Count Display
+                    // User wants to see ONLY the current count for "unlimited"
+                    // So we keep the total hidden as per the new requirement
+                    els.tNum.textContent = questions.length;
+
+                    // In Unlimited mode, we hide the total count and separator
                     if (count <= 0) {
-                        els.tNum.innerHTML = '<i class="fa-solid fa-infinity text-[10px]"></i>';
+                        const sep = document.getElementById('total-q-sep');
+                        if (sep) sep.classList.add('hidden');
+                        if (els.tNum) els.tNum.classList.add('hidden');
                     } else {
-                        els.tNum.textContent = questions.length;
+                        const sep = document.getElementById('total-q-sep');
+                        if (sep) sep.classList.remove('hidden');
+                        if (els.tNum) els.tNum.classList.remove('hidden');
                     }
 
                     // If we have answers for previous questions, we should technically be at the first unanswered one
                     // The backend manager already handles currentIndex increment.
 
-                    console.log("[VOCAB_MCQ] Session Data Loaded:", {
-                        questions_count: questions.length,
-                        currentIndex: currentIndex,
-                        stats: stats,
-                        db_session_id: data.db_session_id
-                    });
+                    // [DEBUG] Log and Restore
+                    const currentSavedAnswer = data.answers ? data.answers[String(currentIndex)] : null;
+                    console.log("[VOCAB_MCQ] [V3] Attempting restore for index:", currentIndex, "Saved Answer:", JSON.stringify(currentSavedAnswer));
+
                     renderQuestion();
 
-                    // If the current question was already answered (from a previous reload), restore UI
-                    const savedAnswer = data.answers ? data.answers[String(currentIndex)] : null;
-                    if (savedAnswer !== null && savedAnswer !== undefined) {
-                        const answerIndex = (typeof savedAnswer === 'object') ? savedAnswer.user_answer_index : savedAnswer;
-                        restoreAnswerState(answerIndex);
+                    if (currentSavedAnswer !== null && currentSavedAnswer !== undefined) {
+                        const answerIndex = (typeof currentSavedAnswer === 'object') ? currentSavedAnswer.user_answer_index : currentSavedAnswer;
+                        restoreAnswerState(answerIndex, currentSavedAnswer);
                     }
 
                 } else {
@@ -1219,6 +1275,10 @@
 
         // Update UI
         els.qNum.textContent = currentIndex + 1;
+        if (els.fsrsPill) {
+            els.fsrsPill.classList.add('hidden', 'opacity-0', '-translate-y-2');
+            els.fsrsPill.classList.remove('opacity-100', 'translate-y-0');
+        }
 
         // Update Progress Bar
         const progressPercent = ((currentIndex + 1) / questions.length) * 100;
@@ -1283,10 +1343,14 @@
         */
     }
 
-    function restoreAnswerState(selectedIndex) {
-        // Similar to handleAnswer but without sending to backend or updating local stats (already loaded)
+    function restoreAnswerState(selectedIndex, data) {
+        console.log("[VOCAB_MCQ] restoreAnswerState triggered with index:", selectedIndex, "data:", data);
         isAnswered = true;
         const q = questions[currentIndex];
+        if (!q) {
+            console.error("[VOCAB_MCQ] restoreAnswerState: Question not found at index", currentIndex);
+            return;
+        }
         const isCorrect = (selectedIndex === q.correct_index);
 
         const buttons = els.cGrid.children;
@@ -1306,6 +1370,31 @@
         const audioBtn = document.getElementById('question-audio-btn');
         if (audioBtn && (q.front_audio || q.question_audio)) {
             audioBtn.classList.remove('hidden');
+        }
+
+        // [NEW] Show FSRS Pill if data is available (for reload)
+        // Relaxing the check slightly to see if data exists at all
+        if (data && (data.stability !== undefined || data.last_srs_sync)) {
+            console.log("[VOCAB_MCQ] FSRS Data found in saved answer, showing pill.");
+            if (els.fsrsPill) {
+                // Remove hidden immediately
+                els.fsrsPill.classList.remove('hidden');
+                // Set initial state for transition if needed
+                els.fsrsPill.style.opacity = '1';
+                els.fsrsPill.style.transform = 'translateY(0)';
+
+                requestAnimationFrame(() => {
+                    els.fsrsPill.classList.add('opacity-100', 'translate-y-0');
+                    els.fsrsPill.classList.remove('opacity-0', '-translate-y-2');
+                });
+            }
+            if (els.fsrsS) els.fsrsS.textContent = Number(data.stability || 0).toFixed(1);
+            if (els.fsrsD) els.fsrsD.textContent = Number(data.difficulty || 0).toFixed(1);
+            if (els.fsrsR) els.fsrsR.textContent = Math.round(Number(data.retrievability || 0) * 100);
+            if (els.fsrsMcqReps) els.fsrsMcqReps.textContent = data.mcq_reps || 0;
+            if (els.fsrsTotalReps) els.fsrsTotalReps.textContent = data.repetitions || 0;
+        } else {
+            console.warn("[VOCAB_MCQ] No stability or sync marker found in saved answer data:", data);
         }
 
         els.nextBtn.disabled = false;
@@ -1418,6 +1507,23 @@
 
                     if (data.session_id) {
                         dbSessionId = data.session_id;
+                    }
+
+                    // [NEW] Update FSRS Pill
+                    if (data.stability !== undefined) {
+                        if (els.fsrsPill) {
+                            els.fsrsPill.classList.remove('hidden');
+                            // Trigger transition
+                            requestAnimationFrame(() => {
+                                els.fsrsPill.classList.add('opacity-100', 'translate-y-0');
+                                els.fsrsPill.classList.remove('opacity-0', '-translate-y-2');
+                            });
+                        }
+                        if (els.fsrsS) els.fsrsS.textContent = Number(data.stability).toFixed(1);
+                        if (els.fsrsD) els.fsrsD.textContent = Number(data.difficulty).toFixed(1);
+                        if (els.fsrsR) els.fsrsR.textContent = Math.round(Number(data.retrievability) * 100);
+                        if (els.fsrsMcqReps) els.fsrsMcqReps.textContent = data.mcq_reps || 0;
+                        if (els.fsrsTotalReps) els.fsrsTotalReps.textContent = data.repetitions || 0;
                     }
 
 
@@ -1548,6 +1654,6 @@
             choicesGrid.style.paddingBottom = requiredPadding + 'px';
         }
     }
-}) ();
+    }) ();
 </script>
 {% endblock %}

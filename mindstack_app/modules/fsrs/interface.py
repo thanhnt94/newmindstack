@@ -47,6 +47,31 @@ class FSRSInterface:
     process_answer = process_review
 
     @staticmethod
+    def process_interaction(
+        user_id: int,
+        item_id: int,
+        quality: int = 3,
+        mode: str = 'mcq',
+        **kwargs
+    ) -> Dict[str, Any]:
+        """
+        High-level wrapper for processing a review interaction.
+        Returns a dictionary for easy JSON serialization in routes.
+        """
+        from dataclasses import asdict
+        state, result = SchedulerService.process_review(
+            user_id=user_id,
+            item_id=item_id,
+            quality=quality,
+            mode=mode,
+            **kwargs
+        )
+        # Convert DTO to dict
+        res_dict = asdict(result)
+        res_dict['status'] = 'success'
+        return res_dict
+
+    @staticmethod
     def get_retrievability(state: ItemMemoryState) -> float:
         """Calculate current retrievability (memory power)."""
         from mindstack_app.modules.fsrs.engine.core import FSRSEngine

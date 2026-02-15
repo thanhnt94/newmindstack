@@ -123,32 +123,33 @@ class MCQSessionManager:
         from mindstack_app.utils.db_session import safe_commit
         import datetime
 
-        def log_mcq(msg):
-            with open('mcq_debug.log', 'a', encoding='utf-8') as f:
-                f.write(f"[{datetime.datetime.now()}] {msg}\n")
-
         try:
             ucs = UserContainerState.query.filter_by(user_id=self.user_id, container_id=self.set_id).first()
             if not ucs:
                 ucs = UserContainerState(user_id=self.user_id, container_id=self.set_id, settings={})
                 db.session.add(ucs)
             
-            # Use current settings if they exist
-            new_settings = dict(ucs.settings or {})
-            new_settings['mcq_session_data'] = self.to_dict()
+            # Use current settings if they exist, or initialize
+            if ucs.settings is None: ucs.settings = {}
             
-            ucs.settings = new_settings
+            # [CRITICAL] Modify the settings dict directly to ensure we are using the live object
+            ucs.settings['mcq_session_data'] = self.to_dict()
             
             # Trigger SQLAlchemy change detection for JSON
             from sqlalchemy.orm.attributes import flag_modified
             flag_modified(ucs, "settings")
             
-            safe_commit(db.session)
-            log_mcq(f"DB SAVE success for set_id={self.set_id}, questions={len(self.questions)}")
+            db.session.commit()
+            
+            # [DEBUG] [V3] Verify what was actually saved
+            db.session.refresh(ucs)
+            saved_data = (ucs.settings or {}).get('mcq_session_data', {})
+            saved_answers = saved_data.get('answers', {})
+            current_app.logger.info(f"[VOCAB_MCQ] [V3] DB SAVE success for set_id={self.set_id}. Current index {self.currentIndex}. Answers recorded: {len(saved_answers)}")
+            if str(self.currentIndex) in saved_answers:
+                 current_app.logger.info(f"[VOCAB_MCQ] [V3] Index {self.currentIndex} data in DB: {saved_answers[str(self.currentIndex)]}")
         except Exception as e:
-            log_mcq(f"DB SAVE ERROR: {str(e)}")
-            import traceback
-            log_mcq(traceback.format_exc())
+            current_app.logger.error(f"[VOCAB_MCQ] [V3] DB SAVE ERROR: {str(e)}")
 
     def initialize_session(self, count, mode, choices, custom_pairs):
         """Generates new questions and sets up the session."""
@@ -200,7 +201,8 @@ class MCQSessionManager:
             'currentIndex': self.currentIndex,
             'stats': self.stats,
             'answers': self.answers,
-            'total': len(self.questions)
+            'total': len(self.questions),
+            'db_session_id': self.db_session_id
         }
 
     def check_answer(self, user_answer_index):
@@ -255,6 +257,15 @@ class MCQSessionManager:
             'correct_index': question['correct_index'],
             'stats': self.stats
         }
+
+    def update_answer_srs(self, index, srs_data):
+        """Updates a specific answer with SRS metadata and persists to DB."""
+        key = str(index)
+        if key in self.answers:
+            self.answers[key].update(srs_data)
+            self.save_to_db()
+            return True
+        return False
 
     def next_item(self):
         """Advances the index if possible."""

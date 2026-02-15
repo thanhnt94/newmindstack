@@ -327,9 +327,22 @@ def mcq_api_check_answer():
                 mode='mcq',
                 result_data=result
             )
-            safe_commit(db.session)
-            current_app.logger.info(f"[VOCAB_MCQ] SRS processed for item {item_id}. New state: {srs_result.get('status')}")
             result.update(srs_result)
+            
+            # [CRITICAL] Ensure only JSON-serializable keys are stored to avoid DB save failure
+            srs_data = {
+                'stability': float(srs_result.get('stability', 0)),
+                'difficulty': float(srs_result.get('difficulty', 0)),
+                'retrievability': float(srs_result.get('retrievability', 0)),
+                'mcq_reps': int(srs_result.get('mcq_reps', 0)),
+                'repetitions': int(srs_result.get('repetitions', 0)),
+                'last_srs_sync': True
+            }
+            
+            if manager.update_answer_srs(manager.currentIndex, srs_data):
+                current_app.logger.info(f"[VOCAB_MCQ] manager.answers[{manager.currentIndex}] updated and saved via manager method: {srs_data}")
+            else:
+                current_app.logger.warning(f"[VOCAB_MCQ] Failed to update SRS for index {manager.currentIndex}")
         except Exception as e:
             import logging
             logging.error(f"SRS update failed for MCQ: {e}")

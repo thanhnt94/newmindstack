@@ -104,6 +104,18 @@ class SchedulerService:
             item_state.incorrect_streak = (item_state.incorrect_streak or 0) + 1
             item_state.times_incorrect = (item_state.times_incorrect or 0) + 1
             
+        # [NEW] Track mode-specific repetitions in data field
+        if not item_state.data:
+            item_state.data = {}
+            
+        current_data = dict(item_state.data) 
+        if mode == 'mcq':
+            current_data['mcq_reps'] = current_data.get('mcq_reps', 0) + 1
+            
+        item_state.data = current_data
+        from sqlalchemy.orm.attributes import flag_modified
+        flag_modified(item_state, 'data')
+            
         # 5. Commit
         try:
             db.session.add(item_state)
@@ -125,7 +137,8 @@ class SchedulerService:
             repetitions=item_state.repetitions,
             lapses=item_state.lapses,
             score_points=0,
-            score_breakdown={}
+            score_breakdown={},
+            mcq_reps=item_state.data.get('mcq_reps', 0) if item_state.data else 0
         )
         
         card_reviewed.send(
