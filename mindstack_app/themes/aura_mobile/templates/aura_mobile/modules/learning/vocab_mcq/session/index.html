@@ -1052,6 +1052,16 @@
         }
     }
 
+    function stopAudio() {
+        const audio = document.getElementById('mcq-audio');
+        if (audio) {
+            try {
+                audio.pause();
+                audio.currentTime = 0;
+            } catch (err) { }
+        }
+    }
+
     // Init
     loadSettings();
     init();
@@ -1428,6 +1438,9 @@
     }
 
     async function nextQuestion() {
+        // [FIX] Stop any currently playing audio when moving to next question
+        stopAudio();
+
         // Call backend to advance index
         try {
             console.log("[VOCAB_MCQ] Advancing to next question...");
