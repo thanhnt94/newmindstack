@@ -278,11 +278,16 @@ class VocabularyStatsService:
         }
 
     @staticmethod
-    def get_course_overview_stats(user_id: int, container_id: int, page: int = 1, per_page: int = 12, sort_by: str = 'default') -> dict:
+    def get_course_overview_stats(user_id: int, container_id: int, page: int = 1, per_page: int = 12, sort_by: str = 'default', filter_mode: str = 'all') -> dict:
         base_query = LearningItem.query.filter(
             LearningItem.container_id == container_id,
             LearningItem.item_type.in_(['FLASHCARD', 'VOCABULARY'])
         )
+
+        # [NEW] Apply Filter First
+        if filter_mode in ['learned', 'due']:
+             base_query = FsrsService.apply_memory_filter(base_query, user_id, filter_mode)
+
         if sort_by == 'due_date':
             # REFAC: Use FsrsInterface.apply_ordering
             base_query = FsrsService.apply_ordering(base_query, user_id, 'due_date')

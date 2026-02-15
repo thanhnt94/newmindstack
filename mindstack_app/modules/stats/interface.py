@@ -96,10 +96,10 @@ class StatsInterface:
         return VocabularyStatsService.get_item_stats(user_id, item_id)
 
     @staticmethod
-    def get_vocab_set_overview_stats(user_id: int, set_id: int, page: int = 1, per_page: int = 12, sort_by: str = 'default') -> dict:
+    def get_vocab_set_overview_stats(user_id: int, set_id: int, page: int = 1, per_page: int = 12, sort_by: str = 'default', filter_mode: str = 'all') -> dict:
         """Get overview statistics for a vocabulary set."""
         from .services.vocabulary_stats_service import VocabularyStatsService
-        return VocabularyStatsService.get_course_overview_stats(user_id, set_id, page, per_page, sort_by=sort_by)
+        return VocabularyStatsService.get_course_overview_stats(user_id, set_id, page, per_page, sort_by=sort_by, filter_mode=filter_mode)
 
     @staticmethod
     def get_global_stats(user_id: int) -> dict:

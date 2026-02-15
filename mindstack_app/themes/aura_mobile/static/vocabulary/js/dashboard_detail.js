@@ -13,6 +13,7 @@ document.addEventListener('DOMContentLoaded', function () {
     let currentActiveStep = 'detail';
     let selectedFlashcardMode = null;
     let currentSort = 'default'; // [NEW] Sort state
+    let currentFilter = 'all'; // [NEW] Filter state
 
     // Elements
     const stepDetail = document.getElementById('step-detail');
@@ -52,10 +53,10 @@ document.addEventListener('DOMContentLoaded', function () {
     // --- Core Data Loading ---
     function loadSetDetail(setId, pushState = false) {
         selectedSetId = setId;
-        if (pushState) history.pushState({ setId: setId }, '', '/learn/vocabulary/set/' + setId);
 
-        // [UPDATED] Pass sort param
-        return fetch('/learn/vocabulary/api/set/' + setId + '?page=1&sort=' + currentSort)
+        // [UPDATED] Pass sort and filter param
+        const searchQ = document.getElementById('searchInput')?.value || '';
+        return fetch('/learn/vocabulary/api/set/' + setId + '?page=1&sort=' + currentSort + '&filter=' + currentFilter + '&q=' + encodeURIComponent(searchQ))
             .then(r => r.json())
             .then(data => {
                 console.log('API Response for set detail:', data);
@@ -67,13 +68,33 @@ document.addEventListener('DOMContentLoaded', function () {
                     if (data.set.ai_capabilities) {
                         updateModeVisibility(data.set.ai_capabilities);
                     } else {
+                        // If None/Empty, handle as "Enable All" OR "Disable All"?
+                        // Based on logic, if capabilities is empty, updateModeVisibility hides all.
+                        // But usually empty means legacy/all allowed? 
+                        // Current Logic: Empty list -> Hide All. 
+                        // If user wants all, they must be in the list.
                         updateModeVisibility(data.set.ai_capabilities);
                     }
-
                     checkSetActiveSession(setId);
+
+                    // [NEW] Init settings modal for this set immediately
                     loadSettingsData(setId);
+
+                    if (pushState) {
+                        history.pushState({ setId: setId }, '', '/learn/vocabulary/set/' + setId);
+                    }
+
                     return data.set;
+
+                } else {
+                    console.error('Failed to load set data:', data.message);
+                    alert('Không thể tải thông tin bộ thẻ: ' + (data.message || 'Lỗi không xác định'));
+                    throw new Error(data.message);
                 }
+            })
+            .catch(err => {
+                console.error('Error loading set detail:', err);
+                alert('Có lỗi xảy ra khi tải dữ liệu.');
             });
     }
 
@@ -101,22 +122,32 @@ document.addEventListener('DOMContentLoaded', function () {
             document.querySelectorAll('.js-header-card-count').forEach(el => el.textContent = s.card_count);
 
             if (stats) {
-                const progressText = (stats.learned_count || 0) + '/' + (stats.total_count || s.card_count);
-                document.querySelectorAll('.js-progress-count').forEach(el => el.textContent = progressText);
+                try {
+                    const progressText = (stats.learned_count || 0) + '/' + (stats.total_count || s.card_count);
+                    document.querySelectorAll('.js-progress-count').forEach(el => el.textContent = progressText);
 
-                // Update Tab Count
-                const tabCountEl = document.getElementById('tab-list-count');
-                if (tabCountEl) {
-                    tabCountEl.textContent = progressText;
-                    tabCountEl.classList.remove('hidden');
+                    // Update Tab Count
+                    const tabCountEl = document.getElementById('tab-list-count');
+                    if (tabCountEl) {
+                        tabCountEl.textContent = progressText;
+                        tabCountEl.classList.remove('hidden');
+                    }
+
+                    const progressPercent = stats.total_count ? Math.round((stats.learned_count / stats.total_count) * 100) : 0;
+                    document.querySelectorAll('.js-header-progress-percent').forEach(el => el.textContent = progressPercent + '%');
+                } catch (e) {
+                    console.error("Error rendering stats:", e);
                 }
-
-                const progressPercent = stats.total_count ? Math.round((stats.learned_count / stats.total_count) * 100) : 0;
-                document.querySelectorAll('.js-header-progress-percent').forEach(el => el.textContent = progressPercent + '%');
             }
 
-            document.querySelectorAll('.vocab-detail-content').forEach(el => el.style.opacity = '1');
-            document.querySelectorAll('.step-header-info').forEach(el => el.style.opacity = '1');
+            // Use requestAnimationFrame to ensure style application
+            requestAnimationFrame(() => {
+                document.querySelectorAll('.vocab-detail-content').forEach(el => {
+                    el.style.opacity = '1';
+                    el.style.pointerEvents = 'auto';
+                });
+                document.querySelectorAll('.step-header-info').forEach(el => el.style.opacity = '1');
+            });
 
             document.querySelectorAll('.js-edit-set-btn').forEach(btn => {
                 if (s.can_edit) {
@@ -158,11 +189,9 @@ document.addEventListener('DOMContentLoaded', function () {
             if (stats && stats.items && stats.items.length > 0) {
                 let listHtml = '';
                 // Sort: Words needing review (low %) first, new words last
-                const sortedItems = [...stats.items].sort((a, b) => {
-                    if (a.status === 'new' && b.status !== 'new') return 1;
-                    if (b.status === 'new' && a.status !== 'new') return -1;
-                    return a.mastery - b.mastery;
-                });
+                // If filter is active, backend handles sorting mostly, but we can respect it here if needed.
+                // Assuming backend sort is sufficient.
+                const sortedItems = stats.items;
 
                 // Feature Icons helpers (defined once)
                 const iconClass = (active, colorClass) => `flex items-center justify-center w-7 h-7 rounded-lg transition-colors ${active ? colorClass + ' shadow-sm' : 'bg-slate-50 text-slate-300'}`;
@@ -309,7 +338,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
         if (!selectedSetId) return;
         // [UPDATED] Pass sort param
-        fetch('/learn/vocabulary/api/set/' + selectedSetId + '?page=' + page + '&sort=' + currentSort)
+        fetch('/learn/vocabulary/api/set/' + selectedSetId + '?page=' + page + '&sort=' + currentSort + '&filter=' + currentFilter)
             .then(r => r.json())
             .then(data => {
                 if (data.success) renderSetDetail(selectedSetData, data.course_stats, false, data.pagination_html);
@@ -320,10 +349,10 @@ document.addEventListener('DOMContentLoaded', function () {
     // [NEW] Bind Sorting Events
     document.addEventListener('click', function (e) {
         if (e.target.classList.contains('js-sort-btn')) {
+            // ... existing sort logic ...
             const btn = e.target;
             const sortType = btn.dataset.sort;
-
-            // Update UI
+            // ...
             document.querySelectorAll('.js-sort-btn').forEach(b => {
                 b.classList.remove('active', 'bg-white', 'text-indigo-600', 'shadow-sm');
                 b.classList.add('text-slate-500');
@@ -333,10 +362,31 @@ document.addEventListener('DOMContentLoaded', function () {
 
             currentSort = sortType;
             if (selectedSetId) {
-                // Start Loading State
                 const listContainer = document.getElementById('detail-vocab-list');
                 if (listContainer) {
                     listContainer.innerHTML = '<div class="text-center py-10 text-slate-400"><i class="fas fa-spinner fa-spin text-2xl"></i><p class="mt-2 text-sm">Đang sắp xếp...</p></div>';
+                }
+                loadSetDetail(selectedSetId);
+            }
+        } else if (e.target.classList.contains('js-filter-tab-btn')) {
+            // [NEW] Filter Tab Logic
+            const btn = e.target;
+            const filterType = btn.dataset.filter;
+
+            // Update UI
+            document.querySelectorAll('.js-filter-tab-btn').forEach(b => {
+                // Reset to default inactive style
+                b.className = 'flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-all duration-200 text-slate-500 hover:text-indigo-600 js-filter-tab-btn';
+            });
+            // Set active style
+            btn.className = 'flex-1 py-2 px-3 rounded-lg text-sm font-bold transition-all duration-200 text-indigo-700 bg-white shadow-sm js-filter-tab-btn';
+
+            currentFilter = filterType;
+            if (selectedSetId) {
+                // Start Loading State
+                const listContainer = document.querySelector('.js-word-list'); // Use class selector used in render
+                if (listContainer) {
+                    listContainer.innerHTML = '<div class="text-center py-10 text-slate-400"><i class="fas fa-spinner fa-spin text-2xl"></i><p class="mt-2 text-sm">Đang tải...</p></div>';
                 }
                 loadSetDetail(selectedSetId);
             }

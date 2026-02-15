@@ -640,6 +640,12 @@ class FSRSInterface:
                     ItemMemoryState.state == 0
                 )
             ).order_by(LearningItem.order_in_container.asc())
+
+        elif filter_type == 'learned':
+            # Learned: state != 0 (and exists)
+            return query.filter(
+                ItemMemoryState.state != 0
+            ).order_by(LearningItem.order_in_container.asc())
             
         elif filter_type == 'due':
             return query.filter(

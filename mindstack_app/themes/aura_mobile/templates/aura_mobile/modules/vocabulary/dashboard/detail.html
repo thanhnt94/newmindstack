@@ -234,21 +234,23 @@ render_unified_header with context %}
                             </div>
                         </div>
 
-                        <!-- Sorting Controls -->
-                        <div class="px-4 mb-4 flex items-center justify-between">
-                            <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Danh sách thẻ</span>
-                            <div class="flex bg-slate-100 rounded-lg p-1 gap-1">
-                                <button
-                                    class="px-3 py-1.5 rounded-md text-xs font-bold transition-all js-sort-btn active bg-white text-indigo-600 shadow-sm"
-                                    data-sort="default">
-                                    Mặc định
-                                </button>
-                                <button
-                                    class="px-3 py-1.5 rounded-md text-xs font-bold text-slate-500 hover:text-indigo-600 transition-all js-sort-btn"
-                                    data-sort="due_date">
-                                    Cần ôn tập
-                                </button>
-                            </div>
+                        <!-- Filter Tabs -->
+                        <div class="px-4 mb-4 flex p-1 bg-slate-100 rounded-xl">
+                            <button
+                                class="flex-1 py-2 px-3 rounded-lg text-sm font-bold transition-all duration-200 text-indigo-700 bg-white shadow-sm js-filter-tab-btn"
+                                data-filter="all">
+                                Tất cả
+                            </button>
+                            <button
+                                class="flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-all duration-200 text-slate-500 hover:text-indigo-600 js-filter-tab-btn"
+                                data-filter="learned">
+                                Đã học
+                            </button>
+                            <button
+                                class="flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-all duration-200 text-slate-500 hover:text-indigo-600 js-filter-tab-btn"
+                                data-filter="due">
+                                Cần ôn
+                            </button>
                         </div>
 
                         <!-- Vocab List -->
