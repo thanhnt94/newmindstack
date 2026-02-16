@@ -1,348 +1,322 @@
-from flask import render_template, request, redirect, url_for, flash, abort, current_app, jsonify
+# File: vocabulary/routes/typing.py
+# Typing (Practice) Routes for Vocabulary Learning
+
+import json
+from flask import render_template, request, jsonify, abort, session, current_app, url_for, redirect
 from mindstack_app.utils.template_helpers import render_dynamic_template
 from flask_login import login_required, current_user
-from mindstack_app.models import LearningContainer, UserContainerState, LearningSession, LearningItem, db
-from mindstack_app.utils.bbcode_parser import bbcode_to_html
-# REFAC: Remove ItemMemoryState import
-from mindstack_app.modules.fsrs.interface import FSRSInterface as FsrsInterface
-from mindstack_app.modules.gamification.interface import award_points
-from mindstack_app.modules.session.interface import SessionInterface
+
 from .. import typing_bp as blueprint
-from ..logics.typing_logic import get_typing_items
-from datetime import datetime, timezone
+from ..interface import VocabTypingInterface as TypingInterface
+from mindstack_app.models import LearningContainer, UserContainerState, db
+from mindstack_app.utils.db_session import safe_commit
 
-@blueprint.route('/')
-@login_required
-def typing_dashboard():
-    """Dashboard cho chế độ gõ từ."""
-    # Lấy các bộ thẻ
-    containers = LearningContainer.query.filter_by(
-        container_type='FLASHCARD_SET',
-        creator_user_id=current_user.user_id
-    ).all()
-    
-    return render_dynamic_template('modules/learning/vocab_typing/dashboard.html', containers=containers)
-
-@blueprint.route('/setup/<int:set_id>')
+@blueprint.route('/typing/setup/<int:set_id>')
 @login_required
 def typing_setup(set_id):
-    """Bắt đầu luôn phiên gõ từ cho bộ thẻ (Bypass setup screen)."""
-    return redirect(url_for('vocab_typing.typing_session_page', set_id=set_id))
+    """Typing setup page - choose mode, columns, number of questions."""
+    container = LearningContainer.query.get_or_404(set_id)
+    
+    if not container.is_public and container.creator_user_id != current_user.user_id:
+        abort(403)
+    
+    items = TypingInterface.get_typing_eligible_items(set_id, current_user.user_id)
+    if len(items) < 1:
+        abort(400, description="Cần ít nhất 1 thẻ đã học để luyện gõ (Chế độ ôn tập)")
+    
+    available_keys = TypingInterface.get_available_content_keys(set_id)
+    from mindstack_app.modules.vocabulary.interface import VocabularyInterface
+    mode_counts = VocabularyInterface.get_mode_counts(current_user.user_id, set_id)
 
-@blueprint.route('/session')
-@blueprint.route('/session/<int:set_id>')
+    saved_settings = {}
+    default_settings = {}
+    
+    if container.settings and container.settings.get('typing'):
+        default_settings = container.settings.get('typing').copy()
+        if 'pairs' in default_settings:
+            default_settings['custom_pairs'] = default_settings.pop('pairs')
+
+    try:
+        ucs = UserContainerState.query.filter_by(user_id=current_user.user_id, container_id=set_id).first()
+        if ucs and ucs.settings and ucs.settings.get('typing'):
+            saved_settings = ucs.settings.get('typing', {})
+    except Exception as e:
+        pass
+    
+    return render_dynamic_template('modules/learning/vocab_typing/setup/index.html',
+        container=container,
+        total_items=len(items),
+        available_keys=available_keys,
+        mode_counts=mode_counts,
+        saved_settings=saved_settings,
+        default_settings=default_settings
+    )
+
+@blueprint.route('/typing/session/<int:set_id>')
 @login_required
-def typing_session_page(set_id=None):
-    """Trang phiên học gõ từ."""
-    container = None
-    if set_id:
-        container = LearningContainer.query.get_or_404(set_id)
+def typing_session(set_id):
+    """Typing learning session page."""
+    container = LearningContainer.query.get_or_404(set_id)
     
-    # REFAC: Use FSRSInterface to get stats
-    stats = FsrsInterface.get_memory_stats_by_type(current_user.user_id, 'FLASHCARD')
+    if not container.is_public and container.creator_user_id != current_user.user_id:
+        abort(403)
     
-    count_review = stats.get('due', 0)
-    count_learned = stats.get('total', 0) - stats.get('new', 0)
+    items = TypingInterface.get_typing_eligible_items(set_id, current_user.user_id)
+    if len(items) < 1:
+        abort(400, description="Cần ít nhất 1 thẻ đã học để luyện gõ (Chế độ ôn tập)")
     
-    # Find active session
-    active_session = SessionInterface.get_active_session(current_user.user_id, learning_mode='typing', set_id_data=set_id)
-    session_id = active_session.session_id if active_session else None
+    ucs = UserContainerState.query.filter_by(user_id=current_user.user_id, container_id=set_id).first()
+    saved_typing = ucs.settings.get('typing', {}) if ucs and ucs.settings else {}
+
+    container_typing = (container.settings or {}).get('typing', {})
+    
+    req_count = request.args.get('count') or request.args.get('limit')
+    count = int(req_count) if req_count is not None else saved_typing.get('count', container_typing.get('count', 0))
+    
+    req_mode = request.args.get('mode')
+    mode = req_mode if req_mode is not None else saved_typing.get('mode', container_typing.get('mode', 'front_back'))
+    
+    custom_pairs = None
+    custom_pairs_str = request.args.get('custom_pairs', '')
+    if custom_pairs_str:
+        try:
+            custom_pairs = json.loads(custom_pairs_str)
+        except: pass
+    
+    if not custom_pairs:
+        custom_pairs = saved_typing.get('custom_pairs') or container_typing.get('pairs') or container_typing.get('custom_pairs')
+            
+    try:
+        if not ucs:
+            ucs = UserContainerState(user_id=current_user.user_id, container_id=set_id, settings={})
+            db.session.add(ucs)
+        
+        new_settings = dict(ucs.settings or {})
+        if 'typing' not in new_settings: new_settings['typing'] = {}
+        
+        new_settings['typing']['count'] = count
+        new_settings['typing']['mode'] = mode
+        
+        if custom_pairs:
+            new_settings['typing']['custom_pairs'] = custom_pairs
+            
+        ucs.settings = new_settings
+        from sqlalchemy.orm.attributes import flag_modified
+        flag_modified(ucs, "settings")
+        safe_commit(db.session)
+    except Exception as e:
+        current_app.logger.error(f"[VOCAB_TYPING] Error saving settings: {e}")
     
     return render_dynamic_template('modules/learning/vocab_typing/session/index.html',
         container=container,
-        session_id=session_id,
-        stats={
-            'review_count': count_review,
-            'learned_count': count_learned
-        }
+        total_items=len(items),
+        mode=mode,
+        count=count,
+        custom_pairs=custom_pairs,
+        auto_audio=saved_typing.get('auto_audio', True)
     )
 
-@blueprint.route('/api/items/<int:set_id>')
+# ALIAS for backward compatibility
+@blueprint.route('/session/<int:set_id>')
 @login_required
-def api_get_items(set_id):
-    """API lấy danh sách từ cho phiên học gõ (có kèm thông số FSRS)."""
-    count = request.args.get('count', type=int) # Default to None (All items)
-    
-    # Check for existing session
-    active_session = SessionInterface.get_active_session(current_user.user_id, learning_mode='typing', set_id_data=set_id)
-    
-    # Auto-restart if user requests Unlimited (count=None) but active session is limited (e.g. 10 items)
-    # This fixes the "1/10" persistence issue.
-    if active_session and count is None:
-        if active_session.total_items == 10: # Legacy default limit
-             # Check if user has made significant progress. If not (or if we want to force), restart.
-             # Here we just force restart to ensure they get the full list as requested.
-             SessionInterface.complete_session(active_session.session_id)
-             active_session = None
+def typing_session_page(set_id):
+    return redirect(url_for('vocab_typing.typing_session', set_id=set_id))
 
-    if active_session:
-        # Resume session
-        item_ids = active_session.session_data.get('item_ids', [])
-        items = LearningItem.query.filter(LearningItem.item_id.in_(item_ids)).all()
-        # Sort items to match original order
-        item_map = {item.item_id: item for item in items}
-        items = [item_map[iid] for iid in item_ids if iid in item_map]
-        
-        processed_ids = active_session.processed_item_ids or []
-        correct_count = active_session.correct_count or 0
-        incorrect_count = active_session.incorrect_count or 0
-        points_earned = active_session.points_earned or 0
-        
-        session_data = active_session.session_data or {}
-        current_index = session_data.get('current_index', len(processed_ids))
-        is_showing_answer = session_data.get('is_showing_answer', False)
-        last_user_answer = session_data.get('last_user_answer', '')
-    else:
-        # Start new session
-        # mode='all' ensures we get both New and Reviewed items (fixing 0 stats issue)
-        items = get_typing_items(current_user.user_id, container_id=set_id, limit=count, mode='all')
-        item_ids = [item.item_id for item in items]
-        
-        # Create DB session for persistence
-        active_session = SessionInterface.create_session(
-            user_id=current_user.user_id,
-            learning_mode='typing',
-            mode_config_id='typing',
-            set_id_data=set_id,
-            total_items=len(item_ids)
-        )
-        if active_session:
-            active_session.session_data = {
-                'item_ids': item_ids,
-                'current_index': 0,
-                'is_showing_answer': False
-            }
-            db.session.commit()
+@blueprint.route('/typing/setup/save/<int:set_id>', methods=['POST'])
+@login_required
+def typing_save_setup(set_id):
+    """API to save Typing settings before starting session (for clean URLs)."""
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({'success': False, 'message': 'No data provided'}), 400
             
-        processed_ids = []
-        correct_count = 0
-        incorrect_count = 0
-        points_earned = 0
-        current_index = 0
-        is_showing_answer = False
-        last_user_answer = ''
-    
-    # Fetch FSRS stats for all items in batch
-    fsrs_states = FsrsInterface.get_batch_memory_states(current_user.user_id, item_ids)
-    
-    # Format items for UI
-    formatted_items = []
-    for item in items:
-        content = item.content if item.content else {}
-        prompt_raw = getattr(item, 'front', content.get('front', ''))
-        answer_raw = getattr(item, 'back', content.get('back', ''))
+        mode = data.get('mode', 'custom')
+        count = data.get('count', 0)
+        custom_pairs = data.get('custom_pairs')
+        use_custom_config = data.get('use_custom_config', False)
         
-        # FSRS stats
-        state = fsrs_states.get(item.item_id)
-        fsrs_info = {
-            'stability': round(state.stability, 2) if state and state.stability else 0,
-            'difficulty': round(state.difficulty, 2) if state and state.difficulty else 0,
-            'retrievability': round(FsrsInterface.calculate_retrievability_for_record(state) * 100, 1),
-            'last_review': state.last_review.isoformat() if state and state.last_review else None
-        }
+        ucs = UserContainerState.query.filter_by(user_id=current_user.user_id, container_id=set_id).first()
+        if not ucs:
+            ucs = UserContainerState(user_id=current_user.user_id, container_id=set_id, settings={})
+            db.session.add(ucs)
         
-        formatted_items.append({
-            'item_id': item.item_id,
-            'prompt': bbcode_to_html(prompt_raw),
-            'answer': bbcode_to_html(answer_raw),
-            'fsrs': fsrs_info
-        })
-    
-    return jsonify({
-        'success': True,
-        'items': formatted_items,
-        'session_id': active_session.session_id if active_session else None,
-        'progress': {
-            'processed_item_ids': processed_ids,
-            'correct_count': correct_count,
-            'incorrect_count': incorrect_count,
-            'points_earned': points_earned,
-            'current_index': current_index,
-            'is_showing_answer': is_showing_answer,
-            'last_user_answer': last_user_answer
-        }
-    })
+        new_settings = dict(ucs.settings or {})
+        if 'typing' not in new_settings: new_settings['typing'] = {}
+        
+        new_settings['typing']['mode'] = mode
+        new_settings['typing']['count'] = int(count) if count is not None else 0
+        new_settings['typing']['use_custom_config'] = bool(use_custom_config)
+        new_settings['typing']['auto_audio'] = bool(data.get('auto_audio', True))
+        
+        if custom_pairs:
+            new_settings['typing']['custom_pairs'] = custom_pairs
+            
+        if 'typing_session_data' in new_settings:
+            del new_settings['typing_session_data']
+            
+        ucs.settings = new_settings
+        from sqlalchemy.orm.attributes import flag_modified
+        flag_modified(ucs, "settings")
+        safe_commit(db.session)
+        
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
 
-@blueprint.route('/api/check', methods=['POST'])
+@blueprint.route('/typing/api/items/<int:set_id>')
 @login_required
-def api_check_answer():
-    """API kiểm tra đáp án và cập nhật SRS."""
-    data = request.get_json()
-    item_id = data.get('item_id')
-    user_answer = data.get('user_answer', '').strip()
-    duration_ms = data.get('duration_ms', 0)
-    
-    if not item_id:
-        return jsonify({'success': False, 'message': 'Missing item_id'}), 400
+def typing_api_get_items(set_id):
+    """API to get Typing items for a session, with session persistence."""
+    try:
+        from ..services.typing_session_manager import TypingSessionManager
+        from mindstack_app.modules.session.interface import SessionInterface
         
-    item = LearningItem.query.get_or_404(item_id)
-    content = item.content if item.content else {}
-    from mindstack_app.utils.content_renderer import strip_bbcode
-    correct_answer = strip_bbcode(getattr(item, 'back', content.get('back', ''))).strip()
-    
-    is_correct = user_answer.lower() == correct_answer.lower()
-    
-    # Map correctness to FSRS quality (Rating enum)
-    quality = FsrsInterface.Rating.Good if is_correct else FsrsInterface.Rating.Again
-    
-    # Process interaction via FSRS
-    memory_state, srs_result = FsrsInterface.process_review(
-        user_id=current_user.user_id,
-        item_id=item_id,
-        quality=quality,
-        mode='typing',
-        duration_ms=duration_ms,
-        container_id=item.container_id
-    )
-    
-    # Award points via ScoreService
-    score_change = 0
-    if is_correct:
-        score_info = award_points(
-            user_id=current_user.user_id,
-            amount=10,
-            reason="Gõ từ chính xác",
-            item_id=item_id,
-            item_type='FLASHCARD'
-        )
-        score_change = score_info.get('score_change', 10)
-    
-    # Sync with LearningSession
-    active_session = SessionInterface.get_active_session(current_user.user_id, learning_mode='typing', set_id_data=item.container_id)
-    if active_session:
-        SessionInterface.update_progress(
-            session_id=active_session.session_id,
-            item_id=item_id,
-            result_type='correct' if is_correct else 'incorrect',
-            points=score_change
-        )
-        # Store state for reload
-        session_data = dict(active_session.session_data or {})
-        session_data['is_showing_answer'] = True
-        session_data['last_user_answer'] = user_answer
-        active_session.session_data = session_data
-        db.session.add(active_session)
-    
-    db.session.commit()
-    
-    srs_data = {
-        'score_change': score_change,
-        'stability': round(srs_result.stability, 2),
-        'difficulty': round(srs_result.difficulty, 2),
-        'retrievability': round(srs_result.retrievability * 100, 1),
-        'next_review': srs_result.next_review.isoformat(),
-        'interval_minutes': srs_result.interval_minutes
-    }
-    
-    return jsonify({
-        'success': True,
-        'is_correct': is_correct,
-        'correct_answer': correct_answer,
-        'srs': srs_data
-    })
+        count = request.args.get('count', 0, type=int)
+        mode = request.args.get('mode', 'front_back')
+        custom_pairs_str = request.args.get('custom_pairs', '')
+        
+        custom_pairs = None
+        if custom_pairs_str:
+            try:
+                custom_pairs = json.loads(custom_pairs_str)
+                if custom_pairs:
+                    custom_pairs = [p for p in custom_pairs if p.get('enabled', True)]
+            except:
+                pass
 
-@blueprint.route('/api/next', methods=['POST'])
-@login_required
-def api_next_item():
-    """API chuyển sang câu tiếp theo (sync session index)."""
-    data = request.get_json() or {}
-    session_id = data.get('session_id')
-    
-    if not session_id:
-        active = SessionInterface.get_active_session(current_user.user_id, learning_mode='typing')
-        if active: session_id = active.session_id
+        manager = TypingSessionManager.load_from_db(current_user.user_id, set_id)
         
-    if not session_id:
+        if manager and count == 0:
+             current_count = manager.params.get('count', 10)
+             if current_count != 0 and len(manager.questions) <= 10:
+                 if manager.db_session_id:
+                     SessionInterface.complete_session(manager.db_session_id)
+                 manager = None
+
+        if manager:
+            request_params = {
+                'count': count, 'mode': mode, 'custom_pairs': custom_pairs
+            }
+            if manager.params == request_params:
+                response = manager.get_session_data()
+                response['is_restored'] = True
+                return jsonify(response)
+
+        manager = TypingSessionManager(current_user.user_id, set_id)
+        success, message = manager.initialize_session(
+            count=count, mode=mode, custom_pairs=custom_pairs
+        )
+        
+        if not success:
+            return jsonify({'success': False, 'message': message}), 400
+            
+        return jsonify(manager.get_session_data())
+
+    except Exception as e:
+        current_app.logger.error(f"[VOCAB_TYPING] API Error: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+@blueprint.route('/typing/api/next/<int:set_id>', methods=['POST'])
+@login_required
+def typing_api_next_question(set_id):
+    """API to advance to the next Typing question in the session."""
+    from ..services.typing_session_manager import TypingSessionManager
+    manager = TypingSessionManager.load_from_db(current_user.user_id, set_id)
+    if not manager:
         return jsonify({'success': False, 'message': 'No active session'}), 404
         
-    session = db.session.get(LearningSession, session_id)
-    if not session:
-        return jsonify({'success': False, 'message': 'Session not found'}), 404
-        
-    session_data = dict(session.session_data or {})
-    current_index = session_data.get('current_index', 0)
-    item_ids = session_data.get('item_ids', [])
+    success = manager.next_item()
     
-    # [NEW] Check for End of Cycle (Unlimited Mode)
-    # If we are about to move past the last item
-    if current_index >= len(item_ids) - 1:
-        # Check if unlimited (assuming count was not set or we just want infinite loop)
-        # We can just always loop in this mode as requested by user ("all unlimited")
-        import random
-        random.shuffle(item_ids)
-        session_data['item_ids'] = item_ids
-        session_data['current_index'] = 0
-        session_data['is_showing_answer'] = False
-        session_data['last_user_answer'] = ''
-        
-        session.session_data = session_data
-        db.session.add(session)
-        db.session.commit()
-        
-        # Fetch new items to return
-        items = LearningItem.query.filter(LearningItem.item_id.in_(item_ids)).all()
-        # Sort items to match new order
-        item_map = {item.item_id: item for item in items}
-        formatted_items = []
-        for iid in item_ids:
-            if iid in item_map:
-                item = item_map[iid]
-                # Re-serialize item if needed, or use a helper
-                # Using ad-hoc serialization matching api_get_items logic (simplified)
-                content = item.content if item.content else {}
-                from mindstack_app.utils.content_renderer import strip_bbcode, bbcode_to_html_simple
-                prompt = bbcode_to_html_simple(getattr(item, 'front', content.get('front', '')))
-                
-                # Get FSRS stats
-                fsrs_state = None
-                from mindstack_app.models import ItemMemoryState
-                params = getattr(item, 'fsrs_memory_state', None)
-                if params and isinstance(params, dict):
-                    fsrs_state = params
-                
-                formatted_items.append({
-                    'item_id': item.item_id,
-                    'prompt': prompt,
-                    'answer': strip_bbcode(getattr(item, 'back', content.get('back', ''))),
-                    # Simplified fsrs for re-fetch
-                    'fsrs': fsrs_state or {'stability':0, 'difficulty':0, 'retrievability':0}
-                })
+    if not success and manager.params.get('count') == 0:
+        if manager.start_next_cycle():
+            return jsonify({
+                'success': True, 
+                'currentIndex': 0,
+                'new_cycle': True,
+                'questions': manager.questions
+            })
 
-        return jsonify({
-            'success': True,
-            'new_cycle': True,
-            'items': formatted_items,
-            'next_index': 0
-        })
+    return jsonify({'success': success, 'currentIndex': manager.currentIndex})
 
-    # Normal progression
-    session_data['current_index'] = current_index + 1
-    session_data['is_showing_answer'] = False
-    session_data['last_user_answer'] = ''
-    
-    session.session_data = session_data
-    db.session.add(session)
-    db.session.commit()
-    
-    return jsonify({
-        'success': True,
-        'next_index': current_index + 1
-    })
-
-@blueprint.route('/api/end_session', methods=['POST'])
+@blueprint.route('/typing/api/check', methods=['POST'])
 @login_required
-def api_end_session():
-    """Kết thúc phiên học."""
-    data = request.get_json() or {}
-    session_id = data.get('session_id')
+def typing_api_check_answer():
+    """API to check Typing answer."""
+    from ..services.typing_session_manager import TypingSessionManager
+    data = request.get_json()
+    set_id = data.get('set_id')
+    user_input = data.get('user_input', '').strip()
+    item_id = data.get('item_id')
     
-    if not session_id:
-        active = SessionInterface.get_active_session(current_user.user_id, learning_mode='typing')
-        if active:
-            session_id = active.session_id
-            
-    if session_id:
-        SessionInterface.complete_session(session_id)
-        return jsonify({'success': True, 'session_id': session_id})
+    if set_id is None:
+        return jsonify({'success': False, 'message': 'Missing set_id'}), 400
         
-    return jsonify({'success': False, 'message': 'No active session found'})
+    manager = TypingSessionManager.load_from_db(current_user.user_id, set_id)
+    if not manager:
+        return jsonify({'success': False, 'message': 'Session not found'}), 404
+
+    result = manager.check_answer(user_input)
+    if not result['success']:
+        return jsonify(result), 400
+        
+    duration_ms = data.get('duration_ms', 0)
+    result['user_answer'] = user_input
+    result['duration_ms'] = duration_ms
+    result['quality'] = 5 if result['is_correct'] else 0
+    
+    if item_id:
+        try:
+            from mindstack_app.modules.fsrs.interface import FSRSInterface as FsrsService
+            srs_result = FsrsService.process_interaction(
+                user_id=current_user.user_id,
+                item_id=item_id,
+                mode='typing',
+                result_data=result
+            )
+            result.update(srs_result)
+            
+            # Get updated total score
+            result['updated_total_score'] = current_user.total_score
+            
+            srs_data = {
+                'stability': float(srs_result.get('stability', 0)),
+                'difficulty': float(srs_result.get('difficulty', 0)),
+                'retrievability': float(srs_result.get('retrievability', 0)),
+                'typing_reps': int(srs_result.get('typing_reps', 0)),
+                'repetitions': int(srs_result.get('repetitions', 0)),
+                'last_srs_sync': True
+            }
+            
+            manager.update_answer_srs(manager.currentIndex, srs_data)
+        except Exception as e:
+            current_app.logger.error(f"SRS update failed for Typing: {e}")
+            
+    if manager.db_session_id:
+        result['session_id'] = manager.db_session_id
+    
+    return jsonify(result)
+
+@blueprint.route('/typing/api/end_session', methods=['POST'])
+@login_required
+def typing_end_session():
+    """End the Typing session."""
+    from ..services.typing_session_manager import TypingSessionManager
+    try:
+        data = request.get_json(silent=True) or {}
+        set_id = data.get('set_id') or request.args.get('set_id')
+        
+        if not set_id:
+             return jsonify({'success': False, 'message': 'Missing set_id'}), 400
+
+        manager = TypingSessionManager.load_from_db(current_user.user_id, set_id)
+        if manager:
+            from mindstack_app.modules.session.interface import SessionInterface
+            if manager.db_session_id:
+                SessionInterface.complete_session(manager.db_session_id)
+            manager.clear_session()
+            return jsonify({'success': True, 'session_id': manager.db_session_id})
+            
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500

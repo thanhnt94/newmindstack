@@ -46,3 +46,4 @@ class SrsResultDTO:
     repetitions: int
     lapses: int
     mcq_reps: int = 0
+    typing_reps: int = 0

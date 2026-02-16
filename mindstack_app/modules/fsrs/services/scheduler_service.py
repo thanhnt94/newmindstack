@@ -111,6 +111,8 @@ class SchedulerService:
         current_data = dict(item_state.data) 
         if mode == 'mcq':
             current_data['mcq_reps'] = current_data.get('mcq_reps', 0) + 1
+        elif mode == 'typing':
+            current_data['typing_reps'] = current_data.get('typing_reps', 0) + 1
             
         item_state.data = current_data
         from sqlalchemy.orm.attributes import flag_modified
@@ -138,7 +140,8 @@ class SchedulerService:
             lapses=item_state.lapses,
             score_points=0,
             score_breakdown={},
-            mcq_reps=item_state.data.get('mcq_reps', 0) if item_state.data else 0
+            mcq_reps=item_state.data.get('mcq_reps', 0) if item_state.data else 0,
+            typing_reps=item_state.data.get('typing_reps', 0) if item_state.data else 0
         )
         
         card_reviewed.send(
