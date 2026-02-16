@@ -601,8 +601,10 @@
             })
             .then(res => res.json())
             .then(data => {
-                if (data.success && data.session_id) {
-                    window.location.href = `/learn/session/${data.session_id}/summary`;
+                const finalSessionId = data.session_id || dbSessionId;
+                if (data.success && finalSessionId) {
+                    let summaryUrl = "{{ url_for('session.session_summary', session_id='SESSION_ID') }}".replace('SESSION_ID', finalSessionId);
+                    window.location.href = summaryUrl;
                 } else {
                     window.location.href = `/learn/vocab-typing/typing/setup/${setId}`;
                 }
@@ -610,6 +612,15 @@
             .catch(() => {
                 window.location.href = `/learn/vocab-typing/typing/setup/${setId}`;
             });
+        };
+
+        window.goToSummary = function() {
+            if (dbSessionId) {
+                let summaryUrl = "{{ url_for('session.session_summary', session_id='SESSION_ID') }}".replace('SESSION_ID', dbSessionId);
+                window.location.href = summaryUrl;
+            } else {
+                exitSession();
+            }
         };
 
         window.playCurrentAudio = function() {
