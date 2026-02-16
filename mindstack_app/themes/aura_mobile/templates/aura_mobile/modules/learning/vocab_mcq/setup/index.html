@@ -32,7 +32,7 @@
         min-height: 100vh;
         display: flex;
         flex-direction: column;
-        max-width: 600px;
+        width: 100%;
         margin: 0 auto;
         background: var(--background);
         position: relative;
@@ -232,7 +232,7 @@
         bottom: 0;
         left: 0;
         right: 0;
-        max-width: 600px;
+        width: 100%;
         margin: 0 auto;
         z-index: 100;
         display: flex;
@@ -393,6 +393,41 @@
                 </div>
             </div>
 
+            <!-- Pair Config -->
+            <div class="config-card">
+                <div class="flex justify-between items-center mb-3">
+                    <div class="config-header" style="margin-bottom:0;"><i class="fas fa-sliders-h"></i> Cấu hình Cặp từ</div>
+                    <label class="flex items-center cursor-pointer">
+                        <span class="mr-2 text-sm font-medium text-gray-600">Tùy chỉnh</span>
+                        <div class="relative">
+                            <input type="checkbox" id="custom-config-toggle" class="sr-only">
+                            <div class="block bg-gray-200 w-10 h-6 rounded-full transition-colors toggle-bg"></div>
+                            <div class="dot absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform transform"></div>
+                        </div>
+                    </label>
+                </div>
+
+                <style>
+                    #custom-config-toggle:checked~.toggle-bg { background-color: var(--primary); }
+                    #custom-config-toggle:checked~.dot { transform: translateX(100%); }
+                    #limit-toggle:checked~.toggle-bg { background-color: var(--primary); }
+                    #limit-toggle:checked~.dot { transform: translateX(100%); }
+                </style>
+
+                <div id="default-config-view" class="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                    <div id="default-summary" class="space-y-2"></div>
+                    <p id="no-default-msg" class="text-sm text-red-500 italic hidden">
+                        <i class="fas fa-exclamation-circle"></i> Bộ này chưa có cấu hình mặc định. Vui lòng bật "Tùy
+                        chỉnh" để thiết lập.
+                    </p>
+                </div>
+
+                <div id="custom-builder-view" class="hidden mt-4">
+                    <div class="pair-container" id="pairs-list"></div>
+                    <button type="button" class="add-pair-btn" id="add-pair-btn"><i class="fas fa-plus-circle"></i> Thêm cặp mới</button>
+                </div>
+            </div>
+
             <!-- Timer Settings -->
             <div class="config-card">
                 <div class="config-header"><i class="fas fa-clock"></i> Giới hạn thời gian</div>
@@ -431,18 +466,28 @@
     </div>
 </div>
 
+</script>
+
 <script>
+    console.log('[MCQ Setup] Initializing...');
+    const setId = Number("{{ container.container_id }}");
+    const counts = {{ mode_counts | tojson }};
+    const availableKeys = {{ available_keys | tojson }} || [];
+    const savedSettings = {{ saved_settings | tojson }} || {};
+    const defaultSettings = {{ default_settings | tojson }} || {};
+
+    console.log('[MCQ Setup] savedSettings:', savedSettings);
+    console.log('[MCQ Setup] defaultSettings:', defaultSettings);
+    console.log('[MCQ Setup] availableKeys:', availableKeys);
+    
     let currentStep = 1;
-
-    // Initialize config from saved or default settings
-    const saved = {{ saved_settings | tojson if saved_settings else '{}' }};
-    const defaults = {{ default_settings | tojson if default_settings else '{}' }};
-
     let config = {
-        mode: saved.mode || defaults.mode || 'all_review',
-        count: saved.count !== undefined ? saved.count : (defaults.count !== undefined ? defaults.count : 0),
-        timer: saved.timer || defaults.timer || 0,
-        auto_audio: saved.auto_audio !== undefined ? saved.auto_audio : (defaults.auto_audio !== undefined ? defaults.auto_audio : true)
+        mode: savedSettings.mode || 'all_review',
+        count: savedSettings.count !== undefined ? savedSettings.count : 0,
+        choices: savedSettings.choices !== undefined ? savedSettings.choices : 4,
+        auto_audio: savedSettings.auto_audio !== undefined ? savedSettings.auto_audio : true,
+        use_custom_config: savedSettings.use_custom_config || false,
+        custom_pairs: []
     };
 
     const modeLabels = {
@@ -466,35 +511,52 @@
             backBtn.style.display = 'flex';
             nextBtn.style.display = 'none';
             startBtn.style.display = 'flex';
-            // Update summary
             document.querySelector('#selected-mode-display span').textContent = modeLabels[config.mode];
+            syncConfigUI();
+            checkStartButtonState();
+        }
+    }
 
-            // Sync Limit UI
-            const limitToggle = document.getElementById('limit-toggle');
-            const limitOptions = document.getElementById('limit-options');
-            if (config.count > 0) {
-                limitToggle.checked = true;
-                limitOptions.classList.remove('hidden');
-                // Select matching chip
-                document.querySelectorAll('#limit-options .option-chip').forEach(chip => {
-                    chip.classList.toggle('selected', parseInt(chip.dataset.value) === config.count);
-                });
-            } else {
-                limitToggle.checked = false;
-                limitOptions.classList.add('hidden');
+    function syncConfigUI() {
+        // Sync Limit Toggle
+        limitToggle.checked = config.count > 0;
+        document.getElementById('limit-options').classList.toggle('hidden', !limitToggle.checked);
+        if (config.count > 0) {
+            const selectedLimitChip = document.querySelector('#limit-options .option-chip[data-value="'+config.count+'"]');
+            if (selectedLimitChip) {
+                document.querySelectorAll('#limit-options .option-chip').forEach(chip => chip.classList.remove('selected'));
+                selectedLimitChip.classList.add('selected');
             }
         }
+
+        // Sync Custom Config Toggle
+        customToggle.checked = config.use_custom_config;
+        document.getElementById('default-config-view').classList.toggle('hidden', config.use_custom_config);
+        document.getElementById('custom-builder-view').classList.toggle('hidden', !config.use_custom_config);
+
+        // Sync Auto Audio Toggle
+        document.getElementById('sound-check').checked = config.auto_audio;
+        document.getElementById('sound-option').classList.toggle('selected', config.auto_audio);
+        
+        // Render Default Summary for display
+        renderDefaultView();
     }
 
-    function nextStep() {
-        if (currentStep === 1) {
-            showStep(2);
-        }
-    }
-
-    function prevStep() {
-        if (currentStep === 2) {
-            showStep(1);
+    // Render Default Summary (read-only display)
+    function renderDefaultView() {
+        const summaryEl = document.getElementById('default-summary');
+        summaryEl.innerHTML = '';
+        const defaults = defaultSettings.custom_pairs || [];
+        if (defaults.length > 0) {
+            document.getElementById('no-default-msg').classList.add('hidden');
+            defaults.forEach(p => {
+                const el = document.createElement('div');
+                el.className = 'text-sm font-bold text-slate-600 uppercase';
+                el.innerHTML = `${p.q} <i class="fas fa-arrow-right mx-2 opacity-30"></i> ${p.a}`;
+                summaryEl.appendChild(el);
+            });
+        } else {
+            document.getElementById('no-default-msg').classList.remove('hidden');
         }
     }
 
@@ -505,90 +567,158 @@
             document.querySelectorAll('.mode-card').forEach(c => c.classList.remove('selected'));
             card.classList.add('selected');
             config.mode = card.dataset.value;
-            // Auto next step for smoother UX? Maybe wait for user to click Next
         });
+        if (card.dataset.value === config.mode) card.classList.add('selected');
     });
 
-    // Limit Toggle
+    // Config Toggles
     const limitToggle = document.getElementById('limit-toggle');
-    const limitOptions = document.getElementById('limit-options');
+    const customToggle = document.getElementById('custom-config-toggle');
+    const autoAudioToggle = document.getElementById('sound-check');
+
     limitToggle.addEventListener('change', () => {
-        if (limitToggle.checked) {
-            limitOptions.classList.remove('hidden');
-            config.count = parseInt(document.querySelector('#limit-options .option-chip.selected')?.dataset.value || 10);
-        } else {
-            limitOptions.classList.add('hidden');
-            config.count = 0;
-        }
+        config.count = limitToggle.checked ? parseInt(document.querySelector('#limit-options .option-chip.selected').dataset.value) : 0;
+        syncConfigUI(); // Re-sync to reflect changes
     });
 
-    // Chip Selection (Generic)
-    document.querySelectorAll('.options-row').forEach(row => {
-        row.querySelectorAll('.option-chip').forEach(chip => {
-            chip.addEventListener('click', (e) => {
-                if (chip.querySelector('input')) return; // Handle checkbox separately
+    customToggle.addEventListener('change', () => {
+        config.use_custom_config = customToggle.checked;
+        syncConfigUI(); // Re-sync to reflect changes
+        if (config.use_custom_config && document.getElementById('pairs-list').children.length === 0) {
+            loadPairsIntoBuilder(savedSettings.custom_pairs || defaultSettings.custom_pairs || []);
+        }
+        checkStartButtonState();
+    });
 
-                row.querySelectorAll('.option-chip').forEach(c => c.classList.remove('selected'));
-                chip.classList.add('selected');
+    autoAudioToggle.addEventListener('change', () => {
+        config.auto_audio = autoAudioToggle.checked;
+        syncConfigUI();
+    });
 
-                if (row.id === 'limit-options') {
-                    config.count = parseInt(chip.dataset.value);
-                } else if (chip.dataset.value !== undefined) {
-                    // Timer settings
-                    config.timer = parseInt(chip.dataset.value);
-                }
-            });
+    document.querySelectorAll('#limit-options .option-chip').forEach(chip => {
+        chip.addEventListener('click', () => {
+            document.querySelectorAll('#limit-options .option-chip').forEach(c => c.classList.remove('selected'));
+            chip.classList.add('selected');
+            config.count = parseInt(chip.dataset.value);
+            limitToggle.checked = true; // Ensure toggle is on if chip is selected
+            syncConfigUI();
         });
     });
 
-    // Sound Checkbox
-    document.getElementById('sound-option').addEventListener('change', (e) => {
-        const checkbox = e.target.querySelector('input') || e.target;
-        if (checkbox.checked) {
-            document.getElementById('sound-option').classList.add('selected');
-            config.auto_audio = true;
+    // Pair Builder Logic
+    function addPairUI(q = '', a = '') {
+        const row = document.createElement('div');
+        row.className = 'pair-row bg-slate-100 rounded-lg p-3 relative mb-2';
+        let optionsHtml = availableKeys.map(k => `<option value="${k}">${k}</option>`).join('');
+        row.innerHTML = `
+            <div class="flex items-center gap-2">
+                <div class="flex-1">
+                    <label class="block text-xs font-semibold text-slate-500 uppercase mb-1">Câu hỏi (hiển thị)</label>
+                    <select class="modern-select w-full p-2 rounded-md border pair-q">${optionsHtml}</select>
+                </div>
+                <i class="fas fa-arrow-right text-slate-400 mt-5"></i>
+                <div class="flex-1">
+                    <label class="block text-xs font-semibold text-slate-500 uppercase mb-1">Đáp án (trắc nghiệm)</label>
+                    <select class="modern-select w-full p-2 rounded-md border pair-a">${optionsHtml}</select>
+                </div>
+                <button class="delete-pair absolute -top-2 -right-2 bg-rose-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs"><i class="fas fa-times"></i></button>
+            </div>
+        `;
+        document.getElementById('pairs-list').appendChild(row);
+        row.querySelector('.pair-q').value = q;
+        row.querySelector('.pair-a').value = a;
+        row.querySelector('.delete-pair').onclick = () => { row.remove(); checkStartButtonState(); };
+    }
+
+    document.getElementById('add-pair-btn').onclick = () => { addPairUI('', ''); checkStartButtonState(); };
+
+    function loadPairsIntoBuilder(pairs) {
+        document.getElementById('pairs-list').innerHTML = '';
+        if (pairs && pairs.length > 0) {
+            pairs.forEach(p => addPairUI(p.q, p.a));
         } else {
-            document.getElementById('sound-option').classList.remove('selected');
-            config.auto_audio = false;
+            addPairUI('front', 'back'); // Default pair
         }
-    });
+    }
+
+    // Initial load for builder
+    if (config.use_custom_config) {
+        loadPairsIntoBuilder(savedSettings.custom_pairs || defaultSettings.custom_pairs || []);
+    } else {
+        // If not custom, clear builder and rely on defaultSettings.custom_pairs being displayed by renderDefaultView
+        document.getElementById('pairs-list').innerHTML = '';
+    }
+    
+    function checkStartButtonState() {
+        if (currentStep !== 2) return;
+        const btn = document.getElementById('start-btn');
+        let isValid = true;
+        let msg = 'Bắt đầu làm bài <i class="fas fa-play"></i>';
+
+        if (config.use_custom_config) {
+            if (document.querySelectorAll('.pair-row').length === 0) {
+                isValid = false;
+                msg = 'Vui lòng thêm ít nhất một cặp từ.';
+            }
+        } else {
+            if (!defaultSettings.custom_pairs || defaultSettings.custom_pairs.length === 0) {
+                isValid = false;
+                msg = 'Không có cặp từ mặc định. Vui lòng bật "Tùy chỉnh".';
+            }
+        }
+        btn.disabled = !isValid;
+        btn.innerHTML = msg;
+    }
+
+    document.getElementById('next-btn').onclick = () => {
+        if (currentStep === 1) showStep(2);
+        else startSession();
+    };
+
+    document.getElementById('back-btn').onclick = (e) => {
+        e.preventDefault();
+        if (currentStep === 2) showStep(1);
+        else window.location.href = '/dashboard';
+    };
 
     async function startSession() {
-        const startBtn = document.getElementById('start-btn');
-        const originalHtml = startBtn.innerHTML;
-        startBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang tạo...';
-        startBtn.disabled = true;
+        const btn = document.getElementById('start-btn');
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang tạo...';
+
+        if (config.use_custom_config) {
+            config.custom_pairs = Array.from(document.querySelectorAll('.pair-row')).map(row => ({
+                q: row.querySelector('.pair-q').value,
+                a: row.querySelector('.pair-a').value
+            }));
+        } else {
+            config.custom_pairs = defaultSettings.custom_pairs || [];
+        }
+
+        console.log('[MCQ Setup] Final config to save:', config);
 
         try {
-            // 1. Save settings to DB via API (matches mcq_save_setup route)
             const saveUrl = "{{ url_for('vocab_mcq.mcq_save_setup', set_id=container.container_id) }}";
             const res = await fetch(saveUrl, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': '{{ csrf_token() }}'
-                },
-                body: JSON.stringify({
-                    mode: config.mode,
-                    count: config.count,
-                    choices: 4, // Default for vocab mcq
-                    auto_audio: config.auto_audio,
-                    timer: config.timer
-                })
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token() }}' },
+                body: JSON.stringify(config)
             });
-
             if (!res.ok) throw new Error("Failed to save session settings");
-
-            // 2. Redirect to session URL WITHOUT query parameters
-            const sessionUrl = "{{ url_for('vocab_mcq.mcq_session', set_id=container.container_id) }}";
-            window.location.href = sessionUrl;
-
-        } catch (err) {
-            console.error(err);
-            alert("Có lỗi xảy ra khi tạo phiên học: " + err.message);
-            startBtn.innerHTML = originalHtml;
-            startBtn.disabled = false;
+            
+            window.location.href = "{{ url_for('vocab_mcq.mcq_session', set_id=container.container_id) }}";
+        } catch(e) { 
+            console.error('[MCQ Setup] Error starting session:', e); 
+            alert('Lỗi khi khởi tạo phiên học: ' + e.message);
+            btn.disabled = false;
+            btn.innerHTML = 'Bắt đầu làm bài <i class="fas fa-play"></i>';
         }
     }
+
+    // Initial state setup
+    showStep(1);
+    syncConfigUI();
+    checkStartButtonState();
+    console.log('[MCQ Setup] Initial config state:', config);
 </script>
 {% endblock %}

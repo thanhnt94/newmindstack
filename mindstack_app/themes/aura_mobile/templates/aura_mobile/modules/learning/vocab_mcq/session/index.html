@@ -1377,6 +1377,13 @@
     };
 
     function init() {
+        // [NEW] Log active filters/config for debugging
+        console.log("[VOCAB_MCQ] Session Initialized with config:", {
+            mode: mode,
+            count: count,
+            numChoices: numChoices,
+            customPairs: customPairs
+        });
         // [NEW] Calculate dynamic footer padding
         updateFooterPadding();
         window.addEventListener('resize', updateFooterPadding);
@@ -1415,14 +1422,25 @@
                     els.tNum.textContent = questions.length;
 
                     // In Unlimited mode, we hide the total count and separator
-                    if (count <= 0) {
+                    if (count === 0) { // Changed condition to strictly check for 0
                         const sep = document.getElementById('total-q-sep');
                         if (sep) sep.classList.add('hidden');
                         if (els.tNum) els.tNum.classList.add('hidden');
+                        if (els.qNum) els.qNum.textContent = (currentIndex + 1); // Current question in unlimited
+                        // Also, change the progress bar logic for unlimited mode
+                        if (els.progressFill) {
+                            els.progressFill.style.width = '0%'; // Or some other indicator for unlimited
+                        }
                     } else {
                         const sep = document.getElementById('total-q-sep');
                         if (sep) sep.classList.remove('hidden');
                         if (els.tNum) els.tNum.classList.remove('hidden');
+                        if (els.qNum) els.qNum.textContent = (currentIndex + 1);
+                        // Update Progress Bar normally
+                        const progressPercent = ((currentIndex + 1) / questions.length) * 100;
+                        if (els.progressFill) {
+                            els.progressFill.style.width = progressPercent + '%';
+                        }
                     }
 
                     // If we have answers for previous questions, we should technically be at the first unanswered one
