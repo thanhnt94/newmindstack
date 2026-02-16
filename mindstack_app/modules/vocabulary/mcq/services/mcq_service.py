@@ -12,9 +12,9 @@ from mindstack_app.modules.audio.interface import AudioInterface
 
 class MCQService:
     @staticmethod
-    def ensure_audio_urls(item, container: 'LearningContainer' = None) -> dict:
+    def ensure_audio_urls(item, container: 'LearningContainer' = None, q_key: str = None, a_key: str = None) -> dict:
         """
-        Pre-generate audio if missing for front/back content.
+        Pre-generate audio if missing for specific content keys.
         Returns the content dict with resolved absolute URLs.
         """
         from flask import url_for
@@ -37,10 +37,15 @@ class MCQService:
         if content is None:
             return {}
 
+        # Prioritize provided keys, with fallbacks to front/back
+        q_text = content.get(q_key) if q_key else content.get('front', '')
+        a_text = content.get(a_key) if a_key else content.get('back', '')
+        
+        # Determine audio source texts (prefer audio-specific keys if they exist for the active fields)
         front_text = content.get('front_audio_content') or content.get('front', '')
         back_text = content.get('back_audio_content') or content.get('back', '')
         
-        # Check multiple keys for existing URLs to maximize compatibility
+        # Normalized existing URLs
         front_url = content.get('front_audio') or content.get('front_audio_url')
         back_url = content.get('back_audio') or content.get('back_audio_url')
 
@@ -81,19 +86,16 @@ class MCQService:
             if val_str.startswith(('http://', 'https://', '/')):
                 return val_str
                 
-            # Use build_relative_media_path to get a clean relative-to-uploads path
             from mindstack_app.utils.media_paths import build_relative_media_path
             rel = build_relative_media_path(val, folder.replace('uploads/', '') if folder.startswith('uploads/') else folder)
             if rel:
-                # Use url_for for full consistency with Flashcards
                 try:
                     return url_for('media_uploads', filename=rel.lstrip('/'), _external=False)
                 except:
-                    # Fallback to manual if url_for fails in certain contexts
                     return f"/media/{rel.lstrip('/')}"
             return val_str
 
-        # Normalize existing URLs first
+        # Normalize existing URLs
         if front_url:
             front_url = _resolve_abs_url(front_url, audio_folder)
             content['front_audio'] = front_url
@@ -104,6 +106,18 @@ class MCQService:
             content['back_audio'] = back_url
             content['back_audio_url'] = back_url
 
+        # Check for Custom Keys Audio Generation
+        # (Assuming custom key `k` might have `k_audio` key)
+        for key in [q_key, a_key]:
+            if key and key not in ('front', 'back'):
+                audio_key = f"{key}_audio"
+                if not content.get(audio_key) and content.get(key):
+                    filename = f"{key}_{item_id}.mp3" if item_id else None
+                    url = _gen(content.get(key), filename, audio_folder)
+                    if url:
+                        content[audio_key] = url
+
+        # Fallback to standard front/back generation
         if front_text and not front_url and str(front_text).strip():
             filename = f"front_{item_id}.mp3" if item_id else None
             url = _gen(front_text, filename, audio_folder)
@@ -138,7 +152,7 @@ class MCQService:
         for item in items:
             content = item.content or {}
             for k in content.keys():
-                if k not in system_keys:
+                if k not in system_keys and not k.endswith('_audio'):
                     val = content[k]
                     if isinstance(val, (str, int, float)) or (isinstance(val, list) and val):
                         keys.add(k)
@@ -176,9 +190,7 @@ class MCQService:
                 
             eligible.append({
                 'item_id': item.item_id,
-                'content': content,
-                'front': content.get('front', ''),
-                'back': content.get('back', '')
+                'content': content
             })
         
         return eligible
@@ -232,13 +244,16 @@ class MCQService:
             
         questions = []
         for item in selected_items:
-            # [NEW] Ensure audio URLs are present with context - CAPTURE RETURN
-            updated_content = MCQService.ensure_audio_urls(item, container)
+            # Ensure audio URLs are present with context - CAPTURE RETURN
+            updated_content = MCQService.ensure_audio_urls(
+                item, 
+                container, 
+                q_key=merged_config['question_key'], 
+                a_key=merged_config['answer_key']
+            )
             
             # Update item content before passing to engine
-            if hasattr(item, 'content'):
-                item.content = updated_content
-            elif isinstance(item, dict) and 'content' in item:
+            if isinstance(item, dict):
                 item['content'] = updated_content
             
             # Pass ALL items as distractor pool

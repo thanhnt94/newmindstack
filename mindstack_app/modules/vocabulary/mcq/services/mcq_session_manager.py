@@ -43,55 +43,42 @@ class MCQSessionManager:
             
         # [FIX] Backfill/Normalize audio for restored sessions
         questions = data.get('questions') or []
+        params = data.get('params') or {}
+        
         if questions:
-            # Trigger if missing OR if they look relative (no leading slash and not external)
+            # Trigger if missing OR if they look relative
             first_q = questions[0]
-            front_url = first_q.get('front_audio') or first_q.get('question_audio')
-            needs_fix = not front_url or not str(front_url).startswith(('/', 'http://', 'https://'))
+            q_audio_url = first_q.get('question_audio')
+            needs_fix = not q_audio_url or not str(q_audio_url).startswith(('/', 'http://', 'https://'))
             
             if needs_fix:
                 try:
                     from ..services.mcq_service import MCQService
                     from mindstack_app.models import LearningItem, LearningContainer
                     
-                    # [NEW] Get container for folder context
                     container = LearningContainer.query.get(data.get('set_id'))
-                    
-                    # Collect IDs for items that either miss audio OR have relative paths
-                    item_ids = []
-                    for q in questions:
-                        f_url = q.get('front_audio') or q.get('question_audio')
-                        if not f_url or not str(f_url).startswith(('/', 'http://', 'https://')):
-                            item_ids.append(q['item_id'])
+                    q_key = params.get('question_key')
+                    a_key = params.get('answer_key')
 
+                    item_ids = [q['item_id'] for q in questions]
                     if item_ids:
                         items = LearningItem.query.filter(LearningItem.item_id.in_(item_ids)).all()
                         item_map = {i.item_id: i for i in items}
                         for q in questions:
-                            f_url = q.get('front_audio')
-                            if not f_url or not str(f_url).startswith(('/', 'http://', 'https://')):
-                                item = item_map.get(q['item_id'])
-                                if item:
-                                    # [FIX] Capture the returned content dict which contains absolute URLs
-                                    content = MCQService.ensure_audio_urls(item, container)
-                                    
-                                    # Patch question object
-                                    q['front_audio'] = content.get('front_audio') or content.get('front_audio_url')
-                                    q['back_audio'] = content.get('back_audio') or content.get('back_audio_url')
-                                    
-                                    # Determine mode for this question to map question_audio
-                                    # Fallback: check session params
-                                    mode = data.get('params', {}).get('mode', 'front_back')
-                                    is_back_front = (mode == 'back_front')
-                                    if q.get('question_key') == 'back':
-                                        is_back_front = True
-                                        
-                                    if is_back_front:
-                                        q['question_audio'] = q['back_audio']
-                                        q['answer_audio'] = q['front_audio']
-                                    else:
-                                        q['question_audio'] = q['front_audio']
-                                        q['answer_audio'] = q['back_audio']
+                            item = item_map.get(q['item_id'])
+                            if item:
+                                content = MCQService.ensure_audio_urls(item, container, q_key=q_key, a_key=a_key)
+                                
+                                # Dynamic Audio Mapping
+                                active_q_key = q.get('question_key') or q_key
+                                active_a_key = q.get('answer_key') or a_key
+                                
+                                q['question_audio'] = content.get(f"{active_q_key}_audio") or content.get('front_audio') or content.get('front_audio_url')
+                                q['answer_audio'] = content.get(f"{active_a_key}_audio") or content.get('front_audio') or content.get('front_audio_url')
+                                
+                                # Keep reference keys
+                                q['front_audio'] = content.get('front_audio') or content.get('front_audio_url')
+                                q['back_audio'] = content.get('back_audio') or content.get('back_audio_url')
                 except Exception as e:
                     print(f"Error backfilling MCQ audio: {e}")
 

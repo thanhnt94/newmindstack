@@ -5,6 +5,7 @@ from mindstack_app.models import LearningContainer, UserContainerState, Learning
 from mindstack_app.utils.bbcode_parser import bbcode_to_html
 # REFAC: Remove ItemMemoryState import
 from mindstack_app.modules.fsrs.interface import FSRSInterface as FsrsInterface
+from mindstack_app.modules.gamification.interface import award_points
 from mindstack_app.modules.session.interface import SessionInterface
 from .. import typing_bp as blueprint
 from ..logics.typing_logic import get_typing_items
@@ -182,8 +183,7 @@ def api_check_answer():
     is_correct = user_answer.lower() == correct_answer.lower()
     
     # Map correctness to FSRS quality (Rating enum)
-    from mindstack_app.modules.fsrs.schemas import Rating
-    quality = Rating.Good if is_correct else Rating.Again
+    quality = FsrsInterface.Rating.Good if is_correct else FsrsInterface.Rating.Again
     
     # Process interaction via FSRS
     memory_state, srs_result = FsrsInterface.process_review(
@@ -198,8 +198,7 @@ def api_check_answer():
     # Award points via ScoreService
     score_change = 0
     if is_correct:
-        from mindstack_app.modules.gamification.services.scoring_service import ScoreService
-        score_info = ScoreService.award_points(
+        score_info = award_points(
             user_id=current_user.user_id,
             amount=10,
             reason="Gõ từ chính xác",
