@@ -1829,58 +1829,13 @@
     }
 
     function showResult() {
-        // Calculate Metrics
-        const totalQ = questions.length;
-        const accuracy = totalQ > 0 ? Math.round((stats.correct / totalQ) * 100) : 0;
-        const totalTime = sessionHistory.reduce((acc, cur) => acc + cur.duration, 0);
-        const avgTime = sessionHistory.length ? Math.round(totalTime / sessionHistory.length / 1000 * 10) / 10 : 0;
-
-        // Update Metrics UI
-        const accEl = document.getElementById('rep-accuracy');
-        if (accEl) accEl.textContent = accuracy + '%';
-
-        const corrEl = document.getElementById('rep-correct');
-        if (corrEl) corrEl.textContent = stats.correct + '/' + totalQ;
-
-        const ptsEl = document.getElementById('rep-points');
-        if (ptsEl && els.lSessionScore) ptsEl.textContent = els.lSessionScore.textContent;
-
-        const timeEl = document.getElementById('rep-time');
-        if (timeEl) timeEl.textContent = avgTime + 's';
-
-        // Populate List
-        const listEl = document.getElementById('report-list');
-        if (listEl) {
-            listEl.innerHTML = '';
-            sessionHistory.forEach((item, index) => {
-                const el = document.createElement('div');
-                el.className = `history-item ${item.isCorrect ? 'is-correct' : 'is-wrong'}`;
-                el.onclick = () => {
-                    if (window.openVocabularyItemStats && item.question.item_id) {
-                        window.openVocabularyItemStats(item.question.item_id);
-                    }
-                };
-                el.style.cursor = 'pointer';
-
-                el.innerHTML = `
-                    <div class="h-icon">
-                        <i class="fas ${item.isCorrect ? 'fa-check' : 'fa-times'}"></i>
-                    </div>
-                    <div class="h-content">
-                        <div class="h-question" title="${item.question.question}">${item.question.question}</div>
-                        ${!item.isCorrect ?
-                        `<div class="h-answer text-rose-500"><i class="fas fa-times me-1"></i> ${item.question.choices[item.selectedIdx]}</div>
-                             <div class="h-answer text-emerald-600"><i class="fas fa-check me-1"></i> ${item.question.choices[item.question.correct_index]}</div>`
-                        : `<div class="h-answer text-emerald-600"><i class="fas fa-check me-1"></i> ${item.question.choices[item.selectedIdx]}</div>`
-                    }
-                    </div>
-                    <div class="h-time">${(item.duration / 1000).toFixed(1)}s</div>
-                `;
-                listEl.appendChild(el);
-            });
+        if (dbSessionId) {
+            let summaryUrl = "{{ url_for('session.session_summary', session_id='SESSION_ID') }}".replace('SESSION_ID', dbSessionId);
+            window.location.href = summaryUrl;
+        } else {
+            // Fallback to exit logic if no session ID
+            window.location.href = "{{ url_for('vocabulary.dashboard') }}";
         }
-
-        els.result.classList.add('active');
     }
 
     window.openSessionStatsModal = function () {

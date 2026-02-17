@@ -261,7 +261,10 @@ def api_get_flashcard_batch():
         return jsonify({'message': 'Phiên học không hợp lệ hoặc đã kết thúc.'}), 404
 
     session_data = session['flashcard_session']
-    db_id = session_data.get('db_session_id')
+    try:
+        db_id = int(session_data.get('db_session_id'))
+    except (TypeError, ValueError):
+        db_id = session_data.get('db_session_id')
     
     # 1. Fetch DB Session for latest state
     db_sess = SessionInterface.get_session_by_id(db_id)
@@ -387,7 +390,10 @@ def api_submit_flashcard_answer():
         return jsonify({'message': 'Phiên học không hợp lệ hoặc đã kết thúc.'}), 400
 
     session_data = session['flashcard_session']
-    db_id = session_data.get('db_session_id')
+    try:
+        db_id = int(session_data.get('db_session_id'))
+    except (TypeError, ValueError):
+        db_id = session_data.get('db_session_id')
     
     # 1. Access Update (Misc)
     set_ids = session_data.get('set_id')

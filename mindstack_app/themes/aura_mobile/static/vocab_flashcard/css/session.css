@@ -1690,7 +1690,7 @@ body>main {
 }
 
 #header-right-actions {
-    gap: 0.5rem !important;
+    gap: 0.25rem !important;
 }
 
 #header-right-actions button,
@@ -1705,7 +1705,7 @@ body>main {
 }
 
 #header-right-actions .px-2.py-1.rounded-full.bg-white\/20 {
-    padding: 0.2rem 0.4rem !important;
+    padding: 0.15rem 0.3rem !important;
 }
 
 #header-right-actions .fa-gem {

@@ -173,24 +173,99 @@ def session_summary(session_id):
                 container_name = f"{len(session_obj.set_id_data)} bộ học tập"
         except: pass
         
+        # Calculate Accuracy and Duration
+        answered_count = session_obj.correct_count + session_obj.incorrect_count + session_obj.vague_count
+        total_for_acc = session_obj.correct_count + session_obj.incorrect_count
+        accuracy = round((session_obj.correct_count / total_for_acc * 100)) if total_for_acc > 0 else 0
+        
+        duration_str = "0s"
+        if session_obj.start_time and session_obj.end_time:
+            diff = session_obj.end_time - session_obj.start_time
+            seconds = int(diff.total_seconds())
+            if seconds < 60:
+                duration_str = f"{seconds}s"
+            else:
+                duration_str = f"{seconds // 60}m {seconds % 60}s"
+
+        # Map mode labels
+        mode_labels = {
+            'flashcard': 'Thẻ ghi nhớ',
+            'mcq': 'Trắc nghiệm (MCQ)',
+            'typing': 'Luyện gõ từ'
+        }
+        sub_mode_labels = {
+            'srs': 'Theo lịch FSRS',
+            'review': 'Ôn tập tự do',
+            'mixed': 'Trộn lẫn',
+            'new_cards': 'Thẻ mới',
+            'due_cards': 'Thẻ đến hạn',
+            'sequential': 'Theo thứ tự'
+        }
+        
+        l_mode = session_obj.learning_mode
+        s_mode = session_obj.session_data.get('mode') if session_obj.session_data else 'srs'
+        
         summary_data = {
-            'session_id': session_obj.session_id,
-            'mode_name': get_mode_description(session_obj),
-            'container_name': container_name,
-            'start_time': session_obj.start_time,
-            'end_time': session_obj.end_time,
+            'id': session_obj.session_id,
             'correct': session_obj.correct_count,
             'wrong': session_obj.incorrect_count,
+            'vague': session_obj.vague_count,
             'points': session_obj.points_earned,
-            'total': session_obj.total_items or (session_obj.correct_count + session_obj.incorrect_count + session_obj.vague_count)
+            'total': session_obj.total_items or answered_count,
+            'answered': answered_count,
+            'accuracy': accuracy,
+            'duration': duration_str,
+            'learning_mode': l_mode,
+            'learning_mode_label': mode_labels.get(l_mode, l_mode.capitalize()),
+            'sub_mode_label': sub_mode_labels.get(s_mode, s_mode.capitalize()) if s_mode else "Tự do",
+            'container_name': session_obj.session_data.get('container_name', container_name) if session_obj.session_data else container_name,
+            'mode_name': session_obj.session_data.get('mode_name', 'Tự do') if session_obj.session_data else 'Tự do'
         }
         
         from mindstack_app.utils.content_renderer import render_text_field
         page = request.args.get('page', 1, type=int)
         
-        # Query via Interface
+        # Query via Interface - Ensure session_id is int
+        try:
+            current_sess_id = int(session_obj.session_id)
+        except:
+            current_sess_id = session_obj.session_id
+
         from mindstack_app.modules.learning_history.interface import LearningHistoryInterface
-        logs_data = LearningHistoryInterface.get_session_logs(session_id=session_obj.session_id, page=page, per_page=20)
+        logs_data = LearningHistoryInterface.get_session_logs(session_id=current_sess_id, page=page, per_page=20)
+        
+        # [RESCUE LOGIC] If no logs found via session_id, try to find orphaned logs for this user/mode/time
+        if logs_data.get('total', 0) == 0 and answered_count > 0:
+            current_app.logger.warning(f"[SESSION_SUMMARY] No logs found for session {current_sess_id}, attempting rescue...")
+            from mindstack_app.models import StudyLog
+            # Search for logs by same user, same mode, within 5 minutes of session start
+            rescue_query = StudyLog.query.filter(
+                StudyLog.user_id == session_obj.user_id,
+                StudyLog.session_id.is_(None),
+                StudyLog.learning_mode == session_obj.learning_mode,
+                StudyLog.timestamp >= session_obj.start_time
+            ).order_by(StudyLog.timestamp.desc())
+            
+            pagination = rescue_query.paginate(page=page, per_page=20, error_out=False)
+            logs_items = [
+                {
+                    'log_id': log.log_id,
+                    'item_id': log.item_id,
+                    'timestamp': log.timestamp,
+                    'rating': log.rating,
+                    'is_correct': log.is_correct,
+                    'review_duration': log.review_duration,
+                    'learning_mode': log.learning_mode,
+                    'user_answer': log.user_answer
+                }
+                for log in pagination.items
+            ]
+            logs_data = {
+                'items': logs_items,
+                'total': pagination.total,
+                'pages': pagination.pages,
+                'current_page': page
+            }
 
         class PaginationWrapper:
             def __init__(self, data):

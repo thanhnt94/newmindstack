@@ -107,7 +107,11 @@
         border-right: 1px solid rgba(255, 255, 255, 0.1);
     }
 
-    .question-label-v i { font-size: 0.8rem; opacity: 0.9; }
+    .question-label-v i {
+        font-size: 0.8rem;
+        opacity: 0.9;
+    }
+
     .question-label-v span {
         writing-mode: vertical-rl;
         transform: rotate(180deg);
@@ -175,12 +179,30 @@
         box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
     }
 
-    .feedback-msg.success { background: #ecfdf5; color: var(--success); border: 1px solid #d1fae5; border-left: 5px solid #10b981; }
-    .feedback-msg.error { background: #fef2f2; color: var(--error); border: 1px solid #fee2e2; border-left: 5px solid #ef4444; }
+    .feedback-msg.success {
+        background: #ecfdf5;
+        color: var(--success);
+        border: 1px solid #d1fae5;
+        border-left: 5px solid #10b981;
+    }
+
+    .feedback-msg.error {
+        background: #fef2f2;
+        color: var(--error);
+        border: 1px solid #fee2e2;
+        border-left: 5px solid #ef4444;
+    }
 
     @keyframes fadeIn {
-        from { opacity: 0; transform: translateY(10px); }
-        to { opacity: 1; transform: translateY(0); }
+        from {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
     }
 
     /* Footer */
@@ -219,14 +241,39 @@
         background: #f8fafc;
     }
 
-    .typing-input:focus { border-color: var(--primary); background: white; box-shadow: 0 0 0 6px rgba(245, 158, 11, 0.1); }
-    .typing-input.correct { border-color: var(--success); background: #f0fdf4; color: #166534; }
-    .typing-input.wrong { border-color: var(--error); background: #fef2f2; color: #991b1b; animation: shake 0.4s ease-in-out; }
+    .typing-input:focus {
+        border-color: var(--primary);
+        background: white;
+        box-shadow: 0 0 0 6px rgba(245, 158, 11, 0.1);
+    }
+
+    .typing-input.correct {
+        border-color: var(--success);
+        background: #f0fdf4;
+        color: #166534;
+    }
+
+    .typing-input.wrong {
+        border-color: var(--error);
+        background: #fef2f2;
+        color: #991b1b;
+        animation: shake 0.4s ease-in-out;
+    }
 
     @keyframes shake {
-        0%, 100% { transform: translateX(0); }
-        25% { transform: translateX(-10px); }
-        75% { transform: translateX(10px); }
+
+        0%,
+        100% {
+            transform: translateX(0);
+        }
+
+        25% {
+            transform: translateX(-10px);
+        }
+
+        75% {
+            transform: translateX(10px);
+        }
     }
 
     .btn-submit {
@@ -262,7 +309,9 @@
         transition: all 0.2s;
     }
 
-    .btn-hint:active { transform: scale(0.95); }
+    .btn-hint:active {
+        transform: scale(0.95);
+    }
 
     .footer-actions {
         width: 100%;
@@ -272,9 +321,20 @@
         align-items: center;
     }
 
-    .btn-submit:active { transform: scale(0.98); }
-    .btn-submit:disabled { background: #e2e8f0; color: #94a3b8; cursor: not-allowed; box-shadow: none; }
-    .btn-submit.next-mode { background: var(--primary-hover); }
+    .btn-submit:active {
+        transform: scale(0.98);
+    }
+
+    .btn-submit:disabled {
+        background: #e2e8f0;
+        color: #94a3b8;
+        cursor: not-allowed;
+        box-shadow: none;
+    }
+
+    .btn-submit.next-mode {
+        background: var(--primary-hover);
+    }
 
     /* FSRS Pill (MCQ Style) */
     #fsrs-pill {
@@ -293,27 +353,115 @@
         transition: all 0.5s transform;
     }
 
-    .fsrs-metrics { display: flex; align-items: center; gap: 1rem; font-family: monospace; font-size: 10px; font-weight: 800; }
-    .fsrs-reps { display: flex; align-items: center; gap: 0.75rem; padding: 2px 8px; background: white; border-radius: 99px; border: 1px solid var(--border); font-size: 9px; font-weight: 700; color: var(--text-sub); }
+    .fsrs-metrics {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        font-family: monospace;
+        font-size: 10px;
+        font-weight: 800;
+    }
+
+    .fsrs-reps {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 2px 8px;
+        background: white;
+        border-radius: 99px;
+        border: 1px solid var(--border);
+        font-size: 9px;
+        font-weight: 700;
+        color: var(--text-sub);
+    }
 
     /* Force Full Width Utilities */
-    .full-width-important { max-width: none !important; width: 100% !important; }
+    .full-width-important {
+        max-width: none !important;
+        width: 100% !important;
+    }
 
     @media (max-width: 640px) {
-        .question-text { font-size: 1.35rem; }
-        .question-card { padding: 1.5rem 1rem 1.5rem 3.5rem; min-height: 120px; }
+        .question-text {
+            font-size: 1.35rem;
+        }
+
+        .question-card {
+            padding: 1.5rem 1rem 1.5rem 3.5rem;
+            min-height: 120px;
+        }
     }
 
     /* Result Modal */
-    .modal-overlay { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.4); backdrop-filter: blur(8px); z-index: 1000; display: none; align-items: center; justify-content: center; padding: 1rem; }
-    .modal-card { background: white; border-radius: 24px; max-width: 800px; width: 95%; max-height: 90vh; display: flex; flex-direction: column; overflow: hidden; animation: modalSlide 0.4s ease; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); }
-    @keyframes modalSlide { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-    
-    .report-header { background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); padding: 2rem; color: white; text-align: center; }
-    .report-metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-top: 1.5rem; }
-    .metric-box { background: rgba(255,255,255,0.15); border-radius: 12px; padding: 0.75rem; }
-    .metric-val { font-size: 1.5rem; font-weight: 800; display: block; }
-    .metric-lbl { font-size: 0.7rem; text-transform: uppercase; font-weight: 600; opacity: 0.9; }
+    .modal-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(15, 23, 42, 0.4);
+        backdrop-filter: blur(8px);
+        z-index: 1000;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        padding: 1rem;
+    }
+
+    .modal-card {
+        background: white;
+        border-radius: 24px;
+        max-width: 800px;
+        width: 95%;
+        max-height: 90vh;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        animation: modalSlide 0.4s ease;
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    }
+
+    @keyframes modalSlide {
+        from {
+            transform: translateY(20px);
+            opacity: 0;
+        }
+
+        to {
+            transform: translateY(0);
+            opacity: 1;
+        }
+    }
+
+    .report-header {
+        background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+        padding: 2rem;
+        color: white;
+        text-align: center;
+    }
+
+    .report-metrics {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 1rem;
+        margin-top: 1.5rem;
+    }
+
+    .metric-box {
+        background: rgba(255, 255, 255, 0.15);
+        border-radius: 12px;
+        padding: 0.75rem;
+    }
+
+    .metric-val {
+        font-size: 1.5rem;
+        font-weight: 800;
+        display: block;
+    }
+
+    .metric-lbl {
+        font-size: 0.7rem;
+        text-transform: uppercase;
+        font-weight: 600;
+        opacity: 0.9;
+    }
 </style>
 {% endblock %}
 
@@ -328,7 +476,8 @@
                         <i class="fas fa-keyboard text-white text-[10px]"></i>
                         <span class="text-[10px] font-bold text-white uppercase tracking-wide">TYPING</span>
                     </span>
-                    <span class="text-sm font-bold text-white truncate" style="text-shadow: 0 1px 3px rgba(0,0,0,0.3);">{{ container.title }}</span>
+                    <span class="text-sm font-bold text-white truncate"
+                        style="text-shadow: 0 1px 3px rgba(0,0,0,0.3);">{{ container.title }}</span>
                 </div>
                 <div class="flex-shrink-0 flex items-center gap-1 h-7 px-2.5 bg-white/20 rounded-full">
                     <i class="fa-solid fa-gem text-white text-[10px]"></i>
@@ -361,16 +510,20 @@
                     </div>
 
                     <div class="flex items-center gap-1.5 flex-shrink-0">
-                        <button onclick="openSettingsModal()" class="w-7 h-7 rounded-full bg-slate-50 text-slate-500 flex items-center justify-center hover:bg-slate-100">
+                        <button onclick="openSettingsModal()"
+                            class="w-7 h-7 rounded-full bg-slate-50 text-slate-500 flex items-center justify-center hover:bg-slate-100">
                             <i class="fas fa-cog text-[10px]"></i>
                         </button>
-                        <button id="single-stats-btn" class="w-7 h-7 rounded-full bg-purple-50 text-purple-600 flex items-center justify-center hover:bg-purple-100">
+                        <button id="single-stats-btn"
+                            class="w-7 h-7 rounded-full bg-purple-50 text-purple-600 flex items-center justify-center hover:bg-purple-100">
                             <i class="fas fa-chart-pie text-[10px]"></i>
                         </button>
-                        <a href="{{ url_for('dashboard.dashboard') }}" class="w-7 h-7 rounded-full bg-slate-50 text-slate-500 flex items-center justify-center hover:bg-slate-100">
+                        <a href="{{ url_for('dashboard.dashboard') }}"
+                            class="w-7 h-7 rounded-full bg-slate-50 text-slate-500 flex items-center justify-center hover:bg-slate-100">
                             <i class="fas fa-home text-[10px]"></i>
                         </a>
-                        <button onclick="confirmExit()" class="w-7 h-7 rounded-full bg-rose-50 text-rose-500 flex items-center justify-center hover:bg-rose-100">
+                        <button onclick="confirmExit()"
+                            class="w-7 h-7 rounded-full bg-rose-50 text-rose-500 flex items-center justify-center hover:bg-rose-100">
                             <i class="fa-solid fa-right-from-bracket text-[10px]"></i>
                         </button>
                     </div>
@@ -387,7 +540,8 @@
             </div>
 
             {# FSRS Pill #}
-            <div id="fsrs-pill" class="absolute top-0 left-8 right-0 flex items-center justify-between px-4 py-1.5 bg-amber-50/50 backdrop-blur-md rounded-tr-2xl hidden border-b border-amber-100/30 z-20 transition-all duration-500 transform opacity-0 -translate-y-2">
+            <div id="fsrs-pill"
+                class="absolute top-0 left-8 right-0 flex items-center justify-between px-4 py-1.5 bg-amber-50/50 backdrop-blur-md rounded-tr-2xl hidden border-b border-amber-100/30 z-20 transition-all duration-500 transform opacity-0 -translate-y-2">
                 <div class="fsrs-metrics">
                     <div class="flex items-center gap-2">
                         <span class="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
@@ -420,7 +574,9 @@
 
             <div class="flex items-center justify-center gap-3 w-full">
                 <div class="question-text" id="question-text">Đang tải...</div>
-                <button id="audio-btn" class="w-10 h-10 rounded-full bg-slate-100/80 text-amber-600 hover:bg-amber-50 hover:scale-105 transition-all hidden flex-shrink-0 items-center justify-center" onclick="playCurrentAudio()">
+                <button id="audio-btn"
+                    class="w-10 h-10 rounded-full bg-slate-100/80 text-amber-600 hover:bg-amber-50 hover:scale-105 transition-all hidden flex-shrink-0 items-center justify-center"
+                    onclick="playCurrentAudio()">
                     <i class="fas fa-volume-up text-lg"></i>
                 </button>
             </div>
@@ -441,7 +597,8 @@
 
     <footer class="session-footer full-width-important">
         <div class="input-wrapper">
-            <input type="text" class="typing-input" id="typing-input" placeholder="Nhập đáp án..." autocomplete="off" autofocus>
+            <input type="text" class="typing-input" id="typing-input" placeholder="Nhập đáp án..." autocomplete="off"
+                autofocus>
         </div>
         <div class="footer-actions">
             <button id="hint-btn" class="btn-hint" title="Xem chi tiết">
@@ -459,7 +616,8 @@
     <div class="modal-card max-w-sm p-6">
         <div class="flex items-center justify-between mb-6">
             <h3 class="text-xl font-bold text-slate-800">Cài đặt</h3>
-            <button onclick="closeSettingsModal()" class="text-slate-400 hover:text-slate-600"><i class="fas fa-times"></i></button>
+            <button onclick="closeSettingsModal()" class="text-slate-400 hover:text-slate-600"><i
+                    class="fas fa-times"></i></button>
         </div>
         <div class="space-y-4">
             <div class="flex items-center justify-between">
@@ -469,7 +627,9 @@
                 </div>
                 <label class="relative inline-flex items-center cursor-pointer">
                     <input type="checkbox" id="setting-auto-audio" class="sr-only peer" onchange="saveLocalSettings()">
-                    <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-600"></div>
+                    <div
+                        class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-600">
+                    </div>
                 </label>
             </div>
         </div>
@@ -479,12 +639,15 @@
 <!-- Exit Modal -->
 <div id="exit-modal" class="modal-overlay">
     <div class="modal-card max-w-sm p-6 text-center">
-        <div class="w-16 h-16 bg-rose-50 text-rose-500 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl"><i class="fa-solid fa-right-from-bracket"></i></div>
+        <div
+            class="w-16 h-16 bg-rose-50 text-rose-500 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl">
+            <i class="fa-solid fa-right-from-bracket"></i></div>
         <h3 class="text-xl font-bold mb-2">Kết thúc phiên học?</h3>
         <p class="text-slate-500 text-sm mb-6">Tiến độ của bạn sẽ được lưu lại.</p>
         <div class="flex gap-3">
             <button onclick="closeExitModal()" class="flex-1 py-2.5 rounded-xl font-bold bg-slate-100">Ở lại</button>
-            <button onclick="exitSession()" class="flex-1 py-2.5 rounded-xl font-bold bg-rose-500 text-white">Kết thúc</button>
+            <button onclick="exitSession()" class="flex-1 py-2.5 rounded-xl font-bold bg-rose-500 text-white">Kết
+                thúc</button>
         </div>
     </div>
 </div>
@@ -516,7 +679,9 @@
         <div class="p-6 bg-slate-50 flex-1 overflow-y-auto" id="report-list"></div>
         <div class="p-4 border-top bg-white flex justify-end gap-3">
             <button onclick="exitSession()" class="px-4 py-2 font-bold text-slate-500">Đóng</button>
-            <button onclick="location.reload()" class="px-6 py-2 font-bold text-white bg-amber-500 rounded-xl shadow-lg shadow-amber-200">Luyện lại</button>
+            <button onclick="location.reload()"
+                class="px-6 py-2 font-bold text-white bg-amber-500 rounded-xl shadow-lg shadow-amber-200">Luyện
+                lại</button>
         </div>
     </div>
 </div>
@@ -529,76 +694,77 @@
 {% block scripts %}
 {{ super() }}
 <script>
-    (function() {
-        const setId = {{ container.container_id }};
-        let questions = [];
-        let currentIndex = 0;
-        let stats = { correct: 0, wrong: 0, points: 0 };
-        let isAnswered = false;
-        let startTime = 0;
-        let sessionHistory = [];
-        let dbSessionId = null;
-        let settings = { autoAudio: {{ 'true' if auto_audio else 'false' }} };
+    (function () {
+        const setId = {{ container.container_id }
+    };
+    let questions = [];
+    let currentIndex = 0;
+    let stats = { correct: 0, wrong: 0, points: 0 };
+    let isAnswered = false;
+    let startTime = 0;
+    let sessionHistory = [];
+    let dbSessionId = null;
+    let settings = { autoAudio: {{ 'true' if auto_audio else 'false' }} };
 
-        const els = {
-            input: document.getElementById('typing-input'),
-            submit: document.getElementById('submit-btn'),
-            qText: document.getElementById('question-text'),
-            qNum: document.getElementById('current-q-num'),
-            tNum: document.getElementById('total-q-num'),
-            lCorrect: document.getElementById('live-correct'),
-            lWrong: document.getElementById('live-wrong'),
-            scoreVal: document.getElementById('total-score-val'),
-            audioBtn: document.getElementById('audio-btn'),
-            hintBtn: document.getElementById('hint-btn'),
-            audioPlayer: document.getElementById('typing-audio'),
-            fCorrect: document.getElementById('feedback-correct'),
-            fWrong: document.getElementById('feedback-wrong'),
-            cDisplay: document.getElementById('correct-display-val'),
-            wCorrect: document.getElementById('wrong-correct-val'),
-            fsrsPill: document.getElementById('fsrs-pill'),
-            fsrsS: document.getElementById('fsrs-s'),
-            fsrsD: document.getElementById('fsrs-d'),
-            fsrsR: document.getElementById('fsrs-r'),
-            fsrsTypeReps: document.getElementById('fsrs-type-reps'),
-            fsrsTotalReps: document.getElementById('fsrs-total-reps')
-        };
+    const els = {
+        input: document.getElementById('typing-input'),
+        submit: document.getElementById('submit-btn'),
+        qText: document.getElementById('question-text'),
+        qNum: document.getElementById('current-q-num'),
+        tNum: document.getElementById('total-q-num'),
+        lCorrect: document.getElementById('live-correct'),
+        lWrong: document.getElementById('live-wrong'),
+        scoreVal: document.getElementById('total-score-val'),
+        audioBtn: document.getElementById('audio-btn'),
+        hintBtn: document.getElementById('hint-btn'),
+        audioPlayer: document.getElementById('typing-audio'),
+        fCorrect: document.getElementById('feedback-correct'),
+        fWrong: document.getElementById('feedback-wrong'),
+        cDisplay: document.getElementById('correct-display-val'),
+        wCorrect: document.getElementById('wrong-correct-val'),
+        fsrsPill: document.getElementById('fsrs-pill'),
+        fsrsS: document.getElementById('fsrs-s'),
+        fsrsD: document.getElementById('fsrs-d'),
+        fsrsR: document.getElementById('fsrs-r'),
+        fsrsTypeReps: document.getElementById('fsrs-type-reps'),
+        fsrsTotalReps: document.getElementById('fsrs-total-reps')
+    };
 
-        function loadLocalSettings() {
-            const saved = localStorage.getItem('typing_settings');
-            if (saved) {
-                try {
-                    const parsed = JSON.parse(saved);
-                    settings = { ...settings, ...parsed };
-                    document.getElementById('setting-auto-audio').checked = settings.autoAudio;
-                } catch(e) {}
-            }
+    function loadLocalSettings() {
+        const saved = localStorage.getItem('typing_settings');
+        if (saved) {
+            try {
+                const parsed = JSON.parse(saved);
+                settings = { ...settings, ...parsed };
+                document.getElementById('setting-auto-audio').checked = settings.autoAudio;
+            } catch (e) { }
+        }
+    }
+
+    window.saveLocalSettings = function () {
+        settings.autoAudio = document.getElementById('setting-auto-audio').checked;
+        localStorage.setItem('typing_settings', JSON.stringify(settings));
+    };
+
+    window.openSettingsModal = function () { document.getElementById('settings-modal').style.display = 'flex'; };
+    window.closeSettingsModal = function () { document.getElementById('settings-modal').style.display = 'none'; };
+    window.confirmExit = function () { document.getElementById('exit-modal').style.display = 'flex'; };
+    window.closeExitModal = function () { document.getElementById('exit-modal').style.display = 'none'; };
+    window.exitSession = function () {
+        const btn = document.querySelector('#exit-modal .bg-rose-500');
+        if (btn) {
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+            btn.disabled = true;
         }
 
-        window.saveLocalSettings = function() {
-            settings.autoAudio = document.getElementById('setting-auto-audio').checked;
-            localStorage.setItem('typing_settings', JSON.stringify(settings));
-        };
-
-        window.openSettingsModal = function() { document.getElementById('settings-modal').style.display = 'flex'; };
-        window.closeSettingsModal = function() { document.getElementById('settings-modal').style.display = 'none'; };
-        window.confirmExit = function() { document.getElementById('exit-modal').style.display = 'flex'; };
-        window.closeExitModal = function() { document.getElementById('exit-modal').style.display = 'none'; };
-        window.exitSession = function() {
-            const btn = document.querySelector('#exit-modal .bg-rose-500');
-            if (btn) {
-                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-                btn.disabled = true;
-            }
-
-            fetch("{{ url_for('vocab_typing.typing_end_session') }}", {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': '{{ csrf_token() }}'
-                },
-                body: JSON.stringify({ set_id: setId })
-            })
+        fetch("{{ url_for('vocab_typing.typing_end_session') }}", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token() }}'
+            },
+            body: JSON.stringify({ set_id: setId })
+        })
             .then(res => res.json())
             .then(data => {
                 const finalSessionId = data.session_id || dbSessionId;
@@ -612,183 +778,169 @@
             .catch(() => {
                 window.location.href = `/learn/vocab-typing/typing/setup/${setId}`;
             });
-        };
+    };
 
-        window.goToSummary = function() {
-            if (dbSessionId) {
-                let summaryUrl = "{{ url_for('session.session_summary', session_id='SESSION_ID') }}".replace('SESSION_ID', dbSessionId);
-                window.location.href = summaryUrl;
-            } else {
-                exitSession();
+    window.goToSummary = function () {
+        if (dbSessionId) {
+            let summaryUrl = "{{ url_for('session.session_summary', session_id='SESSION_ID') }}".replace('SESSION_ID', dbSessionId);
+            window.location.href = summaryUrl;
+        } else {
+            exitSession();
+        }
+    };
+
+    window.playCurrentAudio = function () {
+        const q = questions[currentIndex];
+        const url = q.answer_audio || q.back_audio || q.front_audio || q.question_audio;
+        if (url) {
+            els.audioPlayer.src = url;
+            els.audioPlayer.play().catch(e => console.log(e));
+        }
+    };
+
+    async function init() {
+        loadLocalSettings();
+        try {
+            const res = await fetch(`/learn/vocab-typing/typing/api/items/${setId}`);
+            const data = await res.json();
+            if (data.success) {
+                questions = data.questions;
+                currentIndex = data.currentIndex || 0;
+                stats = data.stats || { correct: 0, wrong: 0, points: 0 };
+                dbSessionId = data.db_session_id;
+                els.tNum.textContent = questions.length;
+                renderQuestion();
             }
-        };
+        } catch (err) { console.error(err); }
+    }
 
-        window.playCurrentAudio = function() {
-            const q = questions[currentIndex];
-            const url = q.answer_audio || q.back_audio || q.front_audio || q.question_audio;
-            if (url) {
-                els.audioPlayer.src = url;
-                els.audioPlayer.play().catch(e => console.log(e));
-            }
-        };
-
-        async function init() {
-            loadLocalSettings();
-            try {
-                const res = await fetch(`/learn/vocab-typing/typing/api/items/${setId}`);
-                const data = await res.json();
-                if (data.success) {
-                    questions = data.questions;
-                    currentIndex = data.currentIndex || 0;
-                    stats = data.stats || { correct: 0, wrong: 0, points: 0 };
-                    dbSessionId = data.db_session_id;
-                    els.tNum.textContent = questions.length;
-                    renderQuestion();
-                }
-            } catch (err) { console.error(err); }
+    function renderQuestion() {
+        if (currentIndex >= questions.length) {
+            showFinalReport();
+            return;
         }
 
-        function renderQuestion() {
-            if (currentIndex >= questions.length) {
-                showFinalReport();
-                return;
+        const q = questions[currentIndex];
+        isAnswered = false;
+        els.qText.innerHTML = q.question;
+        els.qNum.textContent = currentIndex + 1;
+        els.lCorrect.textContent = stats.correct;
+        els.lWrong.textContent = stats.wrong;
+
+        els.input.value = '';
+        els.input.className = 'typing-input';
+        els.input.disabled = false;
+        els.input.focus();
+
+        els.fCorrect.style.display = 'none';
+        els.fWrong.style.display = 'none';
+        els.audioBtn.classList.add('hidden');
+        if (els.hintBtn) els.hintBtn.style.display = 'none';
+        els.fsrsPill.classList.add('hidden', 'opacity-0');
+
+        els.submit.innerHTML = 'KIỂM TRA <i class="fas fa-arrow-right ms-2"></i>';
+        els.submit.classList.remove('next-mode');
+
+        startTime = Date.now();
+    }
+
+    async function check() {
+        const val = els.input.value.trim();
+        if (!val && !isAnswered) return;
+
+        const q = questions[currentIndex];
+        els.submit.disabled = true;
+        const duration = Date.now() - startTime;
+
+        try {
+            const res = await fetch('/learn/vocab-typing/typing/api/check', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token() }}' },
+                body: JSON.stringify({ set_id: setId, item_id: q.item_id, user_input: val, duration_ms: duration })
+            });
+            const data = await res.json();
+
+            isAnswered = true;
+            els.input.disabled = true;
+            els.submit.disabled = false;
+            els.submit.innerHTML = 'TIẾP THEO <i class="fas fa-chevron-right ms-2"></i>';
+            els.submit.classList.add('next-mode');
+
+            if (els.hintBtn) {
+                els.hintBtn.style.display = 'flex';
+                els.hintBtn.onclick = () => {
+                    if (window.openVocabularyItemStats) window.openVocabularyItemStats(q.item_id);
+                };
             }
 
-            const q = questions[currentIndex];
-            isAnswered = false;
-            els.qText.innerHTML = q.question;
-            els.qNum.textContent = currentIndex + 1;
+            sessionHistory.push({ question: q, user_input: val, is_correct: data.is_correct, duration: duration });
+
+            if (data.is_correct) {
+                els.input.classList.add('correct');
+                els.fCorrect.style.display = 'block';
+                els.cDisplay.innerHTML = data.correct_answer;
+                stats.correct++;
+            } else {
+                els.input.classList.add('wrong');
+                els.fWrong.style.display = 'block';
+                els.wCorrect.innerHTML = data.correct_answer;
+                stats.wrong++;
+            }
+
+            // Show FSRS
+            if (data.stability) {
+                els.fsrsS.textContent = Number(data.stability).toFixed(1);
+                els.fsrsD.textContent = Number(data.difficulty).toFixed(1);
+                els.fsrsR.textContent = Math.round(data.retrievability * 100);
+                els.fsrsTypeReps.textContent = data.typing_reps || 0;
+                els.fsrsTotalReps.textContent = data.repetitions || 0;
+                els.fsrsPill.classList.remove('hidden');
+                setTimeout(() => els.fsrsPill.classList.remove('opacity-0', '-translate-y-2'), 10);
+            }
+
+            // Audio
+            if (q.answer_audio || q.back_audio || q.front_audio || q.question_audio) {
+                els.audioBtn.classList.remove('hidden');
+                if (settings.autoAudio === true) {
+                    playCurrentAudio();
+                }
+            }
+
             els.lCorrect.textContent = stats.correct;
             els.lWrong.textContent = stats.wrong;
-            
-            els.input.value = '';
-            els.input.className = 'typing-input';
-            els.input.disabled = false;
-            els.input.focus();
-            
-            els.fCorrect.style.display = 'none';
-            els.fWrong.style.display = 'none';
-            els.audioBtn.classList.add('hidden');
-            if (els.hintBtn) els.hintBtn.style.display = 'none';
-            els.fsrsPill.classList.add('hidden', 'opacity-0');
-            
-            els.submit.innerHTML = 'KIỂM TRA <i class="fas fa-arrow-right ms-2"></i>';
-            els.submit.classList.remove('next-mode');
-            
-            startTime = Date.now();
-        }
+            if (data.updated_total_score) els.scoreVal.textContent = data.updated_total_score.toLocaleString();
+            if (data.stats) stats.points = data.stats.points;
 
-        async function check() {
-            const val = els.input.value.trim();
-            if (!val && !isAnswered) return;
+        } catch (err) { console.error(err); els.submit.disabled = false; }
+    }
 
-            const q = questions[currentIndex];
-            els.submit.disabled = true;
-            const duration = Date.now() - startTime;
-
-            try {
-                const res = await fetch('/learn/vocab-typing/typing/api/check', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token() }}' },
-                    body: JSON.stringify({ set_id: setId, item_id: q.item_id, user_input: val, duration_ms: duration })
-                });
-                const data = await res.json();
-
-                isAnswered = true;
-                els.input.disabled = true;
-                els.submit.disabled = false;
-                els.submit.innerHTML = 'TIẾP THEO <i class="fas fa-chevron-right ms-2"></i>';
-                els.submit.classList.add('next-mode');
-
-                if (els.hintBtn) {
-                    els.hintBtn.style.display = 'flex';
-                    els.hintBtn.onclick = () => {
-                        if (window.openVocabularyItemStats) window.openVocabularyItemStats(q.item_id);
-                    };
-                }
-
-                sessionHistory.push({ question: q, user_input: val, is_correct: data.is_correct, duration: duration });
-
-                if (data.is_correct) {
-                    els.input.classList.add('correct');
-                    els.fCorrect.style.display = 'block';
-                    els.cDisplay.innerHTML = data.correct_answer;
-                    stats.correct++;
-                } else {
-                    els.input.classList.add('wrong');
-                    els.fWrong.style.display = 'block';
-                    els.wCorrect.innerHTML = data.correct_answer;
-                    stats.wrong++;
-                }
-
-                // Show FSRS
-                if (data.stability) {
-                    els.fsrsS.textContent = Number(data.stability).toFixed(1);
-                    els.fsrsD.textContent = Number(data.difficulty).toFixed(1);
-                    els.fsrsR.textContent = Math.round(data.retrievability * 100);
-                    els.fsrsTypeReps.textContent = data.typing_reps || 0;
-                    els.fsrsTotalReps.textContent = data.repetitions || 0;
-                    els.fsrsPill.classList.remove('hidden');
-                    setTimeout(() => els.fsrsPill.classList.remove('opacity-0', '-translate-y-2'), 10);
-                }
-
-                // Audio
-                if (q.answer_audio || q.back_audio || q.front_audio || q.question_audio) {
-                    els.audioBtn.classList.remove('hidden');
-                    if (settings.autoAudio === true) {
-                        playCurrentAudio();
-                    }
-                }
-
-                els.lCorrect.textContent = stats.correct;
-                els.lWrong.textContent = stats.wrong;
-                if (data.updated_total_score) els.scoreVal.textContent = data.updated_total_score.toLocaleString();
-                if (data.stats) stats.points = data.stats.points;
-
-            } catch (err) { console.error(err); els.submit.disabled = false; }
-        }
-
-        async function next() {
-            try {
-                const res = await fetch(`/learn/vocab-typing/typing/api/next/${setId}`, {
-                    method: 'POST',
-                    headers: { 'X-CSRFToken': '{{ csrf_token() }}' }
-                });
-                const data = await res.json();
-                if (data.success) {
-                    currentIndex = data.currentIndex;
-                    renderQuestion();
-                } else { showFinalReport(); }
-            } catch (err) { console.error(err); }
-        }
-
-        function showFinalReport() {
-            const acc = questions.length ? Math.round((stats.correct / questions.length) * 100) : 0;
-            document.getElementById('rep-accuracy').textContent = acc + '%';
-            document.getElementById('rep-correct').textContent = stats.correct + '/' + questions.length;
-            document.getElementById('rep-points').textContent = stats.points;
-            
-            const list = document.getElementById('report-list');
-            list.innerHTML = '';
-            sessionHistory.forEach(h => {
-                const item = document.createElement('div');
-                item.className = `p-3 mb-2 rounded-xl bg-white border-l-4 ${h.is_correct ? 'border-emerald-500' : 'border-rose-500'} flex items-center gap-3`;
-                item.innerHTML = `
-                    <i class="fas ${h.is_correct ? 'fa-check text-emerald-500' : 'fa-times text-rose-500'}"></i>
-                    <div class="flex-1">
-                        <div class="font-bold text-slate-800">${h.question.question}</div>
-                        <div class="text-xs ${h.is_correct ? 'text-emerald-600' : 'text-rose-600'}">${h.is_correct ? h.user_input : 'Sai: ' + h.user_input + ' -> ' + h.question.correct_answer}</div>
-                    </div>
-                `;
-                list.appendChild(item);
+    async function next() {
+        try {
+            const res = await fetch(`/learn/vocab-typing/typing/api/next/${setId}`, {
+                method: 'POST',
+                headers: { 'X-CSRFToken': '{{ csrf_token() }}' }
             });
-            document.getElementById('result-modal').style.display = 'flex';
+            const data = await res.json();
+            if (data.success) {
+                currentIndex = data.currentIndex;
+                renderQuestion();
+            } else { showFinalReport(); }
+        } catch (err) { console.error(err); }
+    }
+
+    function showFinalReport() {
+        if (dbSessionId) {
+            let summaryUrl = "{{ url_for('session.session_summary', session_id='SESSION_ID') }}".replace('SESSION_ID', dbSessionId);
+            window.location.href = summaryUrl;
+        } else {
+            window.location.href = `/learn/vocab-typing/typing/setup/${setId}`;
         }
+    }
 
-        els.submit.onclick = () => { if (!isAnswered) check(); else next(); };
-        els.input.onkeydown = (e) => { if (e.key === 'Enter') { if (!isAnswered) check(); else next(); } };
+    els.submit.onclick = () => { if (!isAnswered) check(); else next(); };
+    els.input.onkeydown = (e) => { if (e.key === 'Enter') { if (!isAnswered) check(); else next(); } };
 
-        init();
-    })();
+    init();
+    }) ();
 </script>
 {% endblock %}
