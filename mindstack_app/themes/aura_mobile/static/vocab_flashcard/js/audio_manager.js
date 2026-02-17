@@ -326,7 +326,8 @@ async function handleAudioError(audioEl, itemId, side, contentToRead) {
             // ⭐ Auto-play if autoplay is enabled OR it was a manual request
             if (isAudioAutoplayEnabled || isManualRetrigger) {
                 // Check if current visible side matches this audio's side
-                const isBackSideShowing = document.querySelector('.flashcard-inner.is-flipped') !== null
+                const isBackSideShowing = document.querySelector('.js-flashcard-card.flipped') !== null
+                    || document.querySelector('.flashcard-inner.is-flipped') !== null
                     || document.querySelector('.fc-card.is-flipped') !== null
                     || document.querySelector('[data-side-showing="back"]') !== null;
                 const currentVisibleSide = isBackSideShowing ? 'back' : 'front';

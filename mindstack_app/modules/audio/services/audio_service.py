@@ -215,6 +215,12 @@ class AudioService:
             
             def concat_task():
                 from pydub import AudioSegment
+                
+                # Ensure output directory exists before exporting
+                out_dir = os.path.dirname(output_path)
+                if out_dir and not os.path.exists(out_dir):
+                    os.makedirs(out_dir, exist_ok=True)
+                    
                 combined = AudioSegment.empty()
                 pause = AudioSegment.silent(duration=300) # 300ms pause between segments
                 
@@ -231,7 +237,11 @@ class AudioService:
             return True
             
         except Exception as e:
-            current_app.logger.error(f"[ConcactGen] Error: {e}")
+            import traceback
+            error_details = traceback.format_exc()
+            current_app.logger.error(f"[ConcactGen] Error: {e}\n{error_details}")
+            # We can't easily return the error through the boolean return, 
+            # but the log will have it. 
             return False
         finally:
             # Cleanup

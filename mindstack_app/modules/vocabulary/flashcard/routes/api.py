@@ -630,9 +630,11 @@ def api_regenerate_audio_from_content():
                 'audio_url': url_for('media_uploads', filename=rel_path)
             })
         
+        # Result status is error, use specific error message if available
+        error_msg = getattr(result, 'error', None) or result.get('error') or 'Lỗi tạo audio.'
         return jsonify({
             'success': False, 
-            'message': getattr(result, 'error', 'Lỗi tạo audio.')
+            'message': f"Generation failed: {error_msg}"
         }), 500
     except Exception as e:
         current_app.logger.error(f'Audio regeneration error: {e}', exc_info=True)

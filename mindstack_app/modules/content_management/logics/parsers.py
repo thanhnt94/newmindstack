@@ -32,6 +32,8 @@ COLUMN_ALIASES = {
     'back_img': {'back_img', 'ảnh mặt sau', 'anh mat sau', 'back image', 'image 2'},
     'front_audio_url': {'front_audio_url', 'audio mặt trước', 'audio mat truoc', 'audio 1', 'audio front'},
     'back_audio_url': {'back_audio_url', 'audio mặt sau', 'audio mat sau', 'audio 2', 'audio back'},
+    'front_audio_content': {'front_audio_content', 'văn bản audio mặt trước', 'front audio content'},
+    'back_audio_content': {'back_audio_content', 'văn bản audio mặt sau', 'back audio content'},
 
     # Quiz
     'question': {'question', 'câu hỏi', 'cau hoi', 'nội dung câu hỏi', 'noidung', 'content', 'text 1', 'q'},
@@ -51,51 +53,32 @@ COLUMN_ALIASES = {
 def normalize_column_headers(columns: List[str]) -> Dict[str, str]:
     """
     Map raw column names to standardized field names based on aliases.
-    
-    Args:
-        columns: List of raw column headers.
-        
-    Returns:
-        Dictionary mapping { 'Raw Header': 'standard_name' }
+    Exclusively maps each standard name to at most one raw column.
     """
     mapping = {}
     used_standards = set()
     
+    # Pass 1: Case-insensitive Exact Match (Priority)
     for col in columns:
         clean_col = str(col).strip().lower()
-        
-        # Check explicit match first (priority)
-        matched = False
+        if clean_col in COLUMN_ALIASES and clean_col not in used_standards:
+            mapping[col] = clean_col
+            used_standards.add(clean_col)
+            
+    # Pass 2: Alias Match for remaining columns
+    for col in columns:
+        if col in mapping:
+            continue
+            
+        clean_col = str(col).strip().lower()
         for standard, aliases in COLUMN_ALIASES.items():
-            if clean_col == standard or clean_col in aliases:
-                # Conflict resolution: if 'question' is claimed, don't map 'front' to it if 'front' alias has 'question'
-                # Simple logic: First match wins? Or Specificity?
-                # 'question' is in both 'question' aliases (self) and 'front' aliases.
-                # If we are parsing for generic, we might have ambiguity.
-                # But 'question' key alias set includes 'question'.
-                # 'front' key alias set includes 'question'.
-                # Order of dict iteration matters in Py3.7+.
-                # To fix ambiguity: remove 'question' from 'front' aliases if we want strict quiz support?
-                # Or assume context. 
-                # Let's keep it simple: First match in COLUMN_ALIASES wins.
-                # I should reorder COLUMN_ALIASES to prioritize QUIZ keys if similar?
-                # Or prioritize Exact Match.
+            if standard in used_standards:
+                continue
+            if clean_col in aliases:
+                mapping[col] = standard
+                used_standards.add(standard)
+                break
                 
-                if clean_col == standard:
-                     mapping[col] = standard
-                     used_standards.add(standard)
-                     matched = True
-                     break
-                
-        if not matched:
-            # Check aliases
-            for standard, aliases in COLUMN_ALIASES.items():
-                 if clean_col in aliases:
-                     mapping[col] = standard
-                     used_standards.add(standard)
-                     matched = True
-                     break
-                     
     return mapping
 
 

@@ -103,6 +103,7 @@ def process_excel_info():
         # Extended Standards for Quiz + Flashcards
         STANDARD_COLS = {
             'front', 'back', 'front_img', 'back_img', 'front_audio_url', 'back_audio_url', 
+            'front_audio_content', 'back_audio_content',
             'ai_explanation', 'image', 'audio', 'question', 'explanation', 
             'options', 'correct_answer', 'correct_option', 
             'pre_question_text', 'passage_text', 'audio_transcript',
@@ -129,6 +130,8 @@ def process_excel_info():
                 'column_analysis': {
                     'success': True,
                     'standard_columns': classification['standard'],
+                    'ai_columns': classification['ai'],
+                    'custom_columns': classification['custom'],
                     'missing_required': classification['missing_required'],
                     'all_columns': classification['all']
                 }

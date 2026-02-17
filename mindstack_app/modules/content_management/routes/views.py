@@ -111,15 +111,15 @@ def settings_flashcard():
     if not has_container_access('FLASHCARD_SET'):
         abort(403)
         
-    FlashcardConfigService = FlashcardInterface.get_config_service()
+    config_service = FlashcardInterface.get_config_service()
     
     if request.method == 'POST':
         configs = request.form.to_dict()
-        FlashcardConfigService.update_all(configs)
+        config_service.update_all(configs)
         flash('Cập nhật cấu hình thành công!', 'success')
         return redirect(url_for('content_management.settings_flashcard'))
         
-    configs = FlashcardConfigService.get_all()
+    configs = config_service.get_all()
     # Assuming template exists or using a generic one
     return render_dynamic_template('modules/content_management/settings/flashcard.html', configs=configs)
 
@@ -183,8 +183,8 @@ def add_container(container_type):
                                    form=form, 
                                    title=f'Thêm {container_type}',
                                    available_keys=['front', 'back'],
-                                   flashcard_config=FlashcardConfigService.get_all(),
-                                   quiz_config=get_all_quiz_configs())
+                                    flashcard_config=FlashcardInterface.get_all_configs(),
+                                    quiz_config=get_all_quiz_configs())
 
 @blueprint.route('/edit/<int:container_id>', methods=['GET', 'POST'])
 @login_required
@@ -198,7 +198,7 @@ def edit_container(container_id):
     form = form_class(obj=container)
     
     # [FIX] Manually populate media folder fields, AI capabilities, and settings - ONLY ON GET
-    FlashcardConfigService = FlashcardInterface.get_config_service()
+    config_service = FlashcardInterface.get_config_service()
     if request.method == 'GET':
         if hasattr(form, 'image_base_folder'):
             form.image_base_folder.data = container.media_image_folder
@@ -326,7 +326,7 @@ def edit_container(container_id):
                                    container=container,
                                    set_id=container_id,
                                    available_keys=available_keys,
-                                   flashcard_config=FlashcardConfigService.get_all(),
+                                   flashcard_config=FlashcardInterface.get_all_configs(),
                                    quiz_config=get_all_quiz_configs())
 
 @blueprint.route('/container/<int:container_id>/update-settings', methods=['POST'])
@@ -377,14 +377,12 @@ def list_items(container_id):
     pagination = get_pagination_data(base_query.order_by(LearningItem.order_in_container, LearningItem.item_id), page)
     items = pagination.items
     
-    FlashcardConfigService = FlashcardInterface.get_config_service()
-    
     template_vars = {
         'container': container,
         'items': items,
         'pagination': pagination,
         'search_query': search_query,
-        'flashcard_config': FlashcardConfigService.get_all(),
+        'flashcard_config': FlashcardInterface.get_all_configs(),
         'quiz_config': get_all_quiz_configs(),
         'can_edit': has_container_access(container_id, 'editor')
     }
