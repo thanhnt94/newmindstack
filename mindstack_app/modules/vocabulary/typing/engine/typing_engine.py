@@ -43,9 +43,9 @@ class TypingEngine:
         question_text = get_content_value(content, question_key)
         correct_answer = get_content_value(content, answer_key)
         
-        # 5. Map Audio
-        q_audio_url = content.get(f"{question_key}_audio") or content.get('front_audio') or content.get('front_audio_url')
-        a_audio_url = content.get(f"{answer_key}_audio") or content.get('front_audio') or content.get('front_audio_url')
+        # 5. Map Audio - [MODIFIED] Prioritize BACK/ANSWER audio for the question as requested
+        a_audio_url = content.get(f"{answer_key}_audio") or content.get('back_audio') or content.get('back_audio_url')
+        q_audio_url = a_audio_url or content.get(f"{question_key}_audio") or content.get('front_audio') or content.get('front_audio_url')
 
         return {
             'item_id': item_data['item_id'],

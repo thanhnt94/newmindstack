@@ -596,10 +596,10 @@ def api_regenerate_audio_from_content():
     filename = f"{side}_{item.item_id}.mp3"
     
     # 3. Generate audio via external AudioInterface
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
     try:
-        result = loop.run_until_complete(
+        # Use asyncio.run for cleaner loop management if not already in one
+        # AudioInterface.generate_audio is an async function
+        result = asyncio.run(
             AudioInterface.generate_audio(
                 text=str(content_to_read),
                 engine='edge',
@@ -626,13 +626,11 @@ def api_regenerate_audio_from_content():
         
         return jsonify({
             'success': False, 
-            'message': result.error or 'Lỗi tạo audio.'
+            'message': getattr(result, 'error', 'Lỗi tạo audio.')
         }), 500
     except Exception as e:
         current_app.logger.error(f'Audio regeneration error: {e}', exc_info=True)
         return jsonify({'success': False, 'message': str(e)}), 500
-    finally:
-        loop.close()
 
 
 @blueprint.route('/api/preview_fsrs', methods=['POST'])

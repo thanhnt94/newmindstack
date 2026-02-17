@@ -321,22 +321,13 @@ def mcq_api_check_answer():
     
     if item_id:
         try:
-            # Map MCQ outcome to FSRS quality (1-4)
-            # Correct = 3 (Good), Incorrect = 1 (Again)
+            # Map MCQ outcome for logging/points consistency (Correct = 3, Incorrect = 1)
             fsrs_quality = 3 if result['is_correct'] else 1
             
-            from mindstack_app.modules.fsrs.interface import FSRSInterface as FsrsService
-            srs_result = FsrsService.process_interaction(
-                user_id=current_user.user_id,
-                item_id=item_id,
-                quality=fsrs_quality,
-                mode='mcq',
-                result_data=result
-            )
-            result.update(srs_result)
+            # [REMOVED] FSRS update (process_interaction) as requested by user
+            # We now only award points and record history
             
             # [EMIT] Core signal for Gamification to award points
-            # FlashcardService uses this same signal pattern
             try:
                 # Fetch item for type if not provided, fallback to FLASHCARD for points consistency
                 item = LearningItem.query.get(item_id)
@@ -351,20 +342,15 @@ def mcq_api_check_answer():
                     learning_mode='mcq',
                     score_points=result['score_change'],
                     item_type=item_type,
-                    reason=f"Vocab MCQ {'Correct' if result['is_correct'] else 'Incorrect'}"
+                    reason=f"Vocab MCQ Practice {'Correct' if result['is_correct'] else 'Incorrect'}"
                 )
             except Exception as e_signal:
                  current_app.logger.error(f"[VOCAB_MCQ] Signal emit error: {e_signal}")
             
-            # [LOG] Record learning history
+            # [LOG] Record learning history (Activity log)
             try:
                 from mindstack_app.modules.learning_history.interface import LearningHistoryInterface
-                fsrs_snapshot = {
-                    'stability': srs_result.get('stability'),
-                    'difficulty': srs_result.get('difficulty'),
-                    'state': srs_result.get('state'),
-                    'next_review': srs_result.get('next_review').isoformat() if srs_result.get('next_review') and hasattr(srs_result.get('next_review'), 'isoformat') else srs_result.get('next_review')
-                }
+                # No FSRS snapshot since we aren't updating it
                 
                 LearningHistoryInterface.record_log(
                     user_id=current_user.user_id,
@@ -380,32 +366,16 @@ def mcq_api_check_answer():
                         'container_id': set_id,
                         'learning_mode': 'mcq'
                     },
-                    fsrs_snapshot=fsrs_snapshot,
                     game_snapshot={'score_earned': result['score_change']}
                 )
             except Exception as e_log:
                 current_app.logger.error(f"[VOCAB_MCQ] History log error: {e_log}")
 
-            # [CRITICAL] Ensure only JSON-serializable keys are stored to avoid DB save failure
-            srs_data = {
-                'stability': float(srs_result.get('stability', 0)),
-                'difficulty': float(srs_result.get('difficulty', 0)),
-                'retrievability': float(srs_result.get('retrievability', 0)),
-                'mcq_reps': int(srs_result.get('mcq_reps', 0)),
-                'repetitions': int(srs_result.get('repetitions', 0)),
-                'last_srs_sync': True
-            }
-            
-            if manager.update_answer_srs(manager.currentIndex, srs_data):
-                current_app.logger.info(f"[VOCAB_MCQ] manager.answers[{manager.currentIndex}] updated and saved via manager method: {srs_data}")
-            else:
-                current_app.logger.warning(f"[VOCAB_MCQ] Failed to update SRS for index {manager.currentIndex}")
-            
             # Get updated total score
             result['updated_total_score'] = current_user.total_score
         except Exception as e:
             import logging
-            logging.error(f"SRS update failed for MCQ: {e}")
+            logging.error(f"MCQ result processing failed: {e}")
             
     if manager.db_session_id:
         result['session_id'] = manager.db_session_id

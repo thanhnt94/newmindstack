@@ -70,9 +70,9 @@ class MCQEngine:
         choice_item_ids = [c.get('item_id') for c in choices_data]
         correct_index = choices.index(correct_answer) if correct_answer in choices else 0
         
-        # 7. Map Audio
-        q_audio_url = content.get(f"{question_key}_audio") or content.get('front_audio') or content.get('front_audio_url')
-        a_audio_url = content.get(f"{answer_key}_audio") or content.get('front_audio') or content.get('front_audio_url')
+        # 7. Map Audio - [MODIFIED] Prioritize BACK/ANSWER audio for the question as requested
+        a_audio_url = content.get(f"{answer_key}_audio") or content.get('back_audio') or content.get('back_audio_url')
+        q_audio_url = a_audio_url or content.get(f"{question_key}_audio") or content.get('front_audio') or content.get('front_audio_url')
 
         return {
             'item_id': item_data['item_id'],

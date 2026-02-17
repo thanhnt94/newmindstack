@@ -58,43 +58,42 @@
                     </div>
 
                     {# Top-Right: Unified Block (Item ID + Stats Detail Button) #}
-                    <div class="absolute top-3 right-1.5 pointer-events-auto z-30">
+                    <div class="absolute top-2.5 right-2.5 pointer-events-auto z-30">
                         <div
-                            class="flex items-stretch bg-slate-900/55 backdrop-blur-md rounded-full border border-white/10 shadow-2xl overflow-hidden group">
+                            class="flex items-stretch bg-slate-900/55 backdrop-blur-md rounded-full border border-white/10 shadow-2xl overflow-hidden group h-8">
                             <div class="flex items-center pl-3.5 pr-2.5 bg-white/5">
                                 <span
-                                    class="js-card-overlay-item-id text-white/90 text-[10.5px] font-mono font-bold tracking-tight opacity-0 transition-opacity duration-300">#0</span>
+                                    class="js-card-overlay-item-id text-white/90 text-[12px] font-mono font-bold tracking-tight opacity-0 transition-opacity duration-300">#0</span>
                             </div>
                             <button
-                                class="js-fc-stats-detail-overlay w-9 h-9 bg-indigo-500/90 text-white flex items-center justify-center hover:bg-indigo-600 transition-colors active:opacity-75"
+                                class="js-fc-stats-detail-overlay w-8 h-8 bg-indigo-500/90 text-white flex items-center justify-center hover:bg-indigo-600 transition-colors active:opacity-75"
                                 title="Chi tiết thống kê">
-                                <i class="fas fa-chart-pie text-[12px]"></i>
+                                <i class="fas fa-chart-pie text-[11px]"></i>
                             </button>
                         </div>
                     </div>
 
                     {# Bottom-Left: Audio Button #}
-                    <div class="absolute bottom-3 left-3 pointer-events-auto">
+                    <div class="absolute bottom-2.5 left-2.5 pointer-events-auto">
                         <div class="relative group/audio">
                             <button
-                                class="js-fc-audio-btn-overlay w-10 h-10 rounded-full bg-blue-500/90 backdrop-blur-sm text-white flex items-center justify-center hover:bg-blue-600 transition-all shadow-lg hover:scale-110"
+                                class="js-fc-audio-btn-overlay w-8 h-8 rounded-full bg-blue-500/90 backdrop-blur-sm text-white flex items-center justify-center hover:bg-blue-600 transition-all shadow-lg hover:scale-110"
                                 data-has-audio="false">
-                                <i class="fa-solid fa-volume-xmark text-sm js-fc-audio-icon-overlay"></i>
+                                <i class="fa-solid fa-volume-xmark text-xs js-fc-audio-icon-overlay"></i>
                             </button>
-
                             {# Autoplay Indicator Badge #}
                             <div
-                                class="js-fc-autoplay-badge absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-emerald-500 border-2 border-white shadow-sm flex items-center justify-center scale-0 transition-transform duration-300">
-                                <i class="fas fa-play text-[7px] text-white translate-x-[0.5px]"></i>
+                                class="js-fc-autoplay-badge absolute -top-1 -right-1 w-4 h-4 rounded-full bg-emerald-500 border-2 border-white shadow-sm flex items-center justify-center scale-0 transition-transform duration-300">
+                                <i class="fas fa-play text-[6px] text-white translate-x-[0.5px]"></i>
                             </div>
                         </div>
                     </div>
 
                     {# Bottom-Right: Image Toggle Button #}
-                    <div class="absolute bottom-3 right-3 pointer-events-auto z-30">
+                    <div class="absolute bottom-2.5 right-2.5 pointer-events-auto z-30">
                         <button
-                            class="js-fc-image-toggle-overlay w-10 h-10 rounded-full bg-slate-700/90 backdrop-blur-sm text-white flex items-center justify-center hover:bg-slate-800 transition-all shadow-lg hover:scale-110">
-                            <i class="fas fa-image text-sm js-fc-image-icon-overlay"></i>
+                            class="js-fc-image-toggle-overlay w-8 h-8 rounded-full bg-slate-700/90 backdrop-blur-sm text-white flex items-center justify-center hover:bg-slate-800 transition-all shadow-lg hover:scale-110">
+                            <i class="fas fa-image text-xs js-fc-image-icon-overlay"></i>
                         </button>
                     </div>
                 </div>

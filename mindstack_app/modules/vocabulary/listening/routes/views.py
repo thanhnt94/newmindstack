@@ -96,23 +96,11 @@ def api_check_answer():
     correct_answer = (item.back or item.content.get('back', '')).strip()
     
     is_correct = user_answer.lower() == correct_answer.lower()
-    # Map to FSRS Quality (1-4)
+    # Map to FSRS Quality (1-4) for consistent logging
     fsrs_quality = 3 if is_correct else 1
     score_change = 10 if is_correct else 0
     
-    # Process interaction via FSRS
-    result = FsrsInterface.process_interaction(
-        user_id=current_user.user_id,
-        item_id=item_id,
-        quality=fsrs_quality,
-        mode='listening',
-        result_data={
-            'is_correct': is_correct,
-            'duration_ms': duration_ms,
-            'user_answer': user_answer,
-            'score_change': score_change
-        }
-    )
+    # [REMOVED] FSRS update as requested
     
     # [EMIT] Signal for gamification
     try:
@@ -125,18 +113,12 @@ def api_check_answer():
             learning_mode='listening',
             score_points=score_change,
             item_type=item.item_type or 'FLASHCARD',
-            reason=f"Vocab Listening {'Correct' if is_correct else 'Incorrect'}"
+            reason=f"Vocab Listening Practice {'Correct' if is_correct else 'Incorrect'}"
         )
     except: pass
     
     # [LOG] History
     try:
-        fsrs_snapshot = {
-            'stability': result.get('stability'),
-            'difficulty': result.get('difficulty'),
-            'state': result.get('state'),
-            'next_review': result.get('next_review').isoformat() if result.get('next_review') and hasattr(result.get('next_review'), 'isoformat') else result.get('next_review')
-        }
         LearningHistoryInterface.record_log(
             user_id=current_user.user_id,
             item_id=item_id,
@@ -149,7 +131,6 @@ def api_check_answer():
             context_data={
                 'learning_mode': 'listening'
             },
-            fsrs_snapshot=fsrs_snapshot,
             game_snapshot={'score_earned': score_change}
         )
     except: pass
@@ -160,7 +141,6 @@ def api_check_answer():
         'success': True,
         'is_correct': is_correct,
         'correct_answer': correct_answer,
-        'srs': result,
         'updated_total_score': current_user.total_score
     })
 

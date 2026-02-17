@@ -164,18 +164,12 @@ def speed_api_check_answer():
         try:
             from mindstack_app.modules.fsrs.interface import FSRSInterface as FsrsService
             
-            # Map outcome to FSRS Quality (1-4)
+            # Map outcome for logging/points consistency (Correct = 3, Incorrect = 1)
             fsrs_quality = 3 if result['is_correct'] else 1
             score_change = 10 if result['is_correct'] else 0
             result['score_change'] = score_change
 
-            srs_result = FsrsService.process_interaction(
-                user_id=current_user.user_id,
-                item_id=item_id,
-                quality=fsrs_quality,
-                mode='speed_review',
-                result_data=result
-            )
+            # [REMOVED] FSRS update (process_interaction) as requested
             
             # [EMIT] Signal
             try:
@@ -190,18 +184,12 @@ def speed_api_check_answer():
                     learning_mode='speed_review',
                     score_points=score_change,
                     item_type=item_type,
-                    reason=f"Vocab Speed Review {'Correct' if result['is_correct'] else 'Incorrect'}"
+                    reason=f"Vocab Speed Practice {'Correct' if result['is_correct'] else 'Incorrect'}"
                 )
             except: pass
             
             # [LOG] History
             try:
-                fsrs_snapshot = {
-                    'stability': srs_result.get('stability'),
-                    'difficulty': srs_result.get('difficulty'),
-                    'state': srs_result.get('state'),
-                    'next_review': srs_result.get('next_review').isoformat() if srs_result.get('next_review') and hasattr(srs_result.get('next_review'), 'isoformat') else srs_result.get('next_review')
-                }
                 LearningHistoryInterface.record_log(
                     user_id=current_user.user_id,
                     item_id=item_id,
@@ -214,13 +202,11 @@ def speed_api_check_answer():
                     context_data={
                         'learning_mode': 'speed_review'
                     },
-                    fsrs_snapshot=fsrs_snapshot,
                     game_snapshot={'score_earned': score_change}
                 )
             except: pass
 
             safe_commit(db.session)
-            result['srs'] = srs_result
             result['updated_total_score'] = current_user.total_score
         except Exception as e:
             import traceback

@@ -117,15 +117,8 @@ def matching_api_check_match():
         if not item_id: return
         
         fsrs_quality = 3 if correct else 1
-        res = {'is_correct': correct, 'duration_ms': duration_ms, 'user_answer': user_answer, 'score_change': score_points}
         
-        srs = FsrsService.process_interaction(
-            user_id=current_user.user_id,
-            item_id=item_id,
-            quality=fsrs_quality,
-            mode='matching',
-            result_data=res
-        )
+        # [REMOVED] FSRS update as requested
         
         # [EMIT] Signal
         try:
@@ -140,18 +133,12 @@ def matching_api_check_match():
                 learning_mode='matching',
                 score_points=score_points,
                 item_type=item_type,
-                reason=f"Vocab Matching {'Correct' if correct else 'Incorrect'}"
+                reason=f"Vocab Matching Practice {'Correct' if correct else 'Incorrect'}"
             )
         except: pass
         
         # [LOG] History
         try:
-            fsrs_snapshot = {
-                'stability': srs.get('stability'),
-                'difficulty': srs.get('difficulty'),
-                'state': srs.get('state'),
-                'next_review': srs.get('next_review').isoformat() if srs.get('next_review') and hasattr(srs.get('next_review'), 'isoformat') else srs.get('next_review')
-            }
             LearningHistoryInterface.record_log(
                 user_id=current_user.user_id,
                 item_id=item_id,
@@ -166,16 +153,14 @@ def matching_api_check_match():
                     'container_id': session.get('matching_game', {}).get('set_id'),
                     'learning_mode': 'matching'
                 },
-                fsrs_snapshot=fsrs_snapshot,
                 game_snapshot={'score_earned': score_points}
             )
         except: pass
         
-        return srs
+        return {'success': True}
 
     if is_correct:
-         srs = _process_match_item(left_item_id, True, score_points=10)
-         if srs: srs_results.append(srs)
+         _process_match_item(left_item_id, True, score_points=10)
     else:
         _process_match_item(left_item_id, False, score_points=0)
         _process_match_item(right_item_id, False, score_points=0)
@@ -195,7 +180,6 @@ def matching_api_check_match():
         
     return jsonify({
         'correct': is_correct,
-        'srs': srs_results,
         'updated_total_score': current_user.total_score
     })
 

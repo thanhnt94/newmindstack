@@ -16,6 +16,7 @@ from mindstack_app.models import LearningItem
 from mindstack_app.modules.fsrs.interface import FSRSInterface
 from mindstack_app.modules.session.interface import SessionInterface
 # REFAC: ScoringEngine via Interface
+from mindstack_app.modules.learning.logics.scoring_engine import ScoringEngine
 from mindstack_app.modules.learning_history.interface import LearningHistoryInterface
 from mindstack_app.core.signals import card_reviewed
 from mindstack_app.utils.db_session import safe_commit

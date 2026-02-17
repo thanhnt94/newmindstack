@@ -269,19 +269,10 @@ def typing_api_check_answer():
     
     if item_id:
         try:
-            # Map Typing outcome to FSRS quality (1-4)
-            # Correct = 3 (Good), Incorrect = 1 (Again)
+            # Map outcome for logging/points consistency (Correct = 3, Incorrect = 1)
             fsrs_quality = 3 if result['is_correct'] else 1
 
-            from mindstack_app.modules.fsrs.interface import FSRSInterface as FsrsService
-            srs_result = FsrsService.process_interaction(
-                user_id=current_user.user_id,
-                item_id=item_id,
-                quality=fsrs_quality,
-                mode='typing',
-                result_data=result
-            )
-            result.update(srs_result)
+            # [REMOVED] FSRS update as requested
             
             # [EMIT] Core signal for Gamification to award points
             try:
@@ -298,20 +289,15 @@ def typing_api_check_answer():
                     learning_mode='typing',
                     score_points=result['score_change'],
                     item_type=item_type,
-                    reason=f"Vocab Typing {'Correct' if result['is_correct'] else 'Incorrect'}"
+                    reason=f"Vocab Typing Practice {'Correct' if result['is_correct'] else 'Incorrect'}"
                 )
             except Exception as e_signal:
                  current_app.logger.error(f"[VOCAB_TYPING] Signal emit error: {e_signal}")
-            
-            # [LOG] Record learning history
+
+            # [LOG] Record learning history (Activity log)
             try:
                 from mindstack_app.modules.learning_history.interface import LearningHistoryInterface
-                fsrs_snapshot = {
-                    'stability': srs_result.get('stability'),
-                    'difficulty': srs_result.get('difficulty'),
-                    'state': srs_result.get('state'),
-                    'next_review': srs_result.get('next_review').isoformat() if srs_result.get('next_review') and hasattr(srs_result.get('next_review'), 'isoformat') else srs_result.get('next_review')
-                }
+                # No FSRS snapshot
                 
                 LearningHistoryInterface.record_log(
                     user_id=current_user.user_id,
@@ -327,7 +313,6 @@ def typing_api_check_answer():
                         'container_id': set_id,
                         'learning_mode': 'typing'
                     },
-                    fsrs_snapshot=fsrs_snapshot,
                     game_snapshot={'score_earned': result['score_change']}
                 )
             except Exception as e_log:
@@ -336,18 +321,8 @@ def typing_api_check_answer():
             # Get updated total score
             result['updated_total_score'] = current_user.total_score
             
-            srs_data = {
-                'stability': float(srs_result.get('stability', 0)),
-                'difficulty': float(srs_result.get('difficulty', 0)),
-                'retrievability': float(srs_result.get('retrievability', 0)),
-                'typing_reps': int(srs_result.get('typing_reps', 0)),
-                'repetitions': int(srs_result.get('repetitions', 0)),
-                'last_srs_sync': True
-            }
-            
-            manager.update_answer_srs(manager.currentIndex, srs_data)
         except Exception as e:
-            current_app.logger.error(f"SRS update failed for Typing: {e}")
+            current_app.logger.error(f"Typing result processing failed: {e}")
             
     if manager.db_session_id:
         result['session_id'] = manager.db_session_id
