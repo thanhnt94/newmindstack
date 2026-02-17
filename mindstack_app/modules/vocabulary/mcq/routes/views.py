@@ -8,8 +8,9 @@ from flask_login import login_required, current_user
 
 from .. import mcq_bp as blueprint
 from ..interface import VocabMCQInterface as MCQInterface
-from mindstack_app.models import LearningContainer, UserContainerState, db
+from mindstack_app.models import LearningContainer, UserContainerState, LearningItem, db
 from mindstack_app.utils.db_session import safe_commit
+from mindstack_app.core.signals import card_reviewed
 
 @blueprint.route('/mcq/setup/<int:set_id>')
 @login_required
@@ -320,15 +321,71 @@ def mcq_api_check_answer():
     
     if item_id:
         try:
+            # Map MCQ outcome to FSRS quality (1-4)
+            # Correct = 3 (Good), Incorrect = 1 (Again)
+            fsrs_quality = 3 if result['is_correct'] else 1
+            
             from mindstack_app.modules.fsrs.interface import FSRSInterface as FsrsService
             srs_result = FsrsService.process_interaction(
                 user_id=current_user.user_id,
                 item_id=item_id,
+                quality=fsrs_quality,
                 mode='mcq',
                 result_data=result
             )
             result.update(srs_result)
             
+            # [EMIT] Core signal for Gamification to award points
+            # FlashcardService uses this same signal pattern
+            try:
+                # Fetch item for type if not provided, fallback to FLASHCARD for points consistency
+                item = LearningItem.query.get(item_id)
+                item_type = item.item_type if item else 'FLASHCARD'
+                
+                card_reviewed.send(
+                    None,
+                    user_id=current_user.user_id,
+                    item_id=item_id,
+                    quality=fsrs_quality,
+                    is_correct=result['is_correct'],
+                    learning_mode='mcq',
+                    score_points=result['score_change'],
+                    item_type=item_type,
+                    reason=f"Vocab MCQ {'Correct' if result['is_correct'] else 'Incorrect'}"
+                )
+            except Exception as e_signal:
+                 current_app.logger.error(f"[VOCAB_MCQ] Signal emit error: {e_signal}")
+            
+            # [LOG] Record learning history
+            try:
+                from mindstack_app.modules.learning_history.interface import LearningHistoryInterface
+                fsrs_snapshot = {
+                    'stability': srs_result.get('stability'),
+                    'difficulty': srs_result.get('difficulty'),
+                    'state': srs_result.get('state'),
+                    'next_review': srs_result.get('next_review').isoformat() if srs_result.get('next_review') and hasattr(srs_result.get('next_review'), 'isoformat') else srs_result.get('next_review')
+                }
+                
+                LearningHistoryInterface.record_log(
+                    user_id=current_user.user_id,
+                    item_id=item_id,
+                    result_data={
+                        'rating': fsrs_quality,
+                        'user_answer': result.get('user_answer'),
+                        'is_correct': result['is_correct'],
+                        'review_duration': result.get('duration_ms', 0)
+                    },
+                    context_data={
+                        'session_id': manager.db_session_id,
+                        'container_id': set_id,
+                        'learning_mode': 'mcq'
+                    },
+                    fsrs_snapshot=fsrs_snapshot,
+                    game_snapshot={'score_earned': result['score_change']}
+                )
+            except Exception as e_log:
+                current_app.logger.error(f"[VOCAB_MCQ] History log error: {e_log}")
+
             # [CRITICAL] Ensure only JSON-serializable keys are stored to avoid DB save failure
             srs_data = {
                 'stability': float(srs_result.get('stability', 0)),
@@ -343,6 +400,9 @@ def mcq_api_check_answer():
                 current_app.logger.info(f"[VOCAB_MCQ] manager.answers[{manager.currentIndex}] updated and saved via manager method: {srs_data}")
             else:
                 current_app.logger.warning(f"[VOCAB_MCQ] Failed to update SRS for index {manager.currentIndex}")
+            
+            # Get updated total score
+            result['updated_total_score'] = current_user.total_score
         except Exception as e:
             import logging
             logging.error(f"SRS update failed for MCQ: {e}")

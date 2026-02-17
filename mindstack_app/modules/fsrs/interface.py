@@ -68,6 +68,12 @@ class FSRSInterface:
         )
         # Convert DTO to dict
         res_dict = asdict(result)
+        
+        # [FIX] Normalize datetimes for JSON serialization
+        for key, value in res_dict.items():
+            if hasattr(value, 'isoformat'):
+                res_dict[key] = value.isoformat()
+        
         res_dict['status'] = 'success'
         return res_dict
 

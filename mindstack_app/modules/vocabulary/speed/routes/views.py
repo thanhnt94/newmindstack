@@ -8,11 +8,13 @@ from mindstack_app.utils.template_helpers import render_dynamic_template
 from flask_login import login_required, current_user
 
 from .. import speed_bp as blueprint
-from mindstack_app.models import LearningContainer, LearningItem, UserContainerState
+from mindstack_app.models import LearningContainer, LearningItem, UserContainerState, db
 from mindstack_app.modules.vocabulary.mcq.interface import (
     get_mcq_eligible_items, generate_mcq_question, check_mcq_answer, get_available_content_keys
 )
 from mindstack_app.utils.db_session import safe_commit
+from mindstack_app.core.signals import card_reviewed
+from mindstack_app.modules.learning_history.interface import LearningHistoryInterface
 
 @blueprint.route('/speed/setup/<int:set_id>')
 @login_required
@@ -161,17 +163,67 @@ def speed_api_check_answer():
     if item_id:
         try:
             from mindstack_app.modules.fsrs.interface import FSRSInterface as FsrsService
-            from mindstack_app.models import db
+            
+            # Map outcome to FSRS Quality (1-4)
+            fsrs_quality = 3 if result['is_correct'] else 1
+            score_change = 10 if result['is_correct'] else 0
+            result['score_change'] = score_change
 
             srs_result = FsrsService.process_interaction(
                 user_id=current_user.user_id,
                 item_id=item_id,
+                quality=fsrs_quality,
                 mode='speed_review',
                 result_data=result
             )
+            
+            # [EMIT] Signal
+            try:
+                item = LearningItem.query.get(item_id)
+                item_type = item.item_type if item else 'FLASHCARD'
+                card_reviewed.send(
+                    None,
+                    user_id=current_user.user_id,
+                    item_id=item_id,
+                    quality=fsrs_quality,
+                    is_correct=result['is_correct'],
+                    learning_mode='speed_review',
+                    score_points=score_change,
+                    item_type=item_type,
+                    reason=f"Vocab Speed Review {'Correct' if result['is_correct'] else 'Incorrect'}"
+                )
+            except: pass
+            
+            # [LOG] History
+            try:
+                fsrs_snapshot = {
+                    'stability': srs_result.get('stability'),
+                    'difficulty': srs_result.get('difficulty'),
+                    'state': srs_result.get('state'),
+                    'next_review': srs_result.get('next_review').isoformat() if srs_result.get('next_review') and hasattr(srs_result.get('next_review'), 'isoformat') else srs_result.get('next_review')
+                }
+                LearningHistoryInterface.record_log(
+                    user_id=current_user.user_id,
+                    item_id=item_id,
+                    result_data={
+                        'rating': fsrs_quality,
+                        'user_answer': user_answer_text,
+                        'is_correct': result['is_correct'],
+                        'review_duration': duration_ms
+                    },
+                    context_data={
+                        'learning_mode': 'speed_review'
+                    },
+                    fsrs_snapshot=fsrs_snapshot,
+                    game_snapshot={'score_earned': score_change}
+                )
+            except: pass
+
             safe_commit(db.session)
             result['srs'] = srs_result
+            result['updated_total_score'] = current_user.total_score
         except Exception as e:
-            pass
+            import traceback
+            traceback.print_exc()
             
     return jsonify(result)

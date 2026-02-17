@@ -2,6 +2,8 @@ from flask import render_template, request, redirect, url_for, flash, abort, cur
 from mindstack_app.utils.template_helpers import render_dynamic_template
 from flask_login import login_required, current_user
 from mindstack_app.models import LearningContainer, UserContainerState, LearningItem, db
+from mindstack_app.core.signals import card_reviewed
+from mindstack_app.modules.learning_history.interface import LearningHistoryInterface
 from mindstack_app.utils.bbcode_parser import bbcode_to_html
 # REFAC: Remove ItemMemoryState
 from .. import listening_bp as blueprint
@@ -94,28 +96,72 @@ def api_check_answer():
     correct_answer = (item.back or item.content.get('back', '')).strip()
     
     is_correct = user_answer.lower() == correct_answer.lower()
-    quality = 5 if is_correct else 0
+    # Map to FSRS Quality (1-4)
+    fsrs_quality = 3 if is_correct else 1
+    score_change = 10 if is_correct else 0
     
     # Process interaction via FSRS
     result = FsrsInterface.process_interaction(
         user_id=current_user.user_id,
         item_id=item_id,
+        quality=fsrs_quality,
         mode='listening',
         result_data={
-            'quality': quality,
+            'is_correct': is_correct,
             'duration_ms': duration_ms,
             'user_answer': user_answer,
-            'timestamp': datetime.now(timezone.utc)
+            'score_change': score_change
         }
     )
     
+    # [EMIT] Signal for gamification
+    try:
+        card_reviewed.send(
+            None,
+            user_id=current_user.user_id,
+            item_id=item_id,
+            quality=fsrs_quality,
+            is_correct=is_correct,
+            learning_mode='listening',
+            score_points=score_change,
+            item_type=item.item_type or 'FLASHCARD',
+            reason=f"Vocab Listening {'Correct' if is_correct else 'Incorrect'}"
+        )
+    except: pass
+    
+    # [LOG] History
+    try:
+        fsrs_snapshot = {
+            'stability': result.get('stability'),
+            'difficulty': result.get('difficulty'),
+            'state': result.get('state'),
+            'next_review': result.get('next_review').isoformat() if result.get('next_review') and hasattr(result.get('next_review'), 'isoformat') else result.get('next_review')
+        }
+        LearningHistoryInterface.record_log(
+            user_id=current_user.user_id,
+            item_id=item_id,
+            result_data={
+                'rating': fsrs_quality,
+                'user_answer': user_answer,
+                'is_correct': is_correct,
+                'review_duration': duration_ms
+            },
+            context_data={
+                'learning_mode': 'listening'
+            },
+            fsrs_snapshot=fsrs_snapshot,
+            game_snapshot={'score_earned': score_change}
+        )
+    except: pass
+
     db.session.commit()
     
     return jsonify({
         'success': True,
         'is_correct': is_correct,
         'correct_answer': correct_answer,
-        'srs': result
+        'srs': result,
+        'updated_total_score': current_user.total_score
     })
 
 @blueprint.route('/api/end_session', methods=['POST'])

@@ -7,8 +7,9 @@ from flask_login import login_required, current_user
 
 from .. import matching_bp as blueprint
 from ..logics.matching_logic import generate_matching_game
-from mindstack_app.models import LearningContainer, db
+from mindstack_app.models import LearningContainer, LearningItem, db
 from mindstack_app.utils.db_session import safe_commit
+from mindstack_app.core.signals import card_reviewed
 
 @blueprint.route('/matching/session/<int:set_id>')
 @login_required
@@ -108,32 +109,76 @@ def matching_api_check_match():
     is_correct = left_item_id == right_item_id
     
     from mindstack_app.modules.fsrs.interface import FSRSInterface as FsrsService
+    from mindstack_app.modules.learning_history.interface import LearningHistoryInterface
     
     srs_results = []
     
+    def _process_match_item(item_id, correct, score_points=0):
+        if not item_id: return
+        
+        fsrs_quality = 3 if correct else 1
+        res = {'is_correct': correct, 'duration_ms': duration_ms, 'user_answer': user_answer, 'score_change': score_points}
+        
+        srs = FsrsService.process_interaction(
+            user_id=current_user.user_id,
+            item_id=item_id,
+            quality=fsrs_quality,
+            mode='matching',
+            result_data=res
+        )
+        
+        # [EMIT] Signal
+        try:
+            item = LearningItem.query.get(item_id)
+            item_type = item.item_type if item else 'FLASHCARD'
+            card_reviewed.send(
+                None,
+                user_id=current_user.user_id,
+                item_id=item_id,
+                quality=fsrs_quality,
+                is_correct=correct,
+                learning_mode='matching',
+                score_points=score_points,
+                item_type=item_type,
+                reason=f"Vocab Matching {'Correct' if correct else 'Incorrect'}"
+            )
+        except: pass
+        
+        # [LOG] History
+        try:
+            fsrs_snapshot = {
+                'stability': srs.get('stability'),
+                'difficulty': srs.get('difficulty'),
+                'state': srs.get('state'),
+                'next_review': srs.get('next_review').isoformat() if srs.get('next_review') and hasattr(srs.get('next_review'), 'isoformat') else srs.get('next_review')
+            }
+            LearningHistoryInterface.record_log(
+                user_id=current_user.user_id,
+                item_id=item_id,
+                result_data={
+                    'rating': fsrs_quality,
+                    'user_answer': user_answer,
+                    'is_correct': correct,
+                    'review_duration': duration_ms
+                },
+                context_data={
+                    'session_id': session.get('matching_game', {}).get('db_session_id'),
+                    'container_id': session.get('matching_game', {}).get('set_id'),
+                    'learning_mode': 'matching'
+                },
+                fsrs_snapshot=fsrs_snapshot,
+                game_snapshot={'score_earned': score_points}
+            )
+        except: pass
+        
+        return srs
+
     if is_correct:
-         srs = FsrsService.process_interaction(
-             user_id=current_user.user_id,
-             item_id=left_item_id,
-             mode='matching',
-             result_data={'is_correct': True, 'duration_ms': duration_ms, 'user_answer': user_answer}
-         )
-         srs_results.append(srs)
+         srs = _process_match_item(left_item_id, True, score_points=10)
+         if srs: srs_results.append(srs)
     else:
-        if left_item_id:
-             FsrsService.process_interaction(
-                 user_id=current_user.user_id,
-                 item_id=left_item_id,
-                 mode='matching',
-                 result_data={'is_correct': False, 'duration_ms': duration_ms, 'user_answer': user_answer}
-             )
-        if right_item_id:
-             FsrsService.process_interaction(
-                 user_id=current_user.user_id,
-                 item_id=right_item_id,
-                 mode='matching',
-                 result_data={'is_correct': False, 'duration_ms': duration_ms, 'user_answer': user_answer}
-             )
+        _process_match_item(left_item_id, False, score_points=0)
+        _process_match_item(right_item_id, False, score_points=0)
     
     safe_commit(db.session)
 
@@ -150,7 +195,8 @@ def matching_api_check_match():
         
     return jsonify({
         'correct': is_correct,
-        'srs': srs_results
+        'srs': srs_results,
+        'updated_total_score': current_user.total_score
     })
 
 @blueprint.route('/matching/api/end_session', methods=['POST'])
