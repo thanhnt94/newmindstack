@@ -14,3 +14,15 @@ def reset_page():
         return redirect(url_for('admin.admin_dashboard'))
 
     return render_template('admin/modules/admin/ops/reset.html', active_page='ops_reset')
+
+@blueprint.route('/upgrade', methods=['GET'])
+@login_required
+def upgrade_page():
+    """
+    Trang quản lý nâng cấp hệ thống (System Upgrade).
+    """
+    if current_user.user_role != User.ROLE_ADMIN:
+        flash('Permission denied', 'danger')
+        return redirect(url_for('admin.admin_dashboard'))
+
+    return render_template('admin/modules/admin/ops/upgrade.html', active_page='ops_upgrade')

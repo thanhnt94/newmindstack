@@ -80,3 +80,25 @@ def discovery_containers(user_id):
         return jsonify({'success': True, 'containers': containers})
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)}), 500
+
+# --- System Upgrade API ---
+
+@blueprint.route('/upgrade/run', methods=['POST'])
+@login_required
+def run_upgrade_api():
+    if current_user.user_role != User.ROLE_ADMIN:
+        return jsonify({'success': False, 'message': 'Permission denied'}), 403
+    
+    from ..services.system_service import SystemService
+    success, message = SystemService.run_upgrade()
+    return jsonify({'success': success, 'message': message})
+
+@blueprint.route('/upgrade/status', methods=['GET'])
+@login_required
+def get_upgrade_status_api():
+    if current_user.user_role != User.ROLE_ADMIN:
+        return jsonify({'success': False, 'message': 'Permission denied'}), 403
+    
+    from ..services.system_service import SystemService
+    status = SystemService.get_status()
+    return jsonify({'success': True, 'status': status})

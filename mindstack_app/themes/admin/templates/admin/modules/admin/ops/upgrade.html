@@ -1,0 +1,298 @@
+{% extends "admin/modules/admin/admin_layout.html" %}
+{% set active_page = 'ops_upgrade' %}
+
+{% block title %}Nâng cấp Hệ thống{% endblock %}
+{% block page_title %}Nâng cấp & Triển khai (System Upgrade){% endblock %}
+{% block page_subtitle %}Quản lý việc cập nhật mã nguồn và triển khai phiên bản mới trực tiếp từ server.{% endblock %}
+
+{% block extra_head %}
+<style>
+    .terminal-window {
+        background-color: #0f172a;
+        color: #f1f5f9;
+        font-family: 'Fira Code', 'Cascadia Code', monospace;
+        border-radius: 0.75rem;
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        border: 1px solid #334155;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        height: 500px;
+    }
+
+    .terminal-header {
+        background-color: #1e293b;
+        padding: 0.75rem 1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        border-bottom: 1px solid #334155;
+    }
+
+    .terminal-dot {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+    }
+
+    .dot-red {
+        background-color: #ef4444;
+    }
+
+    .dot-yellow {
+        background-color: #f59e0b;
+    }
+
+    .dot-green {
+        background-color: #10b981;
+    }
+
+    .terminal-body {
+        padding: 1rem;
+        overflow-y: auto;
+        flex: 1;
+        font-size: 0.85rem;
+        line-height: 1.5;
+    }
+
+    .terminal-line {
+        margin-bottom: 0.25rem;
+        white-space: pre-wrap;
+    }
+
+    .terminal-cursor {
+        display: inline-block;
+        width: 8px;
+        height: 15px;
+        background-color: #f1f5f9;
+        animation: blink 1s step-end infinite;
+        vertical-align: middle;
+        margin-left: 4px;
+    }
+
+    @keyframes blink {
+        50% {
+            opacity: 0;
+        }
+    }
+
+    .status-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem 1rem;
+        border-radius: 9999px;
+        font-weight: 600;
+        font-size: 0.85rem;
+    }
+
+    .status-running {
+        background-color: #dbeafe;
+        color: #1d4ed8;
+    }
+
+    .status-idle {
+        background-color: #f1f5f9;
+        color: #475569;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="p-6 space-y-6">
+    <!-- Action Card -->
+    <div
+        class="bg-white rounded-xl border border-slate-200 shadow-sm p-6 flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div class="flex items-center gap-4">
+            <div
+                class="w-14 h-14 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center text-2xl shadow-inner">
+                <i class="fas fa-rocket"></i>
+            </div>
+            <div>
+                <h3 class="text-lg font-bold text-slate-900">Tiến hành nâng cấp</h3>
+                <p class="text-sm text-slate-500">Chạy script <code
+                        class="bg-slate-100 px-1.5 py-0.5 rounded text-indigo-600 font-mono">ms-deploy</code> để cập
+                    nhật code và restart service.</p>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-3">
+            <div id="status-display" class="status-badge status-idle">
+                <div class="w-2 h-2 rounded-full bg-slate-400"></div>
+                <span>Sẵn sàng</span>
+            </div>
+
+            <button id="run-upgrade-btn" onclick="startUpgrade()"
+                class="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl transition shadow-lg shadow-indigo-200 flex items-center gap-2">
+                <i class="fas fa-play"></i>
+                <span>Chạy Deploy</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Terminal Console -->
+    <div class="terminal-window flex-col">
+        <div class="terminal-header">
+            <div class="terminal-dot dot-red"></div>
+            <div class="terminal-dot dot-yellow"></div>
+            <div class="terminal-dot dot-green"></div>
+            <div class="ml-2 text-xs font-mono text-slate-400">System Upgrade Console - Output logs</div>
+            <div class="ml-auto flex items-center gap-4 text-[10px] text-slate-500 font-mono">
+                <span id="elapsed-time">00:00</span>
+                <button onclick="clearLogs()" class="hover:text-white transition">Clear logs</button>
+            </div>
+        </div>
+        <div id="terminal-body" class="terminal-body">
+            <div class="terminal-line text-slate-500"># Chờ lệnh thực thi...</div>
+            <div id="log-container"></div>
+            <div id="cursor-line" class="hidden">
+                <span class="text-emerald-400">➜</span>
+                <span id="current-output" class="text-slate-200 ml-2"></span>
+                <span class="terminal-cursor"></span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Safety Warning -->
+    <div class="bg-amber-50 border border-amber-200 rounded-xl p-4 flex gap-4">
+        <div class="text-amber-500 text-xl"><i class="fas fa-exclamation-triangle"></i></div>
+        <div class="text-sm text-amber-800">
+            <p class="font-bold mb-1">Cảnh báo an toàn:</p>
+            <p>Quá trình nâng cấp có thể làm gián đoạn dịch vụ trong chốc lát (restart app). Vui lòng đảm bảo không có
+                tác vụ quan trọng nào đang diễn ra của người dùng.</p>
+        </div>
+    </div>
+</div>
+
+<script>
+    let isRunning = false;
+    let pollInterval = null;
+    let startTime = null;
+
+    async function startUpgrade() {
+        if (isRunning) return;
+
+        if (!confirm('Bạn có chắc chắn muốn chạy quy trình nâng cấp hệ thống ngay bây giờ?')) return;
+
+        try {
+            const response = await fetch("{{ url_for('ops.run_upgrade_api') }}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': "{{ csrf_token() }}"
+                }
+            });
+            const data = await response.json();
+
+            if (data.success) {
+                setRunningState(true);
+                clearLogs();
+                appendLog('🚀 Đã gửi yêu cầu khởi chạy nâng cấp...');
+                startPolling();
+                showFlashMessage(data.message, 'success');
+            } else {
+                alert('Lỗi: ' + data.message);
+            }
+        } catch (e) {
+            alert('Lỗi khởi chạy: ' + e);
+        }
+    }
+
+    function setRunningState(running) {
+        isRunning = running;
+        const btn = document.getElementById('run-upgrade-btn');
+        const status = document.getElementById('status-display');
+        const cursor = document.getElementById('cursor-line');
+
+        if (running) {
+            btn.disabled = true;
+            btn.classList.add('opacity-50', 'cursor-not-allowed');
+            status.className = 'status-badge status-running';
+            status.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>Đang xử lý</span>';
+            cursor.classList.remove('hidden');
+            startTime = Date.now();
+        } else {
+            btn.disabled = false;
+            btn.classList.remove('opacity-50', 'cursor-not-allowed');
+            status.className = 'status-badge status-idle';
+            status.innerHTML = '<div class="w-2 h-2 rounded-full bg-slate-400"></div><span>Sẵn sàng</span>';
+            cursor.classList.add('hidden');
+            clearInterval(pollInterval);
+        }
+    }
+
+    function startPolling() {
+        if (pollInterval) clearInterval(pollInterval);
+
+        pollInterval = setInterval(async () => {
+            try {
+                const response = await fetch("{{ url_for('ops.get_upgrade_status_api') }}");
+                const data = await response.json();
+
+                if (data.success) {
+                    updateLogs(data.status.logs);
+                    updateElapsedTime();
+
+                    if (!data.status.is_running) {
+                        setRunningState(false);
+                        if (data.status.exit_code === 0) {
+                            appendLog('✅ Hoàn thành nâng cấp thành công!');
+                            showFlashMessage('Nâng cấp hệ thống hoàn tất!', 'success');
+                        } else {
+                            appendLog('❌ Quá trình gặp lỗi (Exit: ' + data.status.exit_code + ')');
+                            showFlashMessage('Nâng cấp thất bại!', 'danger');
+                        }
+                    }
+                }
+            } catch (e) {
+                console.error('Polling error:', e);
+            }
+        }, 1000);
+    }
+
+    let lastLogCount = 0;
+    function updateLogs(logs) {
+        const container = document.getElementById('log-container');
+        if (logs.length > lastLogCount) {
+            for (let i = lastLogCount; i < logs.length; i++) {
+                const line = document.createElement('div');
+                line.className = 'terminal-line';
+                // Detect error colors
+                if (logs[i].includes('ERROR') || logs[i].includes('failed')) {
+                    line.classList.add('text-red-400');
+                } else if (logs[i].includes('success') || logs[i].includes('Hoàn thành')) {
+                    line.classList.add('text-emerald-400');
+                }
+                line.textContent = logs[i];
+                container.appendChild(line);
+            }
+            lastLogCount = logs.length;
+            const body = document.getElementById('terminal-body');
+            body.scrollTop = body.scrollHeight;
+        }
+    }
+
+    function appendLog(text) {
+        const container = document.getElementById('log-container');
+        const line = document.createElement('div');
+        line.className = 'terminal-line text-indigo-400 font-bold';
+        line.textContent = text;
+        container.appendChild(line);
+        const body = document.getElementById('terminal-body');
+        body.scrollTop = body.scrollHeight;
+    }
+
+    function clearLogs() {
+        document.getElementById('log-container').innerHTML = '';
+        lastLogCount = 0;
+    }
+
+    function updateElapsedTime() {
+        if (!startTime) return;
+        const elapsed = Math.floor((Date.now() - startTime) / 1000);
+        const mins = Math.floor(elapsed / 60).toString().padStart(2, '0');
+        const secs = (elapsed % 60).toString().padStart(2, '0');
+        document.getElementById('elapsed-time').textContent = `${mins}:${secs}`;
+    }
+</script>
+{% endblock %}
