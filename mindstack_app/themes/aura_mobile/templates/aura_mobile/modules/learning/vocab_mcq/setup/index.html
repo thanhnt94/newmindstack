@@ -350,12 +350,18 @@
             </div>
 
             <div class="mode-grid">
-                <!-- Review Mode Only -->
-                <div class="mode-card selected" data-value="all_review">
+                <div class="mode-card selected" data-value="review">
                     <div class="mode-icon"><i class="fas fa-history"></i></div>
                     <div class="mode-info">
-                        <span class="mode-title">Chế độ Ôn tập</span>
+                        <span class="mode-title">Ôn tập</span>
                         <span class="mode-desc">Tạo câu hỏi từ các từ vựng bạn đã thuộc</span>
+                    </div>
+                </div>
+                <div class="mode-card" data-value="random">
+                    <div class="mode-icon"><i class="fas fa-random"></i></div>
+                    <div class="mode-info">
+                        <span class="mode-title">Ngẫu nhiên</span>
+                        <span class="mode-desc">Luyện trắc nghiệm ngẫu nhiên trong bộ</span>
                     </div>
                 </div>
             </div>
@@ -396,22 +402,36 @@
             <!-- Pair Config -->
             <div class="config-card">
                 <div class="flex justify-between items-center mb-3">
-                    <div class="config-header" style="margin-bottom:0;"><i class="fas fa-sliders-h"></i> Cấu hình Cặp từ</div>
+                    <div class="config-header" style="margin-bottom:0;"><i class="fas fa-sliders-h"></i> Cấu hình Cặp từ
+                    </div>
                     <label class="flex items-center cursor-pointer">
                         <span class="mr-2 text-sm font-medium text-gray-600">Tùy chỉnh</span>
                         <div class="relative">
                             <input type="checkbox" id="custom-config-toggle" class="sr-only">
                             <div class="block bg-gray-200 w-10 h-6 rounded-full transition-colors toggle-bg"></div>
-                            <div class="dot absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform transform"></div>
+                            <div
+                                class="dot absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform transform">
+                            </div>
                         </div>
                     </label>
                 </div>
 
                 <style>
-                    #custom-config-toggle:checked~.toggle-bg { background-color: var(--primary); }
-                    #custom-config-toggle:checked~.dot { transform: translateX(100%); }
-                    #limit-toggle:checked~.toggle-bg { background-color: var(--primary); }
-                    #limit-toggle:checked~.dot { transform: translateX(100%); }
+                    #custom-config-toggle:checked~.toggle-bg {
+                        background-color: var(--primary);
+                    }
+
+                    #custom-config-toggle:checked~.dot {
+                        transform: translateX(100%);
+                    }
+
+                    #limit-toggle:checked~.toggle-bg {
+                        background-color: var(--primary);
+                    }
+
+                    #limit-toggle:checked~.dot {
+                        transform: translateX(100%);
+                    }
                 </style>
 
                 <div id="default-config-view" class="bg-gray-50 rounded-lg p-4 border border-gray-200">
@@ -424,7 +444,8 @@
 
                 <div id="custom-builder-view" class="hidden mt-4">
                     <div class="pair-container" id="pairs-list"></div>
-                    <button type="button" class="add-pair-btn" id="add-pair-btn"><i class="fas fa-plus-circle"></i> Thêm cặp mới</button>
+                    <button type="button" class="add-pair-btn" id="add-pair-btn"><i class="fas fa-plus-circle"></i> Thêm
+                        cặp mới</button>
                 </div>
             </div>
 
@@ -479,10 +500,11 @@
     console.log('[MCQ Setup] savedSettings:', savedSettings);
     console.log('[MCQ Setup] defaultSettings:', defaultSettings);
     console.log('[MCQ Setup] availableKeys:', availableKeys);
-    
+
     let currentStep = 1;
     let config = {
-        mode: savedSettings.mode || 'all_review',
+        study_mode: savedSettings.study_mode || 'review',
+        mode: savedSettings.mode || 'front_back',
         count: savedSettings.count !== undefined ? savedSettings.count : 0,
         choices: savedSettings.choices !== undefined ? savedSettings.choices : 4,
         auto_audio: savedSettings.auto_audio !== undefined ? savedSettings.auto_audio : true,
@@ -491,7 +513,8 @@
     };
 
     const modeLabels = {
-        'all_review': 'Chế độ Ôn tập'
+        'review': 'Ôn tập',
+        'random': 'Ngẫu nhiên'
     };
 
     function showStep(step) {
@@ -511,7 +534,7 @@
             backBtn.style.display = 'flex';
             nextBtn.style.display = 'none';
             startBtn.style.display = 'flex';
-            document.querySelector('#selected-mode-display span').textContent = modeLabels[config.mode];
+            document.querySelector('#selected-mode-display span').textContent = modeLabels[config.study_mode];
             syncConfigUI();
             checkStartButtonState();
         }
@@ -522,7 +545,7 @@
         limitToggle.checked = config.count > 0;
         document.getElementById('limit-options').classList.toggle('hidden', !limitToggle.checked);
         if (config.count > 0) {
-            const selectedLimitChip = document.querySelector('#limit-options .option-chip[data-value="'+config.count+'"]');
+            const selectedLimitChip = document.querySelector('#limit-options .option-chip[data-value="' + config.count + '"]');
             if (selectedLimitChip) {
                 document.querySelectorAll('#limit-options .option-chip').forEach(chip => chip.classList.remove('selected'));
                 selectedLimitChip.classList.add('selected');
@@ -537,7 +560,7 @@
         // Sync Auto Audio Toggle
         document.getElementById('sound-check').checked = config.auto_audio;
         document.getElementById('sound-option').classList.toggle('selected', config.auto_audio);
-        
+
         // Render Default Summary for display
         renderDefaultView();
     }
@@ -566,9 +589,9 @@
             if (card.classList.contains('disabled')) return;
             document.querySelectorAll('.mode-card').forEach(c => c.classList.remove('selected'));
             card.classList.add('selected');
-            config.mode = card.dataset.value;
+            config.study_mode = card.dataset.value;
         });
-        if (card.dataset.value === config.mode) card.classList.add('selected');
+        if (card.dataset.value === config.study_mode) card.classList.add('selected');
     });
 
     // Config Toggles
@@ -648,7 +671,7 @@
         // If not custom, clear builder and rely on defaultSettings.custom_pairs being displayed by renderDefaultView
         document.getElementById('pairs-list').innerHTML = '';
     }
-    
+
     function checkStartButtonState() {
         if (currentStep !== 2) return;
         const btn = document.getElementById('start-btn');
@@ -705,10 +728,10 @@
                 body: JSON.stringify(config)
             });
             if (!res.ok) throw new Error("Failed to save session settings");
-            
+
             window.location.href = "{{ url_for('vocab_mcq.mcq_session', set_id=container.container_id) }}";
-        } catch(e) { 
-            console.error('[MCQ Setup] Error starting session:', e); 
+        } catch (e) {
+            console.error('[MCQ Setup] Error starting session:', e);
             alert('Lỗi khi khởi tạo phiên học: ' + e.message);
             btn.disabled = false;
             btn.innerHTML = 'Bắt đầu làm bài <i class="fas fa-play"></i>';

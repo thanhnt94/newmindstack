@@ -153,6 +153,7 @@ def mcq_save_setup(set_id):
             return jsonify({'success': False, 'message': 'No data provided'}), 400
             
         mode = data.get('mode', 'custom')
+        study_mode = data.get('study_mode', 'review')
         count = data.get('count', 0)
         choices = data.get('choices', 4)
         custom_pairs = data.get('custom_pairs')
@@ -167,6 +168,7 @@ def mcq_save_setup(set_id):
         if 'mcq' not in new_settings: new_settings['mcq'] = {}
         
         new_settings['mcq']['mode'] = mode
+        new_settings['mcq']['study_mode'] = study_mode
         if count is not None:
              new_settings['mcq']['count'] = int(count)
         else:
@@ -209,6 +211,7 @@ def mcq_api_get_items(set_id):
         # Default to 0 (Unlimited) instead of 10
         count = request.args.get('count', 0, type=int)
         mode = request.args.get('mode', 'front_back')
+        study_mode = request.args.get('study_mode', 'review')
         num_choices = request.args.get('choices', 0, type=int)
         custom_pairs_str = request.args.get('custom_pairs', '')
         
@@ -237,7 +240,7 @@ def mcq_api_get_items(set_id):
 
         if manager:
             request_params = {
-                'count': count, 'mode': mode, 'choices': num_choices, 'custom_pairs': custom_pairs
+                'count': count, 'mode': mode, 'choices': num_choices, 'custom_pairs': custom_pairs, 'study_mode': study_mode
             }
             if manager.params == request_params:
                 current_app.logger.info(f"[VOCAB_MCQ] Resuming session for user {current_user.user_id}, set {set_id}. Current index: {manager.currentIndex}")
@@ -247,7 +250,7 @@ def mcq_api_get_items(set_id):
 
         manager = MCQSessionManager(current_user.user_id, set_id)
         success, message = manager.initialize_session(
-            count=count, mode=mode, choices=num_choices, custom_pairs=custom_pairs
+            count=count, mode=mode, choices=num_choices, custom_pairs=custom_pairs, study_mode=study_mode
         )
         
         if not success:

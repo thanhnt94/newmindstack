@@ -117,13 +117,14 @@ class TypingSessionManager:
         except Exception as e:
             current_app.logger.error(f"[VOCAB_TYPING] DB SAVE ERROR: {str(e)}")
 
-    def initialize_session(self, count, mode, custom_pairs):
+    def initialize_session(self, count, mode, custom_pairs, study_mode='review'):
         """Generates new questions and sets up the session."""
         from ..services.typing_service import TypingService
         self.params = {
             'count': count,
             'mode': mode,
-            'custom_pairs': custom_pairs
+            'custom_pairs': custom_pairs,
+            'study_mode': study_mode
         }
         
         questions = TypingService.generate_session_questions(
@@ -148,7 +149,8 @@ class TypingSessionManager:
                 learning_mode='typing',
                 mode_config_id=mode,
                 set_id_data=self.set_id,
-                total_items=len(self.questions)
+                total_items=len(self.questions),
+                extra_data={'mode': study_mode}
             )
             if db_session:
                 self.db_session_id = db_session.session_id

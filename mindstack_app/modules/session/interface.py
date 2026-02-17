@@ -29,7 +29,8 @@ class SessionInterface:
         learning_mode: str,
         mode_config_id: Optional[int],
         set_id_data: Union[int, List[int]],
-        total_items: int = 0
+        total_items: int = 0,
+        extra_data: Optional[dict] = None
     ):
         """
         Create a new learning session.
@@ -40,6 +41,7 @@ class SessionInterface:
             mode_config_id: Optional configuration ID
             set_id_data: Container ID or list of container IDs
             total_items: Expected total items in session
+            extra_data: Optional extra data (mode, metadata, etc.)
             
         Returns:
             LearningSession object or None on error
@@ -49,7 +51,8 @@ class SessionInterface:
             learning_mode=learning_mode,
             mode_config_id=mode_config_id,
             set_id_data=set_id_data,
-            total_items=total_items
+            total_items=total_items,
+            extra_data=extra_data
         )
     
     @staticmethod

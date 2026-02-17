@@ -222,8 +222,13 @@ class MCQService:
             'count': config.get('count') if config.get('count') is not None else mcq_settings.get('count', 0)
         }
 
-        # 2. Get learned items (Questions Source) - ONLY items with state != 0
-        eligible_questions = MCQService.get_eligible_items(container_id, user_id)
+        # 2. Get learned items (Questions Source)
+        study_mode = config.get('study_mode', 'review')
+        if study_mode == 'random':
+            eligible_questions = MCQService.get_eligible_items(container_id, user_id=None)
+        else:
+            eligible_questions = MCQService.get_eligible_items(container_id, user_id)
+            
         if len(eligible_questions) < 1:
             return []
             

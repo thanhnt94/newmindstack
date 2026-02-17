@@ -194,8 +194,9 @@ def session_summary(session_id):
             'typing': 'Luyện gõ từ'
         }
         sub_mode_labels = {
-            'srs': 'Theo lịch FSRS',
-            'review': 'Ôn tập tự do',
+            'srs': 'SRS',
+            'review': 'Ôn tập',
+            'random': 'Ngẫu nhiên',
             'mixed': 'Trộn lẫn',
             'new_cards': 'Thẻ mới',
             'due_cards': 'Thẻ đến hạn',
@@ -203,7 +204,13 @@ def session_summary(session_id):
         }
         
         l_mode = session_obj.learning_mode
-        s_mode = session_obj.session_data.get('mode') if session_obj.session_data else 'srs'
+        # Try 'mode' (standard) or 'study_mode' (new metadata)
+        s_mode = session_obj.session_data.get('mode') or \
+                 session_obj.session_data.get('study_mode')
+        
+        # Default fallback
+        if not s_mode:
+            s_mode = 'srs' if l_mode == 'flashcard' else 'review'
         
         summary_data = {
             'id': session_obj.session_id,

@@ -138,14 +138,15 @@ class MCQSessionManager:
         except Exception as e:
             current_app.logger.error(f"[VOCAB_MCQ] [V3] DB SAVE ERROR: {str(e)}")
 
-    def initialize_session(self, count, mode, choices, custom_pairs):
+    def initialize_session(self, count, mode, choices, custom_pairs, study_mode='review'):
         """Generates new questions and sets up the session."""
         from ..services.mcq_service import MCQService
         self.params = {
             'count': count,
             'mode': mode,
             'choices': choices if choices is not None else 0,
-            'custom_pairs': custom_pairs
+            'custom_pairs': custom_pairs,
+            'study_mode': study_mode
         }
         
         # Use Service to generate questions (filters for learned items automatically)
@@ -171,7 +172,8 @@ class MCQSessionManager:
                 learning_mode='mcq',
                 mode_config_id=mode,
                 set_id_data=self.set_id,
-                total_items=len(self.questions)
+                total_items=len(self.questions),
+                extra_data={'mode': study_mode}
             )
             if db_session:
                 self.db_session_id = db_session.session_id

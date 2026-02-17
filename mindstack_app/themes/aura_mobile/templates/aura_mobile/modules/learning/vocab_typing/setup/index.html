@@ -21,57 +21,383 @@
         --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1);
     }
 
-    body { background: var(--background); font-family: 'Outfit', 'Inter', sans-serif; }
-    .wizard-container { min-height: 100vh; display: flex; flex-direction: column; width: 100%; margin: 0 auto; background: var(--background); position: relative; overflow: hidden; }
-    .wizard-header { padding: 0.75rem; display: flex; align-items: center; justify-content: space-between; background: var(--surface); border-bottom: 1px solid var(--border); position: fixed; top: 0; left: 0; right: 0; width: 100%; margin: 0 auto; z-index: 100; }
-    .nav-btn { width: 40px; height: 40px; border-radius: 12px; display: flex; align-items: center; justify-content: center; color: var(--text-main); border: 1px solid var(--border); text-decoration: none; transition: all 0.2s; }
-    .nav-btn:hover { background: var(--background); }
-    .header-info { text-align: center; }
-    .set-title { font-size: 1rem; font-weight: 700; color: var(--text-main); margin: 0; max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .mode-badge { font-size: 0.7rem; font-weight: 600; text-transform: uppercase; color: var(--primary); display: flex; align-items: center; gap: 4px; justify-content: center; }
-    .wizard-content { flex: 1; padding: 75px 1.5rem 100px 1.5rem; display: flex; flex-direction: column; overflow-y: auto; }
-    .step-screen { display: none; animation: fadeIn 0.4s ease-out; }
-    .step-screen.active { display: block; }
-    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-    .title-area { margin-bottom: 2rem; text-align: center; }
-    .title-area h2 { font-size: 1.75rem; font-weight: 800; color: var(--text-main); margin: 0 0 0.5rem 0; }
-    .title-area p { color: var(--text-sub); font-size: 1rem; }
-    
-    .mode-grid { display: grid; grid-template-columns: 1fr; gap: 1rem; }
-    .mode-card { background: var(--surface); border: 2px solid transparent; border-radius: 20px; padding: 1.25rem; display: flex; align-items: center; gap: 1rem; cursor: pointer; transition: all 0.2s; box-shadow: var(--shadow-sm); }
-    .mode-card.selected { background: var(--primary-bg); border-color: var(--primary); }
-    .mode-card.disabled { opacity: 0.5; filter: grayscale(1); cursor: not-allowed; }
-    .mode-icon { width: 50px; height: 50px; border-radius: 16px; background: var(--background); display: flex; align-items: center; justify-content: center; font-size: 1.5rem; color: var(--text-sub); }
-    .mode-card.selected .mode-icon { background: var(--primary); color: white; }
-    .mode-info { flex: 1; }
-    .mode-title { font-weight: 700; font-size: 1.1rem; color: var(--text-main); }
-    .mode-desc { font-size: 0.9rem; color: var(--text-sub); display: block; }
+    body {
+        background: var(--background);
+        font-family: 'Outfit', 'Inter', sans-serif;
+    }
 
-    .config-card { background: var(--surface); border-radius: 24px; padding: 1rem; box-shadow: var(--shadow-sm); margin-bottom: 1rem; }
-    .config-header { font-weight: 700; font-size: 0.95rem; color: var(--text-main); display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1rem; }
-    .config-header i { color: var(--primary); }
-    
-    .pair-container { display: flex; flex-direction: column; gap: 0.75rem; }
-    .pair-row { background: var(--background); border-radius: 16px; padding: 0.75rem; position: relative; border: 1px solid var(--border); }
-    .pair-connection { display: flex; align-items: center; gap: 0.75rem; justify-content: space-between; }
-    .pair-box { flex: 1; }
-    .pair-label { font-size: 0.75rem; font-weight: 700; color: var(--text-sub); text-transform: uppercase; margin-bottom: 0.4rem; display: block; }
-    .modern-select { width: 100%; padding: 0.75rem; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; font-size: 1rem; font-weight: 600; color: var(--text-main); appearance: none; background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2364748b'%3e%3cpath d='M7 10l5 5 5-5z'/%3e%3c/svg%3e"); background-repeat: no-repeat; background-position: right 0.75rem center; background-size: 1.25rem; }
-    .arrow-divider { color: var(--text-sub); font-size: 1.2rem; padding-top: 1.2rem; }
-    .add-pair-btn { width: 100%; padding: 1rem; border: 2px dashed var(--border); background: transparent; border-radius: 16px; color: var(--primary); font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.5rem; margin-top: 1rem; }
-    .delete-pair { position: absolute; top: -10px; right: -10px; width: 28px; height: 28px; background: #ef4444; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 2px solid var(--background); cursor: pointer; }
+    .wizard-container {
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        width: 100%;
+        margin: 0 auto;
+        background: var(--background);
+        position: relative;
+        overflow: hidden;
+    }
 
-    .wizard-footer { padding: 1rem 1.5rem; background: var(--surface); border-top: 1px solid var(--border); position: fixed; bottom: 0; left: 0; right: 0; width: 100%; margin: 0 auto; z-index: 100; }
-    .action-btn { width: 100%; padding: 1rem; border-radius: 16px; border: none; font-size: 1rem; font-weight: 700; cursor: pointer; transition: all 0.3s; display: flex; align-items: center; justify-content: center; gap: 0.75rem; }
-    .btn-primary { background: var(--primary); color: white; box-shadow: 0 8px 16px -4px rgba(245, 158, 11, 0.4); }
-    .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
+    .wizard-header {
+        padding: 0.75rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        background: var(--surface);
+        border-bottom: 1px solid var(--border);
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        width: 100%;
+        margin: 0 auto;
+        z-index: 100;
+    }
 
-    .toggle-switch { position: relative; display: inline-block; width: 44px; height: 24px; }
-    .toggle-switch input { opacity: 0; width: 0; height: 0; }
-    .toggle-slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #cbd5e1; transition: .4s; border-radius: 24px; }
-    .toggle-slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
-    input:checked + .toggle-slider { background-color: var(--primary); }
-    input:checked + .toggle-slider:before { transform: translateX(20px); }
+    .nav-btn {
+        width: 40px;
+        height: 40px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--text-main);
+        border: 1px solid var(--border);
+        text-decoration: none;
+        transition: all 0.2s;
+    }
+
+    .nav-btn:hover {
+        background: var(--background);
+    }
+
+    .header-info {
+        text-align: center;
+    }
+
+    .set-title {
+        font-size: 1rem;
+        font-weight: 700;
+        color: var(--text-main);
+        margin: 0;
+        max-width: 200px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .mode-badge {
+        font-size: 0.7rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        color: var(--primary);
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        justify-content: center;
+    }
+
+    .wizard-content {
+        flex: 1;
+        padding: 75px 1.5rem 100px 1.5rem;
+        display: flex;
+        flex-direction: column;
+        overflow-y: auto;
+    }
+
+    .step-screen {
+        display: none;
+        animation: fadeIn 0.4s ease-out;
+    }
+
+    .step-screen.active {
+        display: block;
+    }
+
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .title-area {
+        margin-bottom: 2rem;
+        text-align: center;
+    }
+
+    .title-area h2 {
+        font-size: 1.75rem;
+        font-weight: 800;
+        color: var(--text-main);
+        margin: 0 0 0.5rem 0;
+    }
+
+    .title-area p {
+        color: var(--text-sub);
+        font-size: 1rem;
+    }
+
+    .mode-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+
+    .mode-card {
+        background: var(--surface);
+        border: 2px solid transparent;
+        border-radius: 20px;
+        padding: 1.25rem;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        cursor: pointer;
+        transition: all 0.2s;
+        box-shadow: var(--shadow-sm);
+    }
+
+    .mode-card.selected {
+        background: var(--primary-bg);
+        border-color: var(--primary);
+    }
+
+    .mode-card.disabled {
+        opacity: 0.5;
+        filter: grayscale(1);
+        cursor: not-allowed;
+    }
+
+    .mode-icon {
+        width: 50px;
+        height: 50px;
+        border-radius: 16px;
+        background: var(--background);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        color: var(--text-sub);
+    }
+
+    .mode-card.selected .mode-icon {
+        background: var(--primary);
+        color: white;
+    }
+
+    .mode-info {
+        flex: 1;
+    }
+
+    .mode-title {
+        font-weight: 700;
+        font-size: 1.1rem;
+        color: var(--text-main);
+    }
+
+    .mode-desc {
+        font-size: 0.9rem;
+        color: var(--text-sub);
+        display: block;
+    }
+
+    .config-card {
+        background: var(--surface);
+        border-radius: 24px;
+        padding: 1rem;
+        box-shadow: var(--shadow-sm);
+        margin-bottom: 1rem;
+    }
+
+    .config-header {
+        font-weight: 700;
+        font-size: 0.95rem;
+        color: var(--text-main);
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-bottom: 1rem;
+    }
+
+    .config-header i {
+        color: var(--primary);
+    }
+
+    .pair-container {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    .pair-row {
+        background: var(--background);
+        border-radius: 16px;
+        padding: 0.75rem;
+        position: relative;
+        border: 1px solid var(--border);
+    }
+
+    .pair-connection {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        justify-content: space-between;
+    }
+
+    .pair-box {
+        flex: 1;
+    }
+
+    .pair-label {
+        font-size: 0.75rem;
+        font-weight: 700;
+        color: var(--text-sub);
+        text-transform: uppercase;
+        margin-bottom: 0.4rem;
+        display: block;
+    }
+
+    .modern-select {
+        width: 100%;
+        padding: 0.75rem;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        font-size: 1rem;
+        font-weight: 600;
+        color: var(--text-main);
+        appearance: none;
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2364748b'%3e%3cpath d='M7 10l5 5 5-5z'/%3e%3c/svg%3e");
+        background-repeat: no-repeat;
+        background-position: right 0.75rem center;
+        background-size: 1.25rem;
+    }
+
+    .arrow-divider {
+        color: var(--text-sub);
+        font-size: 1.2rem;
+        padding-top: 1.2rem;
+    }
+
+    .add-pair-btn {
+        width: 100%;
+        padding: 1rem;
+        border: 2px dashed var(--border);
+        background: transparent;
+        border-radius: 16px;
+        color: var(--primary);
+        font-weight: 600;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        margin-top: 1rem;
+    }
+
+    .delete-pair {
+        position: absolute;
+        top: -10px;
+        right: -10px;
+        width: 28px;
+        height: 28px;
+        background: #ef4444;
+        color: white;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: 2px solid var(--background);
+        cursor: pointer;
+    }
+
+    .wizard-footer {
+        padding: 1rem 1.5rem;
+        background: var(--surface);
+        border-top: 1px solid var(--border);
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        width: 100%;
+        margin: 0 auto;
+        z-index: 100;
+    }
+
+    .action-btn {
+        width: 100%;
+        padding: 1rem;
+        border-radius: 16px;
+        border: none;
+        font-size: 1rem;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.3s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.75rem;
+    }
+
+    .btn-primary {
+        background: var(--primary);
+        color: white;
+        box-shadow: 0 8px 16px -4px rgba(245, 158, 11, 0.4);
+    }
+
+    .btn-primary:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
+
+    .toggle-switch {
+        position: relative;
+        display: inline-block;
+        width: 44px;
+        height: 24px;
+    }
+
+    .toggle-switch input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+    }
+
+    .toggle-slider {
+        position: absolute;
+        cursor: pointer;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: #cbd5e1;
+        transition: .4s;
+        border-radius: 24px;
+    }
+
+    .toggle-slider:before {
+        position: absolute;
+        content: "";
+        height: 18px;
+        width: 18px;
+        left: 3px;
+        bottom: 3px;
+        background-color: white;
+        transition: .4s;
+        border-radius: 50%;
+    }
+
+    input:checked+.toggle-slider {
+        background-color: var(--primary);
+    }
+
+    input:checked+.toggle-slider:before {
+        transform: translateX(20px);
+    }
 </style>
 {% endblock %}
 
@@ -97,7 +423,7 @@
                 <div class="mode-card {% if mode_counts.review == 0 %}disabled{% endif %}" data-value="all_review">
                     <div class="mode-icon"><i class="fas fa-history"></i></div>
                     <div class="mode-info">
-                        <span class="mode-title">Ôn tập tới hạn</span>
+                        <span class="mode-title">Ôn tập</span>
                         <span class="mode-desc">{{ mode_counts.review }} từ cần ôn lại</span>
                     </div>
                 </div>
@@ -116,7 +442,8 @@
             <div class="title-area">
                 <h2>Cấu hình bài luyện</h2>
                 <p>Tùy chỉnh số lượng và cách hiển thị</p>
-                <div id="selected-mode-display" class="mt-2 inline-flex items-center gap-2 px-3 py-1 bg-amber-50 border border-amber-100 rounded-lg text-amber-700 text-sm font-bold">
+                <div id="selected-mode-display"
+                    class="mt-2 inline-flex items-center gap-2 px-3 py-1 bg-amber-50 border border-amber-100 rounded-lg text-amber-700 text-sm font-bold">
                     <i class="fas fa-layer-group"></i> <span>...</span>
                 </div>
             </div>
@@ -152,7 +479,8 @@
                 </div>
                 <div id="custom-builder-view" class="hidden mt-4">
                     <div class="pair-container" id="pairs-list"></div>
-                    <button type="button" class="add-pair-btn" id="add-pair-btn"><i class="fas fa-plus-circle"></i> Thêm cặp mới</button>
+                    <button type="button" class="add-pair-btn" id="add-pair-btn"><i class="fas fa-plus-circle"></i> Thêm
+                        cặp mới</button>
                 </div>
             </div>
 
@@ -177,67 +505,75 @@
 {% block scripts %}
 {{ super() }}
 <script>
-    (function() {
-        const setId = {{ container.container_id }};
-        const availableKeys = {{ available_keys | tojson }} || [];
-        const savedSettings = {{ saved_settings | tojson }} || {};
-        const defaultSettings = {{ default_settings | tojson }} || {};
-        
-        let currentStep = 1;
-        let config = {
-            mode: savedSettings.mode || 'all_review',
-            count: savedSettings.count || 0,
-            use_custom_config: savedSettings.use_custom_config || false,
-            auto_audio: savedSettings.auto_audio !== undefined ? savedSettings.auto_audio : true,
-            custom_pairs: []
-        };
+    (function () {
+        const setId = Number("{{ container.container_id }}");
+        const availableKeys = {{ available_keys | tojson
+    }} || [];
+    const savedSettings = {{ saved_settings | tojson }} || {};
+    const defaultSettings = {{ default_settings | tojson }} || {};
 
-        const modeLabels = { 'all_review': 'Ôn tập tới hạn', 'random': 'Ngẫu nhiên' };
+    let currentStep = 1;
+    let config = {
+        study_mode: savedSettings.study_mode || 'review',
+        mode: savedSettings.mode || 'front_back',
+        count: savedSettings.count || 0,
+        use_custom_config: savedSettings.use_custom_config || false,
+        auto_audio: savedSettings.auto_audio !== undefined ? savedSettings.auto_audio : true,
+        custom_pairs: []
+    };
 
-        function showStep(step) {
-            document.querySelectorAll('.step-screen').forEach(el => el.classList.remove('active'));
-            document.getElementById(`step-${step}`).classList.add('active');
-            currentStep = step;
-            document.getElementById('next-btn').innerHTML = step === 1 ? 'Tiếp tục <i class="fas fa-arrow-right"></i>' : 'Bắt đầu học ngay <i class="fas fa-rocket"></i>';
-            if (step === 2) document.querySelector('#selected-mode-display span').textContent = modeLabels[config.mode];
+    const modeLabels = { 'review': 'Ôn tập', 'random': 'Ngẫu nhiên' };
+
+    function showStep(step) {
+        document.querySelectorAll('.step-screen').forEach(el => el.classList.remove('active'));
+        document.getElementById(`step-${step}`).classList.add('active');
+        currentStep = step;
+        document.getElementById('next-btn').innerHTML = step === 1 ? 'Tiếp tục <i class="fas fa-arrow-right"></i>' : 'Bắt đầu học ngay <i class="fas fa-rocket"></i>';
+        if (step === 2) {
+            const label = modeLabels[config.study_mode] || 'Ôn tập';
+            document.querySelector('#selected-mode-display span').textContent = label;
         }
+    }
 
-        // Mode Selection
-        document.querySelectorAll('.mode-card').forEach(card => {
-            card.onclick = () => {
-                if (card.classList.contains('disabled')) return;
-                document.querySelectorAll('.mode-card').forEach(c => c.classList.remove('selected'));
-                card.classList.add('selected');
-                config.mode = card.dataset.value;
-            };
-            if (card.dataset.value === config.mode) card.classList.add('selected');
-        });
+    // Mode Selection
+    document.querySelectorAll('.mode-card').forEach(card => {
+        // Map 'all_review' data-value from template to 'review' logic
+        const val = card.dataset.value === 'all_review' ? 'review' : card.dataset.value;
 
-        // Config Toggles
-        const limitToggle = document.getElementById('limit-toggle');
-        limitToggle.checked = config.count > 0;
-        if (config.count > 0) document.getElementById('limit-options').classList.remove('hidden');
-        limitToggle.onchange = () => {
-            document.getElementById('limit-options').classList.toggle('hidden', !limitToggle.checked);
-            config.count = limitToggle.checked ? parseInt(document.getElementById('count-select').value) : 0;
+        card.onclick = () => {
+            if (card.classList.contains('disabled')) return;
+            document.querySelectorAll('.mode-card').forEach(c => c.classList.remove('selected'));
+            card.classList.add('selected');
+            config.study_mode = val;
         };
+        if (val === config.study_mode) card.classList.add('selected');
+    });
 
-        const customToggle = document.getElementById('custom-config-toggle');
-        customToggle.checked = config.use_custom_config;
+    // Config Toggles
+    const limitToggle = document.getElementById('limit-toggle');
+    limitToggle.checked = config.count > 0;
+    if (config.count > 0) document.getElementById('limit-options').classList.remove('hidden');
+    limitToggle.onchange = () => {
+        document.getElementById('limit-options').classList.toggle('hidden', !limitToggle.checked);
+        config.count = limitToggle.checked ? parseInt(document.getElementById('count-select').value) : 0;
+    };
+
+    const customToggle = document.getElementById('custom-config-toggle');
+    customToggle.checked = config.use_custom_config;
+    document.getElementById('default-config-view').classList.toggle('hidden', config.use_custom_config);
+    document.getElementById('custom-builder-view').classList.toggle('hidden', !config.use_custom_config);
+    customToggle.onchange = () => {
+        config.use_custom_config = customToggle.checked;
         document.getElementById('default-config-view').classList.toggle('hidden', config.use_custom_config);
         document.getElementById('custom-builder-view').classList.toggle('hidden', !config.use_custom_config);
-        customToggle.onchange = () => {
-            config.use_custom_config = customToggle.checked;
-            document.getElementById('default-config-view').classList.toggle('hidden', config.use_custom_config);
-            document.getElementById('custom-builder-view').classList.toggle('hidden', !config.use_custom_config);
-        };
+    };
 
-        // Pairs Logic
-        function addPairUI(q = '', a = '') {
-            const row = document.createElement('div');
-            row.className = 'pair-row';
-            let opts = availableKeys.map(k => `<option value="${k}">${k}</option>`).join('');
-            row.innerHTML = `
+    // Pairs Logic
+    function addPairUI(q = '', a = '') {
+        const row = document.createElement('div');
+        row.className = 'pair-row';
+        let opts = availableKeys.map(k => `<option value="${k}">${k}</option>`).join('');
+        row.innerHTML = `
                 <div class="pair-connection">
                     <div class="pair-box"><label class="pair-label">Nhìn</label><select class="modern-select pair-q">${opts}</select></div>
                     <div class="arrow-divider"><i class="fas fa-arrow-right"></i></div>
@@ -245,55 +581,61 @@
                 </div>
                 <button class="delete-pair"><i class="fas fa-times"></i></button>
             `;
-            document.getElementById('pairs-list').appendChild(row);
-            if (q) row.querySelector('.pair-q').value = q;
-            if (a) row.querySelector('.pair-a').value = a;
-            row.querySelector('.delete-pair').onclick = () => row.remove();
-        }
+        document.getElementById('pairs-list').appendChild(row);
+        if (q) row.querySelector('.pair-q').value = q;
+        if (a) row.querySelector('.pair-a').value = a;
+        row.querySelector('.delete-pair').onclick = () => row.remove();
+    }
 
-        // Load Initial Pairs
-        const initialPairs = (savedSettings.custom_pairs && savedSettings.custom_pairs.length) ? savedSettings.custom_pairs : (defaultSettings.custom_pairs || []);
-        initialPairs.forEach(p => addPairUI(p.q, p.a));
-        if (!initialPairs.length) addPairUI('front', 'back');
+    // Load Initial Pairs
+    const initialPairs = (savedSettings.custom_pairs && savedSettings.custom_pairs.length) ? savedSettings.custom_pairs : (defaultSettings.custom_pairs || []);
+    initialPairs.forEach(p => addPairUI(p.q, p.a));
+    if (!initialPairs.length) addPairUI('front', 'back');
 
-        // Render Default Summary
-        const summary = document.getElementById('default-summary');
-        (defaultSettings.custom_pairs || []).forEach(p => {
-            summary.innerHTML += `<div class="text-sm font-bold text-slate-600 uppercase">${p.q} <i class="fas fa-arrow-right mx-2 opacity-30"></i> ${p.a}</div>`;
-        });
+    // Render Default Summary
+    const summary = document.getElementById('default-summary');
+    (defaultSettings.custom_pairs || []).forEach(p => {
+        summary.innerHTML += `<div class="text-sm font-bold text-slate-600 uppercase">${p.q} <i class="fas fa-arrow-right mx-2 opacity-30"></i> ${p.a}</div>`;
+    });
 
-        document.getElementById('next-btn').onclick = () => {
-            if (currentStep === 1) showStep(2);
-            else start();
-        };
+    document.getElementById('next-btn').onclick = () => {
+        if (currentStep === 1) showStep(2);
+        else start();
+    };
 
-        document.getElementById('header-back-btn').onclick = (e) => {
+    const headerBackBtn = document.getElementById('header-back-btn');
+    if (headerBackBtn) {
+        headerBackBtn.onclick = (e) => {
             e.preventDefault();
             if (currentStep === 2) showStep(1);
             else window.location.href = '/dashboard';
         };
+    }
 
-        async function start() {
-            const btn = document.getElementById('next-btn');
-            btn.disabled = true;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Khởi tạo...';
-            
-            config.custom_pairs = Array.from(document.querySelectorAll('.pair-row')).map(row => ({
-                q: row.querySelector('.pair-q').value,
-                a: row.querySelector('.pair-a').value
-            }));
-            config.count = limitToggle.checked ? parseInt(document.getElementById('count-select').value) : 0;
-            config.auto_audio = document.getElementById('setting-auto-audio').checked;
+    async function start() {
+        const btn = document.getElementById('next-btn');
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Khởi tạo...';
 
-            try {
-                const res = await fetch(`/learn/vocab-typing/typing/setup/save/${setId}`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token() }}' },
-                    body: JSON.stringify(config)
-                });
-                if (res.ok) window.location.href = `/learn/vocab-typing/typing/session/${setId}`;
-            } catch(e) { console.error(e); btn.disabled = false; }
-        }
-    })();
+        config.custom_pairs = Array.from(document.querySelectorAll('.pair-row')).map(row => ({
+            q: row.querySelector('.pair-q').value,
+            a: row.querySelector('.pair-a').value
+        }));
+        config.count = limitToggle.checked ? parseInt(document.getElementById('count-select').value) : 0;
+        config.auto_audio = document.getElementById('setting-auto-audio').checked;
+
+        try {
+            const res = await fetch(`/learn/vocab-typing/typing/setup/save/${setId}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token() }}' },
+                body: JSON.stringify(config)
+            });
+            if (res.ok) window.location.href = `/learn/vocab-typing/typing/session/${setId}`;
+        } catch (e) { console.error(e); btn.disabled = false; }
+    }
+
+    // Initial state setup
+    if (currentStep === 1) showStep(1);
+    }) ();
 </script>
 {% endblock %}

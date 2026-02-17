@@ -211,8 +211,13 @@ class TypingService:
             'count': config.get('count') if config.get('count') is not None else typing_settings.get('count', 0)
         }
 
-        # 1. Get learned items
-        eligible_questions = TypingService.get_eligible_items(container_id, user_id)
+        # 1. Get questions source
+        study_mode = config.get('study_mode', 'review')
+        if study_mode == 'random':
+            eligible_questions = TypingService.get_eligible_items(container_id, user_id=None)
+        else:
+            eligible_questions = TypingService.get_eligible_items(container_id, user_id)
+            
         if len(eligible_questions) < 1:
             return []
             

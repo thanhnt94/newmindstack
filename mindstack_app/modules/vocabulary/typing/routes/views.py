@@ -133,6 +133,7 @@ def typing_save_setup(set_id):
             return jsonify({'success': False, 'message': 'No data provided'}), 400
             
         mode = data.get('mode', 'custom')
+        study_mode = data.get('study_mode', 'review')
         count = data.get('count', 0)
         custom_pairs = data.get('custom_pairs')
         use_custom_config = data.get('use_custom_config', False)
@@ -146,6 +147,7 @@ def typing_save_setup(set_id):
         if 'typing' not in new_settings: new_settings['typing'] = {}
         
         new_settings['typing']['mode'] = mode
+        new_settings['typing']['study_mode'] = study_mode
         new_settings['typing']['count'] = int(count) if count is not None else 0
         new_settings['typing']['use_custom_config'] = bool(use_custom_config)
         new_settings['typing']['auto_audio'] = bool(data.get('auto_audio', True))
@@ -175,6 +177,7 @@ def typing_api_get_items(set_id):
         
         count = request.args.get('count', 0, type=int)
         mode = request.args.get('mode', 'front_back')
+        study_mode = request.args.get('study_mode', 'review')
         custom_pairs_str = request.args.get('custom_pairs', '')
         
         custom_pairs = None
@@ -197,7 +200,7 @@ def typing_api_get_items(set_id):
 
         if manager:
             request_params = {
-                'count': count, 'mode': mode, 'custom_pairs': custom_pairs
+                'count': count, 'mode': mode, 'custom_pairs': custom_pairs, 'study_mode': study_mode
             }
             if manager.params == request_params:
                 response = manager.get_session_data()
@@ -206,7 +209,7 @@ def typing_api_get_items(set_id):
 
         manager = TypingSessionManager(current_user.user_id, set_id)
         success, message = manager.initialize_session(
-            count=count, mode=mode, custom_pairs=custom_pairs
+            count=count, mode=mode, custom_pairs=custom_pairs, study_mode=study_mode
         )
         
         if not success:

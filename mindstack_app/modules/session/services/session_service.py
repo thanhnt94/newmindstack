@@ -10,7 +10,7 @@ class LearningSessionService:
     """
 
     @staticmethod
-    def create_session(user_id, learning_mode, mode_config_id, set_id_data, total_items=0, item_queue=None):
+    def create_session(user_id, learning_mode, mode_config_id, set_id_data, total_items=0, item_queue=None, extra_data=None):
         """Create a new session in the database."""
         try:
             # [UPDATED] Enforce Single Active Mode Policy for Vocabulary
@@ -32,9 +32,8 @@ class LearningSessionService:
                     learning_mode=learning_mode, 
                     set_id_data=set_id_data
                 )
-            # OLD: LearningSessionService.cancel_active_sessions(user_id, learning_mode, set_id_data)
 
-            session_data = {}
+            session_data = dict(extra_data or {})
             if item_queue:
                 session_data['item_queue'] = item_queue
 
