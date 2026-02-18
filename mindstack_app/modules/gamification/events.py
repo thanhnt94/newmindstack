@@ -25,7 +25,7 @@ def on_card_reviewed(sender, **kwargs):
         - item_type: str ('FLASHCARD', 'QUIZ_MCQ', etc.)
         - reason: str
     """
-    from .services.scoring_service import ScoreService
+    from mindstack_app.modules.scoring.interface import ScoringInterface
     
     user_id = kwargs.get('user_id')
     score_points = kwargs.get('score_points', 0)
@@ -37,10 +37,11 @@ def on_card_reviewed(sender, **kwargs):
         return
     
     try:
-        ScoreService.award_points(
+        # [NEW] [V3] Use the new centralized ScoringInterface
+        ScoringInterface.award_points(
             user_id=user_id,
             amount=score_points,
-            reason=reason,
+            activity_type=reason,
             item_id=item_id,
             item_type=item_type
         )

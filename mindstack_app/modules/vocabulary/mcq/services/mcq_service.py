@@ -268,6 +268,6 @@ class MCQService:
         return questions
 
     @staticmethod
-    def check_result(correct_index: int, user_answer_index: int) -> dict:
+    def check_result(correct_index: int, user_answer_index: int, config: dict = None) -> dict:
         """Call engine to check answer."""
-        return MCQEngine.check_answer(correct_index, user_answer_index)
+        return MCQEngine.check_answer(correct_index, user_answer_index, config)

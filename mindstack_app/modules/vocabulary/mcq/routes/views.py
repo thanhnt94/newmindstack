@@ -315,12 +315,17 @@ def mcq_api_check_answer():
     if not result['success']:
         return jsonify(result), 400
         
+    from mindstack_app.modules.scoring.interface import ScoringInterface
+    point_value = ScoringInterface.get_score_value('VOCAB_MCQ_CORRECT_BONUS')
+    
     user_answer_text = data.get('user_answer_text')
     duration_ms = data.get('duration_ms', 0)
+    
     result['user_answer'] = user_answer_text
     result['duration_ms'] = duration_ms
     result['quality'] = 5 if result['is_correct'] else 0
-    result['score_change'] = 10 if result['is_correct'] else 0
+    result['score_change'] = point_value if result['is_correct'] else 0
+    result['updated_total_score'] = current_user.total_score
     
     if item_id:
         try:

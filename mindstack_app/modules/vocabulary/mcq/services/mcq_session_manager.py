@@ -196,15 +196,26 @@ class MCQSessionManager:
 
     def check_answer(self, user_answer_index):
         """Updates stats and records the answer."""
+        from mindstack_app.modules.scoring.interface import ScoringInterface
+        
         if self.currentIndex >= len(self.questions):
             return {'success': False, 'message': 'Index out of bounds'}
             
         question = self.questions[self.currentIndex]
         is_correct = (question['correct_index'] == user_answer_index)
         
+        # [NEW] [V3] Lấy giá trị điểm từ hệ thống scoring trung tâm
+        point_value = ScoringInterface.get_score_value('VOCAB_MCQ_CORRECT_BONUS')
+        
         if is_correct:
             self.stats['correct'] += 1
-            self.stats['points'] += 10 # Default points for correct MCQ
+            # Ưu tiên params nếu có (do người dùng chỉnh tay lúc tạo session), nếu không lấy từ scoring module
+            session_points = self.params.get('MCQ_CORRECT_SCORE', point_value)
+            self.stats['points'] += session_points
+            
+            # [REMOVED] Awarding points here caused double counting because the controller (view) 
+            # also emits card_reviewed signal which awards points. 
+            # We keep stats tracking but delegate actual DB awarding to the signal handler.
         else:
             self.stats['wrong'] += 1
             
@@ -220,15 +231,13 @@ class MCQSessionManager:
                 from mindstack_app.modules.session.interface import SessionInterface
                 
                 # Assume item_id is stored in the question object. 
-                # If not, we might need to adjust generate_mcq_question, 
-                # but typically MCQ questions retain item_id reference.
                 item_id = question.get('item_id') 
                 
                 SessionInterface.update_progress(
                     session_id=self.db_session_id,
                     item_id=item_id,
                     result_type='correct' if is_correct else 'incorrect',
-                    points=10 if is_correct else 0
+                    points=point_value if is_correct else 0
                 )
                 
                 # Check for completion

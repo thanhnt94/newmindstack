@@ -173,6 +173,8 @@ class TypingSessionManager:
 
     def check_answer(self, user_input):
         """Updates stats and records the answer."""
+        from mindstack_app.modules.scoring.interface import ScoringInterface
+        
         if self.currentIndex >= len(self.questions):
             return {'success': False, 'message': 'Index out of bounds'}
             
@@ -181,9 +183,16 @@ class TypingSessionManager:
         result = TypingService.check_result(user_input, question['correct_answer'])
         is_correct = result['is_correct']
         
+        # [NEW] [V3] Lấy giá trị điểm từ hệ thống scoring trung tâm
+        point_value = ScoringInterface.get_score_value('VOCAB_TYPING_CORRECT_BONUS')
+        
         if is_correct:
             self.stats['correct'] += 1
-            self.stats['points'] += 15 # Default points for correct Typing
+            # Ưu tiên params nếu có, nếu không lấy từ scoring module
+            session_points = self.params.get('TYPING_CORRECT_SCORE', point_value)
+            self.stats['points'] += session_points
+            
+            # [REMOVED] Double awarding fix. Awarding is handled by card_reviewed signal in views.
         else:
             self.stats['wrong'] += 1
             
@@ -201,7 +210,7 @@ class TypingSessionManager:
                     session_id=self.db_session_id,
                     item_id=item_id,
                     result_type='correct' if is_correct else 'incorrect',
-                    points=15 if is_correct else 0
+                    points=point_value if is_correct else 0
                 )
                 
                 if self.currentIndex >= len(self.questions) - 1:

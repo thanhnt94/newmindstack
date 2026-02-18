@@ -90,11 +90,14 @@ class MCQEngine:
         }
 
     @staticmethod
-    def check_answer(correct_index: int, user_answer_index: int) -> dict:
+    def check_answer(correct_index: int, user_answer_index: int, config: dict = None) -> dict:
         """Evaluate the user's answer."""
+        if config is None:
+            config = {}
+        score = config.get('MCQ_CORRECT_SCORE', 10)
         is_correct = correct_index == user_answer_index
         return {
             'is_correct': is_correct,
             'quality': 5 if is_correct else 0,
-            'score_change': 10 if is_correct else 0
+            'score_change': score if is_correct else 0
         }
