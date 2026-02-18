@@ -227,6 +227,20 @@
         pollInterval = setInterval(async () => {
             try {
                 const response = await fetch("{{ url_for('ops.get_upgrade_status_api') }}");
+
+                // Handle non-200 responses (like 502 during restart)
+                if (!response.ok) {
+                    console.log(`[UPGRADE] Server returned status ${response.status}. Waiting for recovery...`);
+                    return;
+                }
+
+                // Check if response is JSON
+                const contentType = response.headers.get("content-type");
+                if (!contentType || !contentType.includes("application/json")) {
+                    console.warn("[UPGRADE] Received non-JSON response. Server might be restarting.");
+                    return;
+                }
+
                 const data = await response.json();
 
                 if (data.success) {
@@ -245,7 +259,8 @@
                     }
                 }
             } catch (e) {
-                console.error('Polling error:', e);
+                // Network errors or aborted fetches
+                console.log('[UPGRADE] Polling attempt failed:', e.message);
             }
         }, 1000);
     }

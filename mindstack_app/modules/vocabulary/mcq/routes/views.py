@@ -332,9 +332,22 @@ def mcq_api_check_answer():
             # Map MCQ outcome for logging/points consistency (Correct = 3, Incorrect = 1)
             fsrs_quality = 3 if result['is_correct'] else 1
             
-            # [REMOVED] FSRS update (process_interaction) as requested by user
-            # We now only award points and record history
-            
+            # [RE-ENABLED] FSRS update (process_interaction) as requested by user
+            # We use only_count=True to increment MCQ/TOTAL reps without affecting FSRS S/D/R
+            try:
+                from mindstack_app.modules.fsrs.interface import FSRSInterface
+                fsrs_res = FSRSInterface.process_interaction(
+                    user_id=current_user.user_id,
+                    item_id=item_id,
+                    quality=fsrs_quality,
+                    mode='mcq',
+                    only_count=True
+                )
+                # Merge FSRS result into the main response
+                result.update(fsrs_res)
+            except Exception as e_fsrs:
+                current_app.logger.error(f"[VOCAB_MCQ] FSRS interaction error: {e_fsrs}")
+
             # [EMIT] Core signal for Gamification to award points
             try:
                 # Fetch item for type if not provided, fallback to FLASHCARD for points consistency

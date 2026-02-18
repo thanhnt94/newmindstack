@@ -52,6 +52,7 @@ class FSRSInterface:
         item_id: int,
         quality: int = 3,
         mode: str = 'mcq',
+        only_count: bool = False,
         **kwargs
     ) -> Dict[str, Any]:
         """
@@ -64,6 +65,7 @@ class FSRSInterface:
             item_id=item_id,
             quality=quality,
             mode=mode,
+            only_count=only_count,
             **kwargs
         )
         # Convert DTO to dict

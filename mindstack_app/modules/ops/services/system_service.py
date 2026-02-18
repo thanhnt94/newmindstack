@@ -25,6 +25,7 @@ class SystemService:
     }
     
     _log_lock = threading.Lock()
+    _monitor_thread = None  # Track the actual thread instance
 
     @classmethod
     def _save_state(cls):
@@ -45,6 +46,16 @@ class SystemService:
                     data = json.load(f)
                     # Merge with existing default in case schema changed
                     cls._execution_state.update(data)
+                    
+                    # Orphaned state recovery: 
+                    # If state says running but we have no local thread, it crashed/restarted
+                    if cls._execution_state.get('is_running') and cls._monitor_thread is None:
+                        print("[SystemService] Detecting orphaned running state. Cleaning up...")
+                        cls._execution_state['is_running'] = False
+                        if cls._execution_state['exit_code'] is None:
+                             cls._execution_state['exit_code'] = 0 # Assume finished or interrupted
+                        cls._execution_state['logs'].append(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] ⚠️ Tiến trình bị gián đoạn do hệ thống khởi động lại.")
+                        cls._save_state()
             except Exception as e:
                 print(f"[SystemService] Error loading state: {e}")
 
@@ -71,9 +82,9 @@ class SystemService:
         cls._save_state()
 
         # Run in background thread to not block Flask
-        thread = threading.Thread(target=cls._execute_command, args=(command,))
-        thread.daemon = True
-        thread.start()
+        cls._monitor_thread = threading.Thread(target=cls._execute_command, args=(command,))
+        cls._monitor_thread.daemon = True
+        cls._monitor_thread.start()
         
         return True, "Tiến trình nâng cấp đã được bắt đầu."
 

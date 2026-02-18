@@ -52,6 +52,7 @@ class SchedulerService:
         mode: str = 'flashcard',
         duration_ms: int = 0,
         container_id: int = None,
+        only_count: bool = False,
         **kwargs
     ) -> Tuple[ItemMemoryState, SrsResultDTO]:
         """
@@ -65,36 +66,63 @@ class SchedulerService:
         item_state = SchedulerService._get_or_create_state(user_id, item_id)
         card_dto = SchedulerService._model_to_dto(item_state)
         
-        # 2. Get Configuration & Parameters
-        effective_weights = FSRSOptimizerService.get_user_parameters(user_id)
-        desired_retention = float(FSRSSettingsService.get('FSRS_DESIRED_RETENTION', 0.9))
-        enable_fuzz = bool(FSRSSettingsService.get('FSRS_ENABLE_FUZZING', True))
-        
-        # 3. Call Engine
-        engine = FSRSEngine(custom_weights=effective_weights, desired_retention=desired_retention)
         now = datetime.datetime.now(datetime.timezone.utc)
         
-        try:
-            new_card_state, next_due, log = engine.review_card(
-                card_dto, 
-                rating=quality, 
-                now=now, 
-                enable_fuzz=enable_fuzz
-            )
-        except Exception as e:
-            logger.error(f"Engine calculation failed for user {user_id} item {item_id}: {e}")
-            raise e
+        if only_count:
+            # Skip FSRS logic but update counters
+            item_state.repetitions = (item_state.repetitions or 0) + 1
+            item_state.last_review = now
+            
+            # Prepare dummy result for DTO
+            retrievability = 0.0
+            try:
+                effective_weights = FSRSOptimizerService.get_user_parameters(user_id)
+                desired_retention = float(FSRSSettingsService.get('FSRS_DESIRED_RETENTION', 0.9))
+                engine = FSRSEngine(custom_weights=effective_weights, desired_retention=desired_retention)
+                card_for_r = SchedulerService._model_to_dto(item_state)
+                retrievability = engine.get_realtime_retention(card_for_r, now)
+            except: pass
+            
+            srs_result_state = item_state.state
+            srs_result_stability = item_state.stability
+            srs_result_difficulty = item_state.difficulty
+            srs_result_next_due = item_state.due_date or now
+        else:
+            # 2. Get Configuration & Parameters
+            effective_weights = FSRSOptimizerService.get_user_parameters(user_id)
+            desired_retention = float(FSRSSettingsService.get('FSRS_DESIRED_RETENTION', 0.9))
+            enable_fuzz = bool(FSRSSettingsService.get('FSRS_ENABLE_FUZZING', True))
+            
+            # 3. Call Engine
+            engine = FSRSEngine(custom_weights=effective_weights, desired_retention=desired_retention)
+            
+            try:
+                new_card_state, next_due, log = engine.review_card(
+                    card_dto, 
+                    rating=quality, 
+                    now=now, 
+                    enable_fuzz=enable_fuzz
+                )
+            except Exception as e:
+                logger.error(f"Engine calculation failed for user {user_id} item {item_id}: {e}")
+                raise e
 
-        # 4. Update DB Model
-        item_state.stability = new_card_state.stability
-        item_state.difficulty = new_card_state.difficulty
-        item_state.state = new_card_state.state
-        item_state.due_date = next_due
-        item_state.last_review = now
-        item_state.repetitions = new_card_state.reps
-        item_state.lapses = new_card_state.lapses
+            # 4. Update DB Model
+            item_state.stability = new_card_state.stability
+            item_state.difficulty = new_card_state.difficulty
+            item_state.state = new_card_state.state
+            item_state.due_date = next_due
+            item_state.last_review = now
+            item_state.repetitions = new_card_state.reps
+            item_state.lapses = new_card_state.lapses
+            
+            srs_result_state = new_card_state.state
+            srs_result_stability = new_card_state.stability
+            srs_result_difficulty = new_card_state.difficulty
+            srs_result_next_due = next_due
+            retrievability = engine.get_realtime_retention(new_card_state, now)
         
-        # Update metrics
+        # Update metrics (Always update streaks and correct counts)
         if quality >= 3:
             item_state.streak = (item_state.streak or 0) + 1
             item_state.incorrect_streak = 0
@@ -128,12 +156,12 @@ class SchedulerService:
         
         # 6. Prepare Result & Emit Signal
         srs_result = SrsResultDTO(
-            next_review=next_due,
-            interval_minutes=int(new_card_state.scheduled_days * 1440),
-            retrievability=engine.get_realtime_retention(new_card_state, now),
-            state=new_card_state.state,
-            stability=new_card_state.stability,
-            difficulty=new_card_state.difficulty,
+            next_review=srs_result_next_due,
+            interval_minutes=0, # Not strictly needed for DTO here
+            retrievability=retrievability,
+            state=srs_result_state,
+            stability=srs_result_stability,
+            difficulty=srs_result_difficulty,
             correct_streak=item_state.streak,
             incorrect_streak=item_state.incorrect_streak,
             repetitions=item_state.repetitions,
