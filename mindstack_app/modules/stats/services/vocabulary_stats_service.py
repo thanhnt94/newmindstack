@@ -258,7 +258,9 @@ class VocabularyStatsService:
                 'status': status, 'retrievability': round(retrievability * 100, 1), 'streak': streak, 'ease_factor': round(difficulty, 2),
                 'due_relative': VocabularyStatsService._get_relative_time_string(next_due) if next_due else 'Sẵn sàng',
                 'stability_trend': 0, 'mastery_trend': 0, 'first_reviewed': first_reviewed, 'last_reviewed_log': last_reviewed_log,
-                'last_reviewed_relative': VocabularyStatsService._get_relative_time_string(last_reviewed_log) if last_reviewed_log else 'Chưa học'
+                'last_reviewed_relative': VocabularyStatsService._get_relative_time_string(last_reviewed_log) if last_reviewed_log else 'Chưa học',
+                # [NEW] FSRS Stats
+                'fsrs_stability': stability, 'fsrs_difficulty': difficulty, 'fsrs_state': getattr(progress, 'state', 0) if progress else 0
             },
             'modes': mode_counts,
             'performance': {
@@ -267,12 +269,17 @@ class VocabularyStatsService:
             },
             'history': [
                 {
-                    'timestamp': log['timestamp'], 'mode': log['learning_mode'], 'result': 'Correct' if VocabularyStatsService._is_log_dict_correct(log) else 'Incorrect',
-                    'duration_ms': log['review_duration'], 'user_answer': log['user_answer'], 
+                    'timestamp': log['timestamp'].isoformat() if log.get('timestamp') else None, 
+                    'mode': log.get('learning_mode'), 
+                    'result': 'Correct' if VocabularyStatsService._is_log_dict_correct(log) else 'Incorrect',
+                    'duration_ms': log.get('review_duration', 0), 
+                    'user_answer': log.get('user_answer'), 
                     'score_change': (log.get('gamification_snapshot') or {}).get('score_change', 0), 
-                    'rating': log['rating']
+                    'rating': log.get('rating'),
+                    # [NEW] Return FSRA snapshot for charts
+                    'fsrs_snapshot': log.get('fsrs_snapshot')
                 }
-                for log in logs[:50]
+                for log in logs[:100] # Increased limit for better charts
             ],
             'permissions': {'can_edit': can_edit, 'edit_url': edit_url}
         }

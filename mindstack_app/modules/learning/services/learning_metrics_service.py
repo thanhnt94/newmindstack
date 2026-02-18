@@ -588,15 +588,16 @@ class LearningMetricsService:
             score = score_map.get(d_str, 0)
             score_data.append(score)
             
-            # Reviews
-            reviews = reviews_map.get(d_str, 0)
-            reviews_data.append(reviews)
-            total_items_reviewed_30d += reviews
-            
             # New Items
             new_items = new_items_map.get(d_str, 0)
             new_items_data.append(new_items)
             total_new_items_30d += new_items
+            
+            # Reviews (Corrected: Discount new items from total interactions to avoid double counting)
+            total_interactions = reviews_map.get(d_str, 0)
+            effective_reviews = max(0, total_interactions - new_items)
+            reviews_data.append(effective_reviews)
+            total_items_reviewed_30d += effective_reviews
             
         # Averages (Global)
         avg_reviews_per_day = round(total_items_reviewed_30d / 30, 1)
@@ -607,15 +608,22 @@ class LearningMetricsService:
         reviews_map_fc = FsrsInterface.get_daily_reviews_map(user_id, start_date, end_date, item_types=['FLASHCARD'])
         new_items_map_fc = FsrsInterface.get_daily_new_items_map(user_id, start_date, end_date, item_types=['FLASHCARD'])
         
-        avg_reviews_fc = round(sum(reviews_map_fc.values()) / 30, 1)
-        avg_new_fc = round(sum(new_items_map_fc.values()) / 30, 1)
+        # Corrected totals for averages (Discounting new items from interactions)
+        total_fc_reviews_corr = sum(max(0, reviews_map_fc.get(dt.isoformat(), 0) - new_items_map_fc.get(dt.isoformat(), 0)) for dt in date_range)
+        total_fc_new = sum(new_items_map_fc.values())
+        
+        avg_reviews_fc = round(total_fc_reviews_corr / 30, 1)
+        avg_new_fc = round(total_fc_new / 30, 1)
 
         # Quiz
         reviews_map_quiz = FsrsInterface.get_daily_reviews_map(user_id, start_date, end_date, item_types=['QUIZ_MCQ'])
         new_items_map_quiz = FsrsInterface.get_daily_new_items_map(user_id, start_date, end_date, item_types=['QUIZ_MCQ'])
         
-        avg_reviews_quiz = round(sum(reviews_map_quiz.values()) / 30, 1)
-        avg_new_quiz = round(sum(new_items_map_quiz.values()) / 30, 1)
+        total_quiz_reviews_corr = sum(max(0, reviews_map_quiz.get(dt.isoformat(), 0) - new_items_map_quiz.get(dt.isoformat(), 0)) for dt in date_range)
+        total_quiz_new = sum(new_items_map_quiz.values())
+        
+        avg_reviews_quiz = round(total_quiz_reviews_corr / 30, 1)
+        avg_new_quiz = round(total_quiz_new / 30, 1)
         
         # 5. Advanced Charts Data (Phase 2 & 3)
         hourly_activity = cls.get_hourly_activity(user_id)

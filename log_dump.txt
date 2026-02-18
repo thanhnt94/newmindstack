@@ -1,0 +1,33 @@
+
+[Log ID: 399]
+Item ID: 35302
+--- GAMIFICATION SNAPSHOT ---
+{
+  "score_earned": 0
+}
+--- FSRS SNAPSHOT ---
+None
+--- USER ANSWER ---
+📌 清掃／Nする／THANH TẢO／せいそう<br />🏷️ Quét dọn, vệ sinh<br /><br />🌱 今日は私が教室の<span style="color:blue;"><strong>清掃</strong></span>当番だ。<br />💡 Hôm nay đến lịch trực <span style="color:blue;"><strong>vệ sinh</strong></span> lớp của tôi.<br />📢 きょうはわたしがきょうしつの<span style="color:blue;"><strong>せいそう</strong></span>とうばんだ。
+
+[Log ID: 398]
+Item ID: 35269
+--- GAMIFICATION SNAPSHOT ---
+{
+  "score_earned": 0
+}
+--- FSRS SNAPSHOT ---
+None
+--- USER ANSWER ---
+📌 交わす／Vる／GIAO／かわす<br />🏷️ Trao, trao đổi với nhau<br /><br />🌱 最近、彼女とは一言も言葉を<span style="color:blue;"><strong>交わして</strong></span>いない。<br />💡 Gần đây, tôi chẳng nói (<span style="color:blue;"><strong>trao đổi</strong></span>) một lời nào với cô ấy.<br />📢 さいきん、かのじょとはひとこともことばを<span style="color:blue;"><strong>かわして</strong></span>いない。
+
+[Log ID: 397]
+Item ID: 35270
+--- GAMIFICATION SNAPSHOT ---
+{
+  "score_earned": 0
+}
+--- FSRS SNAPSHOT ---
+None
+--- USER ANSWER ---
+📌 生物／N／SINH VẬT／せいぶつ<br />🏷️ Sinh vật<br /><br />🌱 子どもの時から動物や魚が好きで、<span style="color:blue;"><strong>生物</strong></span>の勉強も得意だった。<br />💡 Yêu động vật và cá từ khi còn nhỏ và cũng học giỏi môn <span style="color:blue;"><strong>sinh học</strong></span>.<br />📢 こどものときからどうぶつやさかながすきで、<span style="color:blue;"><strong>せいぶつ</strong></span>のべんきょうもとくいだった。

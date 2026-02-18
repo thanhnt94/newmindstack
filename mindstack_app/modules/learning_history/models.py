@@ -31,6 +31,7 @@ class StudyLog(db.Model):
     # Snapshot Data (JSON)
     fsrs_snapshot = db.Column(JSON, nullable=True)
     gamification_snapshot = db.Column(JSON, nullable=True)
+    context_snapshot = db.Column(JSON, nullable=True)
     
     __table_args__ = (
         db.Index('ix_study_logs_user_timestamp', 'user_id', 'timestamp'),

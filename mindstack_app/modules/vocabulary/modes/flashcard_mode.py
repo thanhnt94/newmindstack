@@ -163,12 +163,54 @@ class FlashcardMode(BaseVocabMode):
             3: 'SCORE_FSRS_GOOD',
             4: 'SCORE_FSRS_EASY'
         }
+        event_key = config_keys.get(quality, 'SCORE_FSRS_GOOD')
         
-        score_change = ScoringInterface.get_score_value(config_keys.get(quality, 'SCORE_FSRS_GOOD'))
+        # Gather Context for Deep Scoring
+        # 1. Difficulty (Pre-review)
+        from mindstack_app.modules.fsrs.models import ItemMemoryState
+        # Try to get user_id from settings, fallback to current_user
+        user_id = settings.get('user_id')
+        if not user_id:
+            try:
+                from flask_login import current_user
+                if current_user and current_user.is_authenticated:
+                    user_id = current_user.user_id
+            except ImportError:
+                pass
+                
+        difficulty = 0.0
+        streak = 0
+        
+        if user_id:
+            # Fetch Pre-state for difficulty bonus
+            # We use a direct query to avoid heavyweight service overhead here, 
+            # or use FSRSInterface if preferred.
+            pre_state = ItemMemoryState.query.filter_by(
+                user_id=user_id, 
+                item_id=item.get('item_id')
+            ).first()
+            if pre_state:
+                difficulty = pre_state.difficulty
+                
+            # Fetch Streak
+            try:
+                from mindstack_app.modules.gamification.services.scoring_service import ScoreService
+                streak = ScoreService.calculate_current_streak(user_id)
+            except ImportError:
+                pass
 
+        context = {
+            'difficulty': difficulty,
+            'streak': streak,
+            'duration_ms': user_input.get('duration_ms', 0)
+        }
+
+        total_score, breakdown = ScoringInterface.calculate_breakdown(event_key, context)
+        
         return EvaluationResult(
             is_correct=is_correct,
             quality=quality,
-            score_change=score_change,
+            score_change=total_score,
+            breakdown=breakdown,
             feedback={'rated_quality': quality},
         )

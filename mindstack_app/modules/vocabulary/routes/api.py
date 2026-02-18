@@ -219,3 +219,20 @@ def api_generate_ai_explanation(item_id):
     except Exception as e:
         current_app.logger.error(f"Error generating AI explanation for item {item_id}: {e}")
         return error_response(str(e), 'SERVER_ERROR', 500)
+
+@blueprint.route('/api/progress/<int:item_id>/marker', methods=['POST'])
+@login_required
+def api_toggle_item_marker(item_id):
+    """Toggle a marker (difficult, favorite, etc.) for an item."""
+    payload = request.get_json() or {}
+    marker = payload.get('marker', '').strip()
+    
+    if not marker:
+        return error_response("Marker type is required", 'INVALID_REQUEST', 400)
+    
+    try:
+        updated_markers = VocabularyService.toggle_item_marker(current_user.user_id, item_id, marker)
+        return jsonify({'success': True, 'markers': updated_markers})
+    except Exception as e:
+        current_app.logger.error(f"Error toggling marker for item {item_id}: {e}")
+        return error_response(str(e), 'SERVER_ERROR', 500)

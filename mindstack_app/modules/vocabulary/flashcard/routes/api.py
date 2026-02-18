@@ -631,7 +631,7 @@ def api_regenerate_audio_from_content():
             })
         
         # Result status is error, use specific error message if available
-        error_msg = getattr(result, 'error', None) or result.get('error') or 'Lỗi tạo audio.'
+        error_msg = getattr(result, 'error', None) or 'Lỗi tạo audio.'
         return jsonify({
             'success': False, 
             'message': f"Generation failed: {error_msg}"

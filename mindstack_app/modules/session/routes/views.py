@@ -132,7 +132,8 @@ def manage_sessions():
                 'correct': h.correct_count,
                 'incorrect': h.incorrect_count,
                 'total': h.total_items,
-                'points': h.points_earned
+                'points': h.points_earned,
+                'learning_mode': h.learning_mode
             })
             
         pagination_history = {
@@ -320,18 +321,30 @@ def session_summary(session_id):
                  elif rating == 2: score_change = 5
 
             log_data = {
+                'log_id': log['log_id'],
                 'timestamp': log['timestamp'], 
                 'rating': log['rating'], 
+                'is_correct': log.get('is_correct', True),
                 'score_change': score_change, 
                 'duration_ms': log['review_duration'], 
                 'item_id': log['item_id'], 
-                'item_content': f"Item #{log['item_id']}"
+                'front': f"Item #{log['item_id']}",
+                'back': None
             }
             if item:
                 if item.item_type == 'FLASHCARD': 
-                    log_data['item_content'] = render_text_field(item.content.get('front', ''), 'front')
-                elif item.item_type == 'QUIZ': 
-                    log_data['item_content'] = render_text_field(item.content.get('question', ''), 'question')
+                    log_data['front'] = render_text_field(item.content.get('front', ''), 'front')
+                    log_data['back'] = render_text_field(item.content.get('back', ''), 'back')
+                elif item.item_type in ['QUIZ', 'MCQ']: 
+                    log_data['front'] = render_text_field(item.content.get('question', ''), 'question')
+                    # Find correct option for back
+                    correct_opt = item.content.get('correct_option')
+                    options = item.content.get('options', {})
+                    if correct_opt and options:
+                        log_data['back'] = options.get(correct_opt)
+                elif item.item_type == 'TYPING':
+                    log_data['front'] = render_text_field(item.content.get('question', ''), 'question')
+                    log_data['back'] = item.content.get('correct_answer')
             processed_logs.append(log_data)
         
         return render_dynamic_template('modules/learning/session_summary.html',

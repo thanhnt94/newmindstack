@@ -220,20 +220,28 @@
         <a href="{{ url_for('session.session_summary', session_id=h.session_id) }}"
             class="block bg-white rounded-2xl p-4 border border-slate-100 shadow-sm active:scale-[0.98] transition-all">
             <div class="flex items-start gap-3 mb-3">
-                <div class="w-10 h-10 rounded-xl flex-shrink-0 flex items-center justify-center text-lg text-white opacity-80
-                            {% if h.learning_mode == 'quiz' %}bg-amber-500{% else %}bg-indigo-500{% endif %}">
-                    <i
-                        class="fa-solid {% if h.learning_mode == 'quiz' %}fa-bolt{% else %}fa-layer-group{% endif %}"></i>
+                <div
+                    class="w-10 h-10 rounded-xl flex-shrink-0 flex items-center justify-center text-lg text-white opacity-80
+                            {% if h.learning_mode == 'quiz' %}bg-amber-500{% elif h.learning_mode == 'mcq' %}bg-orange-500{% elif h.learning_mode == 'typing' %}bg-blue-500{% elif h.learning_mode == 'listening' %}bg-purple-500{% else %}bg-indigo-500{% endif %}">
+                    <i class="fa-solid 
+                        {% if h.learning_mode == 'quiz' %}fa-bolt
+                        {% elif h.learning_mode == 'mcq' %}fa-gamepad
+                        {% elif h.learning_mode == 'typing' %}fa-keyboard
+                        {% elif h.learning_mode == 'listening' %}fa-headphones
+                        {% else %}fa-layer-group{% endif %}"></i>
                 </div>
                 <div class="flex-1 min-w-0">
                     <h3 class="font-bold text-slate-700 text-sm leading-tight mb-1 truncate">{{ h.container_name }}</h3>
-                    <div class="flex items-center gap-2">
+                    <div class="flex items-center gap-1.5 flex-wrap">
                         <span
                             class="text-[10px] font-bold uppercase tracking-wider {{ 'text-emerald-600' if h.status == 'completed' else 'text-slate-400' }}">
                             {{ 'HOÀN THÀNH' if h.status == 'completed' else 'ĐÃ HỦY' }}
                         </span>
                         <span class="text-[10px] text-slate-400">• {{ h.end_time.strftime('%d/%m') if h.end_time else
                             '---' }}</span>
+                        <span
+                            class="text-[10px] text-indigo-500 font-bold px-1.5 py-0.5 bg-indigo-50 rounded italic whitespace-nowrap">{{
+                            h.mode_name }}</span>
                     </div>
                 </div>
             </div>

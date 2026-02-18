@@ -44,6 +44,7 @@ class EvaluationResult:
     is_correct: bool
     quality: int                    # 1-4 (FSRS scale)
     score_change: int = 0           # gamification points delta
+    breakdown: Dict[str, Any] = field(default_factory=dict) # Detailed score components
     feedback: Dict[str, Any] = field(default_factory=dict)
 
 

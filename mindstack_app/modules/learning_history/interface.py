@@ -16,13 +16,14 @@ class LearningHistoryInterface:
         result_data: Dict[str, Any],
         context_data: Dict[str, Any],
         fsrs_snapshot: Optional[Dict[str, Any]] = None,
-        game_snapshot: Optional[Dict[str, Any]] = None
+        game_snapshot: Optional[Dict[str, Any]] = None,
+        context_snapshot: Optional[Dict[str, Any]] = None
     ):
         """Record a new study interaction."""
         # Note: We return the log object because some legacy code might need ID, 
         # but optimally we should return a DTO or ID only.
         return HistoryRecorder.record_interaction(
-            user_id, item_id, result_data, context_data, fsrs_snapshot, game_snapshot
+            user_id, item_id, result_data, context_data, fsrs_snapshot, game_snapshot, context_snapshot
         )
 
     @staticmethod

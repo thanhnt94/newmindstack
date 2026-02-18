@@ -1,6 +1,6 @@
 
 # File: mindstack_app/modules/session/routes/api.py
-from flask import request, jsonify, current_app, url_for
+from flask import request, jsonify, current_app, url_for, render_template
 from flask_login import login_required, current_user
 from .. import blueprint
 from ..services.session_service import LearningSessionService
@@ -348,3 +348,76 @@ def api_cancel_session(session_id):
     except Exception as e:
         current_app.logger.error(f"Error cancelling session API: {e}", exc_info=True)
         return jsonify({'error': 'Internal server error'}), 500
+
+@blueprint.route('/api/log/<int:log_id>/detail')
+@login_required
+def api_get_log_detail(log_id):
+    """
+    Get detailed view for a specific study log (History).
+    Renders a modal template.
+    """
+    try:
+        from mindstack_app.modules.learning_history.models import StudyLog
+        from mindstack_app.models import LearningItem
+        from mindstack_app.utils.content_renderer import render_text_field
+
+        # 1. Fetch Log
+        log = StudyLog.query.get(log_id)
+        if not log or log.user_id != current_user.user_id:
+            return "Log not found", 404
+
+        # 2. Fetch Item Content
+        item = LearningItem.query.get(log.item_id)
+        item_content = "Item Deleted"
+        correct_answer = None
+
+        if item:
+            # Render content based on type
+            if item.item_type == 'FLASHCARD':
+                item_content = render_text_field(item.content.get('front', ''), 'front')
+                # NEW: Support BBCode for back
+                correct_answer = render_text_field(item.content.get('back', ''), 'back')
+            elif item.item_type == 'QUIZ':
+                item_content = render_text_field(item.content.get('question', ''), 'question')
+                # Determine correct answer from options
+                correct_option_key = item.content.get('correct_option') # e.g. "option_1"
+                options = item.content.get('options', {})
+                if correct_option_key and options:
+                     # NEW: Support BBCode for quiz options
+                     correct_answer = render_text_field(options.get(correct_option_key), 'option')
+            elif item.item_type == 'TYPING':
+                 item_content = render_text_field(item.content.get('question', ''), 'question')
+                 correct_answer = render_text_field(item.content.get('correct_answer'), 'correct_answer')
+        
+        # 3. Process User Answer with BBCode if available
+        user_answer_rendered = log.user_answer
+        if log.user_answer:
+            # Heuristic: If it already looks like HTML (contains <...>), skip rendering to avoid double-escaping
+            import re
+            if not re.search(r'<[^>]+>', log.user_answer):
+                user_answer_rendered = render_text_field(log.user_answer, 'user_answer')
+            else:
+                current_app.logger.info(f"[SESSION_API] Skipping BBCode render for Log {log_id}: HTML detected in answer.")
+
+        # Calculate Score Fallback
+        game_snapshot = log.gamification_snapshot or {}
+        score_change = game_snapshot.get('score_change', 0)
+        
+        if score_change == 0:
+             # Fallback logic mirroring session_summary
+             rating = log.rating
+             if rating == 3: score_change = 10
+             elif rating == 4: score_change = 15
+             elif rating == 2: score_change = 5
+
+        # 4. Render Template
+        return render_template('aura_mobile/modules/learning/modals/log_detail.html', 
+                               log=log, 
+                               item_content=item_content,
+                               correct_answer=correct_answer,
+                               score_change=score_change,
+                               user_answer_rendered=user_answer_rendered)
+
+    except Exception as e:
+        current_app.logger.error(f"Error fetching log detail: {e}", exc_info=True)
+        return f"Error: {e}", 500

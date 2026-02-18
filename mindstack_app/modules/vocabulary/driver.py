@@ -234,6 +234,37 @@ class VocabularyDriver(BaseSessionDriver):
         try:
             from mindstack_app.modules.fsrs.interface import FSRSInterface
 
+            # 3. Update FSRS (Standard) and Record Deep Analytics (New)
+            
+            # [Step 1] Pre-calculation (Before FSRS Update)
+            from mindstack_app.modules.fsrs.interface import FSRSInterface
+            from mindstack_app.modules.learning_history.models import StudyLog
+            
+            # Fetch Pre-state (Snapshot)
+            pre_state = FSRSInterface.get_item_state(state.user_id, item_id)
+            pre_stability = pre_state.stability if pre_state else 0.0
+            pre_difficulty = pre_state.difficulty if pre_state else 0.0
+            pre_reps = pre_state.repetitions if pre_state else 0
+            
+            # Calculate Retrievability (Pre-answer)
+            pre_retrievability = FSRSInterface.get_retrievability(pre_state) if pre_state else 0.0
+            
+            # Count Mode Reps (Query history)
+            # Optimization: could be cached or passed in state, but count() is fast on indexed cols
+            reps_mode = StudyLog.query.filter_by(
+                user_id=state.user_id, 
+                item_id=item_id, 
+                learning_mode=state.mode
+            ).count()
+
+            # [Step 2] Scoring (Already done in mode.evaluate_submission)
+            # evaluation.breakdown is available
+            gamification_snapshot = {
+                'total_score': evaluation.score_change,
+                'breakdown': getattr(evaluation, 'breakdown', None) or {'base': evaluation.score_change}
+            }
+            
+            # [Step 3] Algorithm Update
             memory_state, srs_result = FSRSInterface.process_review(
                 user_id=state.user_id,
                 item_id=item_id,
@@ -242,9 +273,8 @@ class VocabularyDriver(BaseSessionDriver):
                 container_id=state.container_id,
             )
             current_app.logger.info(f"[VOCAB_DRIVER] FSRS Update Success: Stb={srs_result.stability}, Due={srs_result.next_review}")
-            print(f" [VOCAB_DRIVER] FSRS Update Success: Stb={srs_result.stability}, Due={srs_result.next_review}")
 
-            # 4. Record Study Log [NEW FIX - Moved up so HUD stats see it]
+            # [Step 4] Recording (Deep Analytics)
             try:
                 from mindstack_app.modules.learning_history.interface import LearningHistoryInterface
                 
@@ -261,27 +291,60 @@ class VocabularyDriver(BaseSessionDriver):
                     'learning_mode': state.mode
                 }
                 
-                # Snapshot of SRS state after review
+                # A. FSRS Snapshot (Audit)
                 fsrs_snapshot = {
-                    'stability': srs_result.stability,
-                    'difficulty': srs_result.difficulty,
-                    'repetitions': srs_result.repetitions,
-                    'next_review': srs_result.next_review.isoformat() if srs_result.next_review else None
+                    'scheduler_ver': '5.0', # Hardcoded or from config
+                    'card_state': memory_state.state, 
+                    'retrievability': round(pre_retrievability, 4), # Pre-R is what matters for algorithm audit
+                    'scheduled_days': srs_result.interval_minutes / 1440.0, # Approximation or store interval
+                    'elapsed_days': 0.0, # Need calculation if strictly required, but R implies it
+                    
+                    # Pre-values
+                    'pre_stability': round(pre_stability, 4),
+                    'pre_difficulty': round(pre_difficulty, 4),
+                    
+                    # Post-values
+                    'post_stability': round(srs_result.stability, 4),
+                    'post_difficulty': round(srs_result.difficulty, 4)
                 }
+                
+                # B. Context Snapshot (Behavior)
+                context_snapshot = {
+                    'mode': state.mode,
+                    'input_device': 'unknown', # TODO: Capture from headers/user_input
+                    
+                    # Counters
+                    'reps_global': pre_reps,
+                    'reps_mode': reps_mode,
+                    'reps_session': 1, # TODO: Track in session state if needed
+                    
+                    # Behavior
+                    'is_first_ever': (pre_reps == 0),
+                    'is_first_mode': (reps_mode == 0),
+                    'is_leech': (pre_state.data.get('is_leech', False) if pre_state and pre_state.data else False),
+                    
+                    # Performance
+                    'thinking_time': user_input.get('duration_ms', 0)
+                }
+                
+                # C. Gamification Snapshot (Breakdown)
+                # Calculated above
                 
                 LearningHistoryInterface.record_log(
                     user_id=state.user_id,
                     item_id=item_id,
                     result_data=result_data,
                     context_data=context_data,
-                    fsrs_snapshot=fsrs_snapshot
+                    fsrs_snapshot=fsrs_snapshot,
+                    game_snapshot=gamification_snapshot,
+                    context_snapshot=context_snapshot
                 )
-                current_app.logger.info(f"[VOCAB_DRIVER] StudyLog recorded for session {state.session_id}")
+                current_app.logger.info(f"[VOCAB_DRIVER] Deep Analytics Log recorded for session {state.session_id}")
             except Exception as e:
-                current_app.logger.error(f"[VOCAB_DRIVER] Failed to record StudyLog: {e}")
+                current_app.logger.error(f"[VOCAB_DRIVER] Failed to record StudyLog: {e}", exc_info=True)
+                # Don't fail the whole request, just log error
 
-            # Fetch full item statistics for the HUD (the JS expects
-            # correct_count, difficulty, retrievability, repetitions, etc.)
+            # Fetch stats for HUD display
             try:
                 from .flashcard.engine.core import FlashcardEngine
                 full_stats = FlashcardEngine.get_item_statistics(
@@ -350,6 +413,22 @@ class VocabularyDriver(BaseSessionDriver):
         except Exception as e:
             current_app.logger.error(f"[VOCAB_DRIVER] Failed to emit card_reviewed signal: {e}")
 
+        # Prepare flat breakdown for frontend
+        flat_breakdown = {}
+        raw_bd = getattr(evaluation, 'breakdown', {})
+        if raw_bd:
+            flat_breakdown['base'] = raw_bd.get('base', 0)
+            mods = raw_bd.get('modifiers', {})
+            for k, v in mods.items():
+                flat_breakdown[k] = v
+        else:
+            flat_breakdown['base'] = evaluation.score_change
+
+        frontend_gamification = {
+            'total_score': evaluation.score_change,
+            'breakdown': flat_breakdown
+        }
+
         return SubmissionResult(
             item_id=item_id,
             is_correct=evaluation.is_correct,
@@ -357,6 +436,7 @@ class VocabularyDriver(BaseSessionDriver):
             score_change=evaluation.score_change,
             feedback=evaluation.feedback,
             srs_update=srs_update,
+            gamification=frontend_gamification
         )
 
     # ── lifecycle: finalize_session ──────────────────────────────────

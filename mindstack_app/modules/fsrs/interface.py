@@ -333,6 +333,41 @@ class FSRSInterface:
         return True
 
     @staticmethod
+    def toggle_item_marker(user_id: int, item_id: int, marker: str) -> List[str]:
+        """Toggle a specific marker (e.g. 'favorite', 'ignored', 'difficult') for an item."""
+        from mindstack_app.core.extensions import db
+        from datetime import datetime, timezone
+        from sqlalchemy.orm.attributes import flag_modified
+        
+        state_record = ItemMemoryState.query.filter_by(
+            user_id=user_id, item_id=item_id
+        ).first()
+        
+        if not state_record:
+            state_record = ItemMemoryState(
+                user_id=user_id, item_id=item_id,
+                state=0,
+                created_at=datetime.now(timezone.utc)
+            )
+            db.session.add(state_record)
+            
+        data = dict(state_record.data) if state_record.data else {}
+        markers = data.get('markers', [])
+        
+        if marker in markers:
+            markers.remove(marker)
+        else:
+            markers.append(marker)
+            
+        data['markers'] = markers
+        state_record.data = data
+        
+        flag_modified(state_record, 'data')
+        db.session.commit()
+        
+        return markers
+
+    @staticmethod
     def get_memory_stats_by_type(user_id: int, item_type: str) -> Dict[str, Any]:
         """
         Get detailed memory statistics for items of a specific type.

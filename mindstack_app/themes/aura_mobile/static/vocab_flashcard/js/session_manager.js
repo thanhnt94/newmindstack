@@ -581,6 +581,7 @@ async function submitFlashcardAnswer(itemId, answer) {
                 statistics: driverResult.srs_update || {},
                 srs_data: driverResult.srs_update || {},
                 answer_result: answer,
+                gamification: driverResult.gamification || null
             };
         } else {
             // ── Legacy fallback ─────────────────────────────────
@@ -596,6 +597,7 @@ async function submitFlashcardAnswer(itemId, answer) {
                 throw new Error(`HTTP error! status: ${res.status}, body: ${errorText}`);
             }
             data = await res.json();
+            // Legacy might not have gamification, defaults to null
         }
 
         sessionScore += data.score_change;
@@ -612,7 +614,10 @@ async function submitFlashcardAnswer(itemId, answer) {
         if (data.score_change > 0 && window.showScoreToast) {
             // ONLY dispatch start if we are actually showing a toast
             document.dispatchEvent(new CustomEvent('notificationStart'));
-            notificationPromise = window.showScoreToast(data.score_change);
+            // Pass full gamification object if available, otherwise just number
+            const toastInput = data.gamification || data.score_change;
+            console.log('[ScoreToast] Triggering with:', toastInput);
+            notificationPromise = window.showScoreToast(toastInput);
         }
 
         // Memory Power Notification (if distinct from Score)

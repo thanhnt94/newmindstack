@@ -402,43 +402,12 @@ render_unified_header with context %}
 </div>
 </div>
 
-{# Shared Modals #}
-{% include _v ~ '/modules/vocabulary/dashboard/_container_stats_modal.html' %}
+{# Include detail templates #}
+{% include _v ~ '/modules/vocabulary/detail/_modal_stats.html' %}
 {% include _v ~ '/modules/vocabulary/dashboard/_item_stats_charts.html' %}
 {% include _v ~ '/modules/vocabulary/dashboard/_stats_enhancement.html' %}
 {% include _v ~ '/modules/vocabulary/dashboard/_inject_stats_button.html' %}
-{% include _v ~ '/modules/vocabulary/stats/_modal_stats.html' %}
-
-
-<!-- Flashcard Settings Modal -->
-<div id="flashcard-settings-modal" class="aura-modal-overlay">
-    <div class="aura-modal-container" style="max-height: 85vh; height: auto;">
-        <div class="aura-modal-header">
-            <h3 style="margin: 0; font-size: 1.1rem; font-weight: 700;">Cấu hình học tập</h3>
-            <button class="aura-modal-close js-close-settings-modal"><i class="fas fa-times"></i></button>
-        </div>
-        <div class="aura-modal-body" style="padding: 1.5rem;">
-            <div id="settings-dynamic-content-wrapper">
-                <!-- Redesigned Settings Content from index.html -->
-                {% include _v ~ '/modules/vocabulary/dashboard/components/_flashcard_settings.html'
-                ignore
-                missing %}
-            </div>
-        </div>
-        <div class="p-6 border-t border-slate-100 bg-white flex gap-3">
-            <button
-                class="flex-1 py-3 px-4 rounded-xl text-slate-400 font-bold hover:bg-slate-50 transition-colors js-close-settings-modal">Hủy
-                bỏ</button>
-            <button
-                class="flex-1 py-3 px-4 rounded-xl bg-indigo-600 text-white font-bold hover:bg-indigo-700 shadow-xl transition-all js-save-settings">Lưu
-                cấu hình</button>
-        </div>
-    </div>
-</div>
-
-
-<!-- Item Stats Modal -->
-{% include _v ~ '/modules/vocabulary/stats/_modal_stats.html' %}
+{% include _v ~ '/modules/vocabulary/dashboard/_container_stats_modal.html' %}
 {% endblock %}
 
 

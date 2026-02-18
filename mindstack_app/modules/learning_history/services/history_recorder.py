@@ -15,7 +15,8 @@ class HistoryRecorder:
         result_data: Dict[str, Any],
         context_data: Dict[str, Any],
         fsrs_snapshot: Optional[Dict[str, Any]] = None,
-        game_snapshot: Optional[Dict[str, Any]] = None
+        game_snapshot: Optional[Dict[str, Any]] = None,
+        context_snapshot: Optional[Dict[str, Any]] = None
     ) -> StudyLog:
         """
         Record a learning interaction (StudyLog).
@@ -26,7 +27,8 @@ class HistoryRecorder:
             result_data: {rating, user_answer, is_correct, review_duration}
             context_data: {session_id, container_id, learning_mode}
             fsrs_snapshot: State of FSRS parameters after review
-            game_snapshot: Points earned, streak info
+            game_snapshot: Points earned, streak info, breakdown
+            context_snapshot: Detailed context (Reps, Device, Pre-values)
         """
         log = StudyLog(
             user_id=user_id,
@@ -45,7 +47,8 @@ class HistoryRecorder:
             
             # Snapshots
             fsrs_snapshot=fsrs_snapshot,
-            gamification_snapshot=game_snapshot
+            gamification_snapshot=game_snapshot,
+            context_snapshot=context_snapshot
         )
         
         db.session.add(log)

@@ -139,3 +139,8 @@ class VocabularyService:
         """Save user personal note for a learning item."""
         # REFACTORED: Delegate to FsrsInterface
         return FsrsInterface.save_item_note(user_id, item_id, note_content)
+
+    @staticmethod
+    def toggle_item_marker(user_id, item_id, marker):
+        """Toggle a specific marker for an item."""
+        return FsrsInterface.toggle_item_marker(user_id, item_id, marker)

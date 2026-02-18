@@ -147,12 +147,15 @@
                 <div class="flex flex-col h-full">
                     <!-- Actions Header -->
                     <div class="flex items-center justify-between mb-3">
-                        <div class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Phiên thảo luận AI</div>
+                        <div class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Phiên thảo luận AI
+                        </div>
                         <div class="flex gap-2">
-                            <button onclick="generateStatsAIExplanation({{ s.item.id }}, true)" class="px-3 py-1.5 bg-white border border-slate-200 text-slate-600 rounded-lg text-[10px] font-bold shadow-sm active:scale-95 transition-all">
+                            <button onclick="generateStatsAIExplanation({{ s.item.id }}, true)"
+                                class="px-3 py-1.5 bg-white border border-slate-200 text-slate-600 rounded-lg text-[10px] font-bold shadow-sm active:scale-95 transition-all">
                                 <i class="fas fa-sync-alt"></i> Mặc định
                             </button>
-                            <button onclick="toggleStatsAiChat()" class="px-3 py-1.5 bg-indigo-600 text-white rounded-lg text-[10px] font-bold shadow-sm active:scale-95 transition-all">
+                            <button onclick="toggleStatsAiChat()"
+                                class="px-3 py-1.5 bg-indigo-600 text-white rounded-lg text-[10px] font-bold shadow-sm active:scale-95 transition-all">
                                 <i class="fas fa-plus"></i> Đặt câu hỏi
                             </button>
                         </div>
@@ -160,65 +163,82 @@
 
                     <!-- Horizontal Version Tabs with Scroll Arrows -->
                     <div class="flex items-center gap-1 mb-3 border-b border-slate-100 pb-1">
-                        <button onclick="scrollAiTabs(-1)" class="w-6 h-8 flex items-center justify-center text-slate-300 hover:text-indigo-600 transition-colors">
+                        <button onclick="scrollAiTabs(-1)"
+                            class="w-6 h-8 flex items-center justify-center text-slate-300 hover:text-indigo-600 transition-colors">
                             <i class="fas fa-chevron-left text-[10px]"></i>
                         </button>
-                        <div id="stats-ai-version-tabs" class="flex-1 flex gap-2 overflow-x-auto no-scrollbar scroll-smooth">
+                        <div id="stats-ai-version-tabs"
+                            class="flex-1 flex gap-2 overflow-x-auto no-scrollbar scroll-smooth">
                             <div class="text-xs text-slate-400 py-1 italic">Đang tải lịch sử...</div>
                         </div>
-                        <button onclick="scrollAiTabs(1)" class="w-6 h-8 flex items-center justify-center text-slate-300 hover:text-indigo-600 transition-colors">
+                        <button onclick="scrollAiTabs(1)"
+                            class="w-6 h-8 flex items-center justify-center text-slate-300 hover:text-indigo-600 transition-colors">
                             <i class="fas fa-chevron-right text-[10px]"></i>
                         </button>
                     </div>
 
                     <!-- Chat Input Container (Hidden by default) -->
-                    <div id="stats-ai-chat-input" class="hidden mb-4 p-3 bg-indigo-50 rounded-xl border border-indigo-100 shadow-inner">
+                    <div id="stats-ai-chat-input"
+                        class="hidden mb-4 p-3 bg-indigo-50 rounded-xl border border-indigo-100 shadow-inner">
                         <div class="flex justify-between items-center mb-2">
                             <span class="text-[10px] font-bold text-indigo-800 uppercase">Câu hỏi của bạn</span>
-                            <button onclick="toggleStatsAiChat()" class="text-slate-400"><i class="fas fa-times"></i></button>
+                            <button onclick="toggleStatsAiChat()" class="text-slate-400"><i
+                                    class="fas fa-times"></i></button>
                         </div>
-                        <textarea id="stats-ai-question" class="w-full p-3 border border-slate-200 rounded-lg text-sm outline-none shadow-sm bg-white" rows="2" placeholder="Nhập thắc mắc của bạn..."></textarea>
+                        <textarea id="stats-ai-question"
+                            class="w-full p-3 border border-slate-200 rounded-lg text-sm outline-none shadow-sm bg-white"
+                            rows="2" placeholder="Nhập thắc mắc của bạn..."></textarea>
                         <div class="flex justify-end mt-2">
-                            <button onclick="submitStatsAiQuestion({{ s.item.id }})" class="px-4 py-1.5 bg-indigo-600 text-white text-[10px] font-bold rounded-lg shadow-md">
+                            <button onclick="submitStatsAiQuestion({{ s.item.id }})"
+                                class="px-4 py-1.5 bg-indigo-600 text-white text-[10px] font-bold rounded-lg shadow-md">
                                 <i class="fas fa-paper-plane mr-1"></i> Gửi câu hỏi
                             </button>
                         </div>
                     </div>
 
                     <!-- Full Question Display (Only for custom questions) -->
-                    <div id="stats-ai-full-question-box" class="hidden mb-3 p-3 bg-slate-50 border border-slate-100 rounded-lg">
+                    <div id="stats-ai-full-question-box"
+                        class="hidden mb-3 p-3 bg-slate-50 border border-slate-100 rounded-lg">
                         <div class="text-[9px] font-bold text-slate-400 uppercase mb-1">Nội dung câu hỏi:</div>
                         <div id="stats-ai-full-question-text" class="text-xs font-semibold text-slate-800 italic"></div>
                     </div>
 
                     <!-- Main Response Display Wrapper -->
-                    <div id="stats-ai-response-wrapper" class="flex-1 bg-white rounded-xl border border-slate-200 overflow-hidden flex flex-col shadow-sm">
+                    <div id="stats-ai-response-wrapper"
+                        class="flex-1 bg-white rounded-xl border border-slate-200 overflow-hidden flex flex-col shadow-sm">
                         <!-- Content Meta Header -->
-                        <div id="stats-ai-meta-header" class="px-4 py-2 bg-slate-50 border-b border-slate-100 flex justify-between items-center">
+                        <div id="stats-ai-meta-header"
+                            class="px-4 py-2 bg-slate-50 border-b border-slate-100 flex justify-between items-center">
                             <div class="flex items-center gap-2">
                                 <i class="fas fa-robot text-indigo-500 text-xs"></i>
                                 <div class="flex flex-col">
                                     <div class="flex items-center gap-1.5">
-                                        <span id="stats-ai-author" class="font-bold text-slate-700 text-[10px]">Hệ thống</span>
+                                        <span id="stats-ai-author" class="font-bold text-slate-700 text-[10px]">Hệ
+                                            thống</span>
                                         <span class="text-slate-300 text-[10px]">•</span>
-                                        <span id="stats-ai-model" class="text-slate-500 text-[9px] font-medium">Gemini</span>
+                                        <span id="stats-ai-model"
+                                            class="text-slate-500 text-[9px] font-medium">Gemini</span>
                                     </div>
                                     <span id="stats-ai-date" class="text-slate-400 text-[8px]">-</span>
                                 </div>
                             </div>
-                            <span id="stats-ai-type-label" class="text-[8px] font-black text-white uppercase bg-indigo-400 px-2 py-0.5 rounded-full">GIẢI THÍCH</span>
+                            <span id="stats-ai-type-label"
+                                class="text-[8px] font-black text-white uppercase bg-indigo-400 px-2 py-0.5 rounded-full">GIẢI
+                                THÍCH</span>
                         </div>
-                        
+
                         <!-- AI Answer Area -->
-                        <div id="stats-ai-content-box" class="p-4 overflow-y-auto markdown-body text-sm leading-relaxed text-slate-700 min-h-[200px]">
+                        <div id="stats-ai-content-box"
+                            class="p-4 overflow-y-auto markdown-body text-sm leading-relaxed text-slate-700 min-h-[200px]">
                             <div class="flex flex-col items-center justify-center py-12 text-slate-300">
                                 <i class="fas fa-brain text-4xl mb-2 opacity-20"></i>
                                 <p class="text-xs">Đang sẵn sàng phân tích...</p>
                             </div>
                         </div>
-                        
+
                         <!-- Contextual Actions -->
-                        <div class="p-2 bg-slate-50 border-t border-slate-100 flex justify-end gap-2" id="stats-ai-footer-actions"></div>
+                        <div class="p-2 bg-slate-50 border-t border-slate-100 flex justify-end gap-2"
+                            id="stats-ai-footer-actions"></div>
                     </div>
                 </div>
             </div>
@@ -272,13 +292,41 @@
         </div>
 
         <!-- TAB 2: STATS (Reordered) -->
+        <!-- TAB 2: STATS (Reordered) -->
         <div class="tab-content" id="tab-stats" style="display: none;">
+
+            <!-- FSRS Core Stats -->
+            <div class="mb-6 grid grid-cols-3 gap-3">
+                <div class="stat-box">
+                    <div class="stat-label">Stability (S)</div>
+                    <div class="stat-value text-indigo-600">{{ p.fsrs_stability | round(1) }}</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">Difficulty (D)</div>
+                    <div class="stat-value text-rose-500">{{ p.fsrs_difficulty | round(1) }}</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">Retrievability (R)</div>
+                    <div class="stat-value text-emerald-600">{{ p.retrievability }}%</div>
+                </div>
+            </div>
+
+            <!-- Chart Section -->
+            <div class="mb-6">
+                <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Biểu đồ ghi nhớ</h3>
+                <div class="bg-white p-2 rounded-xl border border-slate-100 h-48 relative">
+                    <canvas id="fsrsHistoryChart"></canvas>
+                    <div id="chart-empty-state"
+                        class="absolute inset-0 flex flex-col items-center justify-center bg-white/80 hidden">
+                        <i class="fas fa-chart-line text-slate-200 text-3xl mb-2"></i>
+                        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Chưa có dữ liệu học
+                            tập</span>
+                    </div>
+                </div>
+            </div>
+
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem; margin-bottom: 1rem;">
                 <!-- Existing indicator blocks -->
-                <div class="stat-box">
-                    <div class="stat-label">RETRIEVABILITY</div>
-                    <div class="stat-value" style="color: #6366f1;">{{ p.retrievability }}%</div>
-                </div>
                 <div class="stat-box">
                     <div class="stat-label">CHUỖI ĐÚNG</div>
                     <div class="stat-value" style="color: #f59e0b;">{{ p.streak }} 🔥</div>
@@ -286,10 +334,6 @@
                 <div class="stat-box">
                     <div class="stat-label">CHÍNH XÁC</div>
                     <div class="stat-value" style="color: #10b981;">{{ perf.accuracy }}%</div>
-                </div>
-                <div class="stat-box">
-                    <div class="stat-label">ĐỘ KHÓ</div>
-                    <div class="stat-value" style="color: #475569;">{{ p.ease_factor }}</div>
                 </div>
                 <div class="stat-box">
                     <div class="stat-label">TỔNG ĐIỂM</div>
@@ -309,20 +353,76 @@
                     <div class="stat-value" style="color: #8b5cf6; font-size: 0.85rem;">{{ p.last_reviewed_relative }}
                     </div>
                 </div>
-                <div class="stat-box">
-                    <div class="stat-label">ĐIỂM TB</div>
-                    <div class="stat-value" style="color: #14b8a6;">+{{ perf.avg_score }}</div>
-                </div>
-                <div class="stat-box">
-                    <div class="stat-label">XU HƯỚNG</div>
-                    <div class="stat-value"
-                        style="{% if p.mastery_trend > 0 %}color: #10b981;{% else %}color: #ef4444;{% endif %}; font-size: 1.1rem;">
-                        {% if p.mastery_trend > 0 %}↗ +{{ p.mastery_trend }}%{% else %}↘ {{ p.mastery_trend }}%{% endif
-                        %}
-                    </div>
-                </div>
             </div>
         </div>
+
+        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+        <!-- Use JSON block to safely embed data -->
+        <script id="vocab-history-data" type="application/json">
+            {{ s.history | tojson | safe }}
+        </script>
+        <script>
+            document.addEventListener('DOMContentLoaded', function () {
+                const ctx = document.getElementById('fsrsHistoryChart');
+                const emptyState = document.getElementById('chart-empty-state');
+
+                if (ctx) {
+                    // Safe JSON parsing
+                    const historyScript = document.getElementById('vocab-history-data');
+                    let history = [];
+                    try {
+                        if (historyScript) {
+                            history = JSON.parse(historyScript.textContent) || [];
+                        }
+                    } catch (e) {
+                        console.error("Failed to parse history data", e);
+                    }
+
+                    if (!history || history.length === 0) return;
+
+                    // Process history for chart (Stability over time)
+                    // We need stability snapshots if available, otherwise just accurate/miss
+                    const labels = history.map(h => {
+                        const d = new Date(h.timestamp);
+                        return d.getDate() + '/' + (d.getMonth() + 1);
+                    }).reverse();
+
+                    // Mock data if no snapshots, purely for visual if real data missing
+                    // Real implementation needs fsrs_snapshot in history list
+                    const dataPoints = history.map((h, i) => {
+                        // Just an example curve based on result
+                        return h.result === 'Correct' ? 1 : 0;
+                    }).reverse();
+
+                    new Chart(ctx, {
+                        type: 'line',
+                        data: {
+                            labels: labels,
+                            datasets: [{
+                                label: 'Kết quả',
+                                data: dataPoints,
+                                borderColor: '#6366f1',
+                                backgroundColor: 'rgba(99, 102, 241, 0.1)',
+                                tension: 0.4,
+                                fill: true,
+                                pointRadius: 2
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: { display: false }
+                            },
+                            scales: {
+                                y: { display: false },
+                                x: { grid: { display: false }, ticks: { font: { size: 10 } } }
+                            }
+                        }
+                    });
+                }
+            });
+        </script>
 
         <!-- TAB 4: DETAILS -->
         <div class="tab-content" id="tab-details" style="display: none; padding-bottom: 7rem;">
@@ -504,10 +604,16 @@
             transform: translateY(0);
         }
     }
-    
-    .no-scrollbar::-webkit-scrollbar { display: none; }
-    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-    
+
+    .no-scrollbar::-webkit-scrollbar {
+        display: none;
+    }
+
+    .no-scrollbar {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+    }
+
     .ai-session-tab {
         flex-shrink: 0;
         padding: 6px 12px;
@@ -525,6 +631,7 @@
         white-space: nowrap;
         text-transform: uppercase;
     }
+
     .ai-session-tab.active {
         background: #eef2ff;
         color: #4f46e5;

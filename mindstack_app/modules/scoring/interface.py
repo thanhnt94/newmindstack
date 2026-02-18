@@ -7,6 +7,15 @@ class ScoringInterface:
     """
     
     @staticmethod
+    def calculate_breakdown(event_key: str, context: dict) -> tuple:
+        """
+        Calculate detailed score breakdown.
+        Returns: (total_score, breakdown_dict)
+        """
+        from .logics.calculator import ScoreCalculator
+        return ScoreCalculator.calculate(event_key, context)
+
+    @staticmethod
     def get_score_value(key: str) -> int:
         """Lấy giá trị điểm cấu hình."""
         return ScoringConfigService.get_config(key)
