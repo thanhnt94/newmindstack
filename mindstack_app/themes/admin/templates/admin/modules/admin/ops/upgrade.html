@@ -168,6 +168,8 @@
     let isRunning = false;
     let pollInterval = null;
     let startTime = null;
+    let retryAttempts = 0;
+    const MAX_RETRIES = 60; // 60 seconds of retries
 
     async function startUpgrade() {
         if (isRunning) return;
@@ -223,25 +225,33 @@
 
     function startPolling() {
         if (pollInterval) clearInterval(pollInterval);
+        retryAttempts = 0;
 
         pollInterval = setInterval(async () => {
             try {
                 const response = await fetch("{{ url_for('ops.get_upgrade_status_api') }}");
 
-                // Handle non-200 responses (like 502 during restart)
+                // Handle server errors (restart in progress)
                 if (!response.ok) {
-                    console.log(`[UPGRADE] Server returned status ${response.status}. Waiting for recovery...`);
-                    return;
+                    throw new Error(`Server returned status ${response.status}`);
                 }
 
-                // Check if response is JSON
+                // Check content type
                 const contentType = response.headers.get("content-type");
                 if (!contentType || !contentType.includes("application/json")) {
-                    console.warn("[UPGRADE] Received non-JSON response. Server might be restarting.");
-                    return;
+                    throw new Error("Received non-JSON response");
                 }
 
                 const data = await response.json();
+
+                // Success - reset retries
+                if (retryAttempts > 0) {
+                    // Recovered!
+                    const status = document.getElementById('status-display');
+                    status.className = 'status-badge status-running';
+                    status.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>Đang xử lý</span>';
+                    retryAttempts = 0;
+                }
 
                 if (data.success) {
                     updateLogs(data.status.logs);
@@ -249,12 +259,21 @@
 
                     if (!data.status.is_running) {
                         setRunningState(false);
+                        const logsText = data.status.logs.join('\n');
+
+                        // Smart Status Detection
                         if (data.status.exit_code === 0) {
                             appendLog('✅ Hoàn thành nâng cấp thành công!');
                             showFlashMessage('Nâng cấp hệ thống hoàn tất!', 'success');
                         } else if (data.status.exit_code === 130) {
-                            appendLog('⚠️ Nâng cấp bị gián đoạn do hệ thống khởi động lại.');
-                            showFlashMessage('Nâng cấp bị gián đoạn!', 'warning');
+                            // Only show "Interrupted" if logs don't imply success
+                            if (logsText.includes('Restarting service') || logsText.includes('Done')) {
+                                appendLog('✅ Hệ thống đã khởi động lại thành công.');
+                                showFlashMessage('Nâng cấp hoàn tất (Service Restarted)!', 'success');
+                            } else {
+                                appendLog('⚠️ Quy trình gián đoạn (Exit 130).');
+                                showFlashMessage('Nâng cấp bị gián đoạn!', 'warning');
+                            }
                         } else {
                             appendLog('❌ Quá trình gặp lỗi (Exit: ' + data.status.exit_code + ')');
                             showFlashMessage('Nâng cấp thất bại!', 'danger');
@@ -262,8 +281,24 @@
                     }
                 }
             } catch (e) {
-                // Network errors or aborted fetches
-                console.log('[UPGRADE] Polling attempt failed:', e.message);
+                // Connection Lost Logic
+                console.log('[UPGRADE] Connection lost:', e.message);
+                retryAttempts++;
+
+                if (retryAttempts <= MAX_RETRIES) {
+                    const status = document.getElementById('status-display');
+                    // Update UI to show restarting state
+                    if (retryAttempts === 1) {
+                        status.className = 'status-badge bg-amber-100 text-amber-700';
+                        status.innerHTML = '<i class="fas fa-sync fa-spin"></i><span>Đang khởi động lại...</span>';
+                        appendLog('[INFO] Mất kết nối đến máy chủ. Hệ thống đang khởi động lại...');
+                    }
+                } else {
+                    // Give up after max retries
+                    setRunningState(false);
+                    appendLog('❌ Mất kết nối quá lâu. Vui lòng tải lại trang.');
+                    showFlashMessage('Mất kết nối server!', 'danger');
+                }
             }
         }, 1000);
     }

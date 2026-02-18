@@ -123,13 +123,22 @@ def start_flashcard_session_all(mode):
         flash('Không có thẻ nào cho chế độ này.', 'warning')
         return redirect(url_for('vocabulary.dashboard'))
 
+    # [UPDATED] Use centralized Settings Service to resolve limits
+    from mindstack_app.modules.learning.interface import LearningInterface
+    session_config = LearningInterface.resolve_flashcard_session_config(
+        user=current_user,
+        container_id='all',
+        url_params=request.args.to_dict()
+    )
+    new_limit = session_config.get('new_limit', 50)
+
     # Create DB Session using Driver API
     from mindstack_app.modules.session.interface import SessionInterface
     db_sess, driver_state = SessionInterface.start_driven_session(
         user_id=current_user.user_id,
         container_id='all',
         learning_mode='flashcard',
-        settings={'filter': 'srs', 'mode_config_id': mode}
+        settings={'filter': 'srs', 'mode_config_id': mode, 'new_limit': new_limit}
     )
     
     if db_sess:
@@ -186,6 +195,15 @@ def start_flashcard_session_multi(mode):
         flash('Không có thẻ nào cho chế độ này.', 'warning')
         return redirect(url_for('vocabulary.dashboard'))
 
+    # [UPDATED] Use centralized Settings Service
+    from mindstack_app.modules.learning.interface import LearningInterface
+    session_config = LearningInterface.resolve_flashcard_session_config(
+        user=current_user,
+        container_id=set_ids[0] if set_ids else 0,
+        url_params=request.args.to_dict()
+    )
+    new_limit = session_config.get('new_limit', 50)
+
     # Create DB Session using Driver API
     from mindstack_app.modules.session.interface import SessionInterface
     # For multi-set, use first set as container_id (Driver will handle multi-set)
@@ -194,7 +212,7 @@ def start_flashcard_session_multi(mode):
         user_id=current_user.user_id,
         container_id=container_id,
         learning_mode='flashcard',
-        settings={'filter': 'srs', 'mode_config_id': mode, 'set_ids': set_ids}
+        settings={'filter': 'srs', 'mode_config_id': mode, 'set_ids': set_ids, 'new_limit': new_limit}
     )
     
     if db_sess:
@@ -261,7 +279,7 @@ def start_flashcard_session_by_id(set_id, mode):
         user_id=current_user.user_id,
         container_id=set_id,
         learning_mode='flashcard',
-        settings={'filter': 'srs', 'mode_config_id': mode}
+        settings={'filter': 'srs', 'mode_config_id': mode, 'new_limit': session_config.get('new_limit', 50)}
     )
     
     if db_sess:

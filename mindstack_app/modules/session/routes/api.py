@@ -333,3 +333,18 @@ def api_get_next_interaction(session_id):
         current_app.logger.error(f"Error getting next interaction: {e}", exc_info=True)
         return jsonify({'error': 'Internal server error'}), 500
 
+
+@blueprint.route('/api/<int:session_id>/cancel', methods=['POST'])
+@login_required
+def api_cancel_session(session_id):
+    """Cancel a session by ID."""
+    try:
+        session = LearningSessionService.get_session_by_id(session_id)
+        if not session or session.user_id != current_user.user_id:
+            return jsonify({'error': 'Session not found'}), 404
+        
+        success = LearningSessionService.cancel_session(session_id)
+        return jsonify({'success': success})
+    except Exception as e:
+        current_app.logger.error(f"Error cancelling session API: {e}", exc_info=True)
+        return jsonify({'error': 'Internal server error'}), 500

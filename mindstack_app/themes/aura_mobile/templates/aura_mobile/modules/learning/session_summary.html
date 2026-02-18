@@ -178,7 +178,7 @@
             </div>
             <div class="flex gap-2">
                 {% if pagination.has_prev %}
-                <a href="{{ url_for('learning.session_summary', session_id=summary.session_id, page=pagination.prev_num) }}"
+                <a href="{{ url_for('session.session_summary', session_id=summary.session_id, page=pagination.prev_num) }}"
                     class="px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-sm font-medium text-slate-600 hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-200 transition-all shadow-sm">
                     <i class="fas fa-chevron-left mr-1"></i> Trước
                 </a>
@@ -190,7 +190,7 @@
                 {% endif %}
 
                 {% if pagination.has_next %}
-                <a href="{{ url_for('learning.session_summary', session_id=summary.session_id, page=pagination.next_num) }}"
+                <a href="{{ url_for('session.session_summary', session_id=summary.session_id, page=pagination.next_num) }}"
                     class="px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-sm font-medium text-slate-600 hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-200 transition-all shadow-sm">
                     Sau <i class="fas fa-chevron-right ml-1"></i>
                 </a>

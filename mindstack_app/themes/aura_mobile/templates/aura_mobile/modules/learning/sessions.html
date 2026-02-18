@@ -156,8 +156,14 @@
                         class="fa-solid {% if s.learning_mode == 'quiz' %}fa-bolt{% else %}fa-layer-group{% endif %}"></i>
                 </div>
                 <div class="flex-1 min-w-0">
-                    <h3 class="font-bold text-slate-800 text-base leading-tight mb-1 truncate">{{ s.container_name }}
-                    </h3>
+                    <div class="flex items-center justify-between gap-2">
+                        <h3 class="font-bold text-slate-800 text-base leading-tight mb-1 truncate">{{ s.container_name
+                            }}</h3>
+                        <button onclick="terminateSession('{{ s.session_id }}')"
+                            class="w-8 h-8 rounded-full bg-rose-50 text-rose-500 flex items-center justify-center active:scale-90 transition-transform hover:bg-rose-100">
+                            <i class="fa-solid fa-xmark"></i>
+                        </button>
+                    </div>
                     <div class="flex items-center gap-2 text-xs text-slate-500 font-medium">
                         <span
                             class="px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 font-bold uppercase text-[10px] tracking-wider">
@@ -302,6 +308,36 @@
             btnActive.classList.remove('text-indigo-600', 'bg-white', 'shadow-sm');
             btnActive.classList.add('text-slate-500', 'hover:text-slate-700');
         }
+    }
+
+    function terminateSession(sessionId) {
+        if (!confirm('Bạn có muốn kết thúc phiên học này không?')) return;
+
+        const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+
+        // Show loading state if needed
+        const url = `/session/api/${sessionId}/cancel`;
+
+        fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            }
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Refresh the page or remove the item from UI
+                    window.location.reload();
+                } else {
+                    alert('Có lỗi xảy ra: ' + (data.error || 'Vui lòng thử lại.'));
+                }
+            })
+            .catch(err => {
+                console.error('Termination error:', err);
+                alert('Lỗi kết nối máy chủ.');
+            });
     }
 </script>
 {% endblock %}

@@ -101,8 +101,8 @@ class VocabularyDriver(BaseSessionDriver):
             q_due = FSRSInterface.apply_memory_filter(q_due, user_id, 'due')
             due_ids = [i.item_id for i in q_due.all()]
             
-            # 2. New Items (Limit 20)
-            new_limit = settings.get('new_limit', 20)
+            # 2. New Items (Default Limit 999,999 - Unlimited)
+            new_limit = settings.get('new_limit', 999999)
             q_new = items_query
             q_new = FSRSInterface.apply_memory_filter(q_new, user_id, 'new')
             q_new = q_new.limit(new_limit)

@@ -204,9 +204,11 @@ def session_summary(session_id):
         }
         
         l_mode = session_obj.learning_mode
+        # Ensure session_data is a dict
+        s_data = session_obj.session_data or {}
+        
         # Try 'mode' (standard) or 'study_mode' (new metadata)
-        s_mode = session_obj.session_data.get('mode') or \
-                 session_obj.session_data.get('study_mode')
+        s_mode = s_data.get('mode') or s_data.get('study_mode')
         
         # Default fallback
         if not s_mode:
@@ -225,8 +227,8 @@ def session_summary(session_id):
             'learning_mode': l_mode,
             'learning_mode_label': mode_labels.get(l_mode, l_mode.capitalize()),
             'sub_mode_label': sub_mode_labels.get(s_mode, s_mode.capitalize()) if s_mode else "Tự do",
-            'container_name': session_obj.session_data.get('container_name', container_name) if session_obj.session_data else container_name,
-            'mode_name': session_obj.session_data.get('mode_name', 'Tự do') if session_obj.session_data else 'Tự do'
+            'container_name': s_data.get('container_name', container_name),
+            'mode_name': s_data.get('mode_name', 'Tự do')
         }
         
         from mindstack_app.utils.content_renderer import render_text_field

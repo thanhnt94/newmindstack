@@ -99,6 +99,7 @@ class LearningSettingsService:
         url_autoplay = url_params.get('autoplay') == 'true' if 'autoplay' in url_params else None
         url_show_image = url_params.get('show_image') == 'true' if 'show_image' in url_params else None
         url_show_stats = url_params.get('show_stats') == 'true' if 'show_stats' in url_params else None
+        url_new_limit = url_params.get('new_limit')
 
         logger.info(f"[RESOLVE CONFIG] url_rating={url_rating}, type={type(url_rating)}")
 
@@ -106,7 +107,7 @@ class LearningSettingsService:
         auto_save_on = db_settings.get('auto_save', True)
         logger.info(f"[RESOLVE CONFIG] auto_save_on={auto_save_on}")
         
-        if auto_save_on and (url_rating or url_autoplay is not None or url_show_image is not None or url_show_stats is not None):
+        if auto_save_on and (url_rating or url_autoplay is not None or url_show_image is not None or url_show_stats is not None or url_new_limit):
             update_payload = {'flashcard': {}}
             if url_rating: 
                 # Ensure it's an integer
@@ -117,6 +118,11 @@ class LearningSettingsService:
             if url_autoplay is not None: update_payload['flashcard']['autoplay'] = url_autoplay
             if url_show_image is not None: update_payload['flashcard']['show_image'] = url_show_image
             if url_show_stats is not None: update_payload['flashcard']['show_stats'] = url_show_stats
+            if url_new_limit:
+                try:
+                    update_payload['flashcard']['new_limit'] = int(url_new_limit)
+                except (ValueError, TypeError):
+                    pass
             
             logger.info(f"[RESOLVE CONFIG] Auto-save triggered, update_payload={update_payload}")
             
@@ -127,6 +133,13 @@ class LearningSettingsService:
 
         # 3. Consolidate Final Config
         final_button_count = url_rating or fc_persisted.get('button_count') or global_prefs.get('flashcard_button_count') or 4
+        
+        # New limit: Priority: URL > Persisted > Default (999,999 - Unlimited)
+        final_new_limit = url_new_limit or fc_persisted.get('new_limit') or global_prefs.get('flashcard_new_limit') or 999999
+        try:
+            final_new_limit = int(final_new_limit)
+        except (ValueError, TypeError):
+            final_new_limit = 999999
         
         visual_settings = {
             'autoplay': fc_persisted.get('autoplay', global_prefs.get('flashcard_autoplay_audio', False)),
@@ -144,6 +157,7 @@ class LearningSettingsService:
         
         return {
             'button_count': final_button_count,
+            'new_limit': final_new_limit,
             'visual_settings': visual_settings,
             'auto_save': auto_save_on
         }
