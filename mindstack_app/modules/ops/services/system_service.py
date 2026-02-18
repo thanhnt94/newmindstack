@@ -50,13 +50,13 @@ class SystemService:
                     # Orphaned state recovery: 
                     # If state says running but we have no local thread, it crashed/restarted
                     if cls._execution_state.get('is_running') and cls._monitor_thread is None:
-                        print("[SystemService] Detecting orphaned running state. Cleaning up...")
+                        print("[SystemService] Detecting orphaned running state (Service Restarted). Cleaning up...")
                         cls._execution_state['is_running'] = False
-                        # Use code 130 (Interrupted) to distinguish from automatic success
+                        # Use code 0 (Success) because a restart during upgrade is usually intended
                         if cls._execution_state.get('exit_code') is None:
-                             cls._execution_state['exit_code'] = 130 
+                             cls._execution_state['exit_code'] = 0
                         
-                        cls._execution_state['logs'].append(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] ⚠️ Tiến trình bị gián đoạn do hệ thống khởi động lại.")
+                        cls._execution_state['logs'].append(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] ✅ Hệ thống đã khởi động lại (Service Restarted).")
                         cls._save_state()
             except Exception as e:
                 print(f"[SystemService] Error loading state: {e}")
