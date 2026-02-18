@@ -77,31 +77,33 @@ class MatchingMode(BaseVocabMode):
     ) -> EvaluationResult:
         """
         Evaluate Matching session.
-        Input: `{'mistakes': int, 'duration_ms': int}`
         """
+        from mindstack_app.modules.scoring.interface import ScoringInterface
+        
         mistakes = user_input.get('mistakes', 0)
+        base_points = ScoringInterface.get_score_value('VOCAB_MATCHING_CORRECT_BONUS')
         
         # Threshold logic:
-        # 0 mistakes = 5 quality (Perfect)
-        # 1-2 mistakes = 4 quality (Good)
-        # 3-4 mistakes = 3 quality (Hard)
+        # 0 mistakes = 4 quality (Easy) + Bonus
+        # 1-2 mistakes = 3 quality (Good)
+        # 3-4 mistakes = 2 quality (Hard)
         # >5 mistakes = 1 quality (Again)
         
         if mistakes == 0:
-            quality = 5
-            score_change = 20 # Bonus for perfect match
-        elif mistakes <= 2:
             quality = 4
-            score_change = 10
-        elif mistakes <= 4:
+            score_change = base_points * 2 # Bonus for perfect match
+        elif mistakes <= 2:
             quality = 3
-            score_change = 5
+            score_change = base_points
+        elif mistakes <= 4:
+            quality = 2
+            score_change = base_points // 2
         else:
             quality = 1
             score_change = 0
             
         return EvaluationResult(
-            is_correct=(quality >= 3),
+            is_correct=(quality >= 2),
             quality=quality,
             score_change=score_change,
             feedback={

@@ -326,6 +326,30 @@ class VocabularyDriver(BaseSessionDriver):
         else:
             state.incorrect_count += 1
 
+        # 5. Emit signal for Global Scoring [NEW]
+        try:
+            from mindstack_app.core.signals import card_reviewed
+            from mindstack_app.models import LearningItem
+            
+            # Fetch item type for signal
+            item = LearningItem.query.get(item_id)
+            item_type = item.item_type if item else 'FLASHCARD'
+            
+            card_reviewed.send(
+                None,
+                user_id=state.user_id,
+                item_id=item_id,
+                quality=evaluation.quality,
+                is_correct=evaluation.is_correct,
+                learning_mode=state.mode,
+                score_points=evaluation.score_change,
+                item_type=item_type,
+                reason=f"Vocab {state.mode.capitalize()} Practice"
+            )
+            current_app.logger.info(f"[VOCAB_DRIVER] card_reviewed signal emitted for user {state.user_id}, points {evaluation.score_change}")
+        except Exception as e:
+            current_app.logger.error(f"[VOCAB_DRIVER] Failed to emit card_reviewed signal: {e}")
+
         return SubmissionResult(
             item_id=item_id,
             is_correct=evaluation.is_correct,

@@ -76,20 +76,18 @@ class MCQMode(BaseVocabMode):
     ) -> EvaluationResult:
         """
         Check the selected answer index against the correct one.
-
-        Expected ``user_input`` shape::
-
-            {
-                "answer_index": 2,
-                "correct_index": 0   # echoed from the interaction
-            }
         """
         from mindstack_app.modules.vocabulary.mcq.engine.mcq_engine import MCQEngine
+        from mindstack_app.modules.scoring.interface import ScoringInterface
 
         correct_index = user_input.get('correct_index', 0)
         user_answer_index = user_input.get('answer_index', -1)
+        
+        # [NEW] Pass central config to engine
+        point_value = ScoringInterface.get_score_value('VOCAB_MCQ_CORRECT_BONUS')
+        config = {'MCQ_CORRECT_SCORE': point_value}
 
-        result = MCQEngine.check_answer(correct_index, user_answer_index)
+        result = MCQEngine.check_answer(correct_index, user_answer_index, config=config)
 
         is_correct = result.get('is_correct', False)
 

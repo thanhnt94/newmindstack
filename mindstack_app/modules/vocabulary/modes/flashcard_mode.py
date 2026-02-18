@@ -148,23 +148,27 @@ class FlashcardMode(BaseVocabMode):
     ) -> EvaluationResult:
         """
         Accept the learner's self-rated quality.
-
-        Expected ``user_input`` shape::
-
-            {"quality": 3}          # 1=Again, 2=Hard, 3=Good, 4=Easy
-
-        Quality 1 is considered *incorrect* for statistics purposes;
-        qualities 2-4 are considered *correct*.
         """
+        from mindstack_app.modules.scoring.interface import ScoringInterface
+        
         quality = user_input.get('quality', 3)
         quality = max(1, min(4, quality))       # clamp to 1-4
 
         is_correct = quality >= 2
-        score = self._SCORE_MAP.get(quality, 0)
+        
+        # [NEW] Map quality to config keys
+        config_keys = {
+            1: 'SCORE_FSRS_AGAIN',
+            2: 'SCORE_FSRS_HARD',
+            3: 'SCORE_FSRS_GOOD',
+            4: 'SCORE_FSRS_EASY'
+        }
+        
+        score_change = ScoringInterface.get_score_value(config_keys.get(quality, 'SCORE_FSRS_GOOD'))
 
         return EvaluationResult(
             is_correct=is_correct,
             quality=quality,
-            score_change=score,
+            score_change=score_change,
             feedback={'rated_quality': quality},
         )

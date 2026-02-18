@@ -72,8 +72,9 @@ class ListeningMode(BaseVocabMode):
     ) -> EvaluationResult:
         """
         Evaluate Listening answer.
-        Input: `{'text': str}`
         """
+        from mindstack_app.modules.scoring.interface import ScoringInterface
+        
         content = item.get('content', {}) or {}
         correct_answer = (content.get('back') or content.get('definition') or content.get('answer') or '').strip()
         user_text = (user_input.get('text') or '').strip()
@@ -81,16 +82,12 @@ class ListeningMode(BaseVocabMode):
         # Simple Normalization
         is_correct = user_text.lower() == correct_answer.lower()
         
-        score_change = 0
-        quality = 0
-        
         if is_correct:
-            score_change = 10
-            quality = 5 # Perfect
+            score_change = ScoringInterface.get_score_value('VOCAB_LISTENING_CORRECT_BONUS')
+            quality = 4  # Easy/Perfect
         else:
-            # Maybe check for "close enough" (typos)?
-            # For now, strict strict equality for 100% match
-            quality = 1 # Wrong
+            score_change = 0
+            quality = 1  # Again
             
         return EvaluationResult(
             is_correct=is_correct,

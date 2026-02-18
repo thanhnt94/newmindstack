@@ -93,8 +93,9 @@ class TypingMode(BaseVocabMode):
     ) -> EvaluationResult:
         """
         Evaluate Typing answer.
-        Input expected: `{'text': str}`
         """
+        from mindstack_app.modules.scoring.interface import ScoringInterface
+        
         # Extract correct answer again (stateless)
         content = item.get('content', {}) or {}
         direction = settings.get('direction', 'front_back') if settings else 'front_back'
@@ -115,7 +116,7 @@ class TypingMode(BaseVocabMode):
         
         # Scoring
         if is_correct:
-            score_change = 15
+            score_change = ScoringInterface.get_score_value('VOCAB_TYPING_CORRECT_BONUS')
             quality = 4  # Easy (Typed correctly)
         else:
             score_change = 0
@@ -126,9 +127,8 @@ class TypingMode(BaseVocabMode):
             quality=quality,
             score_change=score_change,
             feedback={
-                'correct_answer': item.get('content', {}).get('back', ''),  # Use raw back for display if possible
-                'display_answer': correct_text if direction == 'back_front' else back, # Ensure we have a displayable string
+                'correct_answer': item.get('content', {}).get('back', ''), 
+                'display_answer': correct_text if direction == 'back_front' else back,
                 'user_text': user_input.get('text'),
-                'diff': None # TODO: Implement diff if needed
             }
         )

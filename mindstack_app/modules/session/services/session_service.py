@@ -372,6 +372,7 @@ class LearningSessionService:
             user_id=session.user_id,
             container_id=session.set_id_data if isinstance(session.set_id_data, int) else 0,
             mode=learning_mode,
+            session_id=session_id,
             item_queue=[],
             processed_ids=list(session.processed_item_ids or []),
             correct_count=session.correct_count or 0,

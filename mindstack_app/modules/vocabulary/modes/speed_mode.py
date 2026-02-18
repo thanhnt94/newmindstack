@@ -121,8 +121,9 @@ class SpeedMode(BaseVocabMode):
     ) -> EvaluationResult:
         """
         Evaluate Speed answer.
-        Input: `{'selected_option_id': int, 'duration_ms': int}`
         """
+        from mindstack_app.modules.scoring.interface import ScoringInterface
+        
         correct_id = item.get('item_id')
         selected_id = user_input.get('selected_option_id')
         duration_ms = user_input.get('duration_ms', 5000)
@@ -140,7 +141,7 @@ class SpeedMode(BaseVocabMode):
         quality = 1 # Default Again
 
         if is_correct:
-            base_points = 10
+            base_points = ScoringInterface.get_score_value('VOCAB_SPEED_CORRECT_BONUS')
             bonus = 0
             
             # Speed Bonus: < 1.5s = +5, < 3s = +2
@@ -151,8 +152,6 @@ class SpeedMode(BaseVocabMode):
             
             score_change = base_points + bonus
             quality = 3 # Good (Standard pass)
-            
-            # If extremely fast, maybe Easy (4)? Let's stick to Good for now to avoid over-optimizing FSRS too early.
         
         return EvaluationResult(
             is_correct=is_correct,
@@ -162,6 +161,6 @@ class SpeedMode(BaseVocabMode):
                 'correct_id': correct_id,
                 'user_selected': selected_id,
                 'time_taken': duration_ms,
-                'bonus_awarded': score_change - 10 if is_correct else 0
+                'bonus_awarded': score_change - base_points if is_correct else 0
             }
         )

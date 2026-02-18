@@ -40,6 +40,7 @@ class SessionState:
     user_id: int
     container_id: int
     mode: str                                   # e.g. 'flashcard', 'mcq', 'typing'
+    session_id: Optional[int] = None
     item_queue: List[int] = field(default_factory=list)  # ordered item_ids
     processed_ids: List[int] = field(default_factory=list)
     correct_count: int = 0

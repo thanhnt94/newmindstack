@@ -280,6 +280,7 @@ def api_get_next_interaction(session_id):
             user_id=session.user_id,
             container_id=container_id,
             mode=session.learning_mode,
+            session_id=session_id,
             item_queue=all_item_ids,
             processed_ids=list(session.processed_item_ids or []),
             correct_count=session.correct_count or 0,
