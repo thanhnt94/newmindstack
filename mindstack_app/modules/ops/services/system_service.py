@@ -52,8 +52,10 @@ class SystemService:
                     if cls._execution_state.get('is_running') and cls._monitor_thread is None:
                         print("[SystemService] Detecting orphaned running state. Cleaning up...")
                         cls._execution_state['is_running'] = False
-                        if cls._execution_state['exit_code'] is None:
-                             cls._execution_state['exit_code'] = 0 # Assume finished or interrupted
+                        # Use code 130 (Interrupted) to distinguish from automatic success
+                        if cls._execution_state.get('exit_code') is None:
+                             cls._execution_state['exit_code'] = 130 
+                        
                         cls._execution_state['logs'].append(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] ⚠️ Tiến trình bị gián đoạn do hệ thống khởi động lại.")
                         cls._save_state()
             except Exception as e:
@@ -92,7 +94,12 @@ class SystemService:
     def _execute_command(cls, command):
         """Internal method to run the command and capture output."""
         try:
-            # Use shell=True for ms-deploy if it's an alias or script in PATH
+            # Use shell=True for ms-deploy if it's an alias or script
+            # Log the exact command being executed for transparency
+            with cls._log_lock:
+                cls._execution_state['logs'].append(f"[INFO] Executing: {command}")
+                cls._save_state()
+
             process = subprocess.Popen(
                 command,
                 stdout=subprocess.PIPE,
@@ -103,14 +110,22 @@ class SystemService:
                 universal_newlines=True
             )
 
-            for line in process.stdout:
-                with cls._log_lock:
-                    cls._execution_state['logs'].append(line.strip())
-                    cls._execution_state['current_line'] = line.strip()
-                    # Limit log size to last 1000 lines
-                    if len(cls._execution_state['logs']) > 1000:
-                        cls._execution_state['logs'].pop(0)
-                    cls._save_state()
+            # Use readline loop with poll() for higher fidelity capturing
+            # especially important before system restarts
+            while True:
+                line = process.stdout.readline()
+                if not line and process.poll() is not None:
+                    break
+                
+                if line:
+                    with cls._log_lock:
+                        stripped_line = line.strip()
+                        cls._execution_state['logs'].append(stripped_line)
+                        cls._execution_state['current_line'] = stripped_line
+                        # Limit log size to last 1000 lines
+                        if len(cls._execution_state['logs']) > 1000:
+                            cls._execution_state['logs'].pop(0)
+                        cls._save_state()
 
             process.wait()
             

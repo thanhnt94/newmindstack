@@ -252,6 +252,9 @@
                         if (data.status.exit_code === 0) {
                             appendLog('✅ Hoàn thành nâng cấp thành công!');
                             showFlashMessage('Nâng cấp hệ thống hoàn tất!', 'success');
+                        } else if (data.status.exit_code === 130) {
+                            appendLog('⚠️ Nâng cấp bị gián đoạn do hệ thống khởi động lại.');
+                            showFlashMessage('Nâng cấp bị gián đoạn!', 'warning');
                         } else {
                             appendLog('❌ Quá trình gặp lỗi (Exit: ' + data.status.exit_code + ')');
                             showFlashMessage('Nâng cấp thất bại!', 'danger');
