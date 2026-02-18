@@ -307,62 +307,53 @@ def flashcard_session(session_id):
     Sử dụng TemplateService để chọn template version từ admin settings.
     """
     
-    # [REFACTORED] Re-load session from DB (Stateless approach)
-    should_reload = False
-    if 'flashcard_session' not in session:
-        should_reload = True
-    else:
-        # Verify if cookie matches URL
-        cookie_data = session['flashcard_session']
-        if cookie_data.get('db_session_id') != session_id:
-            should_reload = True
-            
-    if should_reload:
-        active_db_session = SessionInterface.get_session_by_id(session_id)
+    # [REFACTORED] Always reload session from DB to ensure fresh stats (Stateless approach)
+    # This prevents stale data in the Flask session cookie after API submissions.
+    active_db_session = SessionInterface.get_session_by_id(session_id)
+    
+    # Security check
+    if not active_db_session or active_db_session.user_id != current_user.user_id:
+         flash('Phiên học không tồn tại hoặc bạn không có quyền truy cập.', 'error')
+         return redirect(url_for('vocabulary.dashboard'))
         
-        # Security check
-        if not active_db_session or active_db_session.user_id != current_user.user_id:
-             flash('Phiên học không tồn tại hoặc bạn không có quyền truy cập.', 'error')
-             return redirect(url_for('vocabulary.dashboard'))
-        
-        # Resolve container name from DB
-        resolved_container_name = 'Học tập'
-        set_id_data = active_db_session.set_id_data
-        try:
-            if isinstance(set_id_data, int):
-                container = LearningContainer.query.get(set_id_data)
+    # Resolve container name from DB
+    resolved_container_name = 'Học tập'
+    set_id_data = active_db_session.set_id_data
+    try:
+        if isinstance(set_id_data, int):
+            container = LearningContainer.query.get(set_id_data)
+            if container:
+                resolved_container_name = container.title
+        elif isinstance(set_id_data, list) and len(set_id_data) > 0:
+            if len(set_id_data) == 1:
+                container = LearningContainer.query.get(set_id_data[0])
                 if container:
                     resolved_container_name = container.title
-            elif isinstance(set_id_data, list) and len(set_id_data) > 0:
-                if len(set_id_data) == 1:
-                    container = LearningContainer.query.get(set_id_data[0])
-                    if container:
-                        resolved_container_name = container.title
-                else:
-                    resolved_container_name = f"{len(set_id_data)} bộ thẻ"
-        except Exception as e:
-            current_app.logger.warning(f"Error resolving container name: {e}")
-             
-        # Reconstruct session dict directly from DB model
-        session['flashcard_session'] = {
-            'user_id': active_db_session.user_id,
-            'set_id': active_db_session.set_id_data,
-            'mode': active_db_session.mode_config_id,
-            'batch_size': 1,
-            'total_items_in_session': active_db_session.total_items,
-            'processed_item_ids': active_db_session.processed_item_ids or [],
-            'correct_answers': active_db_session.correct_count,
-            'incorrect_answers': active_db_session.incorrect_count,
-            'vague_answers': active_db_session.vague_count,
-            'session_points': active_db_session.points_earned,
-            'start_time': active_db_session.start_time.isoformat() if active_db_session.start_time else None,
-            'db_session_id': active_db_session.session_id,
-            'current_item_id': active_db_session.current_item_id,
-            # UI display fields
-            'container_name': resolved_container_name
-        }
-        session.modified = True
-        current_app.logger.info(f"Reloaded session {session_id} from DB (Stateless).")
+            else:
+                resolved_container_name = f"{len(set_id_data)} bộ thẻ"
+    except Exception as e:
+        current_app.logger.warning(f"Error resolving container name: {e}")
+         
+    # Reconstruct session dict directly from DB model
+    session['flashcard_session'] = {
+        'user_id': active_db_session.user_id,
+        'set_id': active_db_session.set_id_data,
+        'mode': active_db_session.mode_config_id,
+        'batch_size': 1,
+        'total_items_in_session': active_db_session.total_items,
+        'processed_item_ids': active_db_session.processed_item_ids or [],
+        'correct_answers': active_db_session.correct_count,
+        'incorrect_answers': active_db_session.incorrect_count,
+        'vague_answers': active_db_session.vague_count,
+        'session_points': active_db_session.points_earned,
+        'start_time': active_db_session.start_time.isoformat() if active_db_session.start_time else None,
+        'db_session_id': active_db_session.session_id,
+        'current_item_id': active_db_session.current_item_id,
+        # UI display fields
+        'container_name': resolved_container_name
+    }
+    session.modified = True
+    current_app.logger.info(f"Reloaded session {session_id} from DB (Stateless).")
 
 
 
