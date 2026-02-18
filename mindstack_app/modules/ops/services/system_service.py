@@ -46,18 +46,6 @@ class SystemService:
                     data = json.load(f)
                     # Merge with existing default in case schema changed
                     cls._execution_state.update(data)
-                    
-                    # Orphaned state recovery: 
-                    # If state says running but we have no local thread, it crashed/restarted
-                    if cls._execution_state.get('is_running') and cls._monitor_thread is None:
-                        print("[SystemService] Detecting orphaned running state (Service Restarted). Cleaning up...")
-                        cls._execution_state['is_running'] = False
-                        # Use code 0 (Success) because a restart during upgrade is usually intended
-                        if cls._execution_state.get('exit_code') is None:
-                             cls._execution_state['exit_code'] = 0
-                        
-                        cls._execution_state['logs'].append(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] ✅ Hệ thống đã khởi động lại (Service Restarted).")
-                        cls._save_state()
             except Exception as e:
                 print(f"[SystemService] Error loading state: {e}")
 
@@ -84,6 +72,7 @@ class SystemService:
         cls._save_state()
 
         # Run in background thread to not block Flask
+        cls._execution_state['pid'] = os.getpid()
         cls._monitor_thread = threading.Thread(target=cls._execute_command, args=(command,))
         cls._monitor_thread.daemon = True
         cls._monitor_thread.start()
@@ -122,6 +111,7 @@ class SystemService:
                         stripped_line = line.strip()
                         cls._execution_state['logs'].append(stripped_line)
                         cls._execution_state['current_line'] = stripped_line
+                        cls._execution_state['last_updated'] = time.time()
                         # Limit log size to last 1000 lines
                         if len(cls._execution_state['logs']) > 1000:
                             cls._execution_state['logs'].pop(0)
@@ -143,6 +133,54 @@ class SystemService:
                 cls._execution_state['exit_code'] = 1
                 cls._execution_state['logs'].append(f"[ERROR] {str(e)}")
                 cls._save_state()
+
+    @classmethod
+    def get_status(cls):
+        """Returns the current execution state."""
+        # Always reload from disk to get latest state (especially after restart)
+        # [CRITICAL] Move _load_state INTO lock to prevent race conditions
+        with cls._log_lock:
+            cls._load_state()
+            
+            # [NEW] Robust Orphan Check Logic
+            # 1. Same Worker Process: If PID matches, we can trust _monitor_thread
+            # 2. Diff Worker Process: We only trust 'last_updated' timeout
+            if cls._execution_state.get('is_running'):
+                now = time.time()
+                last_updated = cls._execution_state.get('last_updated', now)
+                stored_pid = cls._execution_state.get('pid')
+                
+                is_orphan = False
+                
+                if stored_pid == os.getpid():
+                     # Same process context - reliable thread check
+                     if cls._monitor_thread is None or not cls._monitor_thread.is_alive():
+                         # Double-check: The thread MIGHT have just finished and updated state?
+                         # No, because we are holding the lock! If thread finished, it would have updated state to is_running=False
+                         # So if is_running=True but thread is dead, it CRASHED or wasn't started properly.
+                         is_orphan = True
+                else:
+                     # Cross-process context - only timeout is reliable
+                     # Wait 60s for silence before assuming death
+                     if (now - last_updated) > 60:
+                         is_orphan = True
+                
+                if is_orphan:
+                    print(f"[SystemService] Detecting STALE running state (PID={stored_pid}). Cleaning up...")
+                    cls._execution_state['is_running'] = False
+                    if cls._execution_state.get('exit_code') is None:
+                            cls._execution_state['exit_code'] = 0
+                    
+                    cls._execution_state['logs'].append(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] ✅ Hệ thống đã khởi động lại (Service Restarted).")
+                    cls._save_state()
+
+            return {
+                'is_running': cls._execution_state['is_running'],
+                'logs': cls._execution_state['logs'],
+                'start_time': cls._execution_state['start_time'],
+                'end_time': cls._execution_state['end_time'],
+                'exit_code': cls._execution_state['exit_code']
+            }
 
     @classmethod
     def get_status(cls):
