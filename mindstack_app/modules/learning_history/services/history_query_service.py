@@ -8,6 +8,39 @@ class HistoryQueryService:
     """Service for querying learning history (ReadOnly logic)."""
 
     @staticmethod
+    def get_log(log_id: int) -> Optional[Dict[str, Any]]:
+        """Fetch a single study log as a dictionary."""
+        log = StudyLog.query.get(log_id)
+        if not log:
+            return None
+            
+        return {
+            'log_id': log.log_id,
+            'user_id': log.user_id,
+            'item_id': log.item_id,
+            'container_id': log.container_id,
+            'session_id': log.session_id,
+            'timestamp': log.timestamp,
+            'rating': log.rating,
+            'is_correct': log.is_correct,
+            'review_duration': log.review_duration,
+            'learning_mode': log.learning_mode,
+            'user_answer': log.user_answer,
+            'gamification_snapshot': log.gamification_snapshot,
+            'fsrs_snapshot': log.fsrs_snapshot,
+            'context_snapshot': log.context_snapshot
+        }
+
+    @staticmethod
+    def count_mode_reps(user_id: int, item_id: int, learning_mode: str) -> int:
+        """Count repetitions for a specific item in a specific mode."""
+        return StudyLog.query.filter_by(
+            user_id=user_id,
+            item_id=item_id,
+            learning_mode=learning_mode
+        ).count()
+
+    @staticmethod
     def get_logs_by_user(
         user_id: int, 
         limit: int = 100, 

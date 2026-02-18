@@ -1,4 +1,4 @@
-# File: mindstack_app/modules/vocab_flashcard/services/flashcard_service.py
+# File: mindstack_app/modules/vocabulary/flashcard/services/flashcard_service.py
 """
 FlashcardService - Orchestration Facade
 ========================================
@@ -15,8 +15,7 @@ from flask import current_app
 from mindstack_app.models import LearningItem
 from mindstack_app.modules.fsrs.interface import FSRSInterface
 from mindstack_app.modules.session.interface import SessionInterface
-# REFAC: ScoringEngine via Interface
-from mindstack_app.modules.learning.logics.scoring_engine import ScoringEngine
+from mindstack_app.modules.learning.interface import LearningInterface
 from mindstack_app.modules.learning_history.interface import LearningHistoryInterface
 from mindstack_app.core.signals import card_reviewed
 from mindstack_app.utils.db_session import safe_commit
@@ -98,7 +97,9 @@ class FlashcardService:
             
             # 4. Calculate score
             is_correct = (quality >= 3)
-            score_result = ScoringEngine.calculate_answer_points(
+            # Decoupled: Using LearningInterface instead of ScoringEngine directly
+            from mindstack_app.modules.learning.interface import LearningInterface
+            score_result = LearningInterface.calculate_answer_points(
                 mode='flashcard',
                 quality=quality,
                 is_correct=is_correct,

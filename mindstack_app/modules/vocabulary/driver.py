@@ -238,7 +238,7 @@ class VocabularyDriver(BaseSessionDriver):
             
             # [Step 1] Pre-calculation (Before FSRS Update)
             from mindstack_app.modules.fsrs.interface import FSRSInterface
-            from mindstack_app.modules.learning_history.models import StudyLog
+            from mindstack_app.modules.learning_history.interface import LearningHistoryInterface
             
             # Fetch Pre-state (Snapshot)
             pre_state = FSRSInterface.get_item_state(state.user_id, item_id)
@@ -249,13 +249,12 @@ class VocabularyDriver(BaseSessionDriver):
             # Calculate Retrievability (Pre-answer)
             pre_retrievability = FSRSInterface.get_retrievability(pre_state) if pre_state else 0.0
             
-            # Count Mode Reps (Query history)
-            # Optimization: could be cached or passed in state, but count() is fast on indexed cols
-            reps_mode = StudyLog.query.filter_by(
+            # Count Mode Reps via Interface
+            reps_mode = LearningHistoryInterface.count_mode_reps(
                 user_id=state.user_id, 
                 item_id=item_id, 
                 learning_mode=state.mode
-            ).count()
+            )
 
             # [Step 2] Scoring (Already done in mode.evaluate_submission)
             # evaluation.breakdown is available

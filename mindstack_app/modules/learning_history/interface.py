@@ -10,6 +10,16 @@ class LearningHistoryInterface:
     """
 
     @staticmethod
+    def get_log(log_id: int) -> Optional[Dict[str, Any]]:
+        """Fetch a single study log as a dictionary (DTO)."""
+        return HistoryQueryService.get_log(log_id)
+
+    @staticmethod
+    def count_mode_reps(user_id: int, item_id: int, learning_mode: str) -> int:
+        """Count repetitions for a specific item in a specific mode."""
+        return HistoryQueryService.count_mode_reps(user_id, item_id, learning_mode)
+
+    @staticmethod
     def record_log(
         user_id: int,
         item_id: int,

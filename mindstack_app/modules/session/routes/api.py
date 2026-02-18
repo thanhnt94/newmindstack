@@ -357,17 +357,22 @@ def api_get_log_detail(log_id):
     Renders a modal template.
     """
     try:
-        from mindstack_app.modules.learning_history.models import StudyLog
+        from mindstack_app.modules.learning_history.interface import LearningHistoryInterface
         from mindstack_app.models import LearningItem
         from mindstack_app.utils.content_renderer import render_text_field
 
-        # 1. Fetch Log
-        log = StudyLog.query.get(log_id)
-        if not log or log.user_id != current_user.user_id:
+        # 1. Fetch Log via Interface
+        log_data = LearningHistoryInterface.get_log(log_id)
+        if not log_data or log_data['user_id'] != current_user.user_id:
             return "Log not found", 404
 
+        # Wrap log_data in a simple namespace-like object for template compatibility if needed, 
+        # or just pass the dict. The template uses dot notation which works for some things in Jinja 
+        # but not all if it's a dict. However, Jinja allows dot notation for dict keys.
+        log = log_data
+
         # 2. Fetch Item Content
-        item = LearningItem.query.get(log.item_id)
+        item = LearningItem.query.get(log['item_id'])
         item_content = "Item Deleted"
         correct_answer = None
 
@@ -390,22 +395,22 @@ def api_get_log_detail(log_id):
                  correct_answer = render_text_field(item.content.get('correct_answer'), 'correct_answer')
         
         # 3. Process User Answer with BBCode if available
-        user_answer_rendered = log.user_answer
-        if log.user_answer:
+        user_answer_rendered = log.get('user_answer')
+        if log.get('user_answer'):
             # Heuristic: If it already looks like HTML (contains <...>), skip rendering to avoid double-escaping
             import re
-            if not re.search(r'<[^>]+>', log.user_answer):
-                user_answer_rendered = render_text_field(log.user_answer, 'user_answer')
+            if not re.search(r'<[^>]+>', log.get('user_answer')):
+                user_answer_rendered = render_text_field(log.get('user_answer'), 'user_answer')
             else:
                 current_app.logger.info(f"[SESSION_API] Skipping BBCode render for Log {log_id}: HTML detected in answer.")
 
         # Calculate Score Fallback
-        game_snapshot = log.gamification_snapshot or {}
+        game_snapshot = log.get('gamification_snapshot') or {}
         score_change = game_snapshot.get('score_change', 0)
         
         if score_change == 0:
              # Fallback logic mirroring session_summary
-             rating = log.rating
+             rating = log.get('rating')
              if rating == 3: score_change = 10
              elif rating == 4: score_change = 15
              elif rating == 2: score_change = 5
