@@ -1513,9 +1513,27 @@
 
         // Update UI
         els.qNum.textContent = currentIndex + 1;
+
+        // [NEW] Show FSRS Pill if data is available (for learned items)
         if (els.fsrsPill) {
-            els.fsrsPill.classList.add('hidden', 'opacity-0', '-translate-y-2');
-            els.fsrsPill.classList.remove('opacity-100', 'translate-y-0');
+            if (q.srs) {
+                els.fsrsPill.classList.remove('hidden');
+                // Set data
+                if (els.fsrsS) els.fsrsS.textContent = Number(q.srs.stability || 0).toFixed(1);
+                if (els.fsrsD) els.fsrsD.textContent = Number(q.srs.difficulty || 0).toFixed(1);
+                if (els.fsrsR) els.fsrsR.textContent = Math.round(Number(q.srs.retrievability || 0) * 100);
+                if (els.fsrsMcqReps) els.fsrsMcqReps.textContent = q.srs.mcq_reps || 0;
+                if (els.fsrsTotalReps) els.fsrsTotalReps.textContent = q.srs.repetitions || 0;
+
+                // Trigger entrance animation
+                requestAnimationFrame(() => {
+                    els.fsrsPill.classList.add('opacity-100', 'translate-y-0');
+                    els.fsrsPill.classList.remove('opacity-0', '-translate-y-2');
+                });
+            } else {
+                els.fsrsPill.classList.add('hidden', 'opacity-0', '-translate-y-2');
+                els.fsrsPill.classList.remove('opacity-100', 'translate-y-0');
+            }
         }
 
         // Update Progress Bar

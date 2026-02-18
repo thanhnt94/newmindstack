@@ -86,7 +86,8 @@ class MCQEngine:
             'question_audio': q_audio_url,
             'answer_audio': a_audio_url,
             'front_audio': content.get('front_audio') or content.get('front_audio_url'),
-            'back_audio': content.get('back_audio') or content.get('back_audio_url')
+            'back_audio': content.get('back_audio') or content.get('back_audio_url'),
+            'srs': item_data.get('srs')
         }
 
     @staticmethod

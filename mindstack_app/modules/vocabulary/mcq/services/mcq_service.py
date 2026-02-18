@@ -232,6 +232,16 @@ class MCQService:
         if len(eligible_questions) < 1:
             return []
             
+        # [NEW] Fetch FSRS States for these items to display metrics (S, D, R)
+        srs_map = {}
+        if user_id:
+            try:
+                from mindstack_app.modules.fsrs.interface import FSRSInterface
+                item_ids = [item['item_id'] for item in eligible_questions]
+                srs_map = FSRSInterface.get_memory_states(user_id, item_ids)
+            except Exception as e:
+                current_app.logger.error(f"[MCQService] Failed to fetch FSRS states: {e}")
+
         # 3. Get all items (Distractors Source) - Whole container
         all_distractors = MCQService.get_all_items_for_distractors(container_id)
         
@@ -249,6 +259,20 @@ class MCQService:
             
         questions = []
         for item in selected_items:
+            # [NEW] Attach Srs State if available for UI display
+            item_id = item.get('item_id') if isinstance(item, dict) else getattr(item, 'item_id', None)
+            if item_id and item_id in srs_map:
+                state = srs_map[item_id]
+                from mindstack_app.modules.fsrs.interface import FSRSInterface
+                item['srs'] = {
+                    'stability': state.stability,
+                    'difficulty': state.difficulty,
+                    'retrievability': FSRSInterface.get_retrievability(state),
+                    'repetitions': state.repetitions,
+                    'mcq_reps': (state.data or {}).get('mcq_reps', 0),
+                    'last_review': state.last_review.isoformat() if state.last_review else None
+                }
+            
             # Ensure audio URLs are present with context - CAPTURE RETURN
             updated_content = MCQService.ensure_audio_urls(
                 item, 
