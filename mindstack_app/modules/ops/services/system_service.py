@@ -49,7 +49,7 @@ class SystemService:
                 print(f"[SystemService] Error loading state: {e}")
 
     @classmethod
-    def run_upgrade(cls, command="ms-deploy"):
+    def run_upgrade(cls, command="sudo ms-deploy"):
         """
         Executes the upgrade command in a background thread.
         """
