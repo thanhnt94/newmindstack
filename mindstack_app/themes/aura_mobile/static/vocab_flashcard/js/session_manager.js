@@ -59,7 +59,7 @@ function _mapDriverItemToLegacy(driverPayload) {
 
 // Local stats
 let sessionStatsLocal = {
-    processed: 0,
+    processed: (window.FlashcardConfig && window.FlashcardConfig.initialProcessedCount) ? window.FlashcardConfig.initialProcessedCount : 0,
     total: 0,
     correct: 0,
     incorrect: 0,
@@ -506,7 +506,9 @@ async function displayCurrentCard(force = false) {
     }
 
     // Session Stats Update
-    sessionStatsLocal.processed = (window.sessionAnswerHistory ? window.sessionAnswerHistory.length : 0) + 1;
+    const historyCount = (window.sessionAnswerHistory ? window.sessionAnswerHistory.length : 0);
+    const initialCount = (window.FlashcardConfig && window.FlashcardConfig.initialProcessedCount) ? window.FlashcardConfig.initialProcessedCount : 0;
+    sessionStatsLocal.processed = initialCount + historyCount + 1;
     // sessionStatsLocal.total is updated from batch fetch
 
     window.flashcardSessionStats = {
@@ -671,7 +673,7 @@ async function submitFlashcardAnswer(itemId, answer) {
 
         // Update window stats and dispatch event immediately
         window.flashcardSessionStats = {
-            progress: sessionStatsLocal.processed + '/' + sessionStatsLocal.total,
+            progress: sessionStatsLocal.processed,
             processed: sessionStatsLocal.processed,
             total: sessionStatsLocal.total,
             correct: sessionStatsLocal.correct,

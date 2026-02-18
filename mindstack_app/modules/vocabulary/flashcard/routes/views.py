@@ -441,6 +441,7 @@ def flashcard_session(session_id):
         display_settings=display_settings,
         initial_batch=initial_batch, # Pass to template
         db_session_id=session_id,    # Pass DB session ID for Driver API
+        initial_processed_count=len(session_data.get('processed_item_ids', [])),
     )
 
 

@@ -254,6 +254,7 @@ MỤC ĐÍCH: Giao diện thống kê phiên học tối ưu cho Mobile (App-lik
             const _notifStreakDuration = {{ config.NOTIF_STREAK_DURATION | default (2000) }};
             const _notifAchievementDuration = {{ config.NOTIF_ACHIEVEMENT_DURATION | default (5000) }};
             const _dbSessionId = {{ db_session_id|default (0) }};
+            const _initialProcessedCount = {{ initial_processed_count | default (0) }};
 
             // [SSR] Initial Data
             window.initialFlashcardBatch = {{ (initial_batch or[]) | tojson }};
@@ -279,7 +280,8 @@ MỤC ĐÍCH: Giao diện thống kê phiên học tối ưu cho Mobile (App-lik
                 modeDisplayName: "{{ mode_display_text }}",
                 displaySettings: {{ (display_settings or { }) | tojson }},
             dbSessionId: _dbSessionId,
-                scores: {
+                initialProcessedCount: _initialProcessedCount,
+                    scores: {
                 again: _scoreAgain,
                     hard: _scoreHard,
                         good: _scoreGood,

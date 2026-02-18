@@ -693,7 +693,7 @@
             const percent = Math.min(100, Math.round((stats.processed / stats.total) * 100));
             document.querySelectorAll('.js-fc-progress-fill').forEach(el => el.style.width = percent + '%');
 
-            const progressText = `${stats.processed}/${stats.total}`;
+            const progressText = `${stats.processed}`;
             document.querySelectorAll('.js-fc-progress-text').forEach(el => el.textContent = progressText);
 
             // Also update any standalone counters
