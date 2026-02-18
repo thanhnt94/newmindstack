@@ -1793,6 +1793,14 @@ function applyMarkers(markers) {
 
 // Hook into flashcard loading
 document.addEventListener('flashcardStatsUpdated', function (e) {
+    const stats = e.detail;
+    if (stats && stats.progress) {
+        const counterEl = document.querySelector('.js-fc-counter');
+        if (counterEl) {
+            counterEl.textContent = stats.progress;
+        }
+    }
+
     // Note: 'flashcardStatsUpdated' usually passes stats, not full item data.
     // We need to access the current batch item.
     if (window.currentFlashcardBatch && typeof window.currentFlashcardIndex !== 'undefined') {

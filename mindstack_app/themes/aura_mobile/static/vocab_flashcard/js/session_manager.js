@@ -510,7 +510,7 @@ async function displayCurrentCard(force = false) {
     // sessionStatsLocal.total is updated from batch fetch
 
     window.flashcardSessionStats = {
-        progress: sessionStatsLocal.processed + '/' + sessionStatsLocal.total,
+        progress: sessionStatsLocal.processed,
         processed: sessionStatsLocal.processed,
         total: sessionStatsLocal.total,
         correct: sessionStatsLocal.correct,

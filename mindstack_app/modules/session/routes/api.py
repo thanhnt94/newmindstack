@@ -14,26 +14,45 @@ def safe_url_for(endpoint, **values):
         return '#'
 
 def get_mode_description(session):
-    """Generate a detailed description for a learning session."""
-    mode_map = {
-        'new_only': 'Học từ mới',
-        'due_only': 'Ôn tập tới hạn',
-        'hard_only': 'Các từ khó',
-        'mixed_srs': 'Học theo lộ trình (SRS)',
-        'all_review': 'Ôn tập tất cả',
-        'typing': 'Gõ từ',
-        'listening': 'Nghe chép chính tả',
-        'matching': 'Ghép thẻ',
-        'mcq': 'Trắc nghiệm (MCQ Game)',
-        'quiz': 'Trắc nghiệm (Quiz)',
+    """Generate a detailed breadcrumb-style description for a learning session."""
+    module_name = "Từ vựng"
+    
+    # Map learning_mode to a display name
+    mode_display = {
         'flashcard': 'Flashcard',
+        'mcq': 'Trắc nghiệm',
+        'quiz': 'Quiz',
+        'typing': 'Gõ từ',
+        'listening': 'Luyện nghe',
+        'matching': 'Ghép thẻ',
         'speed': 'Ôn nhanh'
     }
-    base_name = mode_map.get(session.mode_config_id, session.mode_config_id)
-    # Customize description based on specific modes if needed
-    if session.learning_mode in ['typing', 'listening', 'mcq', 'quiz']:
-        return f"{base_name} • {session.total_items} câu"
-    return base_name
+    
+    # Map mode_config_id to a specific sub-mode name
+    sub_mode_map = {
+        'new_only': 'Học từ mới',
+        'due_only': 'Ôn tập đến hạn',
+        'hard_only': 'Thẻ khó',
+        'mixed_srs': 'SRS',
+        'srs': 'SRS',
+        'all_review': 'Tất cả',
+        'mixed': 'Hỗn hợp'
+    }
+    
+    main_mode = mode_display.get(session.learning_mode, session.learning_mode.capitalize())
+    sub_mode = sub_mode_map.get(session.mode_config_id, None)
+    
+    # Build breadcrumb
+    breadcrumb = f"{module_name} > {main_mode}"
+    
+    # Append sub-mode if it's distinct and defined
+    if sub_mode and sub_mode.lower() != main_mode.lower():
+        breadcrumb += f" > {sub_mode}"
+    elif not sub_mode and session.mode_config_id and session.mode_config_id != session.learning_mode:
+        # Fallback for unknown sub-modes
+        breadcrumb += f" > {session.mode_config_id}"
+        
+    return breadcrumb
 
 @blueprint.route('/api/active')
 @login_required
@@ -124,12 +143,12 @@ def check_active_vocab_session(set_id):
                 resume_url = safe_url_for('vocab_speed.speed_session_page', set_id=sid)
             
             mode_names = {
-                'flashcard': 'Flashcard', 
-                'mcq': 'Trắc nghiệm (MCQ)', 
-                'typing': 'Gõ từ (Typing)', 
-                'listening': 'Luyện nghe', 
-                'matching': 'Nối từ', 
-                'speed': 'Ôn nhanh (Speed)'
+                'flashcard': 'Từ vựng > Flashcard', 
+                'mcq': 'Từ vựng > Trắc nghiệm (MCQ)', 
+                'typing': 'Từ vựng > Gõ từ (Typing)', 
+                'listening': 'Từ vựng > Luyện nghe', 
+                'matching': 'Từ vựng > Nối từ', 
+                'speed': 'Từ vựng > Ôn nhanh'
             }
             
             return jsonify({

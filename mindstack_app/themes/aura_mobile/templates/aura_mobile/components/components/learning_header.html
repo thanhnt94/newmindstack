@@ -1,7 +1,7 @@
 {% macro render_learning_header(title_selector, badge_text, badge_icon, theme_gradient, badge_text_color='text-white',
 badge_icon_color='text-yellow-300', exit_func=None, show_score=False, score_selector='js-header-score', score_value='0',
 left_btn_func='history.back()', left_btn_icon='fa-solid fa-chevron-left', stats_content=None, hide_second_row=False,
-hide_left_btn=False, align_left=False) %}
+hide_left_btn=False, align_left=False, counter_selector=None) %}
 <div class="fc-header flex-col items-stretch !p-0 shadow-md z-50 relative">
 
     {# --- Row 1: Navigation & Title (Themed) --- #}
@@ -30,6 +30,12 @@ hide_left_btn=False, align_left=False) %}
                         class="text-[9px] font-black uppercase tracking-[0.15em] {{ badge_text_color }} cursor-pointer">
                         {{ badge_text }}
                     </span>
+                    {% if counter_selector %}
+                    <span
+                        class="text-[9px] font-black {{ counter_selector }} opacity-70 bg-white/20 px-1.5 py-0.5 rounded-md ml-0.5">
+                        1
+                    </span>
+                    {% endif %}
                 </div>
                 <span
                     class="font-extrabold text-white w-full {% if align_left %} text-left {% else %} text-center {% endif %} {{ title_selector }} leading-snug pointer-events-auto tracking-tight truncate whitespace-nowrap block overflow-hidden"
