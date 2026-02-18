@@ -44,15 +44,27 @@
                             %d/%m/%y') }}</span>
                     </div>
                     <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl font-black text-xs shadow-sm shadow-indigo-100/50
-                        {% if log.rating >= 4 %} bg-emerald-50 text-emerald-600 border border-emerald-100
-                        {% elif log.rating >= 3 %} bg-indigo-50 text-indigo-600 border border-indigo-100
-                        {% elif log.rating >= 2 %} bg-amber-50 text-amber-600 border border-amber-100
-                        {% else %} bg-rose-50 text-rose-600 border border-rose-100 {% endif %}">
+                        {% if log.learning_mode == 'flashcard' %}
+                            {% if log.rating >= 4 %} bg-emerald-50 text-emerald-600 border border-emerald-100
+                            {% elif log.rating >= 3 %} bg-indigo-50 text-indigo-600 border border-indigo-100
+                            {% elif log.rating >= 2 %} bg-amber-50 text-amber-600 border border-amber-100
+                            {% else %} bg-rose-50 text-rose-600 border border-rose-100 {% endif %}
+                        {% else %}
+                            {% if log.is_correct %} bg-emerald-50 text-emerald-600 border border-emerald-100
+                            {% else %} bg-rose-50 text-rose-600 border border-rose-100 {% endif %}
+                        {% endif %}">
+                        {% if log.learning_mode == 'flashcard' %}
                         {% if log.rating >= 4 %} <i class="fas fa-laugh-beam"></i> DỄ
                         {% elif log.rating >= 3 %} <i class="fas fa-smile"></i> TỐT
                         {% elif log.rating >= 2 %} <i class="fas fa-meh"></i> KHÓ
                         {% else %} <i class="fas fa-sync-alt"></i> HỌC LẠI {% endif %}
+                        {% else %}
+                        {% if log.is_correct %} <i class="fas fa-check-circle"></i> ĐÚNG
+                        {% else %} <i class="fas fa-times-circle"></i> SAI {% endif %}
+                        {% endif %}
+                        {% if log.learning_mode == 'flashcard' %}
                         <span class="opacity-50 font-bold">({{ log.rating }})</span>
+                        {% endif %}
                     </div>
                 </div>
                 <div class="flex flex-col items-end gap-2">
@@ -157,7 +169,11 @@
                             </span>
                             <div class="h-px flex-1 mx-4 border-b border-dashed border-slate-200"></div>
                             <span class="font-mono-bold text-amber-600 text-sm">
+                                {% if val is number %}
                                 {% if val < 1 and val> 0 %}x{{ val }}{% else %}+{{ val | int }}{% endif %}
+                                    {% else %}
+                                    {{ val }}
+                                    {% endif %}
                             </span>
                         </div>
                         {% endif %}

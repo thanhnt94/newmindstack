@@ -259,9 +259,23 @@ class VocabularyDriver(BaseSessionDriver):
 
             # [Step 2] Scoring (Already done in mode.evaluate_submission)
             # evaluation.breakdown is available
+            raw_bd = getattr(evaluation, 'breakdown', {})
+            flat_bd = {}
+            if raw_bd:
+                flat_bd['base'] = raw_bd.get('base', 0)
+                mods = raw_bd.get('modifiers', {})
+                if isinstance(mods, dict):
+                    for k, v in mods.items():
+                        flat_bd[k] = v
+                else:
+                    # In case modifiers isn't a dict (shouldn't happen with ScoreCalculator)
+                    pass
+            else:
+                flat_bd['base'] = evaluation.score_change
+
             gamification_snapshot = {
                 'total_score': evaluation.score_change,
-                'breakdown': getattr(evaluation, 'breakdown', None) or {'base': evaluation.score_change}
+                'breakdown': flat_bd
             }
             
             # [Step 3] Algorithm Update
@@ -413,20 +427,9 @@ class VocabularyDriver(BaseSessionDriver):
         except Exception as e:
             current_app.logger.error(f"[VOCAB_DRIVER] Failed to emit card_reviewed signal: {e}")
 
-        # Prepare flat breakdown for frontend
-        flat_breakdown = {}
-        raw_bd = getattr(evaluation, 'breakdown', {})
-        if raw_bd:
-            flat_breakdown['base'] = raw_bd.get('base', 0)
-            mods = raw_bd.get('modifiers', {})
-            for k, v in mods.items():
-                flat_breakdown[k] = v
-        else:
-            flat_breakdown['base'] = evaluation.score_change
-
         frontend_gamification = {
             'total_score': evaluation.score_change,
-            'breakdown': flat_breakdown
+            'breakdown': gamification_snapshot['breakdown']
         }
 
         return SubmissionResult(
