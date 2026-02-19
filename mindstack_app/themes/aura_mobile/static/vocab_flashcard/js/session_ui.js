@@ -383,33 +383,16 @@
     const storedAutoplay = localStorage.getItem('flashcardAutoplayAudio');
     let isAutoplayOn = storedAutoplay === 'true';
 
+    // Autoplay Toggle UI (Legacy/Dead Code Removed)
     function updateAutoplayToggleUI() {
         if (autoplayIcon) {
-            // When ON: show volume-up (audio playing), when OFF: show volume-mute (audio off)
             autoplayIcon.className = isAutoplayOn ? 'fas fa-volume-up js-fc-autoplay-icon' : 'fas fa-volume-mute js-fc-autoplay-icon';
         }
         if (autoplayText) {
             autoplayText.textContent = isAutoplayOn ? 'Tắt tự động' : 'Tự động phát';
         }
     }
-    updateAutoplayToggleUI();
 
-    if (autoplayToggleBtn) {
-        autoplayToggleBtn.addEventListener('click', function () {
-            isAutoplayOn = !isAutoplayOn;
-            localStorage.setItem('flashcardAutoplayAudio', isAutoplayOn);
-            // Try to call global toggle function if exists
-            if (typeof window.toggleAudioAutoplay === 'function') {
-                window.toggleAudioAutoplay();
-            }
-            updateAutoplayToggleUI();
-
-            // [FIX] Sync to server
-            if (window.updateVisualSettings) {
-                window.updateVisualSettings({ autoplay: isAutoplayOn });
-            }
-        });
-    }
 
     // Stats row toggle
     const statsToggleBtn = document.querySelector('.js-fc-stats-toggle');
@@ -684,33 +667,150 @@
         }
     });
 
+    // Toggle Audio Settings Menu (MCQ Style Header)
+    window.toggleAudioSettingsMenu = function (event) {
+        if (event) event.stopPropagation();
+
+        const settingsMenu = document.getElementById('js-fc-audio-settings-menu');
+        if (!settingsMenu) {
+            console.log('[Audio] Settings menu not found');
+            return;
+        }
+
+        const isOpen = !settingsMenu.classList.contains('opacity-0');
+
+        if (isOpen) {
+            settingsMenu.classList.add('opacity-0', 'scale-95', 'pointer-events-none');
+        } else {
+            // Sync state
+            syncAudioSettingsInternalState();
+            settingsMenu.classList.remove('opacity-0', 'scale-95', 'pointer-events-none');
+
+            // Add one-time click-outside handler
+            const closeMenu = (e) => {
+                if (!settingsMenu.contains(e.target)) {
+                    settingsMenu.classList.add('opacity-0', 'scale-95', 'pointer-events-none');
+                    document.removeEventListener('click', closeMenu);
+                }
+            };
+            setTimeout(() => document.addEventListener('click', closeMenu), 10);
+        }
+    };
+
+    function syncAudioSettingsInternalState() {
+        const menu = document.getElementById('js-fc-audio-settings-menu');
+        if (!menu) return;
+
+        console.log('[FSRS UI] Syncing audio menu with global state:', {
+            master: window.isAudioAutoplayEnabled,
+            front: window.isAudioAutoplayFrontEnabled,
+            back: window.isAudioAutoplayBackEnabled
+        });
+
+        const isMasterOn = !!window.isAudioAutoplayEnabled;
+        const isFrontOn = !!window.isAudioAutoplayFrontEnabled;
+        const isBackOn = !!window.isAudioAutoplayBackEnabled;
+
+        menu.querySelectorAll('.autoplay-front-toggle-btn').forEach(btn => btn.classList.toggle('is-active', isFrontOn));
+        menu.querySelectorAll('.autoplay-back-toggle-btn').forEach(btn => btn.classList.toggle('is-active', isBackOn));
+    }
+
+    // Hook into audio manager state changes (Safe Hook)
+    const setupHooks = () => {
+        // Safe Hook for Side Autoplay
+        const originalSetSide = window.setSideAutoplayEnabled;
+        if (originalSetSide && !originalSetSide.__isHooked) {
+            window.setSideAutoplayEnabled = function (side, enabled) {
+                originalSetSide(side, enabled);
+                syncAudioSettingsInternalState();
+            };
+            window.setSideAutoplayEnabled.__isHooked = true;
+        }
+
+        // Safe Hook for Global Autoplay
+        const originalSetGlobal = window.setAudioAutoplayEnabled;
+        if (originalSetGlobal && !originalSetGlobal.__isHooked) {
+            window.setAudioAutoplayEnabled = function (enabled) {
+                originalSetGlobal(enabled);
+                syncAudioSettingsInternalState();
+            };
+            window.setAudioAutoplayEnabled.__isHooked = true;
+        }
+    };
+
+    // Try hooking multiple times to ensure we catch audio_manager load
+    setupHooks();
+    setTimeout(setupHooks, 100);
+    setTimeout(setupHooks, 500);
+    setTimeout(setupHooks, 2000);
+    document.addEventListener('DOMContentLoaded', setupHooks);
+    window.addEventListener('load', setupHooks);
+
+    // Open Session Stats Modal for Mobile
+    window.openSessionStatsMobile = function () {
+        if (typeof window.toggleStatsModal === 'function') {
+            window.toggleStatsModal(true);
+        } else {
+            // Fallback for older versions
+            const statsToggles = document.querySelectorAll('.js-fc-stats-toggle-mobile');
+            if (statsToggles.length > 0) statsToggles[0].click();
+        }
+    };
+
     function updateMobileStats(stats) {
         if (!stats) return;
 
         // 1. Session Progress (Left Header: 0/0)
         // Selectors: .js-fc-progress-text, .js-fc-answered-count
+        const currentQNum = document.getElementById('current-q-num');
+        const totalQNum = document.getElementById('total-q-num');
+        const totalQSep = document.getElementById('total-q-sep');
+
         if (stats.total > 0) {
             const percent = Math.min(100, Math.round((stats.processed / stats.total) * 100));
             document.querySelectorAll('.js-fc-progress-fill').forEach(el => el.style.width = percent + '%');
 
-            const progressText = `${stats.processed}`;
-            document.querySelectorAll('.js-fc-progress-text').forEach(el => el.textContent = progressText);
-
-            // Also update any standalone counters
-            document.querySelectorAll('.js-fc-answered-count').forEach(el => el.textContent = stats.processed);
-            document.querySelectorAll('.js-fc-total-count').forEach(el => el.textContent = stats.total);
+            // Show total parts
+            if (totalQSep) totalQSep.classList.remove('hidden');
+            if (totalQNum) {
+                totalQNum.classList.remove('hidden');
+                totalQNum.textContent = stats.total;
+            }
+        } else {
+            // Unlimited mode - hide total parts
+            if (totalQSep) totalQSep.classList.add('hidden');
+            if (totalQNum) totalQNum.classList.add('hidden');
         }
 
+        // Always update current number
+        if (currentQNum) {
+            // stats.processed in manager is already (answered_count + 1)
+            // so we just show it directly.
+            currentQNum.textContent = stats.processed || 1;
+        }
+
+        // Standard progress text updates
+        const progressText = `${stats.processed}`;
+        document.querySelectorAll('.js-fc-progress-text').forEach(el => el.textContent = progressText);
+        document.querySelectorAll('.js-fc-answered-count').forEach(el => el.textContent = stats.processed);
+        document.querySelectorAll('.js-fc-total-count').forEach(el => el.textContent = stats.total || '∞');
+
         // 2. Session Correct Count (Green Check)
-        document.querySelectorAll('.js-fc-session-correct').forEach(el => {
+        document.querySelectorAll('.js-fc-session-correct, #live-correct').forEach(el => {
             el.textContent = stats.correct || 0;
         });
 
+        // ⭐ [NEW] Session Incorrect Count (Red X)
+        const liveWrong = document.getElementById('live-wrong');
+        if (liveWrong) {
+            liveWrong.textContent = stats.incorrect || 0;
+        }
+
         // 3. Session Points (Diamond)
-        document.querySelectorAll('.js-fc-session-points').forEach(el => {
+        document.querySelectorAll('.js-fc-session-points, #live-session-score').forEach(el => {
             const val = stats.session_score || 0;
-            const sign = val > 0 ? '+' : '';
-            el.textContent = sign + val;
+            // Removed sign for pill display to match MCQ style
+            el.textContent = val;
         });
 
         // [FIX] Update Global Score Header

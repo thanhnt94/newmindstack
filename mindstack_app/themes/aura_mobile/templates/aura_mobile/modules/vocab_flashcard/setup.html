@@ -107,22 +107,23 @@
 
     .config-toggles {
         display: flex;
-        gap: 1rem;
+        gap: 0.5rem;
         margin-bottom: 1.25rem;
         justify-content: center;
+        flex-wrap: wrap;
     }
 
     .toggle-chip {
-        padding: 0.6rem 1rem;
-        border-radius: 12px;
+        padding: 0.5rem 0.75rem;
+        border-radius: 10px;
         background: #f8fafc;
         border: 1px solid #e2e8f0;
-        font-size: 0.85rem;
+        font-size: 0.75rem;
         font-weight: 600;
         color: #64748b;
         display: flex;
         align-items: center;
-        gap: 0.5rem;
+        gap: 0.35rem;
         cursor: pointer;
         transition: all 0.2s;
     }
@@ -131,6 +132,18 @@
         background: #eff6ff;
         border-color: #3b82f6;
         color: #2563eb;
+    }
+
+    #toggle-audio-front.active {
+        background: #eff6ff;
+        border-color: #3b82f6;
+        color: #2563eb;
+    }
+
+    #toggle-audio-back.active {
+        background: #fff7ed;
+        border-color: #f97316;
+        color: #ea580c;
     }
 
     .btn-start {
@@ -250,8 +263,11 @@
         <button class="toggle-chip active" id="toggle-image" onclick="toggleSetting('image')">
             <i class="fas fa-image"></i> Hiện ảnh
         </button>
-        <button class="toggle-chip" id="toggle-audio" onclick="toggleSetting('audio')">
-            <i class="fas fa-volume-up"></i> Tự động phát
+        <button class="toggle-chip" id="toggle-audio-front" onclick="toggleSetting('audio_front')">
+            <i class="fas fa-volume-up"></i> Phát mặt trước
+        </button>
+        <button class="toggle-chip" id="toggle-audio-back" onclick="toggleSetting('audio_back')">
+            <i class="fas fa-volume-up"></i> Phát mặt sau
         </button>
     </div>
 
@@ -269,7 +285,8 @@
     let selectedModeId = null;
     let settings = {
         show_image: true,
-        autoplay: false
+        autoplay_front: true, // [NEW] Default to true
+        autoplay_back: true   // [NEW] Default to true
     };
 
     // Load saved settings if any (simple)
@@ -278,20 +295,42 @@
         const saved = {{ saved_settings | tojson
     }};
     if (saved.show_image !== undefined) settings.show_image = saved.show_image;
-    if (saved.autoplay !== undefined) settings.autoplay = saved.autoplay;
-    } catch (e) { }
+
+    // Handle legacy 'autoplay' or new granular ones
+    if (saved.autoplay !== undefined) {
+        settings.autoplay_front = saved.autoplay;
+        settings.autoplay_back = saved.autoplay;
+    }
+    if (saved.autoplay_front !== undefined) settings.autoplay_front = saved.autoplay_front;
+    if (saved.autoplay_back !== undefined) settings.autoplay_back = saved.autoplay_back;
+    } catch (e) { console.error("Error loading saved settings:", e); }
     {% endif %}
+
+    // Also load from localStorage to sync with session toggles
+    try {
+        const storedFront = localStorage.getItem('flashcardAutoPlayFront');
+        const storedBack = localStorage.getItem('flashcardAutoPlayBack');
+        if (storedFront === 'false') settings.autoplay_front = false;
+        else if (storedFront === 'true') settings.autoplay_front = true;
+
+        if (storedBack === 'false') settings.autoplay_back = false;
+        else if (storedBack === 'true') settings.autoplay_back = true;
+    } catch (e) { }
 
     // Init UI from State
     function initUI() {
         const imgBtn = document.getElementById('toggle-image');
-        const audioBtn = document.getElementById('toggle-audio');
+        const audioFrontBtn = document.getElementById('toggle-audio-front');
+        const audioBackBtn = document.getElementById('toggle-audio-back');
 
         if (settings.show_image) imgBtn.classList.add('active');
         else imgBtn.classList.remove('active');
 
-        if (settings.autoplay) audioBtn.classList.add('active');
-        else audioBtn.classList.remove('active');
+        if (settings.autoplay_front) audioFrontBtn.classList.add('active');
+        else audioFrontBtn.classList.remove('active');
+
+        if (settings.autoplay_back) audioBackBtn.classList.add('active');
+        else audioBackBtn.classList.remove('active');
 
         // Auto-select first available mode
         const firstCard = document.querySelector('.mode-card:not(.disabled)');
@@ -307,9 +346,14 @@
         if (type === 'image') {
             settings.show_image = !settings.show_image;
             document.getElementById('toggle-image').classList.toggle('active');
-        } else if (type === 'audio') {
-            settings.autoplay = !settings.autoplay;
-            document.getElementById('toggle-audio').classList.toggle('active');
+        } else if (type === 'audio_front') {
+            settings.autoplay_front = !settings.autoplay_front;
+            document.getElementById('toggle-audio-front').classList.toggle('active');
+            localStorage.setItem('flashcardAutoPlayFront', settings.autoplay_front);
+        } else if (type === 'audio_back') {
+            settings.autoplay_back = !settings.autoplay_back;
+            document.getElementById('toggle-audio-back').classList.toggle('active');
+            localStorage.setItem('flashcardAutoPlayBack', settings.autoplay_back);
         }
     }
 
@@ -355,7 +399,7 @@
                 .replace('MODE', selectedModeId);
 
             // Append explicit params
-            url += `?autoplay=${settings.autoplay}&show_image=${settings.show_image}`;
+            url += `?autoplay_front=${settings.autoplay_front}&autoplay_back=${settings.autoplay_back}&show_image=${settings.show_image}`;
 
             window.location.href = url;
         });

@@ -31,11 +31,6 @@
                     title="{{ 'Bật ảnh' if is_media_hidden else 'Tắt ảnh' }}">
                     <i class="fas {{ 'fa-image-slash' if is_media_hidden else 'fa-image' }}"></i>
                 </button>
-                <button class="icon-btn audio-autoplay-toggle-btn {{ 'is-active' if is_audio_autoplay else '' }}"
-                    aria-pressed="{{ 'true' if is_audio_autoplay else 'false' }}"
-                    title="{{ 'Tắt tự động phát audio' if is_audio_autoplay else 'Bật tự động phát audio' }}">
-                    <i class="fas {{ 'fa-volume-up' if is_audio_autoplay else 'fa-volume-mute' }}"></i>
-                </button>
             </div>
             <button type="button" class="icon-btn settings-toggle-btn" aria-expanded="false" title="Mở cài đặt"><i
                     class="fas fa-ellipsis-v"></i></button>

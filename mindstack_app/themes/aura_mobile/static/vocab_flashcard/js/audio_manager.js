@@ -1,90 +1,115 @@
-/**
- * Audio Manager for Flashcard Session
- */
+// ============================================================
+// Audio Manager — Clean Rewrite (v2)
+// ============================================================
+// State is ONLY persisted in localStorage. No server sync for autoplay.
+// No Object.defineProperty. No master toggle. No UI update responsibility.
+// ============================================================
 
-// Global State for Audio
-let isAudioAutoplayEnabled = true;
+// --- Global State ---
+window.isAudioAutoplayFrontEnabled = true;
+window.isAudioAutoplayBackEnabled = true;
+
+// Internal variables
 let currentAutoplayToken = 0;
 let currentAutoplayTimeouts = [];
 let autoplayDelaySeconds = 2;
 let currentAudioStopVersion = 0;
 
-// Load autoplay settings from localStorage or config
+// --- Simple Getters (no Object.defineProperty magic) ---
+window.getAudioAutoplayEnabled = function () {
+    return window.isAudioAutoplayFrontEnabled || window.isAudioAutoplayBackEnabled;
+};
+// Legacy alias — returns the computed master state, read-only semantics
+Object.defineProperty(window, 'isAudioAutoplayEnabled', {
+    get: () => window.isAudioAutoplayFrontEnabled || window.isAudioAutoplayBackEnabled,
+    set: () => { /* no-op: use toggleSideAutoplay('front'/'back') instead */ },
+    configurable: true
+});
+
+// --- Init: localStorage ONLY, server setting ignored ---
 function initAudioSettings() {
-    // Try to load from visualSettings global if available, otherwise localStorage
-    const visualSettings = window.FlashcardConfig ? window.FlashcardConfig.visualSettings : {};
-
-    if (visualSettings && visualSettings.autoplay !== undefined) {
-        isAudioAutoplayEnabled = (visualSettings.autoplay === true);
-    } else {
-        try {
-            const storedAudioAutoplay = localStorage.getItem('flashcardAutoPlayAudio');
-            if (storedAudioAutoplay === 'false') isAudioAutoplayEnabled = false;
-        } catch (err) {
-            console.warn('Không thể đọc localStorage:', err);
-        }
-    }
-
-    // Autoplay Delay settings
+    // Front
     try {
-        const storedSettings = localStorage.getItem('flashcardAutoplaySettings');
-        if (storedSettings) {
-            const parsedSettings = JSON.parse(storedSettings);
-            if (parsedSettings && typeof parsedSettings.delaySeconds === 'number' && parsedSettings.delaySeconds >= 0) {
-                autoplayDelaySeconds = parsedSettings.delaySeconds;
+        const v = localStorage.getItem('flashcardAutoPlayFront');
+        if (v !== null) window.isAudioAutoplayFrontEnabled = (v === 'true');
+    } catch (_) { }
+
+    // Back
+    try {
+        const v = localStorage.getItem('flashcardAutoPlayBack');
+        if (v !== null) window.isAudioAutoplayBackEnabled = (v === 'true');
+    } catch (_) { }
+
+    // Delay
+    try {
+        const s = localStorage.getItem('flashcardAutoplaySettings');
+        if (s) {
+            const p = JSON.parse(s);
+            if (p && typeof p.delaySeconds === 'number' && p.delaySeconds >= 0) {
+                autoplayDelaySeconds = p.delaySeconds;
             }
         }
-    } catch (err) {
-        console.warn('Không thể đọc cấu hình AutoPlay:', err);
-    }
-    window.isAudioAutoplayEnabled = isAudioAutoplayEnabled;
-    console.log('[Audio] Settings initialized. Autoplay enabled:', isAudioAutoplayEnabled);
-}
+    } catch (_) { }
 
-function persistAudioAutoplayPreference(enabled) {
-    try {
-        localStorage.setItem('flashcardAutoPlayAudio', enabled ? 'true' : 'false');
-    } catch (err) {
-        console.warn('Không thể lưu cấu hình tự động phát audio:', err);
-    }
-}
-
-function updateAudioAutoplayToggleButtons() {
-    const isEnabled = isAudioAutoplayEnabled;
-    document.querySelectorAll('.audio-autoplay-toggle-btn').forEach((btn) => {
-        btn.classList.toggle('is-active', isEnabled);
-        btn.setAttribute('aria-pressed', isEnabled ? 'true' : 'false');
-        btn.title = isEnabled ? 'Tắt tự động phát audio' : 'Bật tự động phát audio';
-        const icon = btn.querySelector('i');
-        if (icon) {
-            icon.className = `fas ${isEnabled ? 'fa-volume-up' : 'fa-volume-mute'}`;
-        }
+    console.log('[Audio] Settings initialized:', {
+        front: window.isAudioAutoplayFrontEnabled,
+        back: window.isAudioAutoplayBackEnabled
     });
 
-    // Update overlay badge
-    const badge = document.querySelector('.js-fc-autoplay-badge');
-    if (badge) {
-        if (isEnabled) {
-            badge.classList.remove('scale-0');
-            badge.classList.add('scale-100');
-        } else {
-            badge.classList.remove('scale-100');
-            badge.classList.add('scale-0');
-        }
-    }
+    // Sync modal UI if it exists
+    if (window.syncAudioModalUI) window.syncAudioModalUI();
 }
 
+// --- Persist to localStorage ---
+function persistSideAutoplayPreference(side, enabled) {
+    const key = side === 'front' ? 'flashcardAutoPlayFront' : 'flashcardAutoPlayBack';
+    try { localStorage.setItem(key, enabled ? 'true' : 'false'); } catch (_) { }
+}
+
+// --- Set Side (the ONLY way to change autoplay state) ---
+function setSideAutoplayEnabled(side, enabled) {
+    console.log(`[Audio] setSideAutoplayEnabled(${side}, ${enabled})`);
+    if (side === 'front') {
+        window.isAudioAutoplayFrontEnabled = !!enabled;
+    } else {
+        window.isAudioAutoplayBackEnabled = !!enabled;
+    }
+    persistSideAutoplayPreference(side, !!enabled);
+    // Sync modal UI if open
+    if (window.syncAudioModalUI) window.syncAudioModalUI();
+}
+
+// --- Toggle Side ---
+window.toggleSideAutoplay = function (side) {
+    const cur = side === 'front' ? window.isAudioAutoplayFrontEnabled : window.isAudioAutoplayBackEnabled;
+    setSideAutoplayEnabled(side, !cur);
+};
+
+// --- Legacy compat: setAudioAutoplayEnabled → toggles BOTH sides ---
 function setAudioAutoplayEnabled(enabled) {
-    isAudioAutoplayEnabled = enabled;
-    window.isAudioAutoplayEnabled = enabled; // Update global state
-    persistAudioAutoplayPreference(enabled);
-    updateAudioAutoplayToggleButtons();
-    if (!enabled) {
-        stopAllFlashcardAudio();
-    }
-    if (window.syncSettingsToServer) {
-        window.syncSettingsToServer();
-    }
+    setSideAutoplayEnabled('front', !!enabled);
+    setSideAutoplayEnabled('back', !!enabled);
+    if (!enabled) stopAllFlashcardAudio();
+}
+
+// Legacy toggle
+window.toggleAudioAutoplay = function () {
+    const cur = window.getAudioAutoplayEnabled();
+    setAudioAutoplayEnabled(!cur);
+};
+
+// [NEW] Helper for robust side detection
+function getCurrentVisibleSide() {
+    const visibleContainer = window.getVisibleFlashcardContentDiv ? window.getVisibleFlashcardContentDiv() : document;
+    const card = visibleContainer.querySelector('.js-flashcard-card') || document.querySelector('.js-flashcard-card');
+
+    if (!card) return 'front'; // Fallback
+
+    const isFlipped = card.classList.contains('flipped')
+        || card.classList.contains('is-flipped')
+        || (card.querySelector('.flashcard-inner') && card.querySelector('.flashcard-inner').classList.contains('is-flipped'));
+
+    return isFlipped ? 'back' : 'front';
 }
 
 function playAudioAfterLoad(audioPlayer, { restart = true, awaitCompletion = false } = {}) {
@@ -96,7 +121,8 @@ function playAudioAfterLoad(audioPlayer, { restart = true, awaitCompletion = fal
 
         const startedAtVersion = currentAudioStopVersion;
 
-        const updateOverlayIcon = (isPlaying) => {
+        const updateAudioUI = (isPlaying) => {
+            // 1. Update Mobile Overlay Icon
             const icon = document.querySelector('.js-fc-audio-icon-overlay');
             if (icon) {
                 if (isPlaying) {
@@ -110,10 +136,26 @@ function playAudioAfterLoad(audioPlayer, { restart = true, awaitCompletion = fal
                     icon.classList.add(hasAudio ? 'fa-volume-high' : 'fa-volume-xmark');
                 }
             }
+
+            // 2. Update all associated play buttons on the card/panel
+            const audioId = audioPlayer.getAttribute('id');
+            if (audioId) {
+                const buttons = document.querySelectorAll(`.play-audio-btn[data-audio-target="#${audioId}"]`);
+                buttons.forEach(btn => {
+                    if (isPlaying) {
+                        if (!btn.dataset.originalHtml) {
+                            btn.dataset.originalHtml = btn.innerHTML;
+                        }
+                        btn.innerHTML = '<i class="fas fa-pause animate-pulse"></i>';
+                    } else {
+                        btn.innerHTML = btn.dataset.originalHtml || '<i class="fas fa-volume-up"></i>';
+                    }
+                });
+            }
         };
 
-        const onPlaying = () => updateOverlayIcon(true);
-        const onPause = () => updateOverlayIcon(false);
+        const onPlaying = () => updateAudioUI(true);
+        const onPause = () => updateAudioUI(false);
 
         const cleanup = () => {
             audioPlayer.removeEventListener('canplay', onCanPlay);
@@ -124,7 +166,7 @@ function playAudioAfterLoad(audioPlayer, { restart = true, awaitCompletion = fal
         };
 
         const handleFinish = () => {
-            updateOverlayIcon(false);
+            updateAudioUI(false);
             cleanup();
             resolve();
         };
@@ -151,6 +193,10 @@ function playAudioAfterLoad(audioPlayer, { restart = true, awaitCompletion = fal
                     console.warn('Không thể đặt lại audio:', err);
                 }
             }
+            if (audioPlayer.src) {
+                console.log(`[Audio] 🔊 Playing: ${audioPlayer.src}`);
+            }
+
             const playPromise = audioPlayer.play();
             if (!awaitCompletion) {
                 // We don't cleanup() here anymore because we need 
@@ -241,7 +287,9 @@ async function generateAndPlayAudio(button, audioPlayer, options = {}) {
         });
         const result = await response.json();
         if (result.success && result.audio_url) {
-            audioPlayer.src = result.audio_url;
+            const cacheBustedUrl = `${result.audio_url}${result.audio_url.includes('?') ? '&' : '?'}t=${Date.now()}`;
+            console.log(`[Audio] Generated new audio: ${cacheBustedUrl}`);
+            audioPlayer.src = cacheBustedUrl;
             playbackPromise = playAudioAfterLoad(audioPlayer, { restart, awaitCompletion });
             if (awaitCompletion) {
                 await playbackPromise;
@@ -266,24 +314,48 @@ async function generateAndPlayAudio(button, audioPlayer, options = {}) {
 
 function playAudioForButton(button, options = {}) {
     if (!button) return Promise.resolve();
-    // console.log('[Audio] Request play for button:', button);
-    const audioPlayer = document.querySelector(button.dataset.audioTarget);
-    // console.log('[Audio] Found player:', audioPlayer ? audioPlayer.id : 'NONE', 'Target:', button.dataset.audioTarget);
 
-    if (!audioPlayer || button.classList.contains('is-disabled')) {
-        return Promise.resolve();
+    // ⭐ [FIX] Scope the search for the audio player to the nearest container if possible
+    // This prevents picking up stale audio elements from previous cards during transitions
+    const targetSelector = button.dataset.audioTarget;
+    let audioPlayer = null;
+
+    // Try to find within the same flashcard container first
+    const container = button.closest('.js-flashcard-card') || button.closest('.flashcard-panel');
+    if (container) {
+        audioPlayer = container.querySelector(targetSelector);
+    }
+
+    // Fallback to global if not found (though should be in container)
+    if (!audioPlayer) {
+        audioPlayer = document.querySelector(targetSelector);
     }
 
     const awaitCompletion = options.await === true;
     const restart = options.restart !== false;
     const suppressLoadingUi = options.suppressLoadingUi === true;
-    const hasAudioSource = audioPlayer.src && audioPlayer.src !== window.location.href;
+    const force = options.force === true;
+    const hasAudioSource = audioPlayer && audioPlayer.src && audioPlayer.src !== window.location.href;
 
     // ⭐ Mark as manual retrigger to ensure it plays after regeneration even if autoplay is OFF
-    audioPlayer.dataset.manualRetrigger = 'true';
+    if (audioPlayer) audioPlayer.dataset.manualRetrigger = 'true';
+
+    if (!audioPlayer || (button.classList.contains('is-disabled') && !force)) {
+        return Promise.resolve();
+    }
+
+    // Ensure original HTML is saved before any changes (spinner or icon swap)
+    if (!button.dataset.originalHtml) {
+        button.dataset.originalHtml = button.innerHTML;
+    }
 
     if (hasAudioSource) {
         stopAllFlashcardAudio(audioPlayer);
+        // Add cache buster if not present
+        if (!audioPlayer.src.includes('t=')) {
+            const separator = audioPlayer.src.includes('?') ? '&' : '?';
+            audioPlayer.src = `${audioPlayer.src}${separator}t=${Date.now()}`;
+        }
         return playAudioAfterLoad(audioPlayer, { restart, awaitCompletion });
     }
 
@@ -323,16 +395,25 @@ async function handleAudioError(audioEl, itemId, side, contentToRead) {
             audioEl.src = `${result.audio_url}?t=${new Date().getTime()}`;
             audioEl.load(); // ⭐ Force browser to reload the audio source
 
+            // ⭐ RE-ENABLE THE BUTTONS for this side
+            const buttons = document.querySelectorAll(`.play-audio-btn[data-side="${side}"]`);
+            buttons.forEach(btn => {
+                btn.classList.remove('is-disabled');
+                btn.disabled = false;
+                btn.dataset.hasAudio = 'true';
+                // If it's a mobile overlay icon, we might need more logic, but classList.remove('is-disabled') usually covers it
+            });
+
             // ⭐ Auto-play if autoplay is enabled OR it was a manual request
             if (isAudioAutoplayEnabled || isManualRetrigger) {
-                // Check if current visible side matches this audio's side
-                const isBackSideShowing = document.querySelector('.js-flashcard-card.flipped') !== null
-                    || document.querySelector('.flashcard-inner.is-flipped') !== null
-                    || document.querySelector('.fc-card.is-flipped') !== null
-                    || document.querySelector('[data-side-showing="back"]') !== null;
-                const currentVisibleSide = isBackSideShowing ? 'back' : 'front';
+                // [FIX] Use robust side detection
+                const currentVisibleSide = getCurrentVisibleSide();
 
-                if (side === currentVisibleSide) {
+                // [NEW] Check side-specific autoplay setting
+                const sideAutoplayEnabled = (side === 'front' ? isAudioAutoplayFrontEnabled : isAudioAutoplayBackEnabled);
+                const shouldAutoPlay = isManualRetrigger || (isAudioAutoplayEnabled && sideAutoplayEnabled);
+
+                if (side === currentVisibleSide && shouldAutoPlay) {
                     console.log(`[AudioRecovery] ${sideLabel} - 🔊 Phát audio sau tái tạo (Autoplay: ${isAudioAutoplayEnabled}, Manual: ${isManualRetrigger})`);
                     audioEl.addEventListener('canplay', function onCanPlay() {
                         audioEl.removeEventListener('canplay', onCanPlay);
@@ -366,49 +447,8 @@ async function handleAudioError(audioEl, itemId, side, contentToRead) {
 
 // ⭐ NEW: Prefetch audio for upcoming cards in the queue
 async function prefetchAudioForUpcomingCards(count = 3) {
-    const queue = window.currentFlashcardBatch;
-    const currentIndex = window.currentFlashcardIndex ?? 0;
-
-    if (!queue || !Array.isArray(queue) || queue.length === 0) {
-        // Retry slightly later if batch hasn't loaded yet
-        if (!window._prefetchRetryCount || window._prefetchRetryCount < 3) {
-            window._prefetchRetryCount = (window._prefetchRetryCount || 0) + 1;
-            setTimeout(() => prefetchAudioForUpcomingCards(count), 1000);
-        }
-        return;
-    }
-    window._prefetchRetryCount = 0;
-
-    const regenerateAudioUrl = window.FlashcardConfig?.regenerateAudioUrl;
-    const csrfHeaders = window.FlashcardConfig?.csrfHeaders ?? {};
-
-    if (!regenerateAudioUrl) {
-        console.log('[AudioPrefetch] No regenerate URL configured');
-        return;
-    }
-
-    console.log(`[AudioPrefetch] Starting prefetch for next ${count} cards from index ${currentIndex}`);
-
-    // Get upcoming items (skip current)
-    const upcomingItems = queue.slice(currentIndex + 1, currentIndex + 1 + count);
-
-    for (const item of upcomingItems) {
-        if (!item || !item.item_id || !item.content) continue;
-
-        const frontAudioUrl = item.content.front_audio_url;
-        const backAudioUrl = item.content.back_audio_url;
-
-        // Trigger browser preloading for both sides
-        // We TRUST the backend has ensured these exist or is processing them
-        if (frontAudioUrl) {
-            new Audio(frontAudioUrl).load();
-        }
-        if (backAudioUrl) {
-            new Audio(backAudioUrl).load();
-        }
-    }
-
-    console.log(`[AudioPrefetch] Browser cache trigger complete for ${upcomingItems.length} items`);
+    // [DISABLED] User requested to ignore audio cache/prefetching
+    // console.log('[AudioPrefetch] Disabled by user request');
 }
 
 function setupAudioErrorHandler(itemId, frontContent, backContent) {
@@ -441,14 +481,16 @@ function setupAudioErrorHandler(itemId, frontContent, backContent) {
 
 function autoPlaySide(side, retryCount = 0, force = false) {
     console.log('[Audio] autoPlaySide requested for:', side, 'Enabled:', isAudioAutoplayEnabled, 'Force:', force, 'Retry:', retryCount);
-    if (!isAudioAutoplayEnabled && !force) return;
 
-    // Tìm button trong container hiển thị (desktop hoặc mobile)
-    const visibleContainer = window.getVisibleFlashcardContentDiv ? window.getVisibleFlashcardContentDiv() : document;
+    // [NEW] Granular check
+    const sideAutoplayEnabled = (side === 'front' ? isAudioAutoplayFrontEnabled : isAudioAutoplayBackEnabled);
+    if (!force && (!isAudioAutoplayEnabled || !sideAutoplayEnabled)) return;
 
-    const button = visibleContainer.querySelector
-        ? visibleContainer.querySelector(`.play-audio-btn[data-side="${side}"]`)
-        : document.querySelector(`.play-audio-btn[data-side="${side}"]`);
+    // ⭐ [FIX] Strictly use the active container to avoid picking up stale cards
+    const visibleContainer = document.querySelector('.is-active-card-container') ||
+        (window.getVisibleFlashcardContentDiv ? window.getVisibleFlashcardContentDiv() : document);
+
+    const button = visibleContainer.querySelector(`.play-audio-btn[data-side="${side}"]`);
 
     if (!button) {
         if (retryCount < 10) {
@@ -460,7 +502,7 @@ function autoPlaySide(side, retryCount = 0, force = false) {
         return;
     }
     console.log('[Audio] AutoPlay triggering for button:', button);
-    playAudioForButton(button, { suppressLoadingUi: true }).catch(err => console.error('[Audio] AutoPlay error:', err));
+    playAudioForButton(button, { suppressLoadingUi: true, force: force }).catch(err => console.error('[Audio] AutoPlay error:', err));
 }
 
 function autoPlayFrontSide() {
@@ -498,8 +540,9 @@ function waitForAutoplayDelay(token) {
 async function playAutoplayAudioForSide(side, token) {
     if (token !== currentAutoplayToken) return;
 
-    // Tìm button trong container hiển thị (desktop hoặc mobile)
-    const visibleContainer = window.getVisibleFlashcardContentDiv ? window.getVisibleFlashcardContentDiv() : document;
+    // ⭐ [FIX] Strictly use the active container
+    const visibleContainer = document.querySelector('.is-active-card-container') ||
+        (window.getVisibleFlashcardContentDiv ? window.getVisibleFlashcardContentDiv() : document);
 
     let button = null;
     let retries = 0;
@@ -507,9 +550,7 @@ async function playAutoplayAudioForSide(side, token) {
     while (!button && retries < 10) {
         if (token !== currentAutoplayToken) return;
 
-        button = visibleContainer.querySelector
-            ? visibleContainer.querySelector(`.play-audio-btn[data-side="${side}"]`)
-            : document.querySelector(`.play-audio-btn[data-side="${side}"]`);
+        button = visibleContainer.querySelector(`.play-audio-btn[data-side="${side}"]`);
 
         if (!button) {
             retries++;
@@ -573,13 +614,5 @@ window.cancelAutoplaySequence = cancelAutoplaySequence;
 window.autoplayDelaySeconds = autoplayDelaySeconds;
 window.currentAutoplayToken = currentAutoplayToken; // used by revealBackSide dependencies
 window.prefetchAudioForUpcomingCards = prefetchAudioForUpcomingCards;
-
-// Robust sync between local variable and window property
-Object.defineProperty(window, 'isAudioAutoplayEnabled', {
-    get: () => isAudioAutoplayEnabled,
-    set: (val) => {
-        console.log('[Audio] window.isAudioAutoplayEnabled setter called with:', val);
-        isAudioAutoplayEnabled = val;
-    },
-    configurable: true
-});
+window.setSideAutoplayEnabled = setSideAutoplayEnabled;
+window.getCurrentVisibleSide = getCurrentVisibleSide;

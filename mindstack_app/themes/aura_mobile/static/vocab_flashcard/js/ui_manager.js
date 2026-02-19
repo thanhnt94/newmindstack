@@ -41,7 +41,7 @@ function initUiSettings() {
         if (mobileStats) mobileStats.style.display = 'none';
     }
 
-    // --- LONG PRESS TO TOGGLE AUTOPLAY ---
+    // --- LONG PRESS TO OPEN AUDIO SETTINGS MODAL ---
     const overlayAudioBtn = document.querySelector('.js-fc-audio-btn-overlay');
     if (overlayAudioBtn) {
         let longPressTimer;
@@ -50,17 +50,12 @@ function initUiSettings() {
         const startLongPress = (e) => {
             longPressTimer = setTimeout(() => {
                 e.preventDefault();
-                // Toggle Autoplay
-                const newState = !window.isAudioAutoplayEnabled;
-                window.setAudioAutoplayEnabled(newState);
+                // Open audio settings modal instead of toggling master
+                if (window.openAudioModal) window.openAudioModal();
 
                 // Haptic feedback if available
                 if (window.navigator.vibrate) {
                     window.navigator.vibrate(50);
-                }
-
-                if (window.showFlashMessage) {
-                    window.showFlashMessage(newState ? 'Đã BẬT tự động phát âm thanh' : 'Đã TẮT tự động phát âm thanh', 'info');
                 }
 
                 longPressTimer = null;
@@ -89,10 +84,8 @@ function initUiSettings() {
             if (overlayAudioBtn.dataset.hasAudio === 'false') return;
             window.stopAllFlashcardAudio();
 
-            // Find current active audio and play
-            const card = document.querySelector('.js-flashcard-card');
-            const isFlipped = card && card.classList.contains('flipped');
-            const side = isFlipped ? 'back' : 'front';
+            // [FIX] Use robust side detection from audio_manager
+            const side = window.getCurrentVisibleSide ? window.getCurrentVisibleSide() : 'front';
             console.log(`[Audio] Manual overlay click trigger for side: ${side}`);
 
             if (window.autoPlaySide) {
@@ -113,7 +106,8 @@ function initUiSettings() {
 // --- Flip Transformations ---
 
 window.flipToBack = function () {
-    const card = document.querySelector('.js-flashcard-card');
+    const visibleContainer = getVisibleFlashcardContentDiv();
+    const card = visibleContainer ? visibleContainer.querySelector('.js-flashcard-card') : document.querySelector('.js-flashcard-card');
     if (!card || card.classList.contains('flipped')) return;
 
     window.stopAllFlashcardAudio ? window.stopAllFlashcardAudio() : null;
@@ -163,7 +157,8 @@ window.flipToBack = function () {
 };
 
 window.flipToFront = function () {
-    const card = document.querySelector('.js-flashcard-card');
+    const visibleContainer = getVisibleFlashcardContentDiv();
+    const card = visibleContainer ? visibleContainer.querySelector('.js-flashcard-card') : document.querySelector('.js-flashcard-card');
     if (!card || !card.classList.contains('flipped')) return;
 
     window.stopAllFlashcardAudio ? window.stopAllFlashcardAudio() : null;
@@ -208,7 +203,8 @@ window.flipToFront = function () {
 };
 
 window.flipCard = function () {
-    const card = document.querySelector('.js-flashcard-card');
+    const visibleContainer = getVisibleFlashcardContentDiv();
+    const card = visibleContainer ? visibleContainer.querySelector('.js-flashcard-card') : document.querySelector('.js-flashcard-card');
     if (!card) return;
     if (card.classList.contains('flipped')) {
         window.flipToFront();
@@ -381,8 +377,15 @@ function setMediaHiddenState(hidden) {
 
 // Simplified for Unified Mobile View
 function setFlashcardContent(html) {
+    // ⭐ [NEW] Remove from previous containers
+    document.querySelectorAll('.is-active-card-container').forEach(el => {
+        el.classList.remove('is-active-card-container');
+    });
+
     document.querySelectorAll('.js-flashcard-content').forEach(el => {
         el.innerHTML = html;
+        // ⭐ [NEW] Mark as active container for strict scoping
+        el.classList.add('is-active-card-container');
     });
 }
 
@@ -681,6 +684,23 @@ function renderCard(data) {
         btn.addEventListener('click', ev => {
             ev.stopPropagation();
             setMediaHiddenState(!isMediaHidden);
+        });
+    });
+
+    // [NEW] Granular Autoplay Toggles
+    document.querySelectorAll('.autoplay-front-toggle-btn').forEach(btn => {
+        btn.addEventListener('click', ev => {
+            ev.stopPropagation();
+            const isActive = btn.classList.contains('is-active');
+            window.setSideAutoplayEnabled('front', !isActive);
+        });
+    });
+
+    document.querySelectorAll('.autoplay-back-toggle-btn').forEach(btn => {
+        btn.addEventListener('click', ev => {
+            ev.stopPropagation();
+            const isActive = btn.classList.contains('is-active');
+            window.setSideAutoplayEnabled('back', !isActive);
         });
     });
 

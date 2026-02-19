@@ -99,13 +99,6 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        const autoplayToggle = evt.target.closest('.audio-autoplay-toggle-btn');
-        if (autoplayToggle) {
-            evt.stopPropagation();
-            if (window.setAudioAutoplayEnabled) window.setAudioAutoplayEnabled(!window.isAudioAutoplayEnabled);
-            return;
-        }
-
         if (!evt.target.closest('.toolbar-settings')) {
             if (window.closeAllSettingsMenus) window.closeAllSettingsMenus();
         }

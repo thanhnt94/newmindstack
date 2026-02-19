@@ -176,15 +176,13 @@ class FlashcardEngine:
 
         is_all_review = (mode == 'all_review')
 
-        # Determine result type
-        if quality >= 4:
+        # Determine result type (Spec: >= 2 is a pass/correct for session tracking)
+        if quality >= 2:
             result_type = 'correct'
-        elif quality >= 2:
-            result_type = 'vague'
         else:
             result_type = 'incorrect'
             
-        is_correct = (quality >= 3)
+        is_correct = (quality >= 2) # Pass threshold is 2 (Hard)
 
         score_change = 0
         state_record = None
@@ -410,13 +408,12 @@ class FlashcardEngine:
 
         c = 0 ; ic = 0 ; v = 0 ; curr_s = 0 ; long_s = 0
         for q in review_qualities:
-            if q >= 3:
+            if q >= 2:
                 c += 1 ; curr_s += 1
             else:
                 ic += 1
                 if curr_s > long_s: long_s = curr_s
                 curr_s = 0
-            if q == 2: v += 1
         
         if curr_s > long_s: long_s = curr_s
         

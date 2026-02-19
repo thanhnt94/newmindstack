@@ -61,9 +61,9 @@ function _mapDriverItemToLegacy(driverPayload) {
 let sessionStatsLocal = {
     processed: (window.FlashcardConfig && window.FlashcardConfig.initialProcessedCount) ? window.FlashcardConfig.initialProcessedCount : 0,
     total: 0,
-    correct: 0,
-    incorrect: 0,
-    vague: 0
+    correct: (window.FlashcardConfig && window.FlashcardConfig.initialCorrectCount) ? window.FlashcardConfig.initialCorrectCount : 0,
+    incorrect: (window.FlashcardConfig && window.FlashcardConfig.initialIncorrectCount) ? window.FlashcardConfig.initialIncorrectCount : 0,
+    vague: (window.FlashcardConfig && window.FlashcardConfig.initialVagueCount) ? window.FlashcardConfig.initialVagueCount : 0
 };
 
 // --- Settings Sync ---
@@ -72,15 +72,12 @@ function syncSettingsToServer() {
     const saveSettingsUrl = window.FlashcardConfig.saveSettingsUrl;
     if (!saveSettingsUrl) return;
 
-    // We need to read current state from UI/Audio managers
-    // Assuming they export their state or we strictly use globals
-    const isAudioAutoplayEnabled = window.isAudioAutoplayEnabled;
+    // Audio autoplay is NO LONGER synced to server — it's localStorage-only.
     const isMediaHidden = window.isMediaHidden;
     const showStats = window.showStats;
 
     const payload = {
         visual_settings: {
-            autoplay: isAudioAutoplayEnabled,
             show_image: !isMediaHidden,
             show_stats: showStats
         }
@@ -659,17 +656,17 @@ async function submitFlashcardAnswer(itemId, answer) {
         }
 
         // Update local stats based on answer
-        const answerResult = data.answer_result || answer;
-        if (['good', 'easy', 'very_easy', 'nhớ', 'medium'].includes(answerResult)) {
+        const answerResult = String(data.answer_result || answer).toLowerCase();
+        // Any SRS "pass" (quality >= 2) is considered correct in the HUD summary
+        if (['good', 'easy', 'very_easy', 'nhớ', 'medium', 'hard', 'mơ_hồ'].includes(answerResult)) {
             sessionStatsLocal.correct++;
         } else if (['fail', 'again', 'quên'].includes(answerResult)) {
             sessionStatsLocal.incorrect++;
         } else {
             sessionStatsLocal.vague++;
-            // Vague answers typically break streak or keep it? Let's keep it but not increment?
-            // Or treat as break? Let's reset for now to be strict, or keep. 
-            // Let's reset if it's not "correct".
-        }
+        }    // Vague answers typically break streak or keep it? Let's keep it but not increment?
+        // Or treat as break? Let's reset for now to be strict, or keep. 
+        // Let's reset if it's not "correct".
         sessionStatsLocal.processed++;
 
         // Calculate Accuracy

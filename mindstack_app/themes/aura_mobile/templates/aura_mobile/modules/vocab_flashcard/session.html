@@ -44,29 +44,194 @@
     <div class="page-shell">
         <!-- Header - Stats Bar -->
         <!-- Header - Quiz Style Structure -->
-        {# Import Shared Header #}
-        {% from 'aura_mobile/components/components/learning_header.html' import render_learning_header %}
+        <header class="session-header">
+            <div class="fc-header flex-col items-stretch !p-0">
+                {# --- Row 1: Badge + Title + Score --- #}
+                <div class="flex items-center justify-between px-3 py-2 bg-gradient-to-r from-emerald-500 to-green-600">
+                    {# Badge + Title #}
+                    <div class="flex items-center gap-2.5 overflow-hidden flex-1 mr-2">
+                        <span
+                            class="flex-shrink-0 flex items-center gap-1 px-2.5 py-1 bg-white/20 rounded-lg shadow-sm">
+                            <i class="fas fa-clone text-white text-[10px]"></i>
+                            <span class="text-[10px] font-bold text-white uppercase tracking-wide">FLASHCARD</span>
+                        </span>
+                        <span class="text-sm font-bold text-white truncate js-fc-title"
+                            style="text-shadow: 0 1px 3px rgba(0,0,0,0.3);">{{ container_name }}</span>
+                    </div>
 
-        {% call render_learning_header(
-        title_selector='js-fc-title',
-        badge_text='FLASHCARD',
-        badge_icon='fas fa-clone',
-        theme_gradient='bg-gradient-to-r from-emerald-500 to-green-600',
-        badge_text_color='text-emerald-100',
-        badge_icon_color='text-emerald-200',
-        show_progress_line=False,
-        progress_selector='js-fc-progress-fill',
-        progress_color='bg-emerald-500',
-        exit_func='showExitModal()',
-        show_score=True,
-        score_selector='js-fc-score',
-        score_value="{:,}".format(current_user.total_score if current_user.total_score is not none else 0),
-        hide_second_row=True,
-        hide_left_btn=True,
-        align_left=True,
-        counter_selector='js-fc-counter'
-        ) %}
-        {% endcall %}
+                    {# Score Badge #}
+                    <div class="flex-shrink-0 flex items-center gap-1 h-7 px-2.5 bg-white/20 rounded-full">
+                        <i class="fa-solid fa-gem text-white text-[10px]"></i>
+                        <span class="text-xs font-black text-white font-mono js-fc-score">
+                            {{ "{:,}".format(current_user.total_score if current_user.total_score is not none else 0) }}
+                        </span>
+                    </div>
+                </div>
+
+                {# --- Row 2: Stats (White) --- #}
+                <div class="bg-white border-b border-slate-200">
+                    <div class="flex items-center justify-between px-3 py-2">
+                        {# Stats Pills #}
+                        <div id="fc-mobile-stats-pills"
+                            class="flex items-center gap-1.5 text-xs overflow-x-auto no-scrollbar transition-all duration-300">
+
+                            {# Progress Pill #}
+                            <div
+                                class="stat-pill flex-shrink-0 flex items-center gap-1 px-2 py-1 bg-slate-100 rounded-lg">
+                                <i class="fa-solid fa-bars-progress text-slate-500 text-[9px]"></i>
+                                <span class="text-slate-700 font-semibold gap-0.5 flex items-center text-[10px]">
+                                    <span id="current-q-num">0</span>
+                                    <span class="opacity-40 hidden" id="total-q-sep">/</span>
+                                    <span id="total-q-num" class="hidden">...</span>
+                                </span>
+                            </div>
+
+                            {# Correct Pill #}
+                            <div
+                                class="stat-pill flex-shrink-0 flex items-center gap-1 px-2 py-1 bg-emerald-50 rounded-lg">
+                                <i class="fa-solid fa-check text-emerald-500 text-[9px]"></i>
+                                <span class="text-emerald-600 font-bold" id="live-correct">0</span>
+                            </div>
+
+                            {# Wrong Pill #}
+                            <div
+                                class="stat-pill flex-shrink-0 flex items-center gap-1 px-2 py-1 bg-rose-50 rounded-lg">
+                                <i class="fa-solid fa-times text-rose-500 text-[9px]"></i>
+                                <span class="text-rose-600 font-bold" id="live-wrong">0</span>
+                            </div>
+
+                            {# Session Points Pill #}
+                            <div
+                                class="stat-pill flex-shrink-0 flex items-center gap-1 px-2 py-1 bg-amber-50 rounded-lg">
+                                <i class="fa-solid fa-gem text-amber-500 text-[9px]"></i>
+                                <span class="text-amber-600 font-bold" id="live-session-score">0</span>
+                            </div>
+                        </div>
+
+                        {# Action Buttons #}
+                        <div class="flex items-center gap-1.5 flex-shrink-0 relative">
+                            {# ===== Audio Settings Modal (Centered, Self-Contained) ===== #}
+                            <div id="audio-settings-modal"
+                                class="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 backdrop-blur-sm transition-opacity duration-200 opacity-0 pointer-events-none"
+                                onclick="if(event.target===this) closeAudioModal()">
+                                <div class="bg-white rounded-2xl shadow-2xl w-72 p-5 transform transition-transform duration-200 scale-95"
+                                    id="audio-settings-modal-content">
+                                    <div class="flex items-center justify-between mb-4">
+                                        <span class="text-sm font-black text-slate-700 uppercase tracking-wider">🔊 Âm
+                                            thanh</span>
+                                        <button onclick="closeAudioModal()"
+                                            class="w-7 h-7 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center hover:bg-slate-200 transition-colors">
+                                            <i class="fas fa-times text-xs"></i>
+                                        </button>
+                                    </div>
+                                    <div class="flex flex-col gap-3">
+                                        {# Front Toggle #}
+                                        <div class="flex items-center justify-between p-3 rounded-xl bg-slate-50">
+                                            <div class="flex items-center gap-2">
+                                                <i class="fas fa-volume-up text-blue-500 text-sm"></i>
+                                                <span class="text-sm font-bold text-slate-700">Mặt trước</span>
+                                            </div>
+                                            <button id="audio-modal-front-toggle"
+                                                onclick="window.toggleSideAutoplay('front')"
+                                                class="relative w-11 h-6 rounded-full transition-colors duration-200 bg-slate-300">
+                                                <div
+                                                    class="absolute left-0.5 top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform duration-200">
+                                                </div>
+                                            </button>
+                                        </div>
+                                        {# Back Toggle #}
+                                        <div class="flex items-center justify-between p-3 rounded-xl bg-slate-50">
+                                            <div class="flex items-center gap-2">
+                                                <i class="fas fa-volume-up text-rose-500 text-sm"></i>
+                                                <span class="text-sm font-bold text-slate-700">Mặt sau</span>
+                                            </div>
+                                            <button id="audio-modal-back-toggle"
+                                                onclick="window.toggleSideAutoplay('back')"
+                                                class="relative w-11 h-6 rounded-full transition-colors duration-200 bg-slate-300">
+                                                <div
+                                                    class="absolute left-0.5 top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform duration-200">
+                                                </div>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <script>
+                                // ── Audio Modal: 100% self-contained ──
+                                function openAudioModal() {
+                                    const m = document.getElementById('audio-settings-modal');
+                                    const c = document.getElementById('audio-settings-modal-content');
+                                    if (!m) return;
+                                    m.classList.remove('opacity-0', 'pointer-events-none');
+                                    m.classList.add('opacity-100', 'pointer-events-auto');
+                                    if (c) { c.classList.remove('scale-95'); c.classList.add('scale-100'); }
+                                    syncAudioModalUI();
+                                }
+                                function closeAudioModal() {
+                                    const m = document.getElementById('audio-settings-modal');
+                                    const c = document.getElementById('audio-settings-modal-content');
+                                    if (!m) return;
+                                    m.classList.add('opacity-0', 'pointer-events-none');
+                                    m.classList.remove('opacity-100', 'pointer-events-auto');
+                                    if (c) { c.classList.add('scale-95'); c.classList.remove('scale-100'); }
+                                }
+                                function syncAudioModalUI() {
+                                    const fb = document.getElementById('audio-modal-front-toggle');
+                                    const bb = document.getElementById('audio-modal-back-toggle');
+                                    _setToggleVisual(fb, !!window.isAudioAutoplayFrontEnabled);
+                                    _setToggleVisual(bb, !!window.isAudioAutoplayBackEnabled);
+                                }
+                                function _setToggleVisual(btn, isOn) {
+                                    if (!btn) return;
+                                    const knob = btn.querySelector('div');
+                                    if (isOn) {
+                                        btn.classList.remove('bg-slate-300');
+                                        btn.classList.add('bg-emerald-500');
+                                        if (knob) { knob.style.transform = 'translateX(1.25rem)'; }
+                                    } else {
+                                        btn.classList.remove('bg-emerald-500');
+                                        btn.classList.add('bg-slate-300');
+                                        if (knob) { knob.style.transform = 'translateX(0)'; }
+                                    }
+                                }
+                                // Expose globally so audio_manager.js can call it
+                                window.syncAudioModalUI = syncAudioModalUI;
+                                window.openAudioModal = openAudioModal;
+                                window.closeAudioModal = closeAudioModal;
+                            </script>
+
+                            {# Audio Settings Button (opens modal) #}
+                            <button onclick="openAudioModal()"
+                                class="w-7 h-7 rounded-full bg-slate-50 text-slate-500 flex items-center justify-center hover:bg-slate-100 transition-transform active:scale-90"
+                                title="Cài đặt âm thanh">
+                                <i class="fas fa-volume-up text-[10px]"></i>
+                            </button>
+
+                            {# Stats Button #}
+                            <button id="single-stats-btn" onclick="openSessionStatsMobile()"
+                                class="w-7 h-7 rounded-full bg-purple-50 text-purple-600 flex items-center justify-center hover:bg-purple-100">
+                                <i class="fas fa-chart-pie text-[10px]"></i>
+                            </button>
+
+                            {# Home Button #}
+                            <a href="{{ url_for('dashboard.dashboard') }}"
+                                class="w-7 h-7 rounded-full bg-slate-50 text-slate-500 flex items-center justify-center hover:bg-slate-100"
+                                title="Về trang chủ">
+                                <i class="fas fa-home text-[10px]"></i>
+                            </a>
+
+                            {# Exit Button #}
+                            <button onclick="showExitModal()"
+                                class="w-7 h-7 rounded-full bg-rose-50 text-rose-500 flex items-center justify-center hover:bg-rose-100"
+                                title="Thoát">
+                                <i class="fa-solid fa-right-from-bracket text-[10px]"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </header>
 
         {# Import and render flashcard card component #}
         {% from 'aura_mobile/modules/vocab_flashcard/components/card.html' import render_flashcard_card %}
@@ -117,7 +282,7 @@
 {% include _v ~ '/modules/vocabulary/detail/_modal_stats.html' %}
 
 
-<script src="{{ url_for('static', filename='aura_mobile/vocab_flashcard/js/audio_manager.js') }}"></script>
+<script src="{{ url_for('static', filename='aura_mobile/vocab_flashcard/js/audio_manager.js') }}?v=rewrite_v3"></script>
 <script src="{{ url_for('static', filename='aura_mobile/vocab_flashcard/js/render_card.js') }}"></script>
 <script src="{{ url_for('static', filename='aura_mobile/vocab_flashcard/js/ui_manager.js') }}"></script>
 <script src="{{ url_for('static', filename='aura_mobile/vocab_flashcard/js/session_ui.js') }}"></script>
@@ -237,27 +402,30 @@ MỤC ĐÍCH: Giao diện thống kê phiên học tối ưu cho Mobile (App-lik
 
         <script>
             // Define Jinja variables outside the config object to prevent the auto-formatter from inserting spaces into braces
-            const _userButtonCount = {{ user_button_count | default (4) }};
-            const _isAutoplaySession = {{ is_autoplay_session | default (false) | tojson }};
-            const _autoplayMode = "{{ autoplay_mode | default('') }}";
-            const _visualSettings = {{ (saved_visual_settings or { }) | tojson }};
-            const _autoSaveOn = {{ saved_auto_save | default (true) | tojson }};
-            const _currentUserTotalScore = {{ current_user.total_score | default (0) }};
-            const _scoreAgain = {{ config.SCORE_FSRS_AGAIN | default (1) }};
-            const _scoreHard = {{ config.SCORE_FSRS_HARD | default (5) }};
-            const _scoreGood = {{ config.SCORE_FSRS_GOOD | default (10) }};
-            const _scoreEasy = {{ config.SCORE_FSRS_EASY | default (15) }};
+            const _userButtonCount = {{ user_button_count|default (4) }};
+            const _isAutoplaySession = {{ is_autoplay_session|default (false) | tojson }};
+            const _autoplayMode = "{{ autoplay_mode|default('') }}";
+            const _visualSettings = {{ (saved_visual_settings or { })| tojson }};
+            const _autoSaveOn = {{ saved_auto_save|default (true) | tojson }};
+            const _currentUserTotalScore = {{ current_user.total_score|default (0) }};
+            const _scoreAgain = {{ config.SCORE_FSRS_AGAIN|default (1) }};
+            const _scoreHard = {{ config.SCORE_FSRS_HARD|default (5) }};
+            const _scoreGood = {{ config.SCORE_FSRS_GOOD|default (10) }};
+            const _scoreEasy = {{ config.SCORE_FSRS_EASY|default (15) }};
 
-            // Notification Configs (Defined separately to avoid auto-formatter issues)
-            const _notifScoreDuration = {{ config.NOTIF_SCORE_DURATION | default (1500) }};
-            const _notifScorePosition = "{{ config.NOTIF_SCORE_POSITION | default('center') }}";
-            const _notifStreakDuration = {{ config.NOTIF_STREAK_DURATION | default (2000) }};
-            const _notifAchievementDuration = {{ config.NOTIF_ACHIEVEMENT_DURATION | default (5000) }};
+            // Notification Configs
+            const _notifScoreDuration = {{ config.NOTIF_SCORE_DURATION|default (1500) }};
+            const _notifScorePosition = "{{ config.NOTIF_SCORE_POSITION|default('center') }}";
+            const _notifStreakDuration = {{ config.NOTIF_STREAK_DURATION|default (2000) }};
+            const _notifAchievementDuration = {{ config.NOTIF_ACHIEVEMENT_DURATION|default (5000) }};
             const _dbSessionId = {{ db_session_id|default (0) }};
-            const _initialProcessedCount = {{ initial_processed_count | default (0) }};
+            const _initialProcessedCount = {{ initial_processed_count|default (0) }};
+            const _initialCorrectCount = {{ initial_correct_count|default (0) }};
+            const _initialIncorrectCount = {{ initial_incorrect_count|default (0) }};
+            const _initialVagueCount = {{ initial_vague_count|default (0) }};
 
             // [SSR] Initial Data
-            window.initialFlashcardBatch = {{ (initial_batch or[]) | tojson }};
+            window.initialFlashcardBatch = {{ (initial_batch or[])| tojson }};
 
             window.FlashcardConfig = {
                 getFlashcardBatchUrl: "{{ url_for('vocab_flashcard.api_get_flashcard_batch') }}",
@@ -281,7 +449,10 @@ MỤC ĐÍCH: Giao diện thống kê phiên học tối ưu cho Mobile (App-lik
                 displaySettings: {{ (display_settings or { }) | tojson }},
             dbSessionId: _dbSessionId,
                 initialProcessedCount: _initialProcessedCount,
-                    scores: {
+                    initialCorrectCount: _initialCorrectCount,
+                        initialIncorrectCount: _initialIncorrectCount,
+                            initialVagueCount: _initialVagueCount,
+                                scores: {
                 again: _scoreAgain,
                     hard: _scoreHard,
                         good: _scoreGood,

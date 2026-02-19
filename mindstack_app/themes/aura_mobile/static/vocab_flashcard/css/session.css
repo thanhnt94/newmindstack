@@ -356,6 +356,18 @@ body.flashcard-session-active>main {
     transform: none;
 }
 
+.card-toolbar .autoplay-front-toggle-btn.is-active {
+    color: #2563eb;
+    background: #eff6ff;
+    border-color: rgba(37, 99, 235, 0.4);
+}
+
+.card-toolbar .autoplay-back-toggle-btn.is-active {
+    color: #ea580c;
+    background: #fff7ed;
+    border-color: rgba(234, 88, 12, 0.4);
+}
+
 .toolbar-settings {
     position: relative;
     display: inline-flex;
@@ -1805,3 +1817,28 @@ body>main {
     display: inline-block;
     animation: stats-pulse 0.8s ease-out;
 }
+/* --- Audio Settings Menu Dropdown --- */
+#js-fc-audio-settings-menu {
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+    transform-origin: top right;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+#js-fc-audio-settings-menu.show {
+    opacity: 1 !important;
+    scale: 1 !important;
+    pointer-events: auto !important;
+}
+
+.autoplay-front-toggle-btn.is-active div[class*="bg-slate-200"],
+.autoplay-back-toggle-btn.is-active div[class*="bg-slate-200"],
+.audio-autoplay-toggle-btn.is-active div[class*="bg-slate-200"] {
+    background-color: #10b981 !important;
+}
+
+.autoplay-front-toggle-btn.is-active div[class*="translate-x-0"],
+.autoplay-back-toggle-btn.is-active div[class*="translate-x-0"],
+.audio-autoplay-toggle-btn.is-active div[class*="translate-x-0"] {
+    transform: translateX(1rem);
+}
+
