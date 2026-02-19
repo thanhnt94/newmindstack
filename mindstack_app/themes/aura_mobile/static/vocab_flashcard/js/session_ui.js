@@ -746,16 +746,7 @@
     document.addEventListener('DOMContentLoaded', setupHooks);
     window.addEventListener('load', setupHooks);
 
-    // Open Session Stats Modal for Mobile
-    window.openSessionStatsMobile = function () {
-        if (typeof window.toggleStatsModal === 'function') {
-            window.toggleStatsModal(true);
-        } else {
-            // Fallback for older versions
-            const statsToggles = document.querySelectorAll('.js-fc-stats-toggle-mobile');
-            if (statsToggles.length > 0) statsToggles[0].click();
-        }
-    };
+
 
     function updateMobileStats(stats) {
         if (!stats) return;

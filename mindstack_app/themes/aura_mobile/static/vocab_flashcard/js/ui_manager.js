@@ -732,7 +732,7 @@ function renderCard(data) {
         });
     });
 
-    document.querySelectorAll('.open-stats-modal-btn').forEach(btn => btn.addEventListener('click', () => toggleStatsModal(true)));
+
 
     document.querySelectorAll('.open-ai-modal-btn').forEach(btn => btn.addEventListener('click', () => {
         const currentCard = window.currentFlashcardBatch[window.currentFlashcardIndex];
@@ -1322,20 +1322,15 @@ function renderMobileCardStatsHtml(stats, scoreChange = 0, cardContent = {}, isI
 // --- Stats Modal & Display ---
 
 function updateSessionSummary() {
+    // Session summary update logic simplified as mobile modal is removed.
     const sessionScore = window.sessionScore || 0;
     const currentUserTotalScore = window.currentUserTotalScore || 0;
 
     const desktopTotalScore = document.querySelector('.statistics-card #total-score-display span');
     const desktopSessionScore = document.querySelector('.statistics-card #session-score-display');
 
-    const mobileTotalScore = document.getElementById('total-score-display-mobile');
-    const mobileSessionScore = document.getElementById('session-score-display-mobile');
-
     if (desktopTotalScore) desktopTotalScore.textContent = currentUserTotalScore;
     if (desktopSessionScore) desktopSessionScore.textContent = `+${sessionScore}`;
-
-    if (mobileTotalScore) mobileTotalScore.textContent = currentUserTotalScore;
-    if (mobileSessionScore) mobileSessionScore.textContent = `+${sessionScore}`;
 }
 
 function displayCardStats(container, html) {
@@ -1369,67 +1364,7 @@ function initializeStatsToggleListeners(rootElement) {
     });
 }
 
-function toggleStatsModal(show) {
-    const statsModal = document.getElementById('statsModal');
-    const statsModalContent = document.getElementById('statsModalContent');
 
-    if (show) {
-        statsModal.classList.add('open');
-        statsModalContent.classList.add('open');
-        document.body.style.overflow = 'hidden';
-
-        if (!statsModalContent.querySelector('.mobile-stats-container')) {
-            const template = document.getElementById('mobile-stats-template');
-            if (template) {
-                statsModalContent.innerHTML = '';
-                statsModalContent.appendChild(template.content.cloneNode(true));
-
-                // Bind Events for Mobile Stats
-                document.getElementById('close-stats-mobile-btn')?.addEventListener('click', () => toggleStatsModal(false));
-                const endSessionBtn = document.getElementById('end-session-btn');
-                document.getElementById('end-session-mobile-btn')?.addEventListener('click', () => endSessionBtn?.click());
-
-                document.querySelectorAll('.stats-mobile-tab').forEach(btn => {
-                    btn.addEventListener('click', (e) => {
-                        const targetId = e.currentTarget.dataset.target;
-                        document.querySelectorAll('.stats-mobile-tab').forEach(t => t.classList.toggle('active', t === e.currentTarget));
-                        document.querySelectorAll('.stats-mobile-pane').forEach(p => p.classList.toggle('hidden', p.id !== targetId));
-                    });
-                });
-            }
-        }
-
-        updateSessionSummary();
-
-        // We access global state from window. 
-        // Note: session_manager updates these globals.
-        const currentFlashcardBatch = window.currentFlashcardBatch || [];
-        const currentFlashcardIndex = window.currentFlashcardIndex || 0;
-        const currentCardData = currentFlashcardBatch.length > 0 ? currentFlashcardBatch[currentFlashcardIndex] : null;
-        const mobileCurrentContainer = document.getElementById('current-card-stats-mobile');
-
-        if (mobileCurrentContainer) {
-            if (currentCardData && currentCardData.initial_stats) {
-                const html = renderMobileCardStatsHtml(currentCardData.initial_stats, 0, currentCardData.content, true);
-                mobileCurrentContainer.innerHTML = html;
-            } else {
-                mobileCurrentContainer.innerHTML = '<div class="flex flex-col items-center justify-center h-40 text-slate-400"><p>Chưa có dữ liệu.</p></div>';
-            }
-        }
-
-        const mobilePrevContainer = document.getElementById('previous-card-stats-mobile');
-        const previousCardStats = window.previousCardStats;
-        if (mobilePrevContainer && previousCardStats) {
-            const html = renderMobileCardStatsHtml(previousCardStats.stats, previousCardStats.scoreChange, previousCardStats.cardContent, false);
-            mobilePrevContainer.innerHTML = html;
-        }
-
-    } else {
-        statsModal.classList.remove('open');
-        statsModalContent.classList.remove('open');
-        document.body.style.overflow = '';
-    }
-}
 
 // --- Utils: Custom Alert ---
 function showCustomAlert(message) {
@@ -1608,7 +1543,7 @@ window.closeNotePanel = closeNotePanel;
 window.saveNote = saveNote;
 window.handleCancelNote = handleCancelNote;
 window.setNoteMode = setNoteMode;
-window.toggleStatsModal = toggleStatsModal;
+
 window.showCustomAlert = showCustomAlert;
 window.adjustCardLayout = adjustCardLayout;
 window.determineCardCategory = determineCardCategory;

@@ -85,9 +85,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Stats Mobile Close
-    const closeStatsModalBtn = document.getElementById('closeStatsModalBtn');
-    if (closeStatsModalBtn) closeStatsModalBtn.addEventListener('click', () => window.toggleStatsModal(false));
+
 
     // Settings Listeners
     document.addEventListener('click', (evt) => {

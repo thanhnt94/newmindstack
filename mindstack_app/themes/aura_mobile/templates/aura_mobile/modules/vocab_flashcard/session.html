@@ -208,11 +208,7 @@
                                 <i class="fas fa-volume-up text-[10px]"></i>
                             </button>
 
-                            {# Stats Button #}
-                            <button id="single-stats-btn" onclick="openSessionStatsMobile()"
-                                class="w-7 h-7 rounded-full bg-purple-50 text-purple-600 flex items-center justify-center hover:bg-purple-100">
-                                <i class="fas fa-chart-pie text-[10px]"></i>
-                            </button>
+
 
                             {# Home Button #}
                             <a href="{{ url_for('dashboard.dashboard') }}"
@@ -286,259 +282,162 @@
 <script src="{{ url_for('static', filename='aura_mobile/vocab_flashcard/js/render_card.js') }}"></script>
 <script src="{{ url_for('static', filename='aura_mobile/vocab_flashcard/js/ui_manager.js') }}"></script>
 <script src="{{ url_for('static', filename='aura_mobile/vocab_flashcard/js/session_ui.js') }}"></script>
-{#
-File: _stats_mobile.html
-MỤC ĐÍCH: Giao diện thống kê phiên học tối ưu cho Mobile (App-like design)
-#}
 
-<template id="mobile-stats-template">
-    <div class="mobile-stats-container h-full flex flex-col bg-slate-50 overflow-hidden rounded-t-2xl">
-        <!-- Header -->
-        <div
-            class="flex items-center justify-between px-4 py-3 bg-white border-b border-slate-200 shadow-sm flex-shrink-0">
-            <h3 class="text-lg font-bold text-slate-800">Thống kê phiên học</h3>
-            <button id="close-stats-mobile-btn"
-                class="w-8 h-8 flex items-center justify-center rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 transition-colors">
-                <i class="fas fa-times"></i>
-            </button>
-        </div>
-
-        <!-- Summary Cards (Grid) -->
-        <div class="grid grid-cols-2 gap-3 p-4 flex-shrink-0">
-            <div
-                class="bg-white p-3 rounded-2xl border border-slate-100 shadow-sm flex flex-col items-center justify-center">
-                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Tổng điểm</span>
-                <div class="text-2xl font-black text-blue-600 flex items-center gap-1 mt-1">
-                    <i class="fas fa-gem text-blue-500 text-lg"></i>
-                    <span id="total-score-display-mobile">-</span>
-                </div>
-            </div>
-            <div
-                class="bg-white p-3 rounded-2xl border border-slate-100 shadow-sm flex flex-col items-center justify-center">
-                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Phiên này</span>
-                <div id="session-score-display-mobile" class="text-2xl font-black text-emerald-600 mt-1">+0</div>
-            </div>
-        </div>
-
-        <!-- Compact History Icons Row -->
-        <div class="px-4 mb-3 flex-shrink-0">
-            <div class="bg-white rounded-xl border border-slate-100 p-2">
-                <div class="flex items-center gap-1 mb-1">
-                    <i class="fas fa-history text-slate-400 text-xs"></i>
-                    <span class="text-[10px] font-bold text-slate-400 uppercase">Lịch sử phiên</span>
-                </div>
-                <div id="session-history-icons-mobile" class="flex flex-wrap gap-1">
-                    <!-- Icons rendered dynamically: green check = correct, red x = wrong -->
-                    <span class="text-xs text-slate-300">Chưa có dữ liệu</span>
-                </div>
-            </div>
-        </div>
-
-        <!-- Tabs (Segmented Control) -->
-        <div class="px-4 mb-3 flex-shrink-0">
-            <div class="flex p-1 bg-slate-200 rounded-xl">
-                <button
-                    class="stats-mobile-tab active flex-1 py-2 rounded-lg text-xs font-bold text-slate-500 transition-all"
-                    data-target="current-card-stats-pane-mobile">
-                    Hiện tại
-                </button>
-                <button class="stats-mobile-tab flex-1 py-2 rounded-lg text-xs font-bold text-slate-500 transition-all"
-                    data-target="previous-card-stats-pane-mobile">
-                    Trước đó
-                </button>
-            </div>
-        </div>
-
-        <!-- Content Area -->
-        <div class="flex-1 overflow-y-auto px-4 pb-24 relative no-scrollbar" id="stats-mobile-scroll-area">
-            <div id="current-card-stats-pane-mobile" class="stats-mobile-pane active space-y-4">
-                <div id="current-card-stats-mobile" class="stats-stack space-y-4">
-                    <!-- Content injected via JS -->
-                    <div class="flex flex-col items-center justify-center h-40 text-slate-400">
-                        <i class="fas fa-circle-notch fa-spin text-2xl mb-2"></i>
-                        <p class="text-sm">Đang tải...</p>
-                    </div>
-                </div>
-            </div>
-            <div id="previous-card-stats-pane-mobile" class="stats-mobile-pane hidden space-y-4">
-                <div id="previous-card-stats-mobile" class="stats-stack space-y-4">
-                    <!-- Content injected via JS -->
-                    <div class="flex flex-col items-center justify-center h-40 text-slate-400">
-                        <i class="fas fa-history text-2xl mb-2"></i>
-                        <p class="text-sm">Chưa có dữ liệu.</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Floating Bottom Action -->
-        <div class="absolute bottom-5 left-4 right-4 z-20">
-            <button id="end-session-mobile-btn"
-                class="w-full bg-rose-500 hover:bg-rose-600 text-white font-bold py-3.5 rounded-2xl shadow-lg shadow-rose-200/50 flex items-center justify-center gap-2 transition-transform active:scale-95">
-                <i class="fas fa-flag-checkered"></i> Kết thúc phiên học
-            </button>
-        </div>
-    </div>
-</template>
 {# ... #}
 
 {# ... #}
 
-<div id="statsModal" class="stats-modal-overlay">
-    <div id="statsModalContent" class="stats-modal-content">
-        <header class="bg-white shadow-md p-4">
-            <h3 class="font-bold text-lg">Mindstack</h3>
-        </header>
-
-        {# ... #}
 
 
-        <script src="{{ url_for('static', filename='aura_mobile/vocab_flashcard/js/utils.js') }}"></script>
+{# ... #}
 
-        {% endblock %}
 
-        {% block scripts %}
-        {{ super() }}
+<script src="{{ url_for('static', filename='aura_mobile/vocab_flashcard/js/utils.js') }}"></script>
 
-        <script>
-            // Define Jinja variables outside the config object to prevent the auto-formatter from inserting spaces into braces
-            const _userButtonCount = {{ user_button_count|default (4) }};
-            const _isAutoplaySession = {{ is_autoplay_session|default (false) | tojson }};
-            const _autoplayMode = "{{ autoplay_mode|default('') }}";
-            const _visualSettings = {{ (saved_visual_settings or { })| tojson }};
-            const _autoSaveOn = {{ saved_auto_save|default (true) | tojson }};
-            const _currentUserTotalScore = {{ current_user.total_score|default (0) }};
-            const _scoreAgain = {{ config.SCORE_FSRS_AGAIN|default (1) }};
-            const _scoreHard = {{ config.SCORE_FSRS_HARD|default (5) }};
-            const _scoreGood = {{ config.SCORE_FSRS_GOOD|default (10) }};
-            const _scoreEasy = {{ config.SCORE_FSRS_EASY|default (15) }};
+{% endblock %}
 
-            // Notification Configs
-            const _notifScoreDuration = {{ config.NOTIF_SCORE_DURATION|default (1500) }};
-            const _notifScorePosition = "{{ config.NOTIF_SCORE_POSITION|default('center') }}";
-            const _notifStreakDuration = {{ config.NOTIF_STREAK_DURATION|default (2000) }};
-            const _notifAchievementDuration = {{ config.NOTIF_ACHIEVEMENT_DURATION|default (5000) }};
-            const _dbSessionId = {{ db_session_id|default (0) }};
-            const _initialProcessedCount = {{ initial_processed_count|default (0) }};
-            const _initialCorrectCount = {{ initial_correct_count|default (0) }};
-            const _initialIncorrectCount = {{ initial_incorrect_count|default (0) }};
-            const _initialVagueCount = {{ initial_vague_count|default (0) }};
+{% block scripts %}
+{{ super() }}
 
-            // [SSR] Initial Data
-            window.initialFlashcardBatch = {{ (initial_batch or[])| tojson }};
+<script>
+    // Define Jinja variables outside the config object to prevent the auto-formatter from inserting spaces into braces
+    const _userButtonCount = {{ user_button_count|default (4) }};
+    const _isAutoplaySession = {{ is_autoplay_session|default (false) | tojson }};
+    const _autoplayMode = "{{ autoplay_mode|default('') }}";
+    const _visualSettings = {{ (saved_visual_settings or { })| tojson }};
+    const _autoSaveOn = {{ saved_auto_save|default (true) | tojson }};
+    const _currentUserTotalScore = {{ current_user.total_score|default (0) }};
+    const _scoreAgain = {{ config.SCORE_FSRS_AGAIN|default (1) }};
+    const _scoreHard = {{ config.SCORE_FSRS_HARD|default (5) }};
+    const _scoreGood = {{ config.SCORE_FSRS_GOOD|default (10) }};
+    const _scoreEasy = {{ config.SCORE_FSRS_EASY|default (15) }};
 
-            window.FlashcardConfig = {
-                getFlashcardBatchUrl: "{{ url_for('vocab_flashcard.api_get_flashcard_batch') }}",
-                flashcardItemApiUrlTemplate: "{{ url_for('vocab_flashcard.api_get_flashcard_item_details', item_id=0) }}",
-                submitAnswerUrl: "{{ url_for('vocab_flashcard.api_submit_flashcard_answer') }}",
-                endSessionUrl: "{{ url_for('vocab_flashcard.api_end_session_flashcard') }}",
-                regenerateAudioUrl: "{{ url_for('vocab_flashcard.api_regenerate_audio_from_content') }}",
-                saveSettingsUrl: "{{ url_for('vocab_flashcard.api_save_flashcard_settings') }}",
-                vocabDashboardUrl: "{{ url_for('vocab_flashcard.dashboard_home') }}",
-                getNoteUrl: "{{ url_for('notes.get_note', reference_type='item', reference_id=0) }}",
-                saveNoteUrl: "{{ url_for('notes.save_note', reference_type='item', reference_id=0) }}",
-                editFlashcardUrlTemplate: "{{ url_for('content_management.edit_flashcard_item', set_id=0, item_id=0) }}",
-                itemStatsUrlTemplate: "{{ url_for('vocabulary.item_stats_page', item_id=0) }}",
-                csrfHeaders: { "X-CSRFToken": "{{ csrf_token() }}" },
-                userButtonCount: _userButtonCount,
-                isAutoplaySession: _isAutoplaySession,
-                autoplayMode: _autoplayMode,
-                visualSettings: _visualSettings,
-                autoSaveOn: _autoSaveOn,
-                modeDisplayName: "{{ mode_display_text }}",
-                displaySettings: {{ (display_settings or { }) | tojson }},
-            dbSessionId: _dbSessionId,
-                initialProcessedCount: _initialProcessedCount,
-                    initialCorrectCount: _initialCorrectCount,
-                        initialIncorrectCount: _initialIncorrectCount,
-                            initialVagueCount: _initialVagueCount,
-                                scores: {
-                again: _scoreAgain,
-                    hard: _scoreHard,
-                        good: _scoreGood,
-                            easy: _scoreEasy
-            },
-            notifications: {
-                score_duration: _notifScoreDuration,
-                    score_position: _notifScorePosition,
-                        streak_duration: _notifStreakDuration,
-                            achievement_duration: _notifAchievementDuration
-            }
+    // Notification Configs
+    const _notifScoreDuration = {{ config.NOTIF_SCORE_DURATION|default (1500) }};
+    const _notifScorePosition = "{{ config.NOTIF_SCORE_POSITION|default('center') }}";
+    const _notifStreakDuration = {{ config.NOTIF_STREAK_DURATION|default (2000) }};
+    const _notifAchievementDuration = {{ config.NOTIF_ACHIEVEMENT_DURATION|default (5000) }};
+    const _dbSessionId = {{ db_session_id|default (0) }};
+    const _initialProcessedCount = {{ initial_processed_count|default (0) }};
+    const _initialCorrectCount = {{ initial_correct_count|default (0) }};
+    const _initialIncorrectCount = {{ initial_incorrect_count|default (0) }};
+    const _initialVagueCount = {{ initial_vague_count|default (0) }};
+
+    // [SSR] Initial Data
+    window.initialFlashcardBatch = {{ (initial_batch or[])| tojson }};
+
+    window.FlashcardConfig = {
+        getFlashcardBatchUrl: "{{ url_for('vocab_flashcard.api_get_flashcard_batch') }}",
+        flashcardItemApiUrlTemplate: "{{ url_for('vocab_flashcard.api_get_flashcard_item_details', item_id=0) }}",
+        submitAnswerUrl: "{{ url_for('vocab_flashcard.api_submit_flashcard_answer') }}",
+        endSessionUrl: "{{ url_for('vocab_flashcard.api_end_session_flashcard') }}",
+        regenerateAudioUrl: "{{ url_for('vocab_flashcard.api_regenerate_audio_from_content') }}",
+        saveSettingsUrl: "{{ url_for('vocab_flashcard.api_save_flashcard_settings') }}",
+        vocabDashboardUrl: "{{ url_for('vocab_flashcard.dashboard_home') }}",
+        getNoteUrl: "{{ url_for('notes.get_note', reference_type='item', reference_id=0) }}",
+        saveNoteUrl: "{{ url_for('notes.save_note', reference_type='item', reference_id=0) }}",
+        editFlashcardUrlTemplate: "{{ url_for('content_management.edit_flashcard_item', set_id=0, item_id=0) }}",
+        itemStatsUrlTemplate: "{{ url_for('vocabulary.item_stats_page', item_id=0) }}",
+        csrfHeaders: { "X-CSRFToken": "{{ csrf_token() }}" },
+        userButtonCount: _userButtonCount,
+        isAutoplaySession: _isAutoplaySession,
+        autoplayMode: _autoplayMode,
+        visualSettings: _visualSettings,
+        autoSaveOn: _autoSaveOn,
+        modeDisplayName: "{{ mode_display_text }}",
+        displaySettings: {{ (display_settings or { }) | tojson }},
+    dbSessionId: _dbSessionId,
+        initialProcessedCount: _initialProcessedCount,
+            initialCorrectCount: _initialCorrectCount,
+                initialIncorrectCount: _initialIncorrectCount,
+                    initialVagueCount: _initialVagueCount,
+                        scores: {
+        again: _scoreAgain,
+            hard: _scoreHard,
+                good: _scoreGood,
+                    easy: _scoreEasy
+    },
+    notifications: {
+        score_duration: _notifScoreDuration,
+            score_position: _notifScorePosition,
+                streak_duration: _notifStreakDuration,
+                    achievement_duration: _notifAchievementDuration
+    }
             };
 
 
-            const csrfTokenMeta = document.querySelector('meta[name="csrf-token"]');
-            const csrfToken = csrfTokenMeta ? csrfTokenMeta.getAttribute('content') : '';
-            if (csrfToken) {
-                window.FlashcardConfig.csrfHeaders = { "X-CSRFToken": csrfToken };
-            }
+    const csrfTokenMeta = document.querySelector('meta[name="csrf-token"]');
+    const csrfToken = csrfTokenMeta ? csrfTokenMeta.getAttribute('content') : '';
+    if (csrfToken) {
+        window.FlashcardConfig.csrfHeaders = { "X-CSRFToken": csrfToken };
+    }
 
-            window.currentUserTotalScoreInit = _currentUserTotalScore;
-            window.sessionScore = 0;
+    window.currentUserTotalScoreInit = _currentUserTotalScore;
+    window.sessionScore = 0;
 
-            // [CRITICAL] Activate Driver API if we have a DB session ID
-            if (_dbSessionId && window.setDriverSessionId) {
-                window.setDriverSessionId(_dbSessionId);
-                console.log('[Session Init] Driver API activated with session ID:', _dbSessionId);
-            }
+    // [CRITICAL] Activate Driver API if we have a DB session ID
+    if (_dbSessionId && window.setDriverSessionId) {
+        window.setDriverSessionId(_dbSessionId);
+        console.log('[Session Init] Driver API activated with session ID:', _dbSessionId);
+    }
 
-            // Global Exit Modal Logic for Flashcard
-            window.showExitModal = function () {
-                const exitModal = document.getElementById('exit-confirm-modal');
-                const exitPanel = document.getElementById('exit-modal-panel');
-                if (exitModal) {
-                    exitModal.style.display = 'flex';
-                    setTimeout(() => {
-                        exitModal.classList.remove('opacity-0', 'hidden');
-                        exitPanel.classList.remove('scale-95');
-                        exitPanel.classList.add('scale-100');
-                    }, 10);
+    // Global Exit Modal Logic for Flashcard
+    window.showExitModal = function () {
+        const exitModal = document.getElementById('exit-confirm-modal');
+        const exitPanel = document.getElementById('exit-modal-panel');
+        if (exitModal) {
+            exitModal.style.display = 'flex';
+            setTimeout(() => {
+                exitModal.classList.remove('opacity-0', 'hidden');
+                exitPanel.classList.remove('scale-95');
+                exitPanel.classList.add('scale-100');
+            }, 10);
+        }
+    };
+
+    window.closeExitModal = function () {
+        const exitModal = document.getElementById('exit-confirm-modal');
+        const exitPanel = document.getElementById('exit-modal-panel');
+        if (exitModal) {
+            exitModal.classList.add('opacity-0');
+            exitPanel.classList.remove('scale-100');
+            exitPanel.classList.add('scale-95');
+            setTimeout(() => {
+                exitModal.classList.add('hidden');
+                exitModal.style.display = 'none';
+            }, 300);
+        }
+    };
+
+    window.confirmExit = function () {
+        const config = window.FlashcardConfig;
+        const endSessionUrl = config?.endSessionUrl;
+        if (!endSessionUrl) {
+            console.error('FlashcardConfig.endSessionUrl is missing.');
+            window.location.href = config?.vocabDashboardUrl || '/';
+            return;
+        }
+
+        fetch(endSessionUrl, {
+            method: 'POST',
+            headers: config.csrfHeaders
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.session_id) {
+                    window.location.href = "{{ url_for('vocab_flashcard.session_summary', session_id=0) }}".replace('0', data.session_id);
+                } else {
+                    window.location.href = config.vocabDashboardUrl;
                 }
-            };
+            })
+            .catch(err => {
+                console.error('Error ending session:', err);
+                window.location.href = config.vocabDashboardUrl;
+            });
+    };
+</script>
 
-            window.closeExitModal = function () {
-                const exitModal = document.getElementById('exit-confirm-modal');
-                const exitPanel = document.getElementById('exit-modal-panel');
-                if (exitModal) {
-                    exitModal.classList.add('opacity-0');
-                    exitPanel.classList.remove('scale-100');
-                    exitPanel.classList.add('scale-95');
-                    setTimeout(() => {
-                        exitModal.classList.add('hidden');
-                        exitModal.style.display = 'none';
-                    }, 300);
-                }
-            };
-
-            window.confirmExit = function () {
-                const config = window.FlashcardConfig;
-                const endSessionUrl = config?.endSessionUrl;
-                if (!endSessionUrl) {
-                    console.error('FlashcardConfig.endSessionUrl is missing.');
-                    window.location.href = config?.vocabDashboardUrl || '/';
-                    return;
-                }
-
-                fetch(endSessionUrl, {
-                    method: 'POST',
-                    headers: config.csrfHeaders
-                })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.session_id) {
-                            window.location.href = "{{ url_for('vocab_flashcard.session_summary', session_id=0) }}".replace('0', data.session_id);
-                        } else {
-                            window.location.href = config.vocabDashboardUrl;
-                        }
-                    })
-                    .catch(err => {
-                        console.error('Error ending session:', err);
-                        window.location.href = config.vocabDashboardUrl;
-                    });
-            };
-        </script>
-
-        <script src="{{ url_for('static', filename='aura_mobile/vocab_flashcard/js/session_manager.js') }}"></script>
-        <script src="{{ url_for('static', filename='aura_mobile/vocab_flashcard/js/index.js') }}"></script>
-        <script src="{{ url_for('static', filename='aura_mobile/vocab_flashcard/js/flashcard_viewport.js') }}"></script>
-        {% endblock %}
+<script src="{{ url_for('static', filename='aura_mobile/vocab_flashcard/js/session_manager.js') }}"></script>
+<script src="{{ url_for('static', filename='aura_mobile/vocab_flashcard/js/index.js') }}"></script>
+<script src="{{ url_for('static', filename='aura_mobile/vocab_flashcard/js/flashcard_viewport.js') }}"></script>
+{% endblock %}
