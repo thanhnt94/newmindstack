@@ -50,33 +50,36 @@ Lưu trạng thái tương tác của người dùng với một container (Đã
 - **`last_accessed`**: (DateTime) Lần cuối truy cập.
 - **`settings`**: (JSON) Cài đặt cá nhân cho container này.
 
-### 1.5 `learning_progress` (FSRS & Tiến độ học tập)
-Lưu trữ tiến độ học tập chi tiết của người dùng đối với từng Item, sử dụng thuật toán FSRS-5.
-- **`progress_id`**: (PK, Integer).
+### 1.5 `item_memory_states` (FSRS & Tiến độ học tập)
+Lưu trữ tiến độ học tập chi tiết của người dùng đối với từng Item, sử dụng thuật toán FSRS-5. (Thay thế bảng `learning_progress` cũ).
+- **`state_id`**: (PK, Integer).
 - **`user_id`**: (FK, Integer).
 - **`item_id`**: (FK, Integer).
-- **`learning_mode`**: (String) Chế độ học (flashcard, quiz, typing...).
-- **`fsrs_stability`**: (Float) Độ ổn định của trí nhớ (FSRS).
-- **`fsrs_difficulty`**: (Float) Độ khó của item (FSRS).
-- **`fsrs_state`**: (Integer) Trạng thái FSRS (0: New, 1: Learning, 2: Review, 3: Relearning).
-- **`fsrs_due`**: (DateTime) Thời gian cần ôn tập tiếp theo.
-- **`fsrs_last_review`**: (DateTime) Lần ôn tập gần nhất.
-- **`repititions`, `lapses`**: (Integer) Số lần lặp lại, số lần quên.
-- **`current_interval`**: (Float) Khoảng cách ôn tập hiện tại (ngày).
-- **`times_correct`, `times_incorrect`**: (Integer) Số lần đúng/sai.
-- **`correct_streak`, `incorrect_streak`**: (Integer) Chuỗi đúng/sai liên tiếp.
-- **`mode_data`**: (JSON) Dữ liệu riêng cho từng chế độ học.
+- **`stability`**: (Float) Độ ổn định của trí nhớ.
+- **`difficulty`**: (Float) Độ khó của item.
+- **`state`**: (Integer) Trạng thái FSRS (0: New, 1: Learning, 2: Review, 3: Relearning).
+- **`due_date`**: (DateTime, index) Thời gian cần ôn tập tiếp theo.
+- **`last_review`**: (DateTime) Lần ôn tập gần nhất.
+- **`repetitions`, `lapses`**: (Integer) Số lần lặp lại, số lần quên.
+- **`streak`, `incorrect_streak`**: (Integer) Chuỗi đúng/sai liên tiếp.
+- **`times_correct`, `times_incorrect`**: (Integer) Tổng số lần đúng/sai.
+- **`data`**: (JSON) Dữ liệu tùy chỉnh khác (ví dụ: `note`, `markers`, `completion_percentage`).
+- **`created_at`, `updated_at`**: (DateTime) Thời gian tạo và cập nhật.
 
 ### 1.6 `learning_sessions`
 Lưu trữ thông tin về các phiên học (Session) đang diễn ra hoặc đã kết thúc.
 - **`session_id`**: (PK, Integer).
 - **`user_id`**: (FK, Integer).
-- **`learning_mode`**: (String) Chế độ học.
+- **`learning_mode`**: (String) Chế độ học (flashcard, typing, etc.).
+- **`mode_config_id`**: (String) ID cấu hình chế độ học.
 - **`set_id_data`**: (JSON) Danh sách các set ID tham gia session.
 - **`status`**: (String) Trạng thái session (active, completed).
-- **`total_items`, `correct_count`, `incorrect_count`**: Thống kê cơ bản của session.
-- **`processed_item_ids`**: (JSON) Danh sách các item đã học trong session.
-- **`start_time`, `end_time`**: Thời gian bắt đầu và kết thúc.
+- **`total_items`, `correct_count`, `incorrect_count`, `vague_count`**: Thống kê kết quả session.
+- **`points_earned`**: (Integer) Tổng điểm kiếm được trong session.
+- **`processed_item_ids`**: (JSON) Danh sách các item đã học.
+- **`current_item_id`**: (FK, Integer) Item đang hiển thị.
+- **`session_data`**: (JSON) Dữ liệu trạng thái tạm thời của session.
+- **`start_time`, `end_time`, `last_activity`**: Các mốc thời gian.
 
 ---
 
@@ -128,10 +131,11 @@ Cache lại các phản hồi từ AI để tiết kiệm chi phí.
 ### 3.4 `ai_contents` (AI Explanations)
 Lưu trữ nội dung do AI tạo ra cho các Learning Item (Giải thích, Ví dụ, Dịch nghĩa...).
 - **`content_id`**: (PK, Integer).
-- **`item_id`**: (FK) Gắn với learning item nào.
-- **`content_type`**: (String) Loại nội dung (explanation, example...).
-- **`content_text`**: (Text) Nội dung văn bản.
+- **`item_id`**: (FK, Integer) Gắn với learning item nào.
+- **`content_type`**: (String) Loại nội dung (`explanation`, `example`, `mnemonic`).
+- **`content_text`**: (Text) Nội dung văn bản (hỗ trợ Markdown/BBCode).
 - **`is_primary`**: (Boolean) Có phải nội dung chính hiển thị mặc định không.
+- **`created_at`, `updated_at`**: (DateTime) Thời gian tạo và cập nhật.
 
 ---
 
@@ -160,13 +164,22 @@ Hệ thống huy hiệu.
 - **`UserBadge`**: Lưu huy hiệu người dùng đã đạt được.
 
 ### 5.2 `score_logs`
-Lịch sử thay đổi điểm số người dùng.
-- **`score_change`**: Số điểm thay đổi (+ hoặc -).
-- **`reason`**: Lý do thay đổi.
+Lịch sử chi tiết việc thay đổi điểm số của người dùng.
+- **`log_id`**: (PK, Integer).
+- **`user_id`**: (FK, Integer).
+- **`item_id`**: (FK, Integer, Optional) Gắn với câu hỏi cụ thể.
+- **`item_type`**: (String, Optional) Loại item (FLASHCARD, QUIZ, etc.).
+- **`score_change`**: (Integer) Số điểm thay đổi (+ hoặc -).
+- **`reason`**: (String) Lý do thay đổi (ví dụ: "Flashcard Answer").
+- **`timestamp`**: (DateTime, index) Thời gian ghi nhận.
 
 ### 5.3 `user_streaks`
-Theo dõi chuỗi ngày học tập liên tiếp (Streak).
-- **`current_streak`**, **`longest_streak`**.
+Theo dõi chuỗi học tập liên tiếp (Streak) của người dùng.
+- **`user_id`**: (PK, FK, Integer).
+- **`current_streak`**: (Integer) Chuỗi hiện tại.
+- **`longest_streak`**: (Integer) Chuỗi kỷ lục.
+- **`last_activity_date`**: (Date) Ngày hoạt động gần nhất để tính streak.
+- **`updated_at`**: (DateTime) Thời gian cập nhật.
 
 ---
 
@@ -187,10 +200,19 @@ Mục tiêu cụ thể của người dùng và tiến độ thực hiện theo 
 
 ### 7.1 `study_logs`
 Lưu chi tiết từng tương tác học tập (Click trả lời, Đánh giá thẻ...).
-- **`item_id`, `user_id`**.
+- **`log_id`**: (PK, Integer).
+- **`user_id`, `item_id`**: (FK, Integer).
+- **`timestamp`**: (DateTime, index) Thời gian log.
 - **`rating`**: Đánh giá (1-4).
-- **`review_duration`**: Thời gian suy nghĩ.
-- **`is_correct`**: Đúng/Sai.
+- **`user_answer`**: (Text) Nội dung câu trả lời của người dùng.
+- **`is_correct`**: (Boolean) Đúng/Sai.
+- **`review_duration`**: (Integer) Thời gian phản hồi (ms).
+- **`session_id`**: (FK, Integer) Thuộc session nào.
+- **`container_id`**: (FK, Integer) Thuộc container nào.
+- **`learning_mode`**: (String) Chế độ học khi log được tạo.
+- **`fsrs_snapshot`**: (JSON) Lưu trạng thái FSRS (stability, difficulty, interval) tại thời điểm học.
+- **`gamification_snapshot`**: (JSON) Lưu chi tiết điểm số (base score, multipliers, breakdown).
+- **`context_snapshot`**: (JSON) Lưu các thông ngữ cảnh khác.
 
 ---
 
