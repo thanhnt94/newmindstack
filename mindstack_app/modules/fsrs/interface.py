@@ -1015,24 +1015,21 @@ class FSRSInterface:
         # I'll use `StudyLog` to get accurate review counts.
         from mindstack_app.models import StudyLog
     @staticmethod
-    def get_daily_reviews_map(user_id: int, start_date, end_date, item_types: Optional[List[str]] = None) -> Dict[str, int]:
+    def get_daily_reviews_map(user_id: int, start_date, end_date, item_types: Optional[List[str]] = None, user_timezone: Optional[str] = None) -> Dict[str, int]:
         """
-        Get a map of date string -> review count for a date range.
-        Used for charts.
+        Get a map of date string -> review count for a date range in user's local timezone.
         """
-        from mindstack_app.modules.fsrs.models import ItemMemoryState
-        from sqlalchemy import func
         from mindstack_app.core.extensions import db
         from mindstack_app.models import ScoreLog
         from datetime import datetime, time, timezone
+        import pytz
         
-        # Date filtering
+        user_tz = pytz.timezone(user_timezone) if user_timezone else pytz.UTC
+        
+        # Date filtering (UTC boundary for query)
         start_dt = datetime.combine(start_date, time.min).replace(tzinfo=timezone.utc)
         
-        query = db.session.query(
-            func.date(ScoreLog.timestamp).label('date'),
-            func.count(ScoreLog.log_id).label('count')
-        ).filter(
+        query = db.session.query(ScoreLog.timestamp).filter(
             ScoreLog.user_id == user_id,
             ScoreLog.timestamp >= start_dt
         )
@@ -1042,14 +1039,23 @@ class FSRSInterface:
         else:
             query = query.filter(ScoreLog.item_type.in_(['FLASHCARD', 'QUIZ_MCQ', 'LESSON']))
             
-        rows = query.group_by(func.date(ScoreLog.timestamp)).all()
+        logs = query.all()
         
-        return {str(row.date): int(row.count) for row in rows}
+        # Grouping in Python for accurate local day boundaries
+        counts = {}
+        for (ts,) in logs:
+            if ts:
+                if ts.tzinfo is None:
+                    ts = pytz.UTC.localize(ts)
+                local_date = ts.astimezone(user_tz).date().isoformat()
+                counts[local_date] = counts.get(local_date, 0) + 1
+                
+        return counts
 
     @staticmethod
-    def get_daily_new_items_map(user_id: int, start_date, end_date, item_types: Optional[List[str]] = None) -> Dict[str, int]:
+    def get_daily_new_items_map(user_id: int, start_date, end_date, item_types: Optional[List[str]] = None, user_timezone: Optional[str] = None) -> Dict[str, int]:
         """
-        Get a map of date string -> new items count (created_at) for a date range.
+        Get a map of date string -> new items count (created_at) for a date range in local timezone.
         """
         from mindstack_app.modules.fsrs.models import ItemMemoryState
         from mindstack_app.models import LearningItem

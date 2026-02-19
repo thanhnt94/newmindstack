@@ -100,3 +100,8 @@ class LearningHistoryInterface:
     def get_session_logs(session_id: int, page: int = 1, per_page: int = 20) -> Dict[str, Any]:
         """Get paginated logs for a session."""
         return HistoryQueryService.get_session_logs(session_id, page, per_page)
+
+    @staticmethod
+    def get_first_review_dates(user_id: int, item_ids: List[int]) -> Dict[int, datetime]:
+        """Get the earliest study timestamp for each item."""
+        return HistoryQueryService.get_first_review_dates(user_id, item_ids)

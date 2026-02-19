@@ -60,9 +60,9 @@ class LearningInterface:
         return LearningMetricsService.get_recent_sessions(user_id, limit)
 
     @staticmethod
-    def get_extended_dashboard_stats(user_id: int) -> Dict[str, Any]:
+    def get_extended_dashboard_stats(user_id: int, user_timezone: Optional[str] = None) -> Dict[str, Any]:
         """Get extended dashboard statistics (charts, averages)."""
-        return LearningMetricsService.get_extended_dashboard_stats(user_id)
+        return LearningMetricsService.get_extended_dashboard_stats(user_id, user_timezone)
 
     # === EVALUATION ===
     

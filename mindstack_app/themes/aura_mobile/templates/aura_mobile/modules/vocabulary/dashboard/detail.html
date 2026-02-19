@@ -10,6 +10,7 @@ render_unified_header with context %}
 
 {% block head %}
 {{ super() }}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 {% include _v ~ '/components/_markdown_assets.html' %}
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 
@@ -307,42 +308,132 @@ render_unified_header with context %}
                     </div>
                 </div>
 
-                <!-- Tab Content: Statistics (Leaderboard) -->
+                <!-- Tab Content: Statistics -->
                 <div id="tab-content-stats" class="hidden px-4 pb-24">
-                    <div
-                        class="bg-gradient-to-br from-indigo-500 to-purple-600 rounded-3xl p-6 text-white mb-6 shadow-xl relative overflow-hidden">
-                        <div class="absolute top-0 right-0 -mt-4 -mr-4 w-32 h-32 bg-white/10 rounded-full blur-2xl">
-                        </div>
-                        <div class="relative z-10">
-                            <h3 class="text-lg font-bold mb-1">Bảng vàng thành tích</h3>
-                            <p class="text-indigo-100 text-sm mb-4">Top những người học chăm chỉ nhất bộ thẻ
-                                này.
-                            </p>
+                    <!-- [NEW] Stats Sub-tabs Navigation -->
+                    <div class="flex p-1 bg-slate-100 rounded-xl mb-6 shadow-sm border border-slate-200/50">
+                        <button
+                            class="flex-1 py-2 px-3 rounded-lg text-sm font-bold transition-all duration-200 text-indigo-700 bg-white shadow-sm js-stats-subtab-btn"
+                            onclick="switchStatsSubTab('leaderboard')" data-subtab="leaderboard">
+                            Xếp hạng
+                        </button>
+                        <button
+                            class="flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-all duration-200 text-slate-500 hover:text-indigo-600 js-stats-subtab-btn"
+                            onclick="switchStatsSubTab('personal')" data-subtab="personal">
+                            Cá nhân
+                        </button>
+                    </div>
 
-                            <!-- Timeframe Filters -->
-                            <div class="flex gap-2 bg-black/20 p-1 rounded-lg backdrop-blur-sm inline-flex">
-                                <button
-                                    class="px-3 py-1 text-xs font-semibold rounded-md transition-all js-lb-filter active bg-white text-indigo-700 shadow-sm"
-                                    data-tf="all">Toàn bộ</button>
-                                <button
-                                    class="px-3 py-1 text-xs font-semibold rounded-md transition-all text-indigo-100 hover:bg-white/10 js-lb-filter"
-                                    data-tf="month">Tháng</button>
-                                <button
-                                    class="px-3 py-1 text-xs font-semibold rounded-md transition-all text-indigo-100 hover:bg-white/10 js-lb-filter"
-                                    data-tf="week">Tuần</button>
-                                <button
-                                    class="px-3 py-1 text-xs font-semibold rounded-md transition-all text-indigo-100 hover:bg-white/10 js-lb-filter"
-                                    data-tf="day">Hôm nay</button>
+                    <!-- SUBTAB: Leaderboard -->
+                    <div id="subtab-leaderboard" class="js-stats-subtab-content">
+                        <div
+                            class="bg-gradient-to-br from-indigo-500 to-purple-600 rounded-3xl p-6 text-white mb-6 shadow-xl relative overflow-hidden">
+                            <div class="absolute top-0 right-0 -mt-4 -mr-4 w-32 h-32 bg-white/10 rounded-full blur-2xl">
+                            </div>
+                            <div class="relative z-10">
+                                <h3 class="text-lg font-bold mb-1">Bảng vàng thành tích (UTC)</h3>
+                                <p class="text-indigo-100 text-sm mb-4">Top những người học chăm chỉ nhất bộ thẻ này.
+                                </p>
+
+                                <!-- Timeframe Filters -->
+                                <div class="flex gap-2 bg-black/20 p-1 rounded-lg backdrop-blur-sm inline-flex">
+                                    <button
+                                        class="px-3 py-1 text-xs font-semibold rounded-md transition-all js-lb-filter active bg-white text-indigo-700 shadow-sm"
+                                        data-tf="all">Toàn bộ</button>
+                                    <button
+                                        class="px-3 py-1 text-xs font-semibold rounded-md transition-all text-indigo-100 hover:bg-white/10 js-lb-filter"
+                                        data-tf="month">Tháng</button>
+                                    <button
+                                        class="px-3 py-1 text-xs font-semibold rounded-md transition-all text-indigo-100 hover:bg-white/10 js-lb-filter"
+                                        data-tf="week">Tuần</button>
+                                    <button
+                                        class="px-3 py-1 text-xs font-semibold rounded-md transition-all text-indigo-100 hover:bg-white/10 js-lb-filter"
+                                        data-tf="day">Hôm nay</button>
+                                </div>
                             </div>
                         </div>
 
+                        <div id="set-leaderboard-container" class="space-y-3">
+                            <!-- Leaderboard items rendered by JS -->
+                            <div class="text-center py-8 text-slate-400">
+                                <i class="fas fa-spinner fa-spin text-2xl mb-2"></i>
+                                <p>Đang tải dữ liệu...</p>
+                            </div>
+                        </div>
                     </div>
 
-                    <div id="set-leaderboard-container" class="space-y-3">
-                        <!-- Leaderboard items rendered by JS -->
-                        <div class="text-center py-8 text-slate-400">
-                            <i class="fas fa-spinner fa-spin text-2xl mb-2"></i>
-                            <p>Đang tải dữ liệu...</p>
+                    <!-- SUBTAB: Personal Stats -->
+                    <div id="subtab-personal" class="js-stats-subtab-content hidden">
+                        <!-- Summary Cards Grid -->
+                        <div class="grid grid-cols-2 gap-3 mb-6">
+                            <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm text-center">
+                                <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Khả năng
+                                    ghi nhớ</div>
+                                <div class="text-2xl font-black text-indigo-600" id="personal-mp">--%</div>
+                            </div>
+                            <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm text-center">
+                                <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Đã học
+                                </div>
+                                <div class="text-2xl font-black text-emerald-600" id="personal-learned">--</div>
+                            </div>
+                            <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm text-center">
+                                <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Thành
+                                    thạo</div>
+                                <div class="text-2xl font-black text-blue-600" id="personal-mastered">--</div>
+                            </div>
+                            <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm text-center">
+                                <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Cần ôn
+                                    tập</div>
+                                <div class="text-2xl font-black text-rose-600" id="personal-due">--</div>
+                            </div>
+                        </div>
+
+                        <!-- Charts Section -->
+                        <div class="space-y-6">
+                            <!-- Mastery Timeline -->
+                            <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
+                                <h4 class="text-sm font-bold text-slate-800 mb-4 flex items-center justify-between">
+                                    <span class="flex items-center gap-2">
+                                        <i class="fas fa-chart-line text-indigo-500"></i> Độ bền trí nhớ (Retention)
+                                    </span>
+                                    <span class="text-[10px] font-normal text-slate-400 js-tz-label">--</span>
+                                </h4>
+                                <div class="h-48 w-full relative">
+                                    <canvas id="personalTimelineChart"></canvas>
+                                </div>
+                            </div>
+
+                            <!-- Activity Chart (New vs Review) -->
+                            <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
+                                <h4 class="text-sm font-bold text-slate-800 mb-4 flex items-center justify-between">
+                                    <span class="flex items-center gap-2">
+                                        <i class="fas fa-calendar-check text-emerald-500"></i> Hoạt động học tập
+                                    </span>
+                                    <span class="text-[10px] font-normal text-slate-400 js-tz-label">--</span>
+                                </h4>
+                                <div class="h-48 w-full relative">
+                                    <canvas id="personalActivityChart"></canvas>
+                                </div>
+                            </div>
+
+                            <!-- Distribution Chart -->
+                            <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
+                                <h4 class="text-sm font-bold text-slate-800 mb-4 flex items-center gap-2">
+                                    <i class="fas fa-chart-pie text-purple-500"></i> Phân loại mức độ nhớ
+                                </h4>
+                                <div class="h-56 w-full relative">
+                                    <canvas id="personalDistributionChart"></canvas>
+                                </div>
+                                <div
+                                    class="mt-4 pt-4 border-t border-slate-50 flex justify-between text-[11px] font-medium text-slate-500">
+                                    <div class="flex items-center gap-1"><span
+                                            class="w-2 h-2 rounded-full bg-rose-500"></span> Yếu</div>
+                                    <div class="flex items-center gap-1"><span
+                                            class="w-2 h-2 rounded-full bg-amber-500"></span> Trung bình</div>
+                                    <div class="flex items-center gap-1"><span
+                                            class="w-2 h-2 rounded-full bg-emerald-500"></span> Tốt</div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>

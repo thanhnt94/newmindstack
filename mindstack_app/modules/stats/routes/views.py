@@ -42,7 +42,7 @@ def dashboard():
     }
     
     # NEW: Merge extended stats
-    extended_stats = LearningInterface.get_extended_dashboard_stats(current_user.user_id)
+    extended_stats = LearningInterface.get_extended_dashboard_stats(current_user.user_id, user_timezone=current_user.timezone)
     
     # Calculate 30-day score stats from chart data
     score_history = extended_stats.get('charts', {}).get('datasets', {}).get('scores', [])

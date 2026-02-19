@@ -605,13 +605,180 @@ document.addEventListener('DOMContentLoaded', function () {
         const paginations = document.querySelectorAll('#detail-pagination-bar, #detail-pagination-bar-desktop');
         if (tabName === 'stats') {
             paginations.forEach(el => el.classList.add('hidden'));
-            if (selectedSetId) {
-                fetchSetLeaderboard(selectedSetId);
-            }
+            // Default to Personal Stats when opening Stats Tab
+            switchStatsSubTab('personal');
         } else {
             paginations.forEach(el => el.classList.remove('hidden'));
         }
     };
+
+    // --- Enhanced Stats Logic (Personal & Leaderboard) ---
+    let timelineChartInstance = null;
+    let activityChartInstance = null;
+    let distributionChartInstance = null;
+
+    window.switchStatsSubTab = function (subTab) {
+        console.log("Switching Stats Subtab:", subTab);
+
+        // Update sub-tab buttons
+        document.querySelectorAll('.js-stats-subtab-btn').forEach(btn => {
+            if (btn.dataset.subtab === subTab) {
+                btn.classList.add('bg-white', 'text-indigo-700', 'shadow-sm', 'font-bold');
+                btn.classList.remove('text-slate-500', 'font-medium');
+            } else {
+                btn.classList.remove('bg-white', 'text-indigo-700', 'shadow-sm', 'font-bold');
+                btn.classList.add('text-slate-500', 'font-medium');
+            }
+        });
+
+        // Toggle sub-tab content
+        document.querySelectorAll('.js-stats-subtab-content').forEach(content => {
+            if (content.id === 'subtab-' + subTab) {
+                content.classList.remove('hidden');
+            } else {
+                content.classList.add('hidden');
+            }
+        });
+
+        if (subTab === 'personal' && selectedSetId) {
+            fetchPersonalStats(selectedSetId);
+        } else if (subTab === 'leaderboard' && selectedSetId) {
+            fetchSetLeaderboard(selectedSetId);
+        }
+    };
+
+    function fetchPersonalStats(setId) {
+        // Show loading state if needed
+        fetch('/learn/vocabulary/api/stats/container/' + setId)
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    // Summary Cards: Retention rate from FSRS
+                    document.getElementById('personal-mp').textContent = data.retention_rate + '%';
+                    document.getElementById('personal-learned').textContent = data.learned_items;
+                    document.getElementById('personal-mastered').textContent = data.mastered_items;
+                    document.getElementById('personal-due').textContent = data.due_items;
+
+                    // Update timezone labels in UI
+                    if (data.timezone_label) {
+                        document.querySelectorAll('.js-tz-label').forEach(el => {
+                            el.textContent = '(' + data.timezone_label + ')';
+                        });
+                    }
+
+                    // Charts
+                    if (data.chart_data) {
+                        initPersonalCharts(data.chart_data, data.timezone_label);
+                    }
+                }
+            })
+            .catch(err => console.error("Error fetching personal stats:", err));
+    }
+
+    function initPersonalCharts(chartData, tzLabel) {
+        // 1. Mastery Timeline
+        initTimelineChart(chartData.timeline, tzLabel);
+        // 2. Activity Chart
+        initActivityChart(chartData.activity, chartData.timeline.dates, tzLabel);
+        // 3. Distribution Chart
+        initDistributionChart(chartData.distribution);
+    }
+
+    function initTimelineChart(data, tzLabel) {
+        const ctx = document.getElementById('personalTimelineChart');
+        if (!ctx) return;
+        if (timelineChartInstance) timelineChartInstance.destroy();
+
+        timelineChartInstance = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: data.dates,
+                datasets: [{
+                    label: 'Khả năng ghi nhớ (' + (tzLabel || 'UTC') + ')',
+                    data: data.values,
+                    borderColor: '#6366f1',
+                    backgroundColor: 'rgba(99, 102, 241, 0.1)',
+                    fill: true,
+                    tension: 0.4,
+                    pointRadius: 0,
+                    pointHoverRadius: 4,
+                    borderWidth: 3
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false }, tooltip: { mode: 'index', intersect: false } },
+                scales: {
+                    y: { min: 0, max: 100, ticks: { callback: v => v + '%' }, grid: { borderDash: [5, 5] } },
+                    x: { grid: { display: false } }
+                }
+            }
+        });
+    }
+
+    function initActivityChart(data, dates, tzLabel) {
+        const ctx = document.getElementById('personalActivityChart');
+        if (!ctx) return;
+        if (activityChartInstance) activityChartInstance.destroy();
+
+        activityChartInstance = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: dates,
+                datasets: [
+                    {
+                        label: 'Học mới (' + (tzLabel || 'UTC') + ')',
+                        data: data.new_items,
+                        backgroundColor: '#10b981',
+                        borderRadius: 4
+                    },
+                    {
+                        label: 'Ôn tập (' + (tzLabel || 'UTC') + ')',
+                        data: data.reviews,
+                        backgroundColor: '#6366f1',
+                        borderRadius: 4
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, usePointStyle: true } } },
+                scales: {
+                    x: { stacked: true, grid: { display: false } },
+                    y: { stacked: true, beginAtZero: true, grid: { borderDash: [5, 5] } }
+                }
+            }
+        });
+    }
+
+    function initDistributionChart(data) {
+        const ctx = document.getElementById('personalDistributionChart');
+        if (!ctx) return;
+        if (distributionChartInstance) distributionChartInstance.destroy();
+
+        distributionChartInstance = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Yếu', 'Trung bình', 'Tốt'],
+                datasets: [{
+                    data: [data.weak, data.medium, data.strong],
+                    backgroundColor: ['#f43f5e', '#f59e0b', '#10b981'],
+                    borderWidth: 0,
+                    cutout: '75%'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: { enabled: true }
+                }
+            }
+        });
+    }
 
     // Global variable for current timeframe
     let currentLeaderboardTimeframe = 'all';

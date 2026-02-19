@@ -109,6 +109,7 @@ class HistoryQueryService:
         
         return [
             {
+                'item_id': log.item_id,
                 'timestamp': log.timestamp,
                 'fsrs_snapshot': log.fsrs_snapshot,
                 'rating': log.rating
@@ -266,3 +267,19 @@ class HistoryQueryService:
             'pages': pagination.pages,
             'current_page': page
         }
+
+    @staticmethod
+    def get_first_review_dates(user_id: int, item_ids: List[int]) -> Dict[int, datetime]:
+        """Get the earliest study timestamp for each item."""
+        if not item_ids:
+            return {}
+            
+        results = db.session.query(
+            StudyLog.item_id,
+            func.min(StudyLog.timestamp).label('first_at')
+        ).filter(
+            StudyLog.user_id == user_id,
+            StudyLog.item_id.in_(item_ids)
+        ).group_by(StudyLog.item_id).all()
+        
+        return {row.item_id: row.first_at for row in results}

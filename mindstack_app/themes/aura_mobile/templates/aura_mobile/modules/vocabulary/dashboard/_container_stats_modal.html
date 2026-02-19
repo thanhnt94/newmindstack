@@ -14,7 +14,7 @@
             <!-- Summary Cards -->
             <div class="stats-summary-cards">
                 <div class="summary-card">
-                    <div class="summary-label">Memory Power</div>
+                    <div class="summary-label">Khả năng ghi nhớ</div>
                     <div class="summary-value" id="container-mp">--%</div>
                 </div>
                 <div class="summary-card">
@@ -124,13 +124,13 @@
             .then(response => response.json())
             .then(data => {
                 // Update summary cards
-                document.getElementById('container-mp').textContent = (data.average_memory_power || 0) + '%';
+                document.getElementById('container-mp').textContent = (data.retention_rate || 0) + '%';
                 document.getElementById('container-total').textContent = data.total_items || 0;
                 document.getElementById('container-due').textContent = data.due_items || 0;
 
-                // Render charts
+                // Render charts with timezone label
                 renderDistributionChart(data.chart_data.distribution);
-                renderTimelineChart(data.chart_data.timeline);
+                renderTimelineChart(data.chart_data.timeline, data.timezone_label);
             })
             .catch(error => {
                 console.error('Error loading container stats:', error);
@@ -179,8 +179,9 @@
         window.distributionChartInstance = new Chart(ctx, {
             type: 'doughnut',
             data: {
-                labels: ['Yếu (0-50%)', 'Trung bình (50-80%)', 'Tốt (80-100%)'],
+                labels: ['Yếu', 'Trung bình', 'Tốt'],
                 datasets: [{
+                    label: 'Khả năng ghi nhớ (%)',
                     data: [distribution.weak, distribution.medium, distribution.strong],
                     backgroundColor: [
                         '#ef4444',  // Red for weak
@@ -220,7 +221,7 @@
         });
     }
 
-    function renderTimelineChart(timeline) {
+    function renderTimelineChart(timeline, tzLabel) {
         const ctx = document.getElementById('timelineChart');
         if (!ctx) return;
 
@@ -244,7 +245,7 @@
             data: {
                 labels: validDates,
                 datasets: [{
-                    label: 'Memory Power (%)',
+                    label: 'Khả năng ghi nhớ (' + (tzLabel || 'UTC') + ')',
                     data: validData,
                     borderColor: '#6366f1',
                     backgroundColor: 'rgba(99, 102, 241, 0.1)',

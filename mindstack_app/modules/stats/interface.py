@@ -114,7 +114,7 @@ class StatsInterface:
         return VocabularyStatsService.get_full_stats(user_id, container_id)
 
     @staticmethod
-    def get_chart_data(user_id: int, container_id: int) -> dict:
+    def get_chart_data(user_id: int, container_id: int, user_timezone: Optional[str] = None) -> dict:
         """Get chart data for a container."""
         from .services.vocabulary_stats_service import VocabularyStatsService
-        return VocabularyStatsService.get_chart_data(user_id, container_id)
+        return VocabularyStatsService.get_chart_data(user_id, container_id, user_timezone)

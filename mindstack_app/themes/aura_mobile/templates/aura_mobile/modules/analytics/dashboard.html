@@ -127,7 +127,8 @@
                                     class="fas fa-question-circle text-6xl"></i></div>
                             <span class="text-xs uppercase font-bold tracking-wide opacity-90">Trắc nghiệm</span>
                             <div>
-                                <p class="text-3xl font-black leading-none">{{ dashboard_data.quiz_questions_done_count }}
+                                <p class="text-3xl font-black leading-none">{{ dashboard_data.quiz_questions_done_count
+                                    }}
                                 </p>
                                 <p class="text-xs opacity-80 mt-1">Câu đã giải</p>
                             </div>
@@ -136,11 +137,13 @@
                         {# Card 5: Bộ Vocab #}
                         <div
                             class="snap-start flex-shrink-0 w-40 bg-gradient-to-br from-amber-400 to-amber-500 text-white rounded-3xl p-5 shadow-lg flex flex-col justify-between h-32 relative overflow-hidden active:scale-95 transition-transform">
-                            <div class="absolute right-0 top-0 p-3 opacity-20"><i class="fas fa-layer-group text-6xl"></i>
+                            <div class="absolute right-0 top-0 p-3 opacity-20"><i
+                                    class="fas fa-layer-group text-6xl"></i>
                             </div>
                             <span class="text-xs uppercase font-bold tracking-wide opacity-90">Bộ Vocab</span>
                             <div>
-                                <p class="text-3xl font-black leading-none">{{ dashboard_data.flashcard_sets_started_count }}</p>
+                                <p class="text-3xl font-black leading-none">{{
+                                    dashboard_data.flashcard_sets_started_count }}</p>
                                 <p class="text-xs opacity-80 mt-1">Đã học</p>
                             </div>
                         </div>
@@ -152,7 +155,8 @@
                             </div>
                             <span class="text-xs uppercase font-bold tracking-wide opacity-90">Bộ Quiz</span>
                             <div>
-                                <p class="text-3xl font-black leading-none">{{ dashboard_data.quiz_sets_started_count }}</p>
+                                <p class="text-3xl font-black leading-none">{{ dashboard_data.quiz_sets_started_count }}
+                                </p>
                                 <p class="text-xs opacity-80 mt-1">Đã làm</p>
                             </div>
                         </div>
@@ -294,8 +298,11 @@
                         <h3 class="text-base font-bold text-slate-800 flex items-center gap-2">
                             <i class="fas fa-chart-line text-blue-500"></i>
                             <span>Phân tích & Biểu đồ</span>
+                            <span
+                                class="text-[10px] font-bold text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded-md uppercase tracking-wider"
+                                x-text="'(' + (dashboard_data.timezone_label || 'UTC') + ')'"></span>
                         </h3>
-                        
+
                         {# Navigation Buttons #}
                         <div class="flex gap-2">
                             <button @click="prev()"
@@ -310,16 +317,19 @@
                     </div>
 
                     {# Main Chart Container #}
-                    <div class="bg-white border border-slate-200 p-5 rounded-3xl shadow-sm mb-4 relative min-h-[320px] flex flex-col">
+                    <div
+                        class="bg-white border border-slate-200 p-5 rounded-3xl shadow-sm mb-4 relative min-h-[320px] flex flex-col">
                         {# Dynamic Title #}
                         <div class="flex items-center justify-between mb-4">
                             <h4 class="text-sm font-bold text-slate-700" x-text="titles[activeChart]"></h4>
-                            
+
                             {# Specific Legend for Activity Chart (Slide 0) #}
                             <template x-if="activeChart === 0">
                                 <div class="flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider">
-                                    <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-indigo-500"></span> Ôn tập</span>
-                                    <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-emerald-500"></span> Mới</span>
+                                    <span class="flex items-center gap-1"><span
+                                            class="w-2 h-2 rounded-full bg-indigo-500"></span> Ôn tập</span>
+                                    <span class="flex items-center gap-1"><span
+                                            class="w-2 h-2 rounded-full bg-emerald-500"></span> Mới</span>
                                 </div>
                             </template>
                         </div>
@@ -327,31 +337,36 @@
                         {# Charts Wrapper #}
                         <div class="flex-grow relative overflow-hidden">
                             <!-- 1. Activity Chart -->
-                            <div x-show="activeChart === 0" class="h-56 w-full absolute inset-0 transition-opacity duration-300" 
+                            <div x-show="activeChart === 0"
+                                class="h-56 w-full absolute inset-0 transition-opacity duration-300"
                                 :class="activeChart === 0 ? 'opacity-100 z-10' : 'opacity-0 z-0 pointer-events-none'">
                                 <canvas x-ref="activityChart"></canvas>
                             </div>
 
                             <!-- 2. Hourly Activity Chart -->
-                            <div x-show="activeChart === 1" class="h-56 w-full absolute inset-0 transition-opacity duration-300"
+                            <div x-show="activeChart === 1"
+                                class="h-56 w-full absolute inset-0 transition-opacity duration-300"
                                 :class="activeChart === 1 ? 'opacity-100 z-10' : 'opacity-0 z-0 pointer-events-none'">
                                 <canvas x-ref="hourlyChart"></canvas>
                             </div>
 
                             <!-- 3. Accuracy Trend Chart -->
-                            <div x-show="activeChart === 2" class="h-56 w-full absolute inset-0 transition-opacity duration-300"
+                            <div x-show="activeChart === 2"
+                                class="h-56 w-full absolute inset-0 transition-opacity duration-300"
                                 :class="activeChart === 2 ? 'opacity-100 z-10' : 'opacity-0 z-0 pointer-events-none'">
                                 <canvas x-ref="accuracyChart"></canvas>
                             </div>
 
                             <!-- 4. Upcoming Reviews Chart -->
-                            <div x-show="activeChart === 3" class="h-56 w-full absolute inset-0 transition-opacity duration-300"
+                            <div x-show="activeChart === 3"
+                                class="h-56 w-full absolute inset-0 transition-opacity duration-300"
                                 :class="activeChart === 3 ? 'opacity-100 z-10' : 'opacity-0 z-0 pointer-events-none'">
                                 <canvas x-ref="upcomingChart"></canvas>
                             </div>
 
                             <!-- 5. Memory State Chart -->
-                            <div x-show="activeChart === 4" class="h-64 w-full absolute inset-0 flex items-center justify-center transition-opacity duration-300"
+                            <div x-show="activeChart === 4"
+                                class="h-64 w-full absolute inset-0 flex items-center justify-center transition-opacity duration-300"
                                 :class="activeChart === 4 ? 'opacity-100 z-10' : 'opacity-0 z-0 pointer-events-none'">
                                 <canvas x-ref="memoryStateChart"></canvas>
                             </div>
@@ -360,8 +375,8 @@
                         {# Indicators #}
                         <div class="flex justify-center gap-1.5 mt-auto pt-4 relative z-20">
                             <template x-for="(t, i) in titles">
-                                <button @click="goto(i)" class="h-1 rounded-full transition-all duration-300" 
-                                     :class="activeChart === i ? 'w-6 bg-indigo-500' : 'w-2 bg-slate-200'"></button>
+                                <button @click="goto(i)" class="h-1 rounded-full transition-all duration-300"
+                                    :class="activeChart === i ? 'w-6 bg-indigo-500' : 'w-2 bg-slate-200'"></button>
                             </template>
                         </div>
                     </div>
@@ -502,7 +517,8 @@
                 {# Header with Select #}
                 <div class="px-5 pt-5 pb-4 flex items-center justify-between">
                     <div>
-                        <h1 class="text-2xl font-black text-slate-900 tracking-tight">Xếp hạng</h1>
+                        <h1 class="text-2xl font-black text-slate-900 tracking-tight">Xếp hạng <span
+                                class="text-xs font-bold text-slate-400">(UTC)</span></h1>
                         <p class="text-sm text-slate-600 mt-1">Cùng thi đua học tập</p>
                     </div>
 

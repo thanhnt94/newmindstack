@@ -178,13 +178,14 @@ def api_get_set_detail(set_id):
 def api_get_container_stats(container_id):
     """API endpoint for comprehensive container statistics."""
     try:
-        stats = VocabularyContainerStats.get_full_stats(current_user.user_id, container_id)
-        chart_data = VocabularyContainerStats.get_chart_data(current_user.user_id, container_id)
+        from mindstack_app.modules.stats.interface import StatsInterface
+        stats = StatsInterface.get_full_stats(current_user.user_id, container_id)
+        chart_data = StatsInterface.get_chart_data(current_user.user_id, container_id, current_user.timezone)
         average_memory_power = round(stats['mastery_avg'] * 100, 1) if stats['mastery_avg'] else 0
         
         return jsonify({
             'success': True,
-            'average_memory_power': average_memory_power,
+            'retention_rate': average_memory_power,
             'total_items': stats['total'],
             'due_items': stats['due'],
             'learned_items': stats['learned'],

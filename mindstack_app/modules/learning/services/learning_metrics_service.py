@@ -419,28 +419,31 @@ class LearningMetricsService:
         return leaderboard
 
     @classmethod
-    def get_hourly_activity(cls, user_id: int) -> Dict[str, Any]:
+    def get_hourly_activity(cls, user_id: int, user_timezone: Optional[str] = None) -> Dict[str, Any]:
         """
-        Get activity breakdown by hour of day (0-23).
-        Returns a list of counts for each hour.
+        Get activity breakdown by hour of day (0-23) in local timezone.
         """
-        from sqlalchemy import func, extract
+        from sqlalchemy import func
         from mindstack_app.models import ScoreLog
+        import pytz
         
-        query = db.session.query(
-            extract('hour', ScoreLog.timestamp).label('hour'),
-            func.count(ScoreLog.log_id).label('count')
-        ).filter(
+        user_tz = pytz.timezone(user_timezone) if user_timezone else pytz.UTC
+        
+        # We need to fetch all relevant logs to convert timezone in Python
+        # extraction in SQL across different DBs is problematic for timezones.
+        logs = db.session.query(ScoreLog.timestamp).filter(
             ScoreLog.user_id == user_id
-        ).group_by(extract('hour', ScoreLog.timestamp)).all()
+        ).all()
         
-        # Initialize 0 for all 24 hours
         hourly_counts = [0] * 24
-        
-        for row in query:
-            h = int(row.hour)
-            if 0 <= h < 24:
-                hourly_counts[h] = row.count
+        for (ts,) in logs:
+            if ts:
+                if ts.tzinfo is None:
+                    ts = pytz.UTC.localize(ts)
+                local_ts = ts.astimezone(user_tz)
+                h = local_ts.hour
+                if 0 <= h < 24:
+                    hourly_counts[h] += 1
                 
         return {
             'labels': [f"{h}:00" for h in range(24)],
@@ -448,46 +451,52 @@ class LearningMetricsService:
         }
 
     @classmethod
-    def get_accuracy_trend(cls, user_id: int, days: int = 30) -> Dict[str, Any]:
+    def get_accuracy_trend(cls, user_id: int, days: int = 30, user_timezone: Optional[str] = None) -> Dict[str, Any]:
         """
-        Get daily average accuracy trend for the last N days.
+        Get daily average accuracy trend for the last N days in local timezone.
         """
-        end_date = date.today()
-        start_date = end_date - timedelta(days=days-1)
+        import pytz
+        user_tz = pytz.timezone(user_timezone) if user_timezone else pytz.UTC
+        now_local = datetime.now(user_tz)
+        end_date_local = now_local.date()
+        start_date_local = end_date_local - timedelta(days=days-1)
         
         from sqlalchemy import func, case
         from mindstack_app.models import ScoreLog
         
         # Calculate daily "Success" rate
-        # We assume score_change > 0 means "Correct" (or at least not a complete fail)
+        # Need to query with UTC buffer
+        start_dt_utc = user_tz.localize(datetime.combine(start_date_local, time.min)).astimezone(pytz.UTC)
         
-        query = db.session.query(
-            func.date(ScoreLog.timestamp).label('date'),
-            func.count(ScoreLog.log_id).label('total_reviews'),
-            func.sum(case((ScoreLog.score_change > 0, 1), else_=0)).label('successful_reviews')
-        ).filter(
+        logs = db.session.query(ScoreLog.timestamp, ScoreLog.score_change).filter(
             ScoreLog.user_id == user_id,
-            ScoreLog.timestamp >= datetime.combine(start_date, time.min)
-        ).group_by(func.date(ScoreLog.timestamp)).all()
+            ScoreLog.timestamp >= start_dt_utc
+        ).all()
         
-        data_map = {str(row.date): row for row in query}
+        daily_stats = defaultdict(lambda: {'total': 0, 'success': 0})
+        for ts, sc in logs:
+            if ts:
+                if ts.tzinfo is None:
+                    ts = pytz.UTC.localize(ts)
+                local_date = ts.astimezone(user_tz).date()
+                if start_date_local <= local_date <= end_date_local:
+                    d_str = local_date.isoformat()
+                    daily_stats[d_str]['total'] += 1
+                    if sc > 0:
+                        daily_stats[d_str]['success'] += 1
         
         labels = []
         accuracy_data = []
         
-        current = start_date
-        while current <= end_date:
+        current = start_date_local
+        while current <= end_date_local:
             d_str = current.isoformat()
-            if d_str in data_map:
-                row = data_map[d_str]
-                if row.total_reviews > 0:
-                    acc = round((row.successful_reviews / row.total_reviews) * 100, 1)
-                else:
-                    acc = 0
-                accuracy_data.append(acc)
+            stats = daily_stats.get(d_str, {'total': 0, 'success': 0})
+            if stats['total'] > 0:
+                acc = round((stats['success'] / stats['total']) * 100, 1)
             else:
-                accuracy_data.append(0)
-            
+                acc = 0
+            accuracy_data.append(acc)
             labels.append(current.strftime('%d/%m'))
             current += timedelta(days=1)
             
@@ -527,21 +536,15 @@ class LearningMetricsService:
         }
 
     @classmethod
-    def get_extended_dashboard_stats(cls, user_id: int) -> Dict[str, Any]:
+    def get_extended_dashboard_stats(cls, user_id: int, user_timezone: Optional[str] = None) -> Dict[str, Any]:
         """
-        Get extended statistics for dashboard including averages and chart data.
-        Calculates based on the last 30 days.
+        Get extended statistics for dashboard including averages and chart data in local timezone.
         """
-        end_date = date.today()
-        # ... rest of function ...
-        start_date = end_date - timedelta(days=29) # 30 days total inclusive
-        
-        # 1. Fetch daily stats for the period
-        daily_stats_map = {}
-        
-        # We need a range of dates
-        date_range = [end_date - timedelta(days=x) for x in range(30)]
-        date_range.reverse() # Oldest to newest
+        import pytz
+        user_tz = pytz.timezone(user_timezone) if user_timezone else pytz.UTC
+        now_local = datetime.now(user_tz)
+        end_date_local = now_local.date()
+        start_date_local = end_date_local - timedelta(days=29) 
         
         labels = []
         reviews_data = []
@@ -550,50 +553,40 @@ class LearningMetricsService:
         
         total_items_reviewed_30d = 0
         total_new_items_30d = 0
-        total_quiz_sets_30d = 0 # Placeholder if we track quiz sets specifically in daily stats
         
-        # Using DailyStatsService logic but iterating for 30 days
-        # Optimization: Fetch all sessions in range and aggregate in memory
-        from mindstack_app.modules.learning.services.daily_stats_service import DailyStatsService
-        
-        # Since DailyStatsService.get_daily_stats might be heavy to call 30 times, 
-        # let's try to do a consolidated query if possible, or just loop if data volume is low.
-        # For now, looping is safer to reuse logic, but might be slow.
-        # BETTER: Query ScoreLog and FSRS data for the range directly here.
+        # Date range for labels and maps
+        date_range = [start_date_local + timedelta(days=x) for x in range(30)]
         
         # A. Daily Scores (from ScoreLog)
-        score_query = db.session.query(
-            func.date(ScoreLog.timestamp).label('date'),
-            func.sum(ScoreLog.score_change).label('score')
-        ).filter(
+        start_dt_utc = user_tz.localize(datetime.combine(start_date_local, time.min)).astimezone(pytz.UTC)
+        score_logs = db.session.query(ScoreLog.timestamp, ScoreLog.score_change).filter(
             ScoreLog.user_id == user_id,
-            ScoreLog.timestamp >= datetime.combine(start_date, datetime.min.time()).replace(tzinfo=timezone.utc)
-        ).group_by(func.date(ScoreLog.timestamp)).all()
+            ScoreLog.timestamp >= start_dt_utc
+        ).all()
         
-        score_map = {str(row.date): int(row.score) for row in score_query}
+        score_map = defaultdict(int)
+        for ts, sc in score_logs:
+            if ts:
+                if ts.tzinfo is None:
+                    ts = pytz.UTC.localize(ts)
+                local_date = ts.astimezone(user_tz).date().isoformat()
+                score_map[local_date] += int(sc or 0)
         
         # B. Daily Reviews & New Items (FSRS)
-        # Using FsrsInterface to get counts map
-        reviews_map = FsrsInterface.get_daily_reviews_map(user_id, start_date, end_date)
-        new_items_map = FsrsInterface.get_daily_new_items_map(user_id, start_date, end_date)
+        reviews_map = FsrsInterface.get_daily_reviews_map(user_id, start_date_local, end_date_local, user_timezone=user_timezone)
+        new_items_map = FsrsInterface.get_daily_new_items_map(user_id, start_date_local, end_date_local, user_timezone=user_timezone)
         
         for d in date_range:
             d_str = d.isoformat()
+            labels.append(d.strftime('%d/%m'))
             
-            # Formatted label (e.g., "07/02")
-            label = d.strftime('%d/%m')
-            labels.append(label)
-            
-            # Scores
             score = score_map.get(d_str, 0)
             score_data.append(score)
             
-            # New Items
             new_items = new_items_map.get(d_str, 0)
             new_items_data.append(new_items)
             total_new_items_30d += new_items
             
-            # Reviews (Corrected: Discount new items from total interactions to avoid double counting)
             total_interactions = reviews_map.get(d_str, 0)
             effective_reviews = max(0, total_interactions - new_items)
             reviews_data.append(effective_reviews)
@@ -604,20 +597,17 @@ class LearningMetricsService:
         avg_new_items_per_day = round(total_new_items_30d / 30, 1)
 
         # Averages (Split by Type)
-        # Flashcard
-        reviews_map_fc = FsrsInterface.get_daily_reviews_map(user_id, start_date, end_date, item_types=['FLASHCARD'])
-        new_items_map_fc = FsrsInterface.get_daily_new_items_map(user_id, start_date, end_date, item_types=['FLASHCARD'])
+        reviews_map_fc = FsrsInterface.get_daily_reviews_map(user_id, start_date_local, end_date_local, item_types=['FLASHCARD'], user_timezone=user_timezone)
+        new_items_map_fc = FsrsInterface.get_daily_new_items_map(user_id, start_date_local, end_date_local, item_types=['FLASHCARD'], user_timezone=user_timezone)
         
-        # Corrected totals for averages (Discounting new items from interactions)
         total_fc_reviews_corr = sum(max(0, reviews_map_fc.get(dt.isoformat(), 0) - new_items_map_fc.get(dt.isoformat(), 0)) for dt in date_range)
         total_fc_new = sum(new_items_map_fc.values())
         
         avg_reviews_fc = round(total_fc_reviews_corr / 30, 1)
         avg_new_fc = round(total_fc_new / 30, 1)
 
-        # Quiz
-        reviews_map_quiz = FsrsInterface.get_daily_reviews_map(user_id, start_date, end_date, item_types=['QUIZ_MCQ'])
-        new_items_map_quiz = FsrsInterface.get_daily_new_items_map(user_id, start_date, end_date, item_types=['QUIZ_MCQ'])
+        reviews_map_quiz = FsrsInterface.get_daily_reviews_map(user_id, start_date_local, end_date_local, item_types=['QUIZ_MCQ'], user_timezone=user_timezone)
+        new_items_map_quiz = FsrsInterface.get_daily_new_items_map(user_id, start_date_local, end_date_local, item_types=['QUIZ_MCQ'], user_timezone=user_timezone)
         
         total_quiz_reviews_corr = sum(max(0, reviews_map_quiz.get(dt.isoformat(), 0) - new_items_map_quiz.get(dt.isoformat(), 0)) for dt in date_range)
         total_quiz_new = sum(new_items_map_quiz.values())
@@ -625,17 +615,29 @@ class LearningMetricsService:
         avg_reviews_quiz = round(total_quiz_reviews_corr / 30, 1)
         avg_new_quiz = round(total_quiz_new / 30, 1)
         
-        # 5. Advanced Charts Data (Phase 2 & 3)
-        hourly_activity = cls.get_hourly_activity(user_id)
-        accuracy_trend = cls.get_accuracy_trend(user_id)
+        # 5. Advanced Charts Data
+        hourly_activity = cls.get_hourly_activity(user_id, user_timezone=user_timezone)
+        accuracy_trend = cls.get_accuracy_trend(user_id, user_timezone=user_timezone)
         upcoming_reviews = cls.get_upcoming_reviews(user_id)
         memory_state = cls.get_memory_state_distribution(user_id)
         streak_info = cls.get_streak_info(user_id)
+        
+        # Label generation
+        tz_offset = now_local.strftime('%z')
+        if tz_offset:
+            # Format +0700 to UTC+7
+            hours = tz_offset[:3]
+            if hours.startswith('+0'): hours = '+' + hours[2:]
+            elif hours.startswith('-0'): hours = '-' + hours[2:]
+            tz_label = f"UTC{hours}"
+        else:
+            tz_label = "UTC"
 
         return {
+            'timezone_label': tz_label,
             'averages': {
-                'avg_reviews_per_day': avg_reviews_per_day, # Global
-                'avg_new_items_per_day': avg_new_items_per_day, # Global
+                'avg_reviews_per_day': avg_reviews_per_day,
+                'avg_new_items_per_day': avg_new_items_per_day,
                 'vocab': {
                     'avg_reviews_per_day': avg_reviews_fc,
                     'avg_new_items_per_day': avg_new_fc

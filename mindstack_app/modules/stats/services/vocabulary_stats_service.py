@@ -132,32 +132,88 @@ class VocabularyStatsService:
             elif r < 0.9: medium += 1
             else: strong += 1
         
-        # Timeline
-        now = datetime.now(timezone.utc)
-        timeline_data = defaultdict(list)
-        start_date = now - timedelta(days=30)
-        
         from mindstack_app.modules.learning_history.interface import LearningHistoryInterface
         
-        logs = LearningHistoryInterface.get_study_log_timeline(user_id, item_ids, start_date)
+        import pytz
         
+        # We need a start_date for the timeline, let's assume 30 days ago for now
+        now_utc = datetime.now(timezone.utc)
+        
+        # Handle user timezone
+        user_tz = pytz.timezone(user_timezone_str) if user_timezone_str else pytz.UTC
+        now_local = now_utc.astimezone(user_tz)
+        start_date_utc = (now_local - timedelta(days=30)).astimezone(pytz.UTC)
+        
+        logs = LearningHistoryInterface.get_study_log_timeline(user_id, item_ids, start_date_utc)
+        
+        # 2. Activity Timeline (New vs Review)
+        # To accurately identify "New" items, we need the absolute first review timestamp for each item
+        first_review_map = LearningHistoryInterface.get_first_review_dates(user_id, item_ids)
+        
+        timeline_data = defaultdict(list) # For retention/mastery
+        new_items_daily = defaultdict(set) # item_id per day
+        reviews_daily = defaultdict(int) 
+
         for log in logs:
             fsrs = log.get('fsrs_snapshot') or {}
             stability = fsrs.get('stability')
-            timestamp = log.get('timestamp')
+            timestamp_utc = log.get('timestamp')
+            item_id = log.get('item_id')
             
-            if stability is not None and timestamp:
-                date_key = timestamp.strftime('%d/%m')
-                timeline_data[date_key].append(min((stability)/21.0, 1.0) * 100)
+            if timestamp_utc:
+                # Convert UTC timestamp to user local time
+                if timestamp_utc.tzinfo is None:
+                    timestamp_utc = pytz.UTC.localize(timestamp_utc)
+                local_timestamp = timestamp_utc.astimezone(user_tz)
+                
+                date_key = local_timestamp.strftime('%d/%m')
+                if stability is not None:
+                    timeline_data[date_key].append(min((stability)/21.0, 1.0) * 100)
+                
+                # Activity tracking
+                # A log is "New" if its timestamp matches the absolute first review of that item
+                if timestamp_utc == first_review_map.get(item_id):
+                    new_items_daily[date_key].add(item_id)
+                else:
+                    reviews_daily[date_key] += 1
         
         dates, values = [], []
+        new_items_values = []
+        reviews_values = []
+        
         for i in range(29, -1, -1):
-            date = now - timedelta(days=i)
-            date_key = date.strftime('%d/%m')
+            date_local = now_local - timedelta(days=i)
+            date_key = date_local.strftime('%d/%m')
             dates.append(date_key)
-            if date_key in timeline_data: values.append(round(sum(timeline_data[date_key]) / len(timeline_data[date_key]), 1))
-            else: values.append(None)
-        return {'distribution': {'weak': weak, 'medium': medium, 'strong': strong}, 'timeline': {'dates': dates, 'values': values}}
+            
+            # Retention
+            if date_key in timeline_data: 
+                values.append(round(sum(timeline_data[date_key]) / len(timeline_data[date_key]), 1))
+            else: 
+                values.append(None)
+            
+            # Activity
+            new_items_values.append(len(new_items_daily[date_key]))
+            reviews_values.append(reviews_daily[date_key])
+            
+        # Get UTC offset for label (e.g., UTC+7)
+        offset = now_local.strftime('%z')
+        if offset:
+            # format +0700 -> UTC+7
+            hours = int(offset[:3])
+            timezone_label = f"UTC{hours:+d}"
+        else:
+            timezone_label = "UTC"
+
+        return {
+            'distribution': {'weak': weak, 'medium': medium, 'strong': strong}, 
+            'timeline': {'dates': dates, 'values': values},
+            'activity': {
+                'new_items': new_items_values,
+                'reviews': reviews_values
+            },
+            'timezone_label': timezone_label
+        }
 
     @staticmethod
     def get_item_stats(user_id: int, item_id: int) -> dict:
