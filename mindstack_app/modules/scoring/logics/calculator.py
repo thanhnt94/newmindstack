@@ -10,20 +10,13 @@ class ScoreCalculator:
     def calculate(event_key: str, context: Dict[str, Any]) -> Tuple[int, Dict[str, Any]]:
         """
         Calculate score with modifiers.
-        
-        Args:
-            event_key: Base scoring event key (e.g. 'SCORE_FSRS_GOOD')
-            context: {
-                'difficulty': float (0-10),
-                'streak': int,
-                'duration_ms': int,
-                'expected_duration_ms': int # Optional
-            }
-            
-        Returns:
-            (total_score, breakdown_dict)
         """
         base_score = ScoringConfigService.get_config(event_key)
+        
+        # Load multipliers from config
+        diff_weight = ScoringConfigService.get_config('SCORING_DIFFICULTY_WEIGHT') or 20.0
+        streak_threshold = ScoringConfigService.get_config('SCORING_STREAK_THRESHOLD') or 5
+        streak_cap = ScoringConfigService.get_config('SCORING_STREAK_CAP') or 100
         
         breakdown = {
             'base': base_score,
@@ -32,25 +25,22 @@ class ScoreCalculator:
         
         total = float(base_score)
         
-        # 1. Difficulty Multiplier (e.g. difficulty 8.0 -> +20%)
-        # Simple formula: 1.0 + (difficulty / 20) -> max 1.5 at diff=10
+        # 1. Difficulty Multiplier (e.g. difficulty 8.0 -> +20% if weight=20.0)
+        # Formula: 1.0 + (difficulty / difficulty_weight)
         difficulty = context.get('difficulty', 0.0)
         if difficulty > 0:
-            mult = 1.0 + (difficulty / 20.0)
+            mult = 1.0 + (difficulty / float(diff_weight))
             breakdown['modifiers']['difficulty'] = round(mult, 2)
             total *= mult
             
         # 2. Streak Bonus (Flat bonus)
         streak = context.get('streak', 0)
         streak_bonus = 0
-        if streak >= 5:
-            streak_bonus = min(streak, 100) # Cap at 100
+        if streak >= streak_threshold:
+            streak_bonus = min(streak, streak_cap)
             breakdown['modifiers']['streak_bonus'] = streak_bonus
             total += streak_bonus
             
-        # 3. Speed Bonus (if applicable)
-        # speed_bonus = ...
-        
         final_score = int(round(total))
         breakdown['total'] = final_score
         

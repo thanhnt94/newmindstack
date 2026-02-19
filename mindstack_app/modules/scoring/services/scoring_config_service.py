@@ -79,6 +79,16 @@ class ScoringConfigService:
                     _item('SCORING_STREAK_BONUS_MODULO', 'Mốc thưởng Streak (ngày)'),
                 ]
             },
+            'multipliers': {
+                'title': 'Bonuses & Multipliers',
+                'icon': 'fas fa-percentage',
+                'desc': 'Cấu hình các hệ số thưởng dựa trên độ khó và chuỗi.',
+                'items': [
+                    _item('SCORING_DIFFICULTY_WEIGHT', 'Trọng số độ khó (Thấp = Thưởng cao hơn)'),
+                    _item('SCORING_STREAK_THRESHOLD', 'Chuỗi tối thiểu để nhận thưởng'),
+                    _item('SCORING_STREAK_CAP', 'Giới hạn điểm thưởng chuỗi tối đa'),
+                ]
+            },
             'course': {
                 'title': 'Course Progress',
                 'icon': 'fas fa-book-open',

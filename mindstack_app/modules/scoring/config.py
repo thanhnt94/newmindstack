@@ -29,6 +29,11 @@ class ScoringDefaultConfig:
     SCORING_STREAK_BONUS_VALUE = 5
     SCORING_STREAK_BONUS_MODULO = 10
     
+    # --- Multipliers & Bonuses ---
+    SCORING_DIFFICULTY_WEIGHT = 20  # Lower is stronger (formula: 1 + difficulty / weight)
+    SCORING_STREAK_THRESHOLD = 5   # Min streak for bonus
+    SCORING_STREAK_CAP = 100       # Max flat points from streak
+    
     # --- Course ---
     COURSE_LESSON_COMPLETION_SCORE = 15
     COURSE_COMPLETION_SCORE = 50

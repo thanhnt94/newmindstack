@@ -109,11 +109,9 @@
     window.showScoreToast = function (input) {
         return new Promise((resolve) => {
             let points = 0;
-            let breakdown = null;
 
             if (typeof input === 'object' && input !== null) {
-                points = input.total_score || input.score_earned || 0; // Support multiple keys
-                breakdown = input.breakdown;
+                points = input.total_score || input.score_earned || 0;
             } else {
                 points = Number(input);
             }
@@ -125,76 +123,28 @@
             }
 
             const el = document.createElement('div');
-            el.className = 'score-toast-game flex flex-col items-center !text-[4rem]'; // Override font size slightly for container safety if needed, but keeping main huge
-
-            // Random encouraging emoji sometimes?
-            const emojis = ['⭐', '💎', '🎉', '🔥'];
-            const icon = emojis[Math.floor(Math.random() * emojis.length)];
-
-            // Build Breakdown HTML
-            let breakdownHtml = '';
-            if (breakdown) {
-                // Map keys to readable labels and icons
-                const labelMap = {
-                    'base': { label: 'Cơ bản', icon: '', color: 'text-white' },
-                    'streak': { label: 'Chuỗi', icon: '🔥', color: 'text-orange-300' },
-                    'streak_bonus': { label: 'Chuỗi', icon: '🔥', color: 'text-orange-300' },
-                    'time': { label: 'Tốc độ', icon: '⚡', color: 'text-yellow-300' },
-                    'time_bonus': { label: 'Tốc độ', icon: '⚡', color: 'text-yellow-300' },
-                    'difficulty': { label: 'Độ khó', icon: '🧠', color: 'text-purple-300' },
-                    'difficulty_mult': { label: 'Độ khó', icon: '🧠', color: 'text-purple-300' },
-                    'random': { label: 'May mắn', icon: '🍀', color: 'text-green-300' }
-                };
-
-                let delay = 0.2;
-                breakdownHtml = '<div class="flex flex-col gap-1 mt-[-10px] text-lg font-bold tracking-wide shadow-black drop-shadow-md">';
-
-                for (const [key, value] of Object.entries(breakdown)) {
-                    if (key === 'total') continue; // Skip total
-                    if (value <= 0 && value !== 1.0) continue; // Skip zero or neutral multipliers (complex logic simplification)
-
-                    const meta = labelMap[key] || { label: key, icon: '✨', color: 'text-gray-100' };
-                    const displayVal = (value % 1 !== 0) ? `x${value}` : `+${value}`; // Float is multiplier, Int is add
-
-                    breakdownHtml += `
-                        <div class="flex items-center justify-between gap-4 ${meta.color} animate-fade-in-up" 
-                             style="animation: slideUpFade 0.3s ease-out forwards; animation-delay: ${delay}s; opacity: 0; font-family: 'Inter', sans-serif;">
-                            <span class="flex items-center gap-1">${meta.icon} ${meta.label}</span>
-                            <span>${displayVal}</span>
-                        </div>
-                    `;
-                    delay += 0.1;
-                }
-                breakdownHtml += '</div>';
-            }
+            el.className = 'score-toast-game flex flex-col items-center !text-[4rem]';
 
             el.innerHTML = `
-            <div class="score-burst"></div>
-            <div class="flex items-center gap-2" style="z-index: 2;">
-                <i class="fas fa-gem score-toast-icon"></i> 
-                <span>+${points}</span>
-            </div>
-            ${breakdownHtml}
-            <style>
-                @keyframes slideUpFade {
-                    from { opacity: 0; transform: translateY(10px); }
-                    to { opacity: 1; transform: translateY(0); }
-                }
-            </style>
-        `;
+                <div class="score-burst"></div>
+                <div class="flex items-center gap-2" style="z-index: 2;">
+                    <i class="fas fa-gem score-toast-icon"></i> 
+                    <span>+${points}</span>
+                </div>
+            `;
 
             document.body.appendChild(el);
 
             // Haptic feedback if available (mobile)
             if (navigator.vibrate) {
-                navigator.vibrate([50, 30, 50]); // Pulse pattern
+                navigator.vibrate([50, 30, 50]);
             }
 
             // Cleanup
             setTimeout(() => {
                 el.remove();
                 resolve();
-            }, 2500); // Increased duration slightly for reading time
+            }, 2500);
         });
     };
 </script>

@@ -15,6 +15,7 @@ from typing import Any, Dict, List, Optional
 import flask
 
 from .base_mode import BaseVocabMode, EvaluationResult
+from mindstack_app.modules.fsrs.interface import FSRSInterface
 
 
 class FlashcardMode(BaseVocabMode):
