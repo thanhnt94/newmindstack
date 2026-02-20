@@ -16,9 +16,20 @@ newmindstack/
 ├── docs/
 │   ├── MODULE_REFACTOR_CHECKLIST.md
 │   ├── MODULE_STRUCTURE.md
+│   ├── architecture/
+│   │   ├── ai_integration.md
+│   │   ├── auth_and_permissions.md
+│   │   ├── content_hierarchy.md
+│   │   └── frontend_architecture.md
 │   ├── database_schema.md
 │   ├── features/
 │   │   ├── VOCAB_MCQ.md
+│   │   ├── flow_quiz.md
+│   │   ├── flow_vocab_flashcard.md
+│   │   ├── flow_vocab_mcq.md
+│   │   ├── flow_vocab_typing.md
+│   │   ├── fsrs_v5_system.md
+│   │   ├── gamification_scoring.md
 │   │   └── vocab_flashcard.md
 │   ├── module_dependencies/
 │   │   ├── AI.md
