@@ -74,9 +74,10 @@ class SchedulerService:
         now = datetime.datetime.now(datetime.timezone.utc)
         
         if only_count:
-            # Skip FSRS logic but update counters
-            item_state.repetitions = (item_state.repetitions or 0) + 1
-            item_state.last_review = now
+            # [FIX] Do NOT update repetitions or last_review for practice modes.
+            # Updating last_review would reset Retrievability to 100% (decay since now=0), which is unwanted.
+            # Updating repetitions would de-sync FSRS parameters.
+            # We ONLY update separate counters (mcq_reps) later in this function.
             
             # Prepare dummy result for DTO
             retrievability = 0.0
@@ -85,6 +86,7 @@ class SchedulerService:
                 desired_retention = float(FSRSSettingsService.get('FSRS_DESIRED_RETENTION', 0.9))
                 engine = FSRSEngine(custom_weights=effective_weights, desired_retention=desired_retention)
                 card_for_r = SchedulerService._model_to_dto(item_state)
+                # This returns CURRENT retention based on PREVIOUS last_review (correct decay)
                 retrievability = engine.get_realtime_retention(card_for_r, now)
             except: pass
             
