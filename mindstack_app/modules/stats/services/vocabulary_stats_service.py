@@ -325,7 +325,7 @@ class VocabularyStatsService:
             },
             'history': [
                 {
-                    'timestamp': log['timestamp'].isoformat() if log.get('timestamp') else None, 
+                    'timestamp': log['timestamp'].replace(tzinfo=timezone.utc).isoformat() if log.get('timestamp') else None, 
                     'mode': log.get('learning_mode'), 
                     'result': 'Correct' if VocabularyStatsService._is_log_dict_correct(log) else 'Incorrect',
                     'duration_ms': log.get('review_duration', 0), 

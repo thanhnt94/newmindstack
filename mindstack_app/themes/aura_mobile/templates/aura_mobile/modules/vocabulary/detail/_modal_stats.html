@@ -1,17 +1,8 @@
 {# Reusable Item Stats Modal #}
 <div id="item-stats-modal" class="aura-modal-overlay">
-    <div class="aura-modal-container" style="max-width: 900px; height: 90vh; display: flex; flex-direction: column;">
-        <div class="aura-modal-header" style="background: white; flex-shrink: 0;">
-            <button class="aura-modal-close js-edit-item-stats" title="Chỉnh sửa thẻ"
-                style="display: none; background: #eef2ff; color: #4f46e5;">
-                <i class="fas fa-edit"></i>
-            </button>
-            <div style="flex: 1;"></div>
-            <button class="aura-modal-close js-close-stats-modal">
-                <i class="fas fa-times"></i>
-            </button>
-        </div>
-        <div id="item-stats-container" class="aura-modal-body" style="padding: 1rem; flex: 1; overflow-y: auto;">
+    <div class="aura-modal-container"
+        style="max-width: 900px; height: 95vh; display: flex; flex-direction: column; background: #ffffff;">
+        <div id="item-stats-container" class="aura-modal-body" style="padding: 0; flex: 1; overflow-y: auto;">
             <!-- Content loaded here -->
         </div>
     </div>
@@ -133,60 +124,7 @@
             }
         };
 
-        window.switchSubTab = function (targetId) {
-            const container = document.querySelector('.stats-container') || document.body;
-            container.querySelectorAll('.sub-tab-content').forEach(el => {
-                el.style.display = 'none';
-                el.classList.remove('active');
-            });
-            container.querySelectorAll('.sub-tab-btn').forEach(btn => {
-                btn.classList.remove('active');
-            });
-            const target = document.getElementById(targetId);
-            if (target) {
-                target.style.display = 'block';
-                target.classList.add('active');
-                if (targetId === 'sub-ai') {
-                    // Try to get itemId
-                    const markerBtn = target.closest('.stats-container')?.querySelector('.js-toggle-vocab-marker');
-                    const itemId = markerBtn?.onclick?.toString().match(/\d+/)?.[0];
-                    if(itemId) loadStatsAiHistory(itemId);
-                }
-            }
-            const btns = container.querySelectorAll('.sub-tab-btn');
-            btns.forEach(btn => {
-                const onclickVal = btn.getAttribute('onclick');
-                if (onclickVal && onclickVal.includes("'" + targetId + "'")) {
-                    btn.classList.add('active');
-                }
-            });
-        };
 
-        window.initStatsModalTabs = function () {
-            const modalContainer = document.getElementById('item-stats-container');
-            if (!modalContainer) return;
-
-            const tabBtns = modalContainer.querySelectorAll('.tab-navigation .tab-btn');
-            const tabContents = modalContainer.querySelectorAll('.tab-content');
-
-            tabBtns.forEach(btn => {
-                btn.addEventListener('click', function () {
-                    const targetTab = this.dataset.tab;
-                    tabBtns.forEach(b => b.classList.remove('active'));
-                    this.classList.add('active');
-
-                    tabContents.forEach(content => {
-                        if (content.id === 'tab-' + targetTab) {
-                            content.style.display = 'block';
-                            content.classList.add('active');
-                        } else {
-                            content.style.display = 'none';
-                            content.classList.remove('active');
-                        }
-                    });
-                });
-            });
-        };
 
         window.saveItemNote = function (itemId) {
             const btn = document.getElementById('save-note-btn');
@@ -235,29 +173,29 @@
         };
 
         // --- ENHANCED TAB-BASED AI FUNCTIONS ---
-        window.toggleStatsAiChat = function() {
+        window.toggleStatsAiChat = function () {
             const el = document.getElementById('stats-ai-chat-input');
-            if(el) {
+            if (el) {
                 el.classList.toggle('hidden');
-                if(!el.classList.contains('hidden')) document.getElementById('stats-ai-question')?.focus();
+                if (!el.classList.contains('hidden')) document.getElementById('stats-ai-question')?.focus();
             }
         };
 
-        window.scrollAiTabs = function(direction) {
+        window.scrollAiTabs = function (direction) {
             const container = document.getElementById('stats-ai-version-tabs');
-            if(container) {
+            if (container) {
                 container.scrollBy({ left: direction * 150, behavior: 'smooth' });
             }
         };
 
-        window.loadStatsAiHistory = function(itemId) {
+        window.loadStatsAiHistory = function (itemId) {
             const tabsContainer = document.getElementById('stats-ai-version-tabs');
-            if(!tabsContainer) return;
-            
+            if (!tabsContainer) return;
+
             fetch('/learn/ai/ai/item/' + itemId + '/contents?type=explanation')
                 .then(r => r.json())
                 .then(data => {
-                    if(data.success && data.contents.length > 0) {
+                    if (data.success && data.contents.length > 0) {
                         renderAiSessionTabs(data.contents, itemId);
                         // Auto preview primary or newest
                         const primary = data.contents.find(c => c.is_primary) || data.contents[0];
@@ -272,16 +210,16 @@
                 });
         };
 
-        window.renderAiSessionTabs = function(contents, itemId) {
+        window.renderAiSessionTabs = function (contents, itemId) {
             const container = document.getElementById('stats-ai-version-tabs');
-            if(!container) return;
-            
+            if (!container) return;
+
             container.innerHTML = contents.map((c, idx) => {
                 const rawTitle = c.user_question ? c.user_question : 'Giải thích gốc';
                 // Truncate for tab title
                 const displayTitle = rawTitle.length > 15 ? rawTitle.substring(0, 15) + '...' : rawTitle;
                 const activeClass = c.is_primary ? 'active' : '';
-                
+
                 return `
                     <div class="ai-session-tab ${activeClass}" 
                          onclick="previewStatsAiContent(${JSON.stringify(c).replace(/"/g, '&quot;')}, this)"
@@ -292,19 +230,19 @@
             }).join('');
         };
 
-        window.previewStatsAiContent = function(contentObj, el) {
-            if(el) {
+        window.previewStatsAiContent = function (contentObj, el) {
+            if (el) {
                 document.querySelectorAll('.ai-session-tab').forEach(t => t.classList.remove('active'));
                 el.classList.add('active');
             }
-            
+
             const box = document.getElementById('stats-ai-content-box');
-            if(!box) return;
-            
+            if (!box) return;
+
             // 1. Show Full Question Box if it exists
             const fullQuestionBox = document.getElementById('stats-ai-full-question-box');
             const fullQuestionText = document.getElementById('stats-ai-full-question-text');
-            if(contentObj.user_question) {
+            if (contentObj.user_question) {
                 fullQuestionBox.classList.remove('hidden');
                 fullQuestionText.textContent = '" ' + contentObj.user_question + ' "';
             } else {
@@ -315,28 +253,28 @@
             document.getElementById('stats-ai-author').textContent = contentObj.username || 'Hệ thống';
             document.getElementById('stats-ai-model').textContent = (contentObj.model_name || 'AI Coach').toUpperCase();
             document.getElementById('stats-ai-date').textContent = new Date(contentObj.created_at).toLocaleString('vi-VN');
-            
+
             const typeLabel = document.getElementById('stats-ai-type-label');
-            if(typeLabel) {
+            if (typeLabel) {
                 typeLabel.textContent = contentObj.user_question ? 'Hỏi đáp' : 'Giải thích';
-                typeLabel.className = contentObj.user_question ? 
-                    'text-[8px] font-black text-white uppercase bg-indigo-500 px-2 py-0.5 rounded-full' : 
+                typeLabel.className = contentObj.user_question ?
+                    'text-[8px] font-black text-white uppercase bg-indigo-500 px-2 py-0.5 rounded-full' :
                     'text-[8px] font-black text-white uppercase bg-slate-400 px-2 py-0.5 rounded-full';
             }
-            
+
             // 3. Render Answer Content
             const content = contentObj.content_text;
-            if(window.renderMarkdown) {
+            if (window.renderMarkdown) {
                 box.innerHTML = window.renderMarkdown(content);
             } else if (typeof mistune !== 'undefined') {
                 box.innerHTML = mistune.html(content);
             } else {
                 box.innerHTML = content.replace(/\n/g, '<br>');
             }
-            
+
             // 4. Update Footer Actions
             const footer = document.getElementById('stats-ai-footer-actions');
-            if(footer) {
+            if (footer) {
                 footer.innerHTML = !contentObj.is_primary ? `
                     <button onclick="handleSetPrimaryStatsAiContent(${contentObj.content_id}, ${contentObj.item_id})" class="px-3 py-1 bg-white border border-slate-200 text-slate-600 rounded-lg text-[10px] font-bold hover:text-indigo-600 hover:border-indigo-200 transition-all">
                         <i class="fas fa-thumbtack"></i> Ghim mặc định
@@ -345,21 +283,21 @@
             }
         };
 
-        window.submitStatsAiQuestion = function(itemId) {
+        window.submitStatsAiQuestion = function (itemId) {
             const input = document.getElementById('stats-ai-question');
             const val = input.value.trim();
-            if(!val) return;
-            
+            if (!val) return;
+
             generateStatsAIExplanation(itemId, true, val);
             input.value = '';
             toggleStatsAiChat();
         };
 
-        window.handleSetPrimaryStatsAiContent = function(cid, itemId) {
+        window.handleSetPrimaryStatsAiContent = function (cid, itemId) {
             const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
             fetch('/learn/ai/ai/content/' + cid + '/set-primary', {
                 method: 'POST',
-                headers: {'X-CSRFToken': csrfToken}
+                headers: { 'X-CSRFToken': csrfToken }
             }).then(() => {
                 loadStatsAiHistory(itemId);
             });
@@ -376,49 +314,150 @@
             fetch('/learn/ai/ai/get-ai-response', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
-                body: JSON.stringify({ 
-                    item_id: itemId, 
+                body: JSON.stringify({
+                    item_id: itemId,
                     prompt_type: 'explanation',
                     force_regenerate: force,
                     custom_question: customQuestion
                 })
             })
-            .then(r => r.json())
-            .then(data => {
-                if (data.success) {
-                    loadStatsAiHistory(itemId);
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success) {
+                        loadStatsAiHistory(itemId);
+                    } else {
+                        box.innerHTML = '<div class="text-red-500 p-4 text-center text-xs">Lỗi: ' + data.message + '</div>';
+                    }
+                })
+                .catch(err => {
+                    box.innerHTML = '<div class="text-red-500 p-4 text-center text-xs">Lỗi kết nối.</div>';
+                });
+        };
+
+
+        // --- TAB SWITCHING FUNCTIONS ---
+        window.switchVocabMainTab = function (targetTabId, btn) {
+            if (window.event) window.event.preventDefault();
+            const container = btn.closest('.stats-container');
+            if (!container) return;
+            const tabBtns = container.querySelectorAll('.tab-navigation .tab-btn');
+            const tabContents = container.querySelectorAll('.tab-content');
+            const subNav = container.querySelector('#header-sub-tabs');
+            tabBtns.forEach(b => b.classList.toggle('active', b.dataset.tab === targetTabId));
+            tabContents.forEach(content => {
+                const id = content.id.replace('tab-', '');
+                if (id === targetTabId) {
+                    content.style.display = 'block';
+                    content.classList.add('active');
                 } else {
-                    box.innerHTML = '<div class="text-red-500 p-4 text-center text-xs">Lỗi: ' + data.message + '</div>';
+                    content.style.display = 'none';
+                    content.classList.remove('active');
                 }
-            })
-            .catch(err => {
-                box.innerHTML = '<div class="text-red-500 p-4 text-center text-xs">Lỗi kết nối.</div>';
+            });
+            if (subNav) subNav.style.display = (targetTabId === 'content') ? 'flex' : 'none';
+
+            // Re-init charts if switching to stats tab
+            if (targetTabId === 'stats' && window.initVocabDetailCharts) {
+                window.initVocabDetailCharts(container);
+            }
+        };
+
+        window.switchVocabSubTab = function (targetSubId, btn) {
+            if (window.event) window.event.preventDefault();
+            const container = btn.closest('.stats-container');
+            if (!container) return;
+            const subBtns = container.querySelectorAll('.sub-tab-navigation .sub-tab-btn');
+            const subContents = container.querySelectorAll('.sub-tab-content');
+            subBtns.forEach(b => b.classList.toggle('active', b.dataset.subtab === targetSubId));
+            subContents.forEach(content => {
+                if (content.id === targetSubId) {
+                    content.style.display = 'block';
+                    content.classList.add('active');
+                    if (targetSubId === 'sub-ai' && typeof window.loadStatsAiHistory === 'function') {
+                        const markerBtn = container.querySelector('.js-toggle-vocab-marker');
+                        const itemId = markerBtn?.onclick?.toString().match(/\d+/)?.[0];
+                        if (itemId) window.loadStatsAiHistory(itemId);
+                    }
+                } else {
+                    content.style.display = 'none';
+                    content.classList.remove('active');
+                }
             });
         };
 
-        window.toggleSubTabs = function(showContent) {
-            const target = event && event.target ? event.target.dataset.tab : (showContent ? 'content' : 'notes');
-            if(target) {
-                const nav = document.querySelector('.tab-navigation');
-                if(nav) {
-                    nav.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-                    const activeBtn = Array.from(nav.querySelectorAll('.tab-btn')).find(b => b.dataset.tab === target);
-                    if(activeBtn) activeBtn.classList.add('active');
-                }
-                document.querySelectorAll('.tab-content').forEach(c => c.style.display = 'none');
-                const t = document.getElementById('tab-' + target);
-                if(t) {
-                    t.style.display = 'block';
-                    if(target === 'content') {
-                        const aiSub = document.getElementById('sub-ai');
-                        if(aiSub && aiSub.style.display !== 'none') {
-                            const markerBtn = document.querySelector('.js-toggle-vocab-marker');
-                            const itemId = markerBtn?.onclick?.toString().match(/\d+/)?.[0];
-                            if(itemId) loadStatsAiHistory(itemId);
-                        }
-                    }
+        window.selectHistoryItem = function (element, index) {
+            // 1. Highlight selected item
+            document.querySelectorAll('.js-history-item').forEach(el => el.classList.remove('active'));
+            element.classList.add('active');
+
+            // 2. GetData
+            const historyScript = document.getElementById('vocab-history-data');
+            let history = [];
+            try {
+                history = JSON.parse(historyScript.textContent) || [];
+            } catch (e) {
+                console.error("Failed to parse history", e);
+                return;
+            }
+
+            const log = history[index];
+            if (!log) return;
+
+            // 3. Update Detail Bar
+            const resultEl = document.getElementById('hist-result');
+            const modeEl = document.getElementById('hist-mode-badge');
+            const timeEl = document.getElementById('hist-time');
+            const durEl = document.getElementById('hist-duration');
+            const scoreEl = document.getElementById('hist-score');
+            const masteryEl = document.getElementById('hist-mastery');
+
+            // Result Style
+            if (resultEl) {
+                if (log.result === 'Correct') {
+                    resultEl.textContent = 'Đúng';
+                    resultEl.style.backgroundColor = '#dcfce7';
+                    resultEl.style.color = '#16a34a';
+                } else {
+                    resultEl.textContent = 'Sai';
+                    resultEl.style.backgroundColor = '#fee2e2';
+                    resultEl.style.color = '#dc2626';
                 }
             }
+
+            // Mode & Time
+            if (modeEl) modeEl.textContent = log.mode || 'N/A';
+
+            // Format relative time (naive approx)
+            if (timeEl) {
+                const date = new Date(log.timestamp);
+                timeEl.textContent = date.toLocaleDateString('vi-VN') + ' ' + date.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+            }
+
+            // Duration
+            if (durEl) {
+                const durSec = Math.round((log.duration_ms || 0) / 1000);
+                durEl.textContent = durSec + 's';
+            }
+
+            // Score
+            if (scoreEl) {
+                const scoreVal = log.score_change || 0;
+                scoreEl.textContent = scoreVal >= 0 ? '+' + scoreVal : scoreVal;
+            }
+
+            // Mastery (Stability)
+            if (masteryEl) {
+                let stability = '-';
+                if (log.fsrs_snapshot && log.fsrs_snapshot.stability) {
+                    stability = parseFloat(log.fsrs_snapshot.stability).toFixed(1);
+                }
+                masteryEl.textContent = stability;
+            }
+        };
+
+        // Re-init logic
+        window.reinitVocabDetailTabs = function () {
+            // Placeholder if needed for more complex init
         };
 
         const initModal = () => {
@@ -426,11 +465,11 @@
             const statsContainer = document.getElementById('item-stats-container');
             const closeBtns = document.querySelectorAll('.js-close-stats-modal');
 
-            if (closeBtns) {
-                closeBtns.forEach(btn => {
-                    btn.addEventListener('click', function () {
-                        if (statsModal) statsModal.classList.remove('active');
-                    });
+            if (statsModal) {
+                statsModal.addEventListener('click', function (e) {
+                    if (e.target.closest('.js-close-stats-modal')) {
+                        statsModal.classList.remove('active');
+                    }
                 });
             }
 
@@ -449,10 +488,21 @@
                     .then(r => r.text())
                     .then(html => {
                         statsContainer.innerHTML = html;
-                        if (window.initStatsModalTabs) window.initStatsModalTabs();
-                        
+                        if (window.reinitVocabDetailTabs) window.reinitVocabDetailTabs();
+
+                        // Auto-select first history item
+                        const firstHist = statsContainer.querySelector('.js-history-item');
+                        if (firstHist && typeof window.selectHistoryItem === 'function') {
+                            window.selectHistoryItem(firstHist, 0);
+                        }
+
+                        // Initialize Charts
+                        if (window.initVocabDetailCharts) {
+                            window.initVocabDetailCharts(statsContainer);
+                        }
+
                         const aiSub = document.getElementById('sub-ai');
-                        if(aiSub && aiSub.style.display !== 'none') {
+                        if (aiSub && aiSub.style.display !== 'none') {
                             loadStatsAiHistory(itemId);
                         }
                     });

@@ -36,6 +36,128 @@ transition-opacity duration-500 opacity-100 data-dismissible`;
         window.location.reload();
     };
 
+    // --- VOCAB DETAIL VISUALIZATIONS ---
+    window.initVocabDetailCharts = function (container = document) {
+        const statsContainer = container.querySelector('.stats-container');
+        if (!statsContainer) return;
+
+        const historyJson = statsContainer.getAttribute('data-history');
+        if (!historyJson) return;
+
+        let history = [];
+        try {
+            history = JSON.parse(historyJson);
+        } catch (e) { console.error("History parse fail", e); return; }
+
+        if (!history || history.length === 0) return;
+
+        // 1. STABILITY TREND CHART
+        const chartCanvas = statsContainer.querySelector('#fsrsHistoryChart');
+        if (chartCanvas && typeof Chart !== 'undefined') {
+            const labels = history.map(h => {
+                const d = new Date(h.timestamp);
+                return d.getDate() + '/' + (d.getMonth() + 1);
+            }).reverse();
+
+            const stabilityData = history.map(h => {
+                const s = (h.fsrs_snapshot && h.fsrs_snapshot.stability) ? h.fsrs_snapshot.stability : 0;
+                // If stability is 0, let's look at result for visual feedback on new cards
+                return s > 0 ? s : (h.result === 'Correct' ? 0.5 : 0.1);
+            }).reverse();
+
+            // Destroy existing if any (important for modal re-opens)
+            const existingChart = Chart.getChart(chartCanvas);
+            if (existingChart) existingChart.destroy();
+
+            new Chart(chartCanvas, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Độ ổn định (S)',
+                        data: stabilityData,
+                        borderColor: '#6366f1',
+                        backgroundColor: 'rgba(99, 102, 241, 0.05)',
+                        borderWidth: 2,
+                        tension: 0.4,
+                        fill: true,
+                        pointRadius: stabilityData.length > 20 ? 0 : 3,
+                        pointBackgroundColor: '#6366f1'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: { color: '#f1f5f9' },
+                            ticks: { font: { size: 9 }, color: '#94a3b8' }
+                        },
+                        x: {
+                            grid: { display: false },
+                            ticks: {
+                                font: { size: 9 },
+                                color: '#94a3b8',
+                                maxRotation: 0,
+                                autoSkip: true,
+                                maxTicksLimit: 6
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // 2. ACTIVITY HEATMAP (GitHub Style)
+        const heatmapWrap = statsContainer.querySelector('#activity-heatmap');
+        if (heatmapWrap) {
+            heatmapWrap.innerHTML = ''; // Clear
+            const weeks = 12;
+            const daysPerWeek = 7;
+            const totalDays = weeks * daysPerWeek;
+
+            const now = new Date();
+            const activityMap = {};
+
+            // Map history dates to 'YYYY-MM-DD'
+            history.forEach(h => {
+                const dateKey = new Date(h.timestamp).toISOString().split('T')[0];
+                activityMap[dateKey] = (activityMap[dateKey] || 0) + 1;
+            });
+
+            const grid = document.createElement('div');
+            grid.style.display = 'grid';
+            grid.style.gridTemplateColumns = `repeat(${weeks}, 1fr)`;
+            grid.style.gridTemplateRows = `repeat(${daysPerWeek}, 1fr)`;
+            grid.style.gap = '3px';
+            grid.style.width = 'fit-content';
+
+            for (let i = 0; i < totalDays; i++) {
+                const d = new Date(now);
+                d.setDate(d.getDate() - (totalDays - 1 - i));
+                const dateKey = d.toISOString().split('T')[0];
+                const count = activityMap[dateKey] || 0;
+
+                const cell = document.createElement('div');
+                cell.style.width = '10px';
+                cell.style.height = '10px';
+                cell.style.borderRadius = '2px';
+                cell.title = `${dateKey}: ${count} lần học`;
+
+                // Colors
+                if (count === 0) cell.style.background = '#f1f5f9';
+                else if (count === 1) cell.style.background = '#c7d2fe';
+                else if (count === 2) cell.style.background = '#818cf8';
+                else cell.style.background = '#4f46e5';
+
+                grid.appendChild(cell);
+            }
+            heatmapWrap.appendChild(grid);
+        }
+    };
+
     document.addEventListener('DOMContentLoaded', function () {
         // Tự động đóng flash messages
         document.querySelectorAll('[data-dismissible]').forEach(notification => {

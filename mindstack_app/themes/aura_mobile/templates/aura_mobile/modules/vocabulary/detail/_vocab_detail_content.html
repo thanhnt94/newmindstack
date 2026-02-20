@@ -5,30 +5,37 @@
     data-edit-url="{{ s.permissions.edit_url }}" data-history='{{ s.history | tojson | safe }}'
     style="display: flex; flex-direction: column; height: 100%; width: 100%; background: white; overflow: hidden; border-radius: 1rem; position: relative;">
 
+    <!-- Absolute Close Button -->
+    <button class="aura-modal-close js-close-stats-modal"
+        style="position: absolute; top: 0.5rem; right: 0.5rem; z-index: 100; background: #f8fafc; color: #94a3b8; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 1px solid #f1f5f9; cursor: pointer;">
+        <i class="fas fa-times" style="font-size: 13px;"></i>
+    </button>
+
+    <!-- Set Name (Positioned top-left) -->
+    <div
+        style="position: absolute; top: 0.75rem; left: 0.5rem; font-size: 0.6rem; font-weight: 800; color: #cbd5e1; text-transform: uppercase; letter-spacing: 0.05em; display: flex; align-items: center; gap: 4px;">
+        <i class="fas fa-layer-group"></i> {{ s.item.container_title }}
+    </div>
+
     <!-- FIXED TOP SECTION -->
     <div class="stats-fixed-header"
-        style="background: white; border-bottom: 1px solid #f1f5f9; padding: 1.25rem 1.25rem 0.5rem 1.25rem; flex-shrink: 0; text-align: center;">
-
-        <!-- Set Name Header -->
-        <div
-            style="font-size: 0.75rem; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 0.5rem; letter-spacing: 0.05em;">
-            <i class="fas fa-layer-group" style="margin-right: 4px;"></i> {{ s.item.container_title }}
-        </div>
+        style="background: white; border-bottom: 1px solid #f1f5f9; padding: 1.75rem 0.4rem 0.5rem 0.4rem; flex-shrink: 0; text-align: center;">
 
         <div class="stats-header-info">
-            <h1 style="font-size: 1.5rem; margin: 0; color: #0f172a; line-height: 1.1;">
+            <h1 style="font-size: 1.4rem; margin: 0; color: #0f172a; line-height: 1.1;">
                 {{ s.item.front | safe }}
             </h1>
 
-            <div style="display: flex; align-items: center; gap: 0.5rem; margin-top: 0.5rem; justify-content: center;">
+            <div style="display: flex; align-items: center; gap: 0.5rem; margin-top: 0.4rem; justify-content: center;">
                 {% if s.item.pronunciation %}
-                <span style="font-family:'Courier New', monospace; color:#6366f1; font-weight: 600; font-size: 0.9rem;">
+                <span
+                    style="font-family:'Courier New', monospace; color:#6366f1; font-weight: 600; font-size: 0.85rem;">
                     /{{ s.item.pronunciation }}/
                 </span>
                 {% endif %}
 
                 <span class="status-badge"
-                    style="display: inline-flex; align-items: center; gap: 0.25rem; padding: 0.15rem 0.5rem; border-radius: 6px; font-weight: 700; font-size: 0.6rem; text-transform: uppercase; 
+                    style="display: inline-flex; align-items: center; gap: 0.25rem; padding: 0.15rem 0.4rem; border-radius: 4px; font-weight: 800; font-size: 0.55rem; text-transform: uppercase; 
                     {% if p.status == 'new' %}background: #f0f9ff; color: #0369a1;{% elif p.status == 'learning' %}background: #fffbeb; color: #b45309;{% elif p.status == 'mastered' %}background: #f0fdf4; color: #15803d;{% elif p.status == 'hard' %}background: #fef2f2; color: #b91c1c;{% elif p.status == 'due' %}background: #fff7ed; color: #c2410c; border: 1px solid #fed7aa;{% endif %}">
                     {% if p.status == 'mastered' %}THUỘC
                     {% elif p.status == 'due' %}CẦN ÔN
@@ -39,22 +46,23 @@
                 </span>
             </div>
 
-            <!-- [NEW] Marker Toggles -->
-            <div style="display: flex; gap: 0.75rem; justify-content: center; margin-top: 1rem;">
+            <!-- [NEW] Marker Toggles (Compact) -->
+            <div style="display: flex; gap: 0.6rem; justify-content: center; margin-top: 0.75rem;">
                 <button class="marker-btn js-toggle-vocab-marker {% if 'difficult' in s.markers %}active{% endif %}"
-                    onclick="toggleVocabMarker({{ s.item.id }}, 'difficult', this)" title="Đánh dấu là Khó"
-                    style="width: 36px; height: 36px; border-radius: 50%; border: 1px solid #e2e8f0; background: {% if 'difficult' in s.markers %}#ffedd5{% else %}white{% endif %}; color: {% if 'difficult' in s.markers %}#ea580c{% else %}#94a3b8{% endif %}; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s;">
-                    <i class="fas fa-bolt" style="font-size: 14px;"></i>
+                    onclick="window.toggleVocabMarker({{ s.item.id }}, 'difficult', this)"
+                    style="width: 32px; height: 32px; border-radius: 50%; border: 1px solid #e2e8f0; background: {% if 'difficult' in s.markers %}#ffedd5{% else %}white{% endif %}; color: {% if 'difficult' in s.markers %}#ea580c{% else %}#94a3b8{% endif %}; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s;">
+                    <i class="fas fa-bolt" style="font-size: 13px;"></i>
                 </button>
                 <button class="marker-btn js-toggle-vocab-marker {% if 'ignored' in s.markers %}active{% endif %}"
-                    onclick="toggleVocabMarker({{ s.item.id }}, 'ignored', this)" title="Bỏ qua từ này"
-                    style="width: 36px; height: 36px; border-radius: 50%; border: 1px solid #e2e8f0; background: {% if 'ignored' in s.markers %}#cbd5e1{% else %}white{% endif %}; color: {% if 'ignored' in s.markers %}#475569{% else %}#94a3b8{% endif %}; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s;">
-                    <i class="fas fa-eye-slash"></i>
+                    onclick="window.toggleVocabMarker({{ s.item.id }}, 'ignored', this)"
+                    style="width: 32px; height: 32px; border-radius: 50%; border: 1px solid #e2e8f0; background: {% if 'ignored' in s.markers %}#cbd5e1{% else %}white{% endif %}; color: {% if 'ignored' in s.markers %}#475569{% else %}#94a3b8{% endif %}; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s;">
+                    <i class="fas fa-eye-slash" style="font-size: 13px;"></i>
                 </button>
                 <button class="marker-btn js-toggle-vocab-marker {% if 'favorite' in s.markers %}active{% endif %}"
-                    onclick="toggleVocabMarker({{ s.item.id }}, 'favorite', this)" title="Yêu thích"
-                    style="width: 36px; height: 36px; border-radius: 50%; border: 1px solid #e2e8f0; background: {% if 'favorite' in s.markers %}#ffe4e6{% else %}white{% endif %}; color: {% if 'favorite' in s.markers %}#e11d48{% else %}#94a3b8{% endif %}; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s;">
-                    <i class="{% if 'favorite' in s.markers %}fas{% else %}far{% endif %} fa-heart"></i>
+                    onclick="window.toggleVocabMarker({{ s.item.id }}, 'favorite', this)"
+                    style="width: 32px; height: 32px; border-radius: 50%; border: 1px solid #e2e8f0; background: {% if 'favorite' in s.markers %}#ffe4e6{% else %}white{% endif %}; color: {% if 'favorite' in s.markers %}#e11d48{% else %}#94a3b8{% endif %}; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s;">
+                    <i class="{% if 'favorite' in s.markers %}fas{% else %}far{% endif %} fa-heart"
+                        style="font-size: 13px;"></i>
                 </button>
             </div>
         </div>
@@ -62,24 +70,25 @@
         <!-- MAIN TAB NAVIGATION -->
         <div class="tab-navigation"
             style="display: flex; gap: 0.25rem; margin-top: 1rem; margin-bottom: 0.5rem; background: #f8fafc; padding: 0.25rem; border-radius: 0.75rem; border: 1px solid #f1f5f9; overflow-x: auto; scrollbar-width: none;">
-            <button class="tab-btn active" data-tab="content" onclick="toggleSubTabs(true)"
+            <button class="tab-btn active" data-tab="content" onclick="switchVocabMainTab('content', this)"
                 style="flex: 1; min-width: 60px;">Nội dung</button>
-            <button class="tab-btn" data-tab="notes" onclick="toggleSubTabs(false)"
+            <button class="tab-btn" data-tab="notes" onclick="switchVocabMainTab('notes', this)"
                 style="flex: 1; min-width: 60px;">Ghi chú</button>
-            <button class="tab-btn" data-tab="stats" onclick="toggleSubTabs(false)"
+            <button class="tab-btn" data-tab="stats" onclick="switchVocabMainTab('stats', this)"
                 style="flex: 1; min-width: 60px;">Thống kê</button>
-            <button class="tab-btn" data-tab="details" onclick="toggleSubTabs(false)"
+            <button class="tab-btn" data-tab="details" onclick="switchVocabMainTab('details', this)"
                 style="flex: 1; min-width: 60px;">Chi tiết</button>
         </div>
 
         <!-- [MOVED] SUB-NAVIGATION (Only Flashcard and AI) -->
         <div id="header-sub-tabs" class="sub-tab-navigation"
             style="display: flex; gap: 0.75rem; justify-content: center; padding-top: 0.75rem; border-top: 1px solid #f1f5f9; margin-top: 0.5rem;">
-            <button class="sub-tab-btn active" onclick="switchSubTab('sub-flashcard')"
+            <button class="sub-tab-btn active" data-subtab="sub-flashcard"
+                onclick="switchVocabSubTab('sub-flashcard', this)"
                 style="flex: 1; font-size: 0.85rem; font-weight: 700; color: #64748b; background: #f1f5f9; border: none; cursor: pointer; padding: 0.5rem 1rem; border-radius: 99px; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 0.4rem;">
                 <i class="fas fa-layer-group"></i> Flashcard
             </button>
-            <button class="sub-tab-btn" onclick="switchSubTab('sub-ai')"
+            <button class="sub-tab-btn" data-subtab="sub-ai" onclick="switchVocabSubTab('sub-ai', this)"
                 style="flex: 1; font-size: 0.85rem; font-weight: 700; color: #64748b; background: #f1f5f9; border: none; cursor: pointer; padding: 0.5rem 1rem; border-radius: 99px; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 0.4rem;">
                 <i class="fas fa-sparkles"></i> AI Coach
             </button>
@@ -87,7 +96,7 @@
     </div>
 
     <!-- SCROLLABLE BODY -->
-    <div class="stats-scroll-body" style="flex: 1; overflow-y: auto; padding: 1.25rem; background: white;">
+    <div class="stats-scroll-body" style="flex: 1; overflow-y: auto; padding: 1rem 0.4rem; background: white;">
 
         <!-- TAB 1: CONTENT -->
         <div class="tab-content active" id="tab-content" style="text-align: left;">
@@ -296,37 +305,67 @@
         <div class="tab-content" id="tab-stats" style="display: none;">
 
             <!-- FSRS Core Stats -->
-            <div class="mb-6 grid grid-cols-3 gap-3">
+            <div class="mb-4 grid grid-cols-3 gap-2">
                 <div class="stat-box">
-                    <div class="stat-label">Stability (S)</div>
-                    <div class="stat-value text-indigo-600">{{ p.fsrs_stability | round(1) }}</div>
+                    <div class="stat-label">STABILITY (S)</div>
+                    <div class="stat-value text-indigo-600" style="font-size: 1.1rem;">{{ p.fsrs_stability | round(1) }}
+                    </div>
                 </div>
                 <div class="stat-box">
-                    <div class="stat-label">Difficulty (D)</div>
-                    <div class="stat-value text-rose-500">{{ p.fsrs_difficulty | round(1) }}</div>
+                    <div class="stat-label">DIFFICULTY (D)</div>
+                    <div class="stat-value text-rose-500" style="font-size: 1.1rem;">{{ p.fsrs_difficulty | round(1) }}
+                    </div>
                 </div>
                 <div class="stat-box">
-                    <div class="stat-label">Retrievability (R)</div>
-                    <div class="stat-value text-emerald-600">{{ p.retrievability }}%</div>
+                    <div class="stat-label">RECOVERY (R)</div>
+                    <div class="stat-value text-emerald-600" style="font-size: 1.1rem;">{{ p.retrievability }}%</div>
                 </div>
             </div>
 
-            <!-- Chart Section -->
-            <div class="mb-6">
-                <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Biểu đồ ghi nhớ</h3>
-                <div class="bg-white p-2 rounded-xl border border-slate-100 h-48 relative">
+            <!-- Visualization Section -->
+            <div style="margin-bottom: 2rem;">
+                <!-- Stability Trend -->
+                <div
+                    style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 0.75rem;">
+                    <h3
+                        style="font-size: 0.75rem; font-weight: 800; color: #475569; text-transform: uppercase; letter-spacing: 0.05em;">
+                        BIỂU ĐỒ GHI NHỚ</h3>
+                    <div style="font-size: 0.6rem; color: #94a3b8; font-weight: 700;">STABILITY TREND</div>
+                </div>
+
+                <div
+                    style="background: #ffffff; border-radius: 1rem; border: 1px solid #f1f5f9; padding: 1.25rem; height: 180px; position: relative; margin-bottom: 1.5rem;">
                     <canvas id="fsrsHistoryChart"></canvas>
                     <div id="chart-empty-state"
-                        class="absolute inset-0 flex flex-col items-center justify-center bg-white/80 hidden">
-                        <i class="fas fa-chart-line text-slate-200 text-3xl mb-2"></i>
-                        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Chưa có dữ liệu học
-                            tập</span>
+                        style="display: none; position: absolute; inset:0; flex-direction: column; align-items: center; justify-content: center; color: #94a3b8; font-size: 0.8rem; background: white; border-radius: 1rem;">
+                        <i class="fas fa-chart-line" style="font-size: 2rem; margin-bottom: 0.5rem; opacity: 0.2;"></i>
+                        <span>Chưa có dữ liệu học tập</span>
+                    </div>
+                </div>
+
+                <!-- Activity Heatmap -->
+                <div>
+                    <div
+                        style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 0.75rem;">
+                        <h3
+                            style="font-size: 0.75rem; font-weight: 800; color: #475569; text-transform: uppercase; letter-spacing: 0.05em;">
+                            HOẠT ĐỘNG (12 TUẦN)</h3>
+                        <div style="font-size: 0.6rem; color: #94a3b8; font-weight: 700;">ACTIVITY HEATMAP</div>
+                    </div>
+                    <div
+                        style="background: #ffffff; border-radius: 1rem; border: 1px solid #f1f5f9; padding: 1.25rem; overflow-x: auto;">
+                        <div id="activity-heatmap" style="min-width: 100%;"></div>
                     </div>
                 </div>
             </div>
 
+            <!-- Stats Grid -->
+            <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 0.75rem;">
+                <h3
+                    style="font-size: 0.75rem; font-weight: 800; color: #475569; text-transform: uppercase; letter-spacing: 0.05em;">
+                    CHỈ SỐ TIẾN ĐỘ</h3>
+            </div>
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem; margin-bottom: 1rem;">
-                <!-- Existing indicator blocks -->
                 <div class="stat-box">
                     <div class="stat-label">CHUỖI ĐÚNG</div>
                     <div class="stat-value" style="color: #f59e0b;">{{ p.streak }} 🔥</div>
@@ -355,74 +394,6 @@
                 </div>
             </div>
         </div>
-
-        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-        <!-- Use JSON block to safely embed data -->
-        <script id="vocab-history-data" type="application/json">
-            {{ s.history | tojson | safe }}
-        </script>
-        <script>
-            document.addEventListener('DOMContentLoaded', function () {
-                const ctx = document.getElementById('fsrsHistoryChart');
-                const emptyState = document.getElementById('chart-empty-state');
-
-                if (ctx) {
-                    // Safe JSON parsing
-                    const historyScript = document.getElementById('vocab-history-data');
-                    let history = [];
-                    try {
-                        if (historyScript) {
-                            history = JSON.parse(historyScript.textContent) || [];
-                        }
-                    } catch (e) {
-                        console.error("Failed to parse history data", e);
-                    }
-
-                    if (!history || history.length === 0) return;
-
-                    // Process history for chart (Stability over time)
-                    // We need stability snapshots if available, otherwise just accurate/miss
-                    const labels = history.map(h => {
-                        const d = new Date(h.timestamp);
-                        return d.getDate() + '/' + (d.getMonth() + 1);
-                    }).reverse();
-
-                    // Mock data if no snapshots, purely for visual if real data missing
-                    // Real implementation needs fsrs_snapshot in history list
-                    const dataPoints = history.map((h, i) => {
-                        // Just an example curve based on result
-                        return h.result === 'Correct' ? 1 : 0;
-                    }).reverse();
-
-                    new Chart(ctx, {
-                        type: 'line',
-                        data: {
-                            labels: labels,
-                            datasets: [{
-                                label: 'Kết quả',
-                                data: dataPoints,
-                                borderColor: '#6366f1',
-                                backgroundColor: 'rgba(99, 102, 241, 0.1)',
-                                tension: 0.4,
-                                fill: true,
-                                pointRadius: 2
-                            }]
-                        },
-                        options: {
-                            responsive: true,
-                            maintainAspectRatio: false,
-                            plugins: {
-                                legend: { display: false }
-                            },
-                            scales: {
-                                y: { display: false },
-                                x: { grid: { display: false }, ticks: { font: { size: 10 } } }
-                            }
-                        }
-                    });
-                }
-            });
-        </script>
 
         <!-- TAB 4: DETAILS -->
         <div class="tab-content" id="tab-details" style="display: none; padding-bottom: 7rem;">
@@ -479,7 +450,7 @@
                 <div class="history-item js-history-item" data-log-idx="{{ loop.index0 }}"
                     style="flex-shrink: 0; width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; cursor: pointer; transition: all 0.2s; border: 2.5px solid transparent; box-shadow: 0 1px 2px rgba(0,0,0,0.05); padding: 2px;
                     {% if log.result == 'Correct' %}background: #dcfce7; color: #16a34a;{% else %}background: #fee2e2; color: #dc2626;{% endif %}"
-                    onclick="selectHistoryItem(this, {{ loop.index0 }})">
+                    onclick="window.selectHistoryItem(this, {{ loop.index0 }})">
                     {% if log.result == 'Correct' %}<i class="fas fa-check"></i>{% else %}<i class="fas fa-times"></i>{%
                     endif %}
                 </div>
@@ -501,7 +472,7 @@
                     </div>
                 </div>
                 <div
-                    style="display: flex; gap: 1rem; border-top: 1px dashed #e2e8f0; pt: 0.5rem; padding-top: 0.5rem; font-size: 0.8rem;">
+                    style="display: flex; gap: 1rem; border-top: 1px dashed #e2e8f0; padding-top: 0.5rem; font-size: 0.8rem;">
                     <div style="flex: 1;">
                         <div style="color: #94a3b8; font-size: 0.65rem; font-weight: 800; text-transform: uppercase;">
                             Thời gian</div>
@@ -522,6 +493,10 @@
         </div>
     </div>
 </div>
+
+<script id="vocab-history-data" type="application/json">
+    {{ s.history | tojson | safe }}
+</script>
 
 <style>
     /* Styling for buttons and boxes */
@@ -559,7 +534,7 @@
     .stat-box {
         background: #f8fafc;
         border-radius: 0.7rem;
-        padding: 0.75rem;
+        padding: 0.4rem 0.25rem;
         text-align: center;
         border: 1px solid #f1f5f9;
         display: flex;
