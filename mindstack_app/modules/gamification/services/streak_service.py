@@ -40,12 +40,12 @@ class StreakService:
         """
         Update user streak based on their activity dates in their local timezone.
         """
-        from mindstack_app.modules.auth.models import User
+        from mindstack_app.modules.auth.interface import AuthInterface
         import pytz
         
         try:
-            user = User.query.get(user_id)
-            user_tz_str = user.timezone if user and user.timezone else 'UTC'
+            user_dto = AuthInterface.get_user_by_id(user_id)
+            user_tz_str = user_dto.timezone if user_dto and user_dto.timezone else 'UTC'
             user_tz = pytz.timezone(user_tz_str)
             
             # 1. Query activity dates from ScoreLog
@@ -102,12 +102,12 @@ class StreakService:
         """
         Get formatted streak information for UI display (timezone-aware).
         """
-        from mindstack_app.modules.auth.models import User
+        from mindstack_app.modules.auth.interface import AuthInterface
         import pytz
         
         streak = StreakService.get_user_streak(user_id)
-        user = User.query.get(user_id)
-        user_tz_str = user.timezone if user and user.timezone else 'UTC'
+        user_dto = AuthInterface.get_user_by_id(user_id)
+        user_tz_str = user_dto.timezone if user_dto and user_dto.timezone else 'UTC'
         user_tz = pytz.timezone(user_tz_str)
         
         if not streak:

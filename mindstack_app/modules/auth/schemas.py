@@ -8,6 +8,7 @@ class UserDTO:
     email: str
     role: str
     avatar_url: Optional[str] = None
+    timezone: Optional[str] = None
 
 @dataclass
 class AuthResponseDTO:

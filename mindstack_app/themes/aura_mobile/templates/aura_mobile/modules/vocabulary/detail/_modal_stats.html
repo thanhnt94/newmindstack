@@ -411,23 +411,33 @@
             const scoreEl = document.getElementById('hist-score');
             const masteryEl = document.getElementById('hist-mastery');
 
+            // New context elements
+            const contextRow = document.getElementById('hist-context-row');
+            const deviceEl = document.getElementById('hist-context-device');
+            const repEl = document.getElementById('hist-context-rep');
+            const fsrsStateEl = document.getElementById('hist-fsrs-state');
+
             // Result Style
             if (resultEl) {
                 if (log.result === 'Correct') {
-                    resultEl.textContent = 'Đúng';
+                    resultEl.innerHTML = '<i class="fas fa-check-circle"></i> Đúng';
                     resultEl.style.backgroundColor = '#dcfce7';
                     resultEl.style.color = '#16a34a';
                 } else {
-                    resultEl.textContent = 'Sai';
+                    resultEl.innerHTML = '<i class="fas fa-times-circle"></i> Sai';
                     resultEl.style.backgroundColor = '#fee2e2';
                     resultEl.style.color = '#dc2626';
                 }
             }
 
-            // Mode & Time
-            if (modeEl) modeEl.textContent = log.mode || 'N/A';
+            // Mode
+            if (modeEl) {
+                const modeIconMap = { 'mcq': 'fa-list-ul', 'flashcard': 'fa-clone', 'typing': 'fa-keyboard' };
+                const iconClass = modeIconMap[log.mode?.toLowerCase()] || 'fa-layer-group';
+                modeEl.innerHTML = `<i class="fas ${iconClass}" style="font-size: 0.7rem; color: #94a3b8;"></i> ${log.mode || 'N/A'}`;
+            }
 
-            // Format relative time (naive approx)
+            // Format relative time
             if (timeEl) {
                 const date = new Date(log.timestamp);
                 timeEl.textContent = date.toLocaleDateString('vi-VN') + ' ' + date.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
@@ -435,23 +445,120 @@
 
             // Duration
             if (durEl) {
-                const durSec = Math.round((log.duration_ms || 0) / 1000);
-                durEl.textContent = durSec + 's';
+                const durSec = ((log.duration_ms || 0) / 1000).toFixed(1);
+                durEl.innerHTML = `${durSec}<span style="font-size: 0.65rem; color: #94a3b8; margin-left: 2px;">s</span>`;
             }
 
-            // Score
+            // Score (Detailed from gamification_snapshot if available)
             if (scoreEl) {
-                const scoreVal = log.score_change || 0;
-                scoreEl.textContent = scoreVal >= 0 ? '+' + scoreVal : scoreVal;
+                const gami = log.gamification_snapshot || {};
+                const scoreChange = log.score_change || gami.total_score || 0;
+
+                if (scoreChange > 0) {
+                    let scoreHtml = `<span style="color: #f59e0b;">+${scoreChange}</span>`;
+
+                    if (gami.breakdown && Object.keys(gami.breakdown).length > 0) {
+                        scoreHtml += `<div style="font-size: 0.55rem; color: #94a3b8; font-weight: 600; margin-top: 4px; text-transform: none; display: flex; flex-direction: column; gap: 2px; align-items: center; border-top: 1px dashed #e2e8f0; padding-top: 4px; width: 100%;">`;
+
+                        const labelMap = {
+                            'base': 'Cơ bản',
+                            'difficulty': 'Độ khó',
+                            'streak': 'Chuỗi',
+                            'streak_bonus': 'Chuỗi',
+                            'time': 'Tốc độ',
+                            'time_bonus': 'Tốc độ'
+                        };
+
+                        let lines = 0;
+                        for (const [key, val] of Object.entries(gami.breakdown)) {
+                            if (key !== 'total' && val !== 0 && lines < 3) { // limit 3 lines max
+                                const lbl = labelMap[key] || key;
+                                const valStr = (typeof val === 'number' && val > 0 && val < 1) ? `x${val}` : `+${Math.round(val)}`;
+                                scoreHtml += `<div style="display: flex; justify-content: space-between; width: 100%;"><span style="color: #cbd5e1;">${lbl}</span> <span style="color: #f59e0b;">${valStr}</span></div>`;
+                                lines++;
+                            }
+                        }
+                        scoreHtml += `</div>`;
+                    } else {
+                        // Fallback
+                        const scoreBase = log.score_base || Math.max(0, scoreChange - (log.score_bonus || 0));
+                        const scoreBonus = log.score_bonus || Math.max(0, scoreChange - scoreBase);
+                        if (scoreBase > 0 || scoreBonus > 0) {
+                            scoreHtml += `<div style="font-size: 0.55rem; color: #94a3b8; font-weight: 600; margin-top: 2px; text-transform: none;">`;
+                            if (scoreBase > 0) scoreHtml += `Cơ bản: +${scoreBase}`;
+                            if (scoreBonus > 0) scoreHtml += ` | Thưởng: +${scoreBonus}`;
+                            scoreHtml += `</div>`;
+                        }
+                    }
+
+                    scoreEl.innerHTML = `
+                        <div style="display: flex; flex-direction: column; align-items: center; justify-content: flex-start; line-height: 1; width: 100%;">
+                            ${scoreHtml}
+                        </div>
+                    `;
+                } else {
+                    scoreEl.innerHTML = `<span style="color: #94a3b8;">0</span>`;
+                }
             }
 
-            // Mastery (Stability)
+            // Mastery (Stability) & FSRS Context
             if (masteryEl) {
-                let stability = '-';
-                if (log.fsrs_snapshot && log.fsrs_snapshot.stability) {
-                    stability = parseFloat(log.fsrs_snapshot.stability).toFixed(1);
+                let stabilityHtml = '<span style="color: #94a3b8;">-</span>';
+                if (log.fsrs_snapshot && log.fsrs_snapshot.stability !== undefined) {
+                    const diff = log.fsrs_snapshot.difficulty !== undefined ? parseFloat(log.fsrs_snapshot.difficulty).toFixed(1) : '-';
+                    const stab = parseFloat(log.fsrs_snapshot.stability).toFixed(1);
+                    stabilityHtml = `
+                        <div style="display: flex; flex-direction: column; align-items: center; justify-content: flex-start; line-height: 1; width: 100%;">
+                            <span>${stab}</span>
+                            <div style="font-size: 0.55rem; color: #94a3b8; font-weight: 600; margin-top: 4px; border-top: 1px dashed #e2e8f0; padding-top: 4px; width: 100%; text-align: center;">Độ khó: ${diff}</div>
+                        </div>
+                    `;
                 }
-                masteryEl.textContent = stability;
+                masteryEl.innerHTML = stabilityHtml;
+            }
+
+            // Populate Context tags if row exists
+            if (contextRow) {
+                let hasContext = false;
+
+                // Device
+                if (deviceEl) {
+                    const dev = (log.context_snapshot || {}).input_device || 'Unknown';
+                    let icon = 'fa-desktop';
+                    if (dev.toLowerCase().includes('mobile')) icon = 'fa-mobile-alt';
+                    if (dev.toLowerCase().includes('tablet')) icon = 'fa-tablet-alt';
+                    deviceEl.innerHTML = `<i class="fas ${icon}"></i> ${dev}`;
+                    hasContext = true;
+                }
+
+                // Rep Number
+                if (repEl) {
+                    const rep = (log.context_snapshot || {}).reps_global || 1;
+                    repEl.textContent = `#${rep}`;
+                    hasContext = true;
+                }
+
+                // FSRS State
+                if (fsrsStateEl && log.fsrs_snapshot) {
+                    const stateStr = log.fsrs_snapshot.card_state || 'NEW';
+                    let bg = '#d1fae5', color = '#059669'; // default new
+                    if (stateStr.toUpperCase() === 'LEARNING') { bg = '#fef3c7'; color = '#d97706'; }
+                    else if (stateStr.toUpperCase() === 'REVIEW') { bg = '#e0e7ff'; color = '#4f46e5'; }
+                    else if (stateStr.toUpperCase() === 'RELEARNING') { bg = '#ffe4e6'; color = '#e11d48'; }
+
+                    fsrsStateEl.style.background = bg;
+                    fsrsStateEl.style.color = color;
+                    fsrsStateEl.innerHTML = `<i class="fas fa-microchip"></i> ${stateStr}`;
+                    hasContext = true;
+                } else if (fsrsStateEl) {
+                    fsrsStateEl.style.display = 'none';
+                }
+
+                if (hasContext) {
+                    contextRow.style.display = 'flex';
+                } else {
+                    contextRow.style.display = 'none';
+                }
             }
         };
 

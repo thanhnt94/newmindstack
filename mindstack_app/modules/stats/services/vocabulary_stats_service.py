@@ -331,9 +331,12 @@ class VocabularyStatsService:
                     'duration_ms': log.get('review_duration', 0), 
                     'user_answer': log.get('user_answer'), 
                     'score_change': (log.get('gamification_snapshot') or {}).get('score_change', 0), 
+                    'score_base': (log.get('gamification_snapshot') or {}).get('score_base', 0),
+                    'score_bonus': (log.get('gamification_snapshot') or {}).get('score_bonus', 0),
                     'rating': log.get('rating'),
-                    # [NEW] Return FSRA snapshot for charts
-                    'fsrs_snapshot': log.get('fsrs_snapshot')
+                    'gamification_snapshot': log.get('gamification_snapshot') or {},
+                    'fsrs_snapshot': log.get('fsrs_snapshot') or {},
+                    'context_snapshot': log.get('context_snapshot') or {}
                 }
                 for log in logs[:100] # Increased limit for better charts
             ],

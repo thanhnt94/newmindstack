@@ -17,7 +17,8 @@ class AuthInterface:
                     username=user.username,
                     email=user.email,
                     role=user.user_role,
-                    avatar_url=user.get_avatar_url()
+                    avatar_url=user.get_avatar_url(),
+                    timezone=user.timezone
                 )
             )
         return AuthResponseDTO(success=False, message="Invalid credentials")
@@ -33,7 +34,8 @@ class AuthInterface:
                     id=user.user_id,
                     username=user.username,
                     email=user.email,
-                    role=user.user_role
+                    role=user.user_role,
+                    timezone=user.timezone
                 )
             )
         except Exception as e:
@@ -49,7 +51,8 @@ class AuthInterface:
                 username=user.username,
                 email=user.email,
                 role=user.user_role,
-                avatar_url=user.get_avatar_url()
+                avatar_url=user.get_avatar_url(),
+                timezone=user.timezone
             )
         return None
 
@@ -58,3 +61,15 @@ class AuthInterface:
         """Get the UserForm class for admin usage."""
         from .forms import UserForm
         return UserForm
+
+    @staticmethod
+    def get_profile_edit_form_class():
+        """Get the ProfileEditForm class for user profile usage."""
+        from .forms import ProfileEditForm
+        return ProfileEditForm
+
+    @staticmethod
+    def get_change_password_form_class():
+        """Get the ChangePasswordForm class for user profile usage."""
+        from .forms import ChangePasswordForm
+        return ChangePasswordForm

@@ -3,7 +3,7 @@ from flask import render_template, redirect, url_for, flash, request
 from flask_login import login_required, current_user
 from mindstack_app.core.extensions import db
 from mindstack_app.utils.template_helpers import render_dynamic_template
-from ...auth.forms import ProfileEditForm, ChangePasswordForm
+from mindstack_app.modules.auth.interface import AuthInterface
 from .. import blueprint
 from ..services import UserProfileService
 
@@ -30,7 +30,7 @@ def view_profile():
               .all())
     
     try:
-        from ...telegram_bot.services import generate_connect_link
+        from ...telegram_bot.interface import generate_connect_link
         telegram_link = generate_connect_link(current_user.user_id)
     except Exception as e:
         telegram_link = '#'
@@ -44,6 +44,7 @@ def view_profile():
 @blueprint.route('/edit', methods=['GET', 'POST'])
 def edit_profile():
     user = current_user
+    ProfileEditForm = AuthInterface.get_profile_edit_form_class()
     form = ProfileEditForm(obj=user)
     
     if form.validate_on_submit():
@@ -67,6 +68,7 @@ def edit_profile():
 
 @blueprint.route('/change-password', methods=['GET', 'POST'])
 def change_password():
+    ChangePasswordForm = AuthInterface.get_change_password_form_class()
     form = ChangePasswordForm()
     if form.validate_on_submit():
         current_user.set_password(form.password.data)
