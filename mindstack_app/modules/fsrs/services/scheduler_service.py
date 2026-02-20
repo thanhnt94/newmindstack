@@ -58,6 +58,11 @@ class SchedulerService:
         """
         Main entry point for processing a review.
         """
+        # [MODIFIED] Restrict FSRS updates to Flashcard/Typing only. 
+        # MCQ and other modes are treated as practice (count reps, don't reschedule).
+        if mode not in ('flashcard', 'typing', 'cram', 'review'):
+            only_count = True
+
         # Validation
         if not (1 <= quality <= 4):
             raise InvalidRatingError(f"Quality must be 1-4, got {quality}")

@@ -11,6 +11,14 @@ VOCAB_MODES = [
         color='emerald',
         filter_method='filter_srs',
         description='Học tập theo thuật toán FSRS: Ưu tiên thẻ đến hạn, sau đó đến thẻ mới.'
+    ),
+    FlashcardMode(
+        id='cram',
+        label='Cram Mode (Ôn tập)',
+        icon='fa-random',
+        color='amber',
+        filter_method='filter_cram',
+        description='Ôn tập ngẫu nhiên các thẻ đã học. Có tính vào tiến độ SRS.'
     )
 ]
 

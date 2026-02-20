@@ -89,6 +89,10 @@ class VocabularyDriver(BaseSessionDriver):
         # 2. Apply FSRS filter if requested (DB Level)
         fsrs_filter = settings.get('filter')  # e.g. 'due', 'new', 'mixed', 'srs'
         
+        # [FIX] Map 'cram' to 'review' (Learned items, random order)
+        if fsrs_filter == 'cram':
+            fsrs_filter = 'review'
+        
         if fsrs_filter in ['srs', 'mixed', 'mixed_srs']:
             current_app.logger.info(f"[VOCAB_DRIVER] Applying Split Limit for {fsrs_filter}")
             print(f" [VOCAB_DRIVER] Applying Split Limit for {fsrs_filter}")

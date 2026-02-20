@@ -115,13 +115,40 @@ def start_flashcard_session_all(mode):
     accessible_ids = get_accessible_flashcard_set_ids(current_user.user_id)
     qb.filter_by_containers(accessible_ids)
     
-    mode = 'srs'
-    qb.filter_srs()
+    mode_param = mode # Preserve original param
+    if mode == 'mixed_srs':
+        qb.filter_mixed()
+        mode = 'srs' # Underlying FSRS mode
+    elif mode == 'new':
+        qb.filter_new_only()
+        mode = 'srs'
+    elif mode == 'review':
+        qb.filter_due_only()
+        mode = 'srs'
+    elif mode == 'cram':
+        # [NEW] Cram Mode: Random review of learned items
+        qb.filter_cram()
+        mode = 'cram' # We might need to handle this in session manager or just treat as custom
+        # For now, let's treat it as 'flashcard' mode but with a special filter.
+        # However, the session manager might expect 'srs'.
+        # Let's check session interface and session manager logic.
+        # Actually, query builder does the filtering. The mode passed to start_driven_session
+        # determines the *behavior* (e.g. FSRS updates).
+        # We want SRS updates DISABLED for cram mode (practice).
+        # Our previous fix in SchedulerService disables FSRS if mode != 'flashcard'.
+        # So we should pass 'cram' (or 'practice') as the learning_mode to start_driven_session?
+        # No, start_driven_session takes `learning_mode`.
+        # The `mode` in settings is just config.
+        pass
+    else:
+        # Default SRS
+        qb.filter_srs()
+        mode = 'srs'
         
     total_items = qb.count()
     if total_items == 0:
         flash('Không có thẻ nào cho chế độ này.', 'warning')
-        return redirect(url_for('vocabulary.dashboard'))
+        return redirect(url_for('vocab_flashcard.dashboard'))
 
     # [UPDATED] Use centralized Settings Service to resolve limits
     from mindstack_app.modules.learning.interface import LearningInterface
@@ -132,13 +159,19 @@ def start_flashcard_session_all(mode):
     )
     new_limit = session_config.get('new_limit', 50)
 
+    # Determine learning_mode for Session
+    # If cram mode, we want to ensure FSRS updates are skipped.
+    # Our SchedulerService fix checks if mode in ('flashcard', 'typing').
+    # So if we pass 'cram', it will trigger only_count=True. Perfect.
+    session_learning_mode = 'cram' if mode_param == 'cram' else 'flashcard'
+
     # Create DB Session using Driver API
     from mindstack_app.modules.session.interface import SessionInterface
     db_sess, driver_state = SessionInterface.start_driven_session(
         user_id=current_user.user_id,
         container_id='all',
-        learning_mode='flashcard',
-        settings={'filter': 'srs', 'mode_config_id': mode, 'new_limit': new_limit}
+        learning_mode=session_learning_mode,
+        settings={'filter': mode_param, 'mode_config_id': mode, 'new_limit': new_limit}
     )
     
     if db_sess:
@@ -265,21 +298,46 @@ def start_flashcard_session_by_id(set_id, mode):
     qb = FlashcardQueryBuilder(current_user.user_id)
     qb.filter_by_containers([set_id])
     
-    mode = 'srs'
-    qb.filter_srs()
+    # Handle modes
+    mode_param = mode # Preserve original param
+    if mode == 'mixed_srs':
+        qb.filter_mixed()
+        mode = 'srs'
+    elif mode == 'new':
+        qb.filter_new_only()
+        mode = 'srs'
+    elif mode == 'review':
+        qb.filter_due_only() # This is 'Due' review only?
+        # Re-check views.py logic. 'review' usually maps to Due.
+        # But for consistency with Cram Mode being "learned", we might want strict mapping.
+        # The 'review' mode in UI usually means 'Due Review'.
+        mode = 'srs'
+    elif mode == 'cram':
+        # Cram Mode: Random review of learned items
+        qb.filter_cram()
+        # Mode remains 'cram'
+    else:
+        # Default SRS
+        qb.filter_srs()
+        mode = 'srs'
         
     total_items = qb.count()
     if total_items == 0:
         flash('Không có thẻ nào cho chế độ này.', 'warning')
-        return redirect(url_for('vocabulary.dashboard'))
+        return redirect(url_for('vocab_flashcard.dashboard'))
+
+    # Determine learning_mode for Session
+    # Cram is a sub-mode of Flashcard, handled by VocabularyDriver via settings['filter']
+    session_learning_mode = 'flashcard'
 
     # Create DB Session using Driver API
     from mindstack_app.modules.session.interface import SessionInterface
+    
     db_sess, driver_state = SessionInterface.start_driven_session(
         user_id=current_user.user_id,
         container_id=set_id,
-        learning_mode='flashcard',
-        settings={'filter': 'srs', 'mode_config_id': mode, 'new_limit': session_config.get('new_limit', 50)}
+        learning_mode=session_learning_mode,
+        settings={'filter': mode_param, 'mode_config_id': mode, 'new_limit': session_config.get('new_limit', 50)}
     )
     
     if db_sess:

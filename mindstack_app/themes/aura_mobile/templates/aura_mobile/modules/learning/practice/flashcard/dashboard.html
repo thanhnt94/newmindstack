@@ -59,6 +59,27 @@
                         </div>
                     </label>
                     {% endfor %}
+
+                    <!-- [NEW] Cram Mode Option (Client-side addition for now, or ensure backend passes it) -->
+                    <!-- Since flashcard_modes is dynamic, we can append it manually if backend doesn't provide it yet. -->
+                    <!-- Ideally, backend should provide it. But to be safe and quick, let's hardcode it as an additional option. -->
+                    <label
+                        class="mode-option relative flex items-center p-4 border-2 border-gray-200 rounded-lg cursor-pointer hover:border-yellow-300 transition-colors">
+                        <input type="radio" name="mode" value="cram" class="sr-only">
+                        <div class="flex-1">
+                            <span class="font-medium text-gray-800">Cram Mode (Ôn tập)</span>
+                            <span
+                                class="ml-2 text-xs text-yellow-600 bg-yellow-100 px-2 py-0.5 rounded-full">Practice</span>
+                            <p class="text-xs text-gray-500 mt-1">Ôn ngẫu nhiên thẻ đã học</p>
+                        </div>
+                        <div class="checkmark hidden">
+                            <svg class="w-6 h-6 text-yellow-600" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd"
+                                    d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                                    clip-rule="evenodd"></path>
+                            </svg>
+                        </div>
+                    </label>
                 </div>
             </div>
 

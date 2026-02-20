@@ -71,6 +71,14 @@ class FlashcardQueryBuilder:
         self._query = FsrsInterface.apply_memory_filter(self._query, self.user_id, 'review')
         return self
 
+    def filter_cram(self):
+        """
+        Cram Mode: Randomly review learned items.
+        """
+        self._query = FsrsInterface.apply_memory_filter(self._query, self.user_id, 'review')
+        self._query = self._query.order_by(func.random())
+        return self
+
     def exclude_items(self, item_ids):
         """Exclude specific item IDs, UNLESS they are currently due."""
         if item_ids:

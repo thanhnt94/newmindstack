@@ -121,9 +121,25 @@ def get_flashcard_mode_counts(user_id, set_id, context='vocab'):
     registered_modes = get_flashcard_modes(context)
     
     for mode in registered_modes:
+        count = 0
+        if mode.id in ['srs', 'mixed_srs']:
+            count = srs_count
+        elif mode.id == 'new':
+            count = new_count
+        elif mode.id in ['cram', 'review']:
+            # Cram/Review Mode: Learned items only
+            q_rev = _base_item_query(set_id)
+            q_rev = FsrsInterface.apply_memory_filter(q_rev, user_id, 'review')
+            count = q_rev.count()
+        else:
+            # Default to SRS if unknown, or 0? 
+            # Let's default to SRS for safety or 0 if strictly separate.
+            # Given the UI shows (--), 0 might be safer to indicate "calc required" but here we return final.
+            count = srs_count 
+
         mode_list.append({
             'id': mode.id,
-            'count': srs_count,
+            'count': count,
             'label': mode.label,
             'icon': mode.icon,
             'color': mode.color,
@@ -138,6 +154,10 @@ def get_flashcard_mode_counts(user_id, set_id, context='vocab'):
         'list': mode_list
     }
     
+    # [FIX] Ensure all mode counts are available as top-level keys for template lookup
+    for item in mode_list:
+        result[item['id']] = item['count']
+
     return result
 
 def get_accessible_flashcard_set_ids(user_id):
