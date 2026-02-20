@@ -1084,4 +1084,141 @@
         }
     });
 
+
+    // ===== PULL TO REFRESH =====
+    function enablePullToRefresh() {
+        const body = document.body;
+        const pageShell = document.querySelector('.page-shell');
+        const indicator = document.getElementById('pull-refresh-indicator');
+
+        if (!indicator || !pageShell) return;
+
+        let startY = -1; // Start invalid
+        let currentY = 0;
+        let isDragging = false;
+        const threshold = 70;
+        const maxPull = 140;
+        const resistance = 0.4;
+        let spinner = indicator.querySelector('i');
+
+        // Helper: Check if touch target is inside a scrollable container that is NOT at top
+        const isScrolledDown = (target) => {
+            let el = target;
+            while (el && el !== body) {
+                const style = window.getComputedStyle(el);
+                const overflowY = style.overflowY;
+                const isScrollable = (overflowY === 'auto' || overflowY === 'scroll') && el.scrollHeight > el.clientHeight;
+
+                if (isScrollable && el.scrollTop > 0) {
+                    return true; // It is scrolled down, so don't PULL
+                }
+                el = el.parentElement;
+            }
+            return false;
+        };
+
+        body.addEventListener('touchstart', (e) => {
+            // Only trigger number of touches is 1
+            if (e.touches.length === 1) {
+                // If window itself is scrolled, or inner element is scrolled
+                if (window.scrollY > 0 || isScrolledDown(e.target)) {
+                    startY = -1;
+                    return;
+                }
+                startY = e.touches[0].clientY;
+            }
+        }, { passive: true });
+
+        body.addEventListener('touchmove', (e) => {
+            if (startY < 0) return; // Ignore if start was invalid
+
+            if (window.scrollY > 0) {
+                isDragging = false;
+                startY = -1;
+                return;
+            }
+
+            const touch = e.touches[0];
+            currentY = touch.clientY;
+            let diff = currentY - startY;
+
+            // Check if pulling down
+            if (diff > 5 && !isDragging && startY > 0) {
+                isDragging = true;
+            }
+
+            if (isDragging && diff > 0) {
+                // Resistance formula
+                let move = Math.min(diff * resistance, maxPull);
+
+                // Visuals
+                pageShell.style.transform = `translateY(${move}px)`;
+
+                // Indicator Opacity & Scale
+                let progress = Math.min(move / threshold, 1);
+                indicator.classList.add('visible');
+                indicator.style.opacity = progress;
+                // Move indicator down with drag
+                indicator.style.transform = `translateX(-50%) translate3d(0, ${move * 1.0}px, 0) scale(${0.5 + (0.5 * progress)})`;
+
+                if (spinner) {
+                    spinner.style.transform = `rotate(${progress * 360}deg)`;
+                }
+
+                if (move > 5 && e.cancelable) {
+                    e.preventDefault(); // Prevent native scroll
+                }
+            }
+        }, { passive: false });
+
+        body.addEventListener('touchend', (e) => {
+            if (!isDragging) {
+                startY = -1;
+                return;
+            }
+            isDragging = false;
+
+            let diff = currentY - startY;
+            let move = Math.min(diff * resistance, maxPull);
+
+            startY = -1; // Reset
+
+            if (move >= threshold) {
+                // Trigger Refresh
+                indicator.classList.add('refreshing');
+                // Keep shell down a bit
+                pageShell.style.transform = `translateY(60px)`;
+                pageShell.style.transition = 'transform 0.2s';
+
+                // Show spinner spinning
+                if (spinner) spinner.style.transform = ''; // let animation take over
+
+                setTimeout(() => {
+                    window.location.reload();
+                }, 500);
+            } else {
+                // Reset
+                pageShell.style.transition = 'transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
+                pageShell.style.transform = '';
+
+                indicator.style.transition = 'opacity 0.2s ease, transform 0.2s ease';
+                indicator.style.opacity = '0';
+                indicator.style.transform = 'translateX(-50%) scale(0.8)';
+                indicator.classList.remove('visible');
+
+                setTimeout(() => {
+                    pageShell.style.transition = '';
+                    indicator.style.transition = '';
+                }, 300);
+            }
+        });
+    }
+
+    // Init Pull to Refresh
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', enablePullToRefresh);
+    } else {
+        enablePullToRefresh();
+    }
+
 })();

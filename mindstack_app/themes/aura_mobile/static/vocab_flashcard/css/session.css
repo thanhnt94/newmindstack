@@ -1817,6 +1817,7 @@ body>main {
     display: inline-block;
     animation: stats-pulse 0.8s ease-out;
 }
+
 /* --- Audio Settings Menu Dropdown --- */
 #js-fc-audio-settings-menu {
     box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
@@ -1842,3 +1843,69 @@ body>main {
     transform: translateX(1rem);
 }
 
+/* ===== Pull To Refresh ===== */
+.pull-refresh-indicator {
+    position: fixed;
+    top: -60px;
+    /* Start hidden above */
+    left: 50%;
+    transform: translateX(-50%) scale(0.8);
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: white;
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.15);
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease, transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.pull-refresh-indicator.visible {
+    opacity: 1;
+    /* transform handled by JS based on pull distance */
+}
+
+.pull-refresh-indicator.refreshing {
+    opacity: 1;
+    /* transform handled by JS */
+}
+
+/* Make page Shell animatable */
+.page-shell {
+    /* transition: transform 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94); */
+    /* Handled by JS mostly */
+    will-change: transform;
+    background-color: #f8fafc;
+    /* Match body bg */
+}
+
+.pull-refresh-indicator i {
+    color: #10b981;
+    /* Emerald 500 */
+    font-size: 1.25rem;
+    transition: transform 0.2s linear;
+}
+
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+.pull-refresh-indicator.refreshing i {
+    animation: spin 1s linear infinite;
+}
+
+/* Ensure no scrollbar on body */
+body {
+    overscroll-behavior-y: contain;
+    /* Prevent browser native pull-refresh if any */
+}
