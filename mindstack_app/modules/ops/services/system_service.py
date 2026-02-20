@@ -54,8 +54,9 @@ class SystemService:
         """
         Executes the upgrade command in a background thread.
         """
-        # Load latest state before checking
+        # Load latest state and cleanup orphans BEFORE checking
         cls._load_state()
+        cls._check_and_cleanup_orphans()
         
         if cls._execution_state['is_running']:
             return False, "Một tiến trình nâng cấp đang chạy."
@@ -67,7 +68,8 @@ class SystemService:
             'start_time': time.time(),
             'end_time': None,
             'exit_code': None,
-            'current_line': ""
+            'current_line': "",
+            'last_updated': time.time()  # [FIX] Initialize for timeout logic
         }
         cls._save_state()
 
@@ -78,6 +80,19 @@ class SystemService:
         cls._monitor_thread.start()
         
         return True, "Tiến trình nâng cấp đã được bắt đầu."
+
+    @classmethod
+    def force_unlock(cls):
+        """Manually clear the lock state."""
+        with cls._log_lock:
+            cls._load_state()
+            if cls._execution_state['is_running']:
+                cls._execution_state['is_running'] = False
+                cls._execution_state['logs'].append(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] ⚠️ Force Unlock by Admin.")
+                if cls._execution_state.get('exit_code') is None:
+                    cls._execution_state['exit_code'] = -1
+                cls._save_state()
+            return True
 
     @classmethod
     def _execute_command(cls, command):
@@ -135,45 +150,51 @@ class SystemService:
                 cls._save_state()
 
     @classmethod
+    def _check_and_cleanup_orphans(cls):
+        """Check for and clean up stale/orphan processes."""
+        if not cls._execution_state.get('is_running'):
+            return
+
+        with cls._log_lock:
+            # Reload to ensuring we are checking latest
+            # cls._load_state() # Already called by caller usually, but okay to double check if needed. 
+            # Actually caller should handle load to avoid recursive locking issues if we put load inside lock.
+            
+            now = time.time()
+            last_updated = cls._execution_state.get('last_updated', now)
+            stored_pid = cls._execution_state.get('pid')
+            
+            is_orphan = False
+            
+            if stored_pid == os.getpid():
+                    # Same process context - reliable thread check
+                    if cls._monitor_thread is None or not cls._monitor_thread.is_alive():
+                        is_orphan = True
+            else:
+                    # Cross-process context - only timeout is reliable
+                    # Wait 60s for silence before assuming death
+                    if (now - last_updated) > 60:
+                        is_orphan = True
+            
+            if is_orphan:
+                print(f"[SystemService] Detecting STALE running state (PID={stored_pid}). Cleaning up...")
+                cls._execution_state['is_running'] = False
+                if cls._execution_state.get('exit_code') is None:
+                        cls._execution_state['exit_code'] = 0
+                
+                cls._execution_state['logs'].append(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] ✅ Hệ thống đã khởi động lại hoặc tiến trình bị kẹt (Service Restarted/Stale).")
+                cls._save_state()
+
+    @classmethod
     def get_status(cls):
         """Returns the current execution state."""
         # Always reload from disk to get latest state (especially after restart)
-        # [CRITICAL] Move _load_state INTO lock to prevent race conditions
+        cls._load_state()
+        
+        # Check and cleanup orphans
+        cls._check_and_cleanup_orphans()
+        
         with cls._log_lock:
-            cls._load_state()
-            
-            # [NEW] Robust Orphan Check Logic
-            # 1. Same Worker Process: If PID matches, we can trust _monitor_thread
-            # 2. Diff Worker Process: We only trust 'last_updated' timeout
-            if cls._execution_state.get('is_running'):
-                now = time.time()
-                last_updated = cls._execution_state.get('last_updated', now)
-                stored_pid = cls._execution_state.get('pid')
-                
-                is_orphan = False
-                
-                if stored_pid == os.getpid():
-                     # Same process context - reliable thread check
-                     if cls._monitor_thread is None or not cls._monitor_thread.is_alive():
-                         # Double-check: The thread MIGHT have just finished and updated state?
-                         # No, because we are holding the lock! If thread finished, it would have updated state to is_running=False
-                         # So if is_running=True but thread is dead, it CRASHED or wasn't started properly.
-                         is_orphan = True
-                else:
-                     # Cross-process context - only timeout is reliable
-                     # Wait 60s for silence before assuming death
-                     if (now - last_updated) > 60:
-                         is_orphan = True
-                
-                if is_orphan:
-                    print(f"[SystemService] Detecting STALE running state (PID={stored_pid}). Cleaning up...")
-                    cls._execution_state['is_running'] = False
-                    if cls._execution_state.get('exit_code') is None:
-                            cls._execution_state['exit_code'] = 0
-                    
-                    cls._execution_state['logs'].append(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] ✅ Hệ thống đã khởi động lại (Service Restarted).")
-                    cls._save_state()
-
             return {
                 'is_running': cls._execution_state['is_running'],
                 'logs': cls._execution_state['logs'],

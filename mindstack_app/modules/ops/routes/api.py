@@ -102,3 +102,13 @@ def get_upgrade_status_api():
     from ..services.system_service import SystemService
     status = SystemService.get_status()
     return jsonify({'success': True, 'status': status})
+
+@blueprint.route('/upgrade/unlock', methods=['POST'])
+@login_required
+def force_unlock_upgrade_api():
+    if current_user.user_role != User.ROLE_ADMIN:
+        return jsonify({'success': False, 'message': 'Permission denied'}), 403
+    
+    from ..services.system_service import SystemService
+    SystemService.force_unlock()
+    return jsonify({'success': True, 'message': 'Đã mở khóa trạng thái nâng cấp.'})
