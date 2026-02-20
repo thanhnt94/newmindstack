@@ -1151,15 +1151,18 @@
                 // Resistance formula
                 let move = Math.min(diff * resistance, maxPull);
 
-                // Visuals
-                pageShell.style.transform = `translateY(${move}px)`;
+                // Visuals - MODIFIED: Keep page static, only move indicator
+                // pageShell.style.transform = `translateY(${move}px)`; // Removed per user request
 
-                // Indicator Opacity & Scale
+                // Indicator Opacity & Scale & Position
                 let progress = Math.min(move / threshold, 1);
                 indicator.classList.add('visible');
                 indicator.style.opacity = progress;
+
                 // Move indicator down with drag
-                indicator.style.transform = `translateX(-50%) translate3d(0, ${move * 1.0}px, 0) scale(${0.5 + (0.5 * progress)})`;
+                // Start from top: -60px. We want it to appear.
+                // Let's move it down significantly to be visible
+                indicator.style.transform = `translateX(-50%) translate3d(0, ${move * 1.5}px, 0) scale(${0.5 + (0.5 * progress)})`;
 
                 if (spinner) {
                     spinner.style.transform = `rotate(${progress * 360}deg)`;
@@ -1187,8 +1190,12 @@
                 // Trigger Refresh
                 indicator.classList.add('refreshing');
                 // Keep shell down a bit
-                pageShell.style.transform = `translateY(60px)`;
-                pageShell.style.transition = 'transform 0.2s';
+                // pageShell.style.transform = `translateY(60px)`;
+                // pageShell.style.transition = 'transform 0.2s';
+
+                // Keep indicator visible
+                indicator.style.transform = `translateX(-50%) translate3d(0, 80px, 0) scale(1.1)`;
+                indicator.style.opacity = '1';
 
                 // Show spinner spinning
                 if (spinner) spinner.style.transform = ''; // let animation take over
@@ -1198,16 +1205,16 @@
                 }, 500);
             } else {
                 // Reset
-                pageShell.style.transition = 'transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
-                pageShell.style.transform = '';
+                // pageShell.style.transition = 'transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
+                // pageShell.style.transform = '';
 
                 indicator.style.transition = 'opacity 0.2s ease, transform 0.2s ease';
                 indicator.style.opacity = '0';
-                indicator.style.transform = 'translateX(-50%) scale(0.8)';
+                indicator.style.transform = 'translateX(-50%) scale(0.8)'; // Back to hidden pos
                 indicator.classList.remove('visible');
 
                 setTimeout(() => {
-                    pageShell.style.transition = '';
+                    // pageShell.style.transition = ''; 
                     indicator.style.transition = '';
                 }, 300);
             }
