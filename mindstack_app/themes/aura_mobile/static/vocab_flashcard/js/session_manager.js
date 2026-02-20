@@ -7,7 +7,7 @@
 let currentFlashcardBatch = [];
 let currentFlashcardIndex = 0;
 let previousCardStats = null;
-let sessionScore = 0;
+let sessionScore = (window.sessionScore !== undefined) ? window.sessionScore : 0;
 let currentUserTotalScore = window.currentUserTotalScoreInit || 0;
 let sessionAnswerHistory = [];
 let currentStreak = 0;

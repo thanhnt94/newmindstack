@@ -512,6 +512,7 @@ def flashcard_session(session_id):
         initial_correct_count=session_data.get('correct_answers', 0),
         initial_incorrect_count=session_data.get('incorrect_answers', 0),
         initial_vague_count=session_data.get('vague_answers', 0),
+        initial_session_points=session_data.get('session_points', 0),
     )
 
 

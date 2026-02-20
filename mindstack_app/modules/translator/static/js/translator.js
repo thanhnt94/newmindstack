@@ -12,22 +12,32 @@ const MsTranslator = {
     },
 
     init() {
-        const handler = (e) => this.handleSelection(e);
-        document.addEventListener('mouseup', handler);
-        document.addEventListener('touchend', handler);
+        // Debounce timer
+        let selectionTimeout;
 
-        document.addEventListener('mousedown', (e) => {
-            // Close popup if clicking outside
+        const handler = () => {
+            clearTimeout(selectionTimeout);
+            selectionTimeout = setTimeout(() => {
+                this.handleSelection();
+            }, 600); // 600ms wait for selection to settle (mobile handles)
+        };
+
+        document.addEventListener('selectionchange', handler);
+
+        // Close popup if clicking/touching outside
+        const closeHandler = (e) => {
             if (this.state.isVisible && !e.target.closest('#ms-translator-popup')) {
                 this.hide();
             }
-        });
-        // Mobile: Close on touch start outside
-        document.addEventListener('touchstart', (e) => {
-            if (this.state.isVisible && !e.target.closest('#ms-translator-popup')) {
-                this.hide();
-            }
-        });
+        };
+
+        document.addEventListener('mousedown', closeHandler);
+        document.addEventListener('touchstart', closeHandler, { passive: true });
+
+        // Hide on scroll to prevent floating weirdness
+        window.addEventListener('scroll', () => {
+            if (this.state.isVisible) this.hide();
+        }, { passive: true });
     },
 
     isTranslationAllowed() {
@@ -59,29 +69,30 @@ const MsTranslator = {
         return true;
     },
 
-    handleSelection(e) {
+    handleSelection() {
         if (!this.isTranslationAllowed()) {
             this.hide();
             return;
         }
 
-        // Timeout to ensure selection is complete
-        setTimeout(() => {
-            const selection = window.getSelection();
-            const text = selection.toString().trim();
+        const selection = window.getSelection();
+        const text = selection.toString().trim();
 
-            if (text.length > 0 && text.length < 500) {
-                // Ignore selection inside the translator itself
-                if (e.target.closest('#ms-translator-popup')) return;
+        if (text.length > 0 && text.length < 500) {
+            // Ignore if selection is inside the popup itself
+            const anchorNode = selection.anchorNode;
+            if (anchorNode && anchorNode.parentElement && anchorNode.parentElement.closest('#ms-translator-popup')) {
+                return;
+            }
 
+            if (selection.rangeCount > 0) {
                 const range = selection.getRangeAt(0);
                 const rect = range.getBoundingClientRect();
-
                 this.showButton(rect, text);
-            } else {
-                this.hide();
             }
-        }, 10);
+        } else {
+            this.hide();
+        }
     },
 
     createPopupElement() {
@@ -89,7 +100,7 @@ const MsTranslator = {
         if (!el) {
             el = document.createElement('div');
             el.id = 'ms-translator-popup';
-            el.className = 'fixed z-[9999] bg-white shadow-xl rounded-xl border border-slate-200 transition-all duration-200 flex flex-col overflow-hidden';
+            el.className = 'fixed z-[10000] bg-white shadow-xl rounded-xl border border-slate-200 transition-all duration-200 flex flex-col overflow-hidden';
             el.style.maxWidth = '300px';
             document.body.appendChild(el);
         }
