@@ -275,6 +275,9 @@
 {# Reusable Item Stats Modal #}
 {% include _v ~ '/modules/vocabulary/detail/_modal_stats.html' %}
 
+{# Include Feedback Modal for reporting #}
+{% include _v ~ '/modules/feedback/_feedback_modal.html' %}
+
 
 <script src="{{ url_for('static', filename='aura_mobile/vocab_flashcard/js/audio_manager.js') }}?v=rewrite_v3"></script>
 <script src="{{ url_for('static', filename='aura_mobile/vocab_flashcard/js/render_card.js') }}"></script>
@@ -438,6 +441,7 @@
 <script src="{{ url_for('static', filename='aura_mobile/vocab_flashcard/js/session_manager.js') }}"></script>
 <script src="{{ url_for('static', filename='aura_mobile/vocab_flashcard/js/index.js') }}"></script>
 <script src="{{ url_for('static', filename='aura_mobile/vocab_flashcard/js/flashcard_viewport.js') }}"></script>
-{# Include existing Translation Module #}
-<script src="{{ url_for('translator.static', filename='js/translator.js') }}"></script>
+{# Include existing Translation Module - Handled by _app_logic.html #}
+{#
+<script src="{{ url_for('translator.static', filename='js/translator.js') }}"></script> #}
 {% endblock %}

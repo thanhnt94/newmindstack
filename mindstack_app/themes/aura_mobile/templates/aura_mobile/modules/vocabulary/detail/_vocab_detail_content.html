@@ -64,6 +64,14 @@
                     <i class="{% if 'favorite' in s.markers %}fas{% else %}far{% endif %} fa-heart"
                         style="font-size: 13px;"></i>
                 </button>
+
+                <!-- [NEW] Report Button -->
+                <button class="marker-btn js-fc-report-btn"
+                    onclick='window.openFeedbackModal({{ s.item.id }}, {{ s.item.front | tojson }})'
+                    style="width: 32px; height: 32px; border-radius: 50%; border: 1px solid #e2e8f0; background: white; color: #94a3b8; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s;"
+                    title="Báo cáo lỗi">
+                    <i class="fas fa-flag" style="font-size: 13px;"></i>
+                </button>
             </div>
         </div>
 

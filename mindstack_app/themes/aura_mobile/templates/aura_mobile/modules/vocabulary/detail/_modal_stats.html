@@ -63,19 +63,20 @@
             const icon = btn.querySelector('i');
             btn.disabled = true;
 
-            fetch('/api/v3/learning/markers/toggle', {
+            fetch(`/learn/vocabulary/api/progress/${itemId}/marker`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'X-CSRFToken': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
                 },
-                body: JSON.stringify({ item_id: itemId, marker_type: markerType })
+                body: JSON.stringify({ marker: markerType })
             })
                 .then(r => r.json())
                 .then(data => {
                     btn.disabled = false;
                     if (data.success) {
-                        const isMarked = data.is_marked;
+                        const markers = data.markers || [];
+                        const isMarked = markers.includes(markerType);
                         if (isMarked) {
                             if (markerType !== 'difficult') {
                                 icon.classList.remove('far');
@@ -102,7 +103,7 @@
                             btn.style.color = '#94a3b8';
                         }
                     } else {
-                        alert('Lỗi: ' + data.message);
+                        alert('Lỗi: ' + (data.message || 'Không rõ nguyên nhân'));
                     }
                 })
                 .catch(err => {

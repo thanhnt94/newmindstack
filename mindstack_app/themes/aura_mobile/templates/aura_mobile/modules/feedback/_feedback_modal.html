@@ -1,193 +1,241 @@
 {#
-    # File: mindstack_app/modules/feedback/templates/feedback/_feedback_modal.html
-    # Phiên bản: 1.3
-    # MỤC ĐÍCH: Sửa lỗi hiển thị modal phản hồi sai vị trí.
-    # ĐÃ SỬA: Đưa CSS ra khỏi script và thêm vào một khối <style> riêng.
+File: mindstack_app/modules/feedback/templates/feedback/_feedback_modal.html
+Phiên bản: 1.4
+MỤC ĐÍCH: Sửa lỗi hiển thị modal phản hồi và thiết kế lại dạng Bottom Sheet.
 #}
+
 <style>
-    .custom-modal-overlay {
-        position: fixed;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background-color: rgba(0, 0, 0, 0.5);
-        display: none; /* THAY ĐỔI: Thêm display: none để ẩn modal theo mặc định */
-        justify-content: center;
-        align-items: center;
-        z-index: 1000;
+    /* Aura Mobile Bottom Sheet Aesthetic for Feedback Modal */
+    #feedback-modal.aura-modal-overlay {
+        align-items: flex-end;
+        padding: 0;
+        z-index: 100001;
+        /* Above other modals if needed */
     }
-    .custom-modal-overlay.open {
-        display: flex; /* THAY ĐỔI: Chỉ hiển thị khi có class 'open' */
+
+    #feedback-modal .aura-modal-container {
+        border-radius: 24px 24px 0 0;
+        max-width: 100%;
+        width: 100%;
+        transform: translateY(100%);
+        transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        border: none;
+        box-shadow: 0 -10px 25px -5px rgba(0, 0, 0, 0.1), 0 -8px 10px -6px rgba(0, 0, 0, 0.1);
     }
-    .custom-modal-content {
-        background-color: white;
-        padding: 2rem;
-        border-radius: 0.5rem;
-        text-align: center;
-        max-width: 400px;
+
+    #feedback-modal.open .aura-modal-container {
+        transform: translateY(0);
+    }
+
+    /* Drag indicator handle for bottom sheet */
+    .sheet-handle {
+        width: 40px;
+        height: 5px;
+        background: #e2e8f0;
+        border-radius: 10px;
+        margin: 12px auto 0 auto;
+        flex-shrink: 0;
+    }
+
+    #feedback-textarea {
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        transition: all 0.2s;
+        font-size: 16px;
+        /* Prevent zoom on iOS */
+    }
+
+    #feedback-textarea:focus {
+        background: white;
+        border-color: #6366f1;
+        box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
     }
 </style>
 
-<div id="feedback-modal" class="custom-modal-overlay">
-    <div class="custom-modal-content !max-w-lg w-full">
-        <div class="flex justify-between items-center mb-4">
-            <h3 class="text-xl font-bold text-gray-800">Gửi Phản Hồi</h3>
-            <button id="close-feedback-modal-btn" class="text-gray-500 hover:text-gray-800 text-2xl">&times;</button>
+<div id="feedback-modal" class="aura-modal-overlay">
+    <div class="aura-modal-container">
+        <div class="sheet-handle"></div>
+
+        <div class="aura-modal-header !border-none !pb-0">
+            <h3 class="text-xl font-black text-slate-800 tracking-tight">Gửi Phản Hồi</h3>
+            <button id="close-feedback-modal-btn" class="aura-modal-close">
+                <i class="fas fa-times"></i>
+            </button>
         </div>
-        <div class="text-left">
-            <p class="text-sm text-gray-600 mb-1">Bạn đang phản hồi về thẻ:</p>
-            <p id="feedback-modal-term" class="font-semibold text-blue-600 bg-blue-50 p-2 rounded-md mb-4 truncate"></p>
-            <form id="feedback-form">
-                <textarea id="feedback-textarea" class="w-full border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500" rows="5" placeholder="Nhập nội dung phản hồi của bạn ở đây... (ví dụ: sai chính tả, nội dung khó hiểu,...)"></textarea>
-                <div class="mt-4 flex justify-end space-x-3">
-                    <button type="button" id="cancel-feedback-btn" class="bg-gray-200 text-gray-800 px-4 py-2 rounded-md hover:bg-gray-300">Hủy</button>
-                    <button type="submit" id="submit-feedback-btn" class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">Gửi</button>
+
+        <div class="aura-modal-body">
+            <div class="mb-5">
+                <p class="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">Thẻ đang xử lý</p>
+                <div class="bg-indigo-50/50 border border-indigo-100 p-3 rounded-xl">
+                    <p id="feedback-modal-term" class="font-bold text-indigo-600 text-sm truncate"></p>
                 </div>
+            </div>
+
+            <form id="feedback-form">
+                <p class="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">Nội dung góp ý</p>
+                <textarea id="feedback-textarea" class="w-full rounded-2xl p-4 focus:outline-none resize-none" rows="5"
+                    placeholder="Bạn thấy lỗi chính tả, nội dung khó hiểu, hay âm thanh có vấn đề? Hãy cho chúng mình biết nhé..."></textarea>
             </form>
+        </div>
+
+        <div class="aura-modal-footer !bg-white !pt-0 flex gap-3">
+            <button type="button" id="cancel-feedback-btn"
+                class="flex-1 py-4 px-6 bg-slate-100 text-slate-600 font-bold rounded-2xl hover:bg-slate-200 transition-all">
+                Hủy bỏ
+            </button>
+            <button type="submit" form="feedback-form" id="submit-feedback-btn"
+                class="flex-[2] py-4 px-6 bg-indigo-600 text-white font-bold rounded-2xl shadow-lg shadow-indigo-200 hover:bg-indigo-700 active:scale-[0.98] transition-all">
+                Gửi phản hồi
+            </button>
         </div>
     </div>
 </div>
 
 <script>
-(function () {
-    if (window.__mindstackFeedbackModalInitialized) {
-        return;
-    }
-    window.__mindstackFeedbackModalInitialized = true;
-
-    let currentFeedbackItemId = null;
-    const csrfMeta = document.querySelector('meta[name="csrf-token"]');
-    const feedbackCsrfToken = csrfMeta ? csrfMeta.getAttribute('content') : null;
-
-    const showFeedbackMessage = (message, level = 'info') => {
-        if (typeof window.showFlashMessage === 'function') {
-            window.showFlashMessage(message, level);
-        } else if (message) {
-            // Fallback khi flash message không khả dụng
-            alert(message);
-        }
-    };
-
-    function openFeedbackModal(itemId, termContent) {
-        const feedbackModal = document.getElementById('feedback-modal');
-        if (!feedbackModal) return;
-
-        const feedbackModalTerm = document.getElementById('feedback-modal-term');
-        const feedbackTextarea = document.getElementById('feedback-textarea');
-
-        currentFeedbackItemId = itemId;
-        if (feedbackModalTerm) {
-            feedbackModalTerm.textContent = termContent;
-        }
-        if (feedbackTextarea) {
-            feedbackTextarea.value = '';
-        }
-
-        feedbackModal.classList.add('open');
-    }
-
-    function closeFeedbackModal() {
-        const feedbackModal = document.getElementById('feedback-modal');
-        if (feedbackModal) {
-            feedbackModal.classList.remove('open');
-        }
-        currentFeedbackItemId = null;
-    }
-
-    async function handleFeedbackSubmit(event) {
-        event.preventDefault();
-
-        const feedbackTextarea = document.getElementById('feedback-textarea');
-        const submitBtn = document.getElementById('submit-feedback-btn');
-        if (!feedbackTextarea || !submitBtn) {
+    (function () {
+        if (window.__mindstackFeedbackModalInitialized) {
             return;
         }
+        window.__mindstackFeedbackModalInitialized = true;
 
-        const feedbackText = feedbackTextarea.value.trim();
-        if (!feedbackText) {
-            showFeedbackMessage('Vui lòng nhập nội dung phản hồi.', 'warning');
-            feedbackTextarea.focus({ preventScroll: false });
-            return;
-        }
+        let currentFeedbackItemId = null;
+        const csrfMeta = document.querySelector('meta[name="csrf-token"]');
+        const feedbackCsrfToken = csrfMeta ? csrfMeta.getAttribute('content') : null;
 
-        if (!currentFeedbackItemId) {
-            showFeedbackMessage('Lỗi: Không tìm thấy ID của thẻ.', 'danger');
-            return;
-        }
+        const showFeedbackMessage = (message, level = 'info') => {
+            if (typeof window.showFlashMessage === 'function') {
+                window.showFlashMessage(message, level);
+            } else if (message) {
+                // Fallback khi flash message không khả dụng
+                alert(message);
+            }
+        };
 
-        submitBtn.disabled = true;
-        submitBtn.textContent = 'Đang gửi...';
+        function openFeedbackModal(itemId, termContent) {
+            const feedbackModal = document.getElementById('feedback-modal');
+            if (!feedbackModal) return;
 
-        try {
-            const headers = {
-                'Content-Type': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest'
-            };
-            if (feedbackCsrfToken) {
-                headers['X-CSRFToken'] = feedbackCsrfToken;
+            const feedbackModalTerm = document.getElementById('feedback-modal-term');
+            const feedbackTextarea = document.getElementById('feedback-textarea');
+
+            currentFeedbackItemId = itemId;
+            if (feedbackModalTerm) {
+                feedbackModalTerm.textContent = termContent;
+            }
+            if (feedbackTextarea) {
+                feedbackTextarea.value = '';
             }
 
-            const response = await fetch("{{ url_for('feedback.submit_feedback') }}", {
-                method: 'POST',
-                headers,
-                body: JSON.stringify({
-                    item_id: currentFeedbackItemId,
-                    feedback_text: feedbackText
-                })
-            });
+            feedbackModal.classList.add('open');
+        }
 
-            const contentType = response.headers.get('content-type') || '';
-            let result = {};
-            if (contentType.includes('application/json')) {
-                result = await response.json();
-            } else {
-                const rawText = await response.text();
-                throw new Error(`INVALID_JSON_RESPONSE:${rawText.slice(0, 200)}`);
+        function closeFeedbackModal() {
+            const feedbackModal = document.getElementById('feedback-modal');
+            if (feedbackModal) {
+                feedbackModal.classList.remove('open');
+            }
+            currentFeedbackItemId = null;
+        }
+
+        async function handleFeedbackSubmit(event) {
+            event.preventDefault();
+
+            const feedbackTextarea = document.getElementById('feedback-textarea');
+            const submitBtn = document.getElementById('submit-feedback-btn');
+            if (!feedbackTextarea || !submitBtn) {
+                return;
             }
 
-            if (response.ok && result.success) {
-                showFeedbackMessage(result.message, 'success');
-                setTimeout(closeFeedbackModal, 500);
-            } else {
-                showFeedbackMessage(result.message || 'Có lỗi xảy ra khi gửi phản hồi.', 'danger');
+            const feedbackText = feedbackTextarea.value.trim();
+            if (!feedbackText) {
+                showFeedbackMessage('Vui lòng nhập nội dung phản hồi.', 'warning');
+                feedbackTextarea.focus({ preventScroll: false });
+                return;
             }
-        } catch (error) {
-            console.error('Lỗi khi gửi feedback:', error);
-            if (String(error.message || '').startsWith('INVALID_JSON_RESPONSE')) {
-                showFeedbackMessage('Máy chủ trả về phản hồi không hợp lệ. Vui lòng thử lại sau.', 'danger');
-            } else {
-                showFeedbackMessage('Lỗi kết nối. Không thể gửi phản hồi.', 'danger');
+
+            if (!currentFeedbackItemId) {
+                showFeedbackMessage('Lỗi: Không tìm thấy ID của thẻ.', 'danger');
+                return;
             }
-        } finally {
-            submitBtn.disabled = false;
-            submitBtn.textContent = 'Gửi';
-        }
-    }
 
-    function bindFeedbackModalEvents() {
-        const feedbackForm = document.getElementById('feedback-form');
-        const closeBtn = document.getElementById('close-feedback-modal-btn');
-        const cancelBtn = document.getElementById('cancel-feedback-btn');
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Đang gửi...';
 
-        if (feedbackForm) {
-            feedbackForm.addEventListener('submit', handleFeedbackSubmit);
-        }
-        if (closeBtn) {
-            closeBtn.addEventListener('click', closeFeedbackModal);
-        }
-        if (cancelBtn) {
-            cancelBtn.addEventListener('click', closeFeedbackModal);
-        }
-    }
+            try {
+                const headers = {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                };
+                if (feedbackCsrfToken) {
+                    headers['X-CSRFToken'] = feedbackCsrfToken;
+                }
 
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', bindFeedbackModalEvents);
-    } else {
-        bindFeedbackModalEvents();
-    }
+                const response = await fetch("{{ url_for('feedback.submit_feedback') }}", {
+                    method: 'POST',
+                    headers,
+                    body: JSON.stringify({
+                        item_id: currentFeedbackItemId,
+                        feedback_text: feedbackText
+                    })
+                });
 
-    window.openFeedbackModal = openFeedbackModal;
-    window.closeFeedbackModal = closeFeedbackModal;
-})();
+                const contentType = response.headers.get('content-type') || '';
+                let result = {};
+                if (contentType.includes('application/json')) {
+                    result = await response.json();
+                } else {
+                    const rawText = await response.text();
+                    throw new Error(`INVALID_JSON_RESPONSE:${rawText.slice(0, 200)}`);
+                }
+
+                if (response.ok && result.success) {
+                    showFeedbackMessage(result.message, 'success');
+                    setTimeout(closeFeedbackModal, 500);
+                } else {
+                    showFeedbackMessage(result.message || 'Có lỗi xảy ra khi gửi phản hồi.', 'danger');
+                }
+            } catch (error) {
+                console.error('Lỗi khi gửi feedback:', error);
+                if (String(error.message || '').startsWith('INVALID_JSON_RESPONSE')) {
+                    showFeedbackMessage('Máy chủ trả về phản hồi không hợp lệ. Vui lòng thử lại sau.', 'danger');
+                } else {
+                    showFeedbackMessage('Lỗi kết nối. Không thể gửi phản hồi.', 'danger');
+                }
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Gửi';
+            }
+        }
+
+        function bindFeedbackModalEvents() {
+            const feedbackModal = document.getElementById('feedback-modal');
+            const feedbackForm = document.getElementById('feedback-form');
+            const closeBtn = document.getElementById('close-feedback-modal-btn');
+            const cancelBtn = document.getElementById('cancel-feedback-btn');
+
+            if (feedbackForm) {
+                feedbackForm.addEventListener('submit', handleFeedbackSubmit);
+            }
+            if (closeBtn) {
+                closeBtn.addEventListener('click', closeFeedbackModal);
+            }
+            if (cancelBtn) {
+                cancelBtn.addEventListener('click', closeFeedbackModal);
+            }
+            if (feedbackModal) {
+                feedbackModal.addEventListener('click', (e) => {
+                    if (e.target === feedbackModal) closeFeedbackModal();
+                });
+            }
+        }
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', bindFeedbackModalEvents);
+        } else {
+            bindFeedbackModalEvents();
+        }
+
+        window.openFeedbackModal = openFeedbackModal;
+        window.closeFeedbackModal = closeFeedbackModal;
+    })();
 </script>
