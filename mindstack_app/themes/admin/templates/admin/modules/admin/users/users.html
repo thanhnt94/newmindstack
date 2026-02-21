@@ -46,6 +46,7 @@
                             </a>
                             <form action="{{ url_for('user_management.delete_user', user_id=user.user_id) }}"
                                 method="post" onsubmit="return confirm('Bạn có chắc chắn muốn xóa người dùng này?');">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                 {% set delete_btn_classes = 'inline-flex items-center gap-2 rounded-md border
                                 border-rose-100 bg-rose-50 px-3 py-1.5 text-xs font-semibold transition
                                 hover:bg-rose-100 hover:text-rose-800' %}

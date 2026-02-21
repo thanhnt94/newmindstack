@@ -1,32 +1,38 @@
 """
 Smart Distractor Selector for MCQ Generation.
 ================================================
-Replaces naive random distractor selection with an intelligent algorithm
-that considers word/character length similarity and content overlap.
+Implements a 4-step pipeline to generate high-quality, 
+tricky, but absolutely mutually-exclusive distractors.
 
 Pure logic — no Database access, no Flask.
 """
 
 import random
-from typing import List, Optional
+import re
+from typing import List, Set
+
+
+# Common English/Vietnamese stop words to ignore during overlap scoring
+STOP_WORDS = {
+    # Vietnamese
+    "là", "sự", "cái", "con", "những", "các", "một", "những", "của", "và", 
+    "có", "để", "làm", "được", "bị", "trong", "trên", "dưới", "với", "cho",
+    # English
+    "a", "an", "the", "and", "or", "but", "is", "are", "was", "were",
+    "to", "of", "in", "on", "at", "by", "for", "with", "about", "as"
+}
 
 
 class SmartDistractorSelector:
     """
-    Selects high-quality distractors (wrong answers) that are similar in
-    shape and content to the correct answer, making MCQ questions harder
-    and more educational.
-
-    Algorithm:
-        1. Length Filtering   — keep candidates with matching word/char count.
-        2. Similarity Scoring — rank by overlapping words or characters.
-        3. Random Sampling    — sample from the top tier to avoid repetition.
-        4. Fallback           — fill remaining slots from broader pools.
+    Selects high-quality distractors (wrong answers).
+    
+    Algorithm Pipeline:
+        1. Fetch (handled by caller: provide random candidate pool).
+        2. Absolute Filtering (Sanitize) - strict overlap checks.
+        3. Trickiness Scoring - shape and keyword intersection bonuses.
+        4. Final Selection & Shuffling - output top M candidates.
     """
-
-    # ------------------------------------------------------------------ #
-    #  Public API                                                         #
-    # ------------------------------------------------------------------ #
 
     @classmethod
     def select(
@@ -36,197 +42,174 @@ class SmartDistractorSelector:
         amount: int = 3,
     ) -> List[str]:
         """
-        Select *amount* distractors from *candidate_pool*.
-
-        Args:
-            correct_answer: The correct answer string.
-            candidate_pool: All other possible answer strings (already
-                            de-duplicated of the correct answer by caller).
-            amount: How many distractors to return.
-
-        Returns:
-            A list of *amount* distractor strings (or fewer if the pool
-            is too small).
+        Main pipeline to select distractors.
         """
         if not candidate_pool or amount <= 0:
             return []
 
-        # Deduplicate pool and remove the correct answer itself
-        pool = list({c for c in candidate_pool if c and c != correct_answer})
+        # Step 2: Absolute Filtering (Sanitization)
+        valid_candidates = cls._filter_candidates(correct_answer, candidate_pool)
 
-        if not pool:
+        if not valid_candidates:
             return []
 
-        is_space_sep = cls._is_space_separated(correct_answer)
+        # Step 3: Trickiness Scoring
+        scored_candidates = cls._score_candidates(correct_answer, valid_candidates)
 
-        # --- Step 1: Length Filtering ---
-        exact_matches, fuzzy_matches = cls._filter_by_length(
-            correct_answer, pool, is_space_sep
-        )
-
-        # --- Step 2: Similarity Scoring (on exact-length matches first) ---
-        high_quality = cls._score_and_filter(
-            correct_answer, exact_matches, is_space_sep
-        )
-
-        # --- Step 3 + 4: Assemble final selection with fallback ---
-        selected = cls._assemble(
-            high_quality, exact_matches, fuzzy_matches, pool, amount
-        )
-
-        return selected
+        # Step 4: Final Selection & Shuffling (Handled partially by the caller merging + shuffling)
+        # We just return the top N here.
+        
+        # Take the top `amount` needed
+        top_candidates = [cand for score, cand in scored_candidates[:amount]]
+        
+        return top_candidates
 
     # ------------------------------------------------------------------ #
-    #  Language Detection                                                  #
-    # ------------------------------------------------------------------ #
-
-    @staticmethod
-    def _is_space_separated(text: str) -> bool:
-        """
-        Detect whether the text uses space-separated words
-        (English, Vietnamese, …) vs. character-based scripts
-        (Japanese, Chinese, …).
-        """
-        return " " in text.strip()
-
-    # ------------------------------------------------------------------ #
-    #  Step 1 — Length Filtering                                           #
+    #  Step 2 — Absolute Filtering (Sanitize)                              #
     # ------------------------------------------------------------------ #
 
     @classmethod
-    def _filter_by_length(
-        cls,
-        correct: str,
-        pool: List[str],
-        is_space_sep: bool,
-    ) -> tuple:
+    def _split_meaning(cls, text: str) -> Set[str]:
         """
-        Split *pool* into two buckets:
-        - **exact_matches**: same word/char count as *correct*.
-        - **fuzzy_matches**: ±1 tolerance.
-
-        Returns:
-            (exact_matches, fuzzy_matches)   — fuzzy does NOT include exact.
+        Splits a vocabulary meaning string into a normalized set of base intents.
+        e.g., "Màu cam, quả cam / xe cộ" -> {"màu cam", "quả cam", "xe cộ"}
         """
-        target_len = cls._measure_length(correct, is_space_sep)
+        if not text:
+            return set()
+        
+        # Split by typical dictionary delimiters
+        parts = re.split(r'[;/,|]+', text)
+        
+        # Strip whitespace and lowercase
+        clean_parts = {part.strip().lower() for part in parts if part.strip()}
+        return clean_parts
 
-        exact: List[str] = []
-        fuzzy: List[str] = []
-
+    @classmethod
+    def _filter_candidates(cls, correct_answer: str, pool: List[str]) -> List[str]:
+        """
+        Discard any candidate that shares ANY meaning intent with the target.
+        Also discards identical string duplicates.
+        """
+        target_intents = cls._split_meaning(correct_answer)
+        
+        valid_pool = []
+        seen_texts = set()
+        
         for candidate in pool:
-            c_len = cls._measure_length(candidate, is_space_sep)
-            diff = abs(c_len - target_len)
+            # Skip physical string duplicates
+            if candidate.lower().strip() in seen_texts:
+                continue
+                
+            # Skip if candidate IS the correct answer
+            if candidate == correct_answer:
+                continue
 
-            if diff == 0:
-                exact.append(candidate)
-            elif diff == 1:
-                fuzzy.append(candidate)
-
-        return exact, fuzzy
-
-    @staticmethod
-    def _measure_length(text: str, is_space_sep: bool) -> int:
-        """Word count (space-sep) or character count."""
-        if is_space_sep:
-            return len(text.split())
-        return len(text)
+            cand_intents = cls._split_meaning(candidate)
+            
+            # Intersection Check: Is there any overlap in their meanings?
+            # E.g Target = {"to eat", "consume"}, Cand = {"to drink", "consume"} -> Overlap!
+            overlap = target_intents.intersection(cand_intents)
+            
+            if not overlap:
+                valid_pool.append(candidate)
+                seen_texts.add(candidate.lower().strip())
+                
+        return valid_pool
 
     # ------------------------------------------------------------------ #
-    #  Step 2 — Similarity Scoring                                        #
+    #  Step 3 — Trickiness Scoring                                         #
     # ------------------------------------------------------------------ #
 
     @classmethod
-    def _score_and_filter(
-        cls,
-        correct: str,
-        candidates: List[str],
-        is_space_sep: bool,
-    ) -> List[str]:
+    def _get_jp_pattern(cls, text: str) -> str:
         """
-        Compute overlap between *correct* and each candidate, return
-        only those with score > 0, shuffled to avoid deterministic order.
+        Returns a string representing the Japanese composition: 
+        K (Kanji), H (Hiragana), C (Katakana)
         """
-        if not candidates:
-            return []
+        pattern = []
+        for char in text:
+            # Kanji (CJK Unified Ideographs)
+            if '\u4e00' <= char <= '\u9faf':
+                pattern.append('K')
+            # Hiragana
+            elif '\u3040' <= char <= '\u309f':
+                pattern.append('H')
+            # Katakana
+            elif '\u30a0' <= char <= '\u30ff':
+                pattern.append('C')
+        return "".join(pattern)
 
-        if is_space_sep:
-            correct_tokens = set(correct.lower().split())
-        else:
-            correct_tokens = set(correct)
+    @classmethod
+    def _extract_kanji(cls, text: str) -> Set[str]:
+        """Extracts a set of all Kanji characters from a string."""
+        return {char for char in text if '\u4e00' <= char <= '\u9faf'}
 
-        scored: List[tuple] = []  # (score, candidate)
+    @classmethod
+    def _tokenize(cls, text: str) -> Set[str]:
+        """Splits into words and removes punctuation for scoring overlap."""
+        # Replace non-alphanumeric with space and split
+        clean_text = re.sub(r'[^\w\s]', ' ', text.lower())
+        return set(clean_text.split())
 
-        for cand in candidates:
-            if is_space_sep:
-                cand_tokens = set(cand.lower().split())
-            else:
-                cand_tokens = set(cand)
-
-            overlap = len(correct_tokens & cand_tokens)
-
-            if overlap > 0:
-                scored.append((overlap, cand))
-
-        # Shuffle within each score tier so sampling is fair
+    @classmethod
+    def _score_candidates(cls, correct_answer: str, valid_candidates: List[str]) -> List[tuple]:
+        """
+        Scores candidates based on physical similarity to the target answer.
+        Returns a sorted list of tuples: [(score, candidate), ...] (Descending)
+        """
+        target_len_chars = len(correct_answer)
+        target_len_words = len(correct_answer.split())
+        target_tokens = cls._tokenize(correct_answer)
+        
+        # Analyze target for Japanese characteristics
+        target_jp_pattern = cls._get_jp_pattern(correct_answer)
+        target_kanji_set = cls._extract_kanji(correct_answer)
+        has_japanese = len(target_jp_pattern) > 0
+        
+        scored = []
+        
+        for cand in valid_candidates:
+            score = 0
+            cand_len_chars = len(cand)
+            cand_len_words = len(cand.split())
+            cand_tokens = cls._tokenize(cand)
+            
+            # 1. Length Similarity (Characters): Smaller difference = higher score
+            char_diff = abs(target_len_chars - cand_len_chars)
+            score += max(0, 10 - char_diff)  # Max 10 points
+            
+            # 2. Word Count Similarity: Smaller difference = higher score
+            word_diff = abs(target_len_words - cand_len_words)
+            score += max(0, 10 - (word_diff * 3)) # Max 10 points
+            
+            # 3. Keyword Overlap (The Trap): 
+            # If they share non-stop-words, it looks like a tricky correct answer.
+            shared_tokens = target_tokens.intersection(cand_tokens)
+            meaningful_shared = shared_tokens - STOP_WORDS
+            
+            if meaningful_shared:
+                score += len(meaningful_shared) * 30  # Massive bonus
+                
+            # 4. Japanese Orthography Heuristics
+            if has_japanese:
+                cand_jp_pattern = cls._get_jp_pattern(cand)
+                cand_kanji_set = cls._extract_kanji(cand)
+                
+                # Rule 1: Exact Pattern Match (e.g. both are "KK" -> 2 Kanji)
+                if cand_jp_pattern and cand_jp_pattern == target_jp_pattern:
+                    score += 50
+                    
+                # Rule 2: Shared Kanji (Massive trap! Target "学校" vs Cand "学生" shares "学")
+                shared_kanji = target_kanji_set.intersection(cand_kanji_set)
+                if shared_kanji:
+                    score += len(shared_kanji) * 100
+                
+            scored.append((score, cand))
+            
+        # Pre-shuffle so that candidates with the EXACT same score are randomly ordered
         random.shuffle(scored)
-        # Stable-sort descending by score (shuffle preserves tie-breaking)
+        
+        # Sort descending by score
         scored.sort(key=lambda x: x[0], reverse=True)
-
-        return [cand for _, cand in scored]
-
-    # ------------------------------------------------------------------ #
-    #  Step 3 + 4 — Assembly with Fallback                                #
-    # ------------------------------------------------------------------ #
-
-    @staticmethod
-    def _assemble(
-        high_quality: List[str],
-        exact_length: List[str],
-        fuzzy_length: List[str],
-        full_pool: List[str],
-        amount: int,
-    ) -> List[str]:
-        """
-        Pick *amount* distractors with cascading fallback:
-          1. Random sample from high-quality (overlap > 0, exact length).
-          2. Fill from remaining exact-length candidates.
-          3. Fill from fuzzy-length candidates.
-          4. Fill from the entire pool.
-        """
-        selected: List[str] = []
-        used: set = set()
-
-        def _pick_from(source: List[str], n: int):
-            """Sample up to *n* items from *source*, avoiding duplicates."""
-            available = [s for s in source if s not in used]
-            pick = random.sample(available, min(n, len(available)))
-            selected.extend(pick)
-            used.update(pick)
-
-        remaining = amount
-
-        # Tier 1: High-quality candidates (scored, same length, overlap > 0)
-        _pick_from(high_quality, remaining)
-        remaining = amount - len(selected)
-
-        if remaining <= 0:
-            return selected
-
-        # Tier 2: Same-length but no overlap
-        _pick_from(exact_length, remaining)
-        remaining = amount - len(selected)
-
-        if remaining <= 0:
-            return selected
-
-        # Tier 3: Fuzzy-length (±1)
-        _pick_from(fuzzy_length, remaining)
-        remaining = amount - len(selected)
-
-        if remaining <= 0:
-            return selected
-
-        # Tier 4: Any remaining from the full pool
-        _pick_from(full_pool, remaining)
-
-        return selected
+        
+        return scored

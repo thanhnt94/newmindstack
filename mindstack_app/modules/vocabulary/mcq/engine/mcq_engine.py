@@ -45,8 +45,19 @@ class MCQEngine:
         correct_answer = get_content_value(content, answer_key)
         
         # 5. Build Distractor Pool using the same answer_key
+        # Step 1: True Random Fetching & Full Set Evaluation
         distractor_pool = []
-        for other in all_items_data:
+        
+        # Shuffle a copy to ensure predictability is gone for tie-breaking
+        shuffled_items = list(all_items_data)
+        random.shuffle(shuffled_items)
+        
+        # Scan the entire shuffled set to allow Trickiness Scorer to find the best possible traps (e.g. shared Kanji).
+        # We cap at 2000 to prevent performance bottlenecks on massive dictionary sets.
+        for other in shuffled_items:
+            if len(distractor_pool) >= 2000:
+                break
+                
             if other['item_id'] != item_data['item_id']:
                 c = other.get('content', {})
                 val = get_content_value(c, answer_key)

@@ -19,6 +19,14 @@ VOCAB_MODES = [
         color='amber',
         filter_method='filter_cram',
         description='Ôn tập ngẫu nhiên các thẻ đã học. Có tính vào tiến độ SRS.'
+    ),
+    FlashcardMode(
+        id='new',
+        label='Chỉ học thẻ mới',
+        icon='fa-leaf',
+        color='blue',
+        filter_method='filter_new_only',
+        description='Chỉ hiển thị các thẻ chưa từng học, đẩy thẻ theo thứ tự tuần tự.'
     )
 ]
 
