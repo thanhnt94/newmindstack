@@ -751,40 +751,8 @@
     function updateMobileStats(stats) {
         if (!stats) return;
 
-        // 1. Session Progress (Left Header: 0/0)
-        // Selectors: .js-fc-progress-text, .js-fc-answered-count
-        const currentQNum = document.getElementById('current-q-num');
-        const totalQNum = document.getElementById('total-q-num');
-        const totalQSep = document.getElementById('total-q-sep');
-
-        if (stats.total > 0) {
-            const percent = Math.min(100, Math.round((stats.processed / stats.total) * 100));
-            document.querySelectorAll('.js-fc-progress-fill').forEach(el => el.style.width = percent + '%');
-
-            // Show total parts
-            if (totalQSep) totalQSep.classList.remove('hidden');
-            if (totalQNum) {
-                totalQNum.classList.remove('hidden');
-                totalQNum.textContent = stats.total;
-            }
-        } else {
-            // Unlimited mode - hide total parts
-            if (totalQSep) totalQSep.classList.add('hidden');
-            if (totalQNum) totalQNum.classList.add('hidden');
-        }
-
-        // Always update current number
-        if (currentQNum) {
-            // stats.processed in manager is already (answered_count + 1)
-            // so we just show it directly.
-            currentQNum.textContent = stats.processed || 1;
-        }
-
-        // Standard progress text updates
-        const progressText = `${stats.processed}`;
-        document.querySelectorAll('.js-fc-progress-text').forEach(el => el.textContent = progressText);
-        document.querySelectorAll('.js-fc-answered-count').forEach(el => el.textContent = stats.processed);
-        document.querySelectorAll('.js-fc-total-count').forEach(el => el.textContent = stats.total || '∞');
+        // 1. Session Progress (Removed as per user request to drop total_items in UI)
+        // Kept empty blocks here to avoid breaking downstream indices.
 
         // 2. Session Correct Count (Green Check)
         document.querySelectorAll('.js-fc-session-correct, #live-correct').forEach(el => {

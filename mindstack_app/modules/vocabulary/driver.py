@@ -93,37 +93,13 @@ class VocabularyDriver(BaseSessionDriver):
         if fsrs_filter == 'cram':
             fsrs_filter = 'review'
         
-        if fsrs_filter in ['srs', 'mixed', 'mixed_srs']:
-            current_app.logger.info(f"[VOCAB_DRIVER] Applying Split Limit for {fsrs_filter}")
-            print(f" [VOCAB_DRIVER] Applying Split Limit for {fsrs_filter}")
-            from mindstack_app.modules.fsrs.interface import FSRSInterface
+        if fsrs_filter in ['srs', 'mixed', 'mixed_srs', 'due', 'new', 'review', 'available']:
+            current_app.logger.info(f"[VOCAB_DRIVER] Applying DB Filter (DYNAMIC): {fsrs_filter}")
+            print(f" [VOCAB_DRIVER] Applying DB Filter (DYNAMIC): {fsrs_filter}")
             
-            # Base query is `items_query`
-            
-            # 1. Due Items (Unlimited)
-            q_due = items_query
-            q_due = FSRSInterface.apply_memory_filter(q_due, user_id, 'due')
-            due_ids = [i.item_id for i in q_due.all()]
-            
-            # 2. New Items (Default Limit 999,999 - Unlimited)
-            new_limit = settings.get('new_limit', 999999)
-            q_new = items_query
-            q_new = FSRSInterface.apply_memory_filter(q_new, user_id, 'new')
-            q_new = q_new.limit(new_limit)
-            new_ids = [i.item_id for i in q_new.all()]
-            
-            item_ids = due_ids + new_ids
-            current_app.logger.info(f"[VOCAB_DRIVER] Split Load: {len(due_ids)} Due + {len(new_ids)} New (Limit {new_limit})")
-            print(f" [VOCAB_DRIVER] Split Load: {len(due_ids)} Due + {len(new_ids)} New (Limit {new_limit})")
-            print(f" [VOCAB_DRIVER] Due IDs (first 10): {due_ids[:10]}")
-            print(f" [VOCAB_DRIVER] New IDs (first 10): {new_ids[:10]}")
-            
-            if 2640 in item_ids:
-                print(f" [VOCAB_DRIVER] !!! CRITICAL: Item 2640 FOUND in queue!")
-                if 2640 in due_ids: print("   -> It is in DUE list.")
-                if 2640 in new_ids: print("   -> It is in NEW list.")
-            else:
-                print(f" [VOCAB_DRIVER] Item 2640 NOT in queue (Correct).")
+            # Since we dynamically fetch on-the-fly, we keep the queue empty.
+            item_ids = []
+            total_items_estimated = 0
             
         elif fsrs_filter:
             current_app.logger.info(f"[VOCAB_DRIVER] Applying DB Filter: {fsrs_filter}")
@@ -131,15 +107,17 @@ class VocabularyDriver(BaseSessionDriver):
             from mindstack_app.modules.fsrs.interface import FSRSInterface
             items_query = FSRSInterface.apply_memory_filter(items_query, user_id, fsrs_filter)
             item_ids = [i.item_id for i in items_query.all()]
+            total_items_estimated = 0
         else:
             # Default sort if no filter
             print(f" [VOCAB_DRIVER] NO FILTER SET! Using default sequential sort.")
             items_query = items_query.order_by(LearningItem.container_id.asc(), LearningItem.order_in_container.asc())
             item_ids = [i.item_id for i in items_query.all()]
+            total_items_estimated = 0
             if 2640 in item_ids: print(f" [VOCAB_DRIVER] Item 2640 found in unfiltered sequential list.")
         
-        current_app.logger.info(f"[VOCAB_DRIVER] Optimized Session Init: {len(item_ids)} items loaded.")
-        print(f" [VOCAB_DRIVER] Optimized Session Init: {len(item_ids)} items loaded.")
+        current_app.logger.info(f"[VOCAB_DRIVER] Optimized Session Init: {len(item_ids)} items statically loaded.")
+        print(f" [VOCAB_DRIVER] Optimized Session Init: {len(item_ids)} items statically loaded.")
 
         # 3. Build state
         state = SessionState(
@@ -147,7 +125,7 @@ class VocabularyDriver(BaseSessionDriver):
             container_id=container_id,
             mode=mode,
             item_queue=item_ids,
-            total_items=len(item_ids),
+            total_items=total_items_estimated,
             settings=settings,
         )
 
@@ -162,16 +140,50 @@ class VocabularyDriver(BaseSessionDriver):
         """
         Fetch the next item and format it using the active Mode.
         """
-        # Check if queue is exhausted
+        # Check if queue is exhausted or dynamically loading
         remaining = [
             iid for iid in state.item_queue
             if iid not in state.processed_ids
         ]
 
-        if not remaining:
-            return None
+        next_item_id = None
+        is_last = False
 
-        next_item_id = remaining[0]
+        if remaining:
+            next_item_id = remaining[0]
+            is_last = len(remaining) == 1
+        elif state.settings.get('filter') in ['due', 'new', 'review', 'available', 'srs', 'mixed', 'mixed_srs']:
+            # DYNAMIC FETCH: Fallback to FlashcardEngine to fetch the next best item if queue is empty
+            from mindstack_app.modules.vocabulary.flashcard.engine.core import FlashcardEngine
+            set_ids_override = state.settings.get('set_ids')
+            target_set_ids = set_ids_override if set_ids_override else [state.container_id]
+            
+            # Use 'state.settings.get('filter')' or 'state.mode' as the fetch mode?
+            # FlashcardEngine expects the mode ID (like 'srs', 'new')
+            # state.settings['filter'] usually holds the FSRS mode. Default to state.mode.
+            fetch_mode = state.settings.get('filter') or state.mode
+            
+            batch_data = FlashcardEngine.get_next_batch(
+                user_id=state.user_id,
+                set_id=target_set_ids,
+                mode=fetch_mode,
+                processed_ids=state.processed_ids,
+                batch_size=1
+            )
+            
+            if batch_data and batch_data.get('items'):
+                next_item_id = batch_data['items'][0].get('item_id')
+                # If we dynamically fetch, we aren't completely sure if it's the last one
+                # unless we check total_items_in_session remaining, but typically dynamic means potentially endless until 0
+                is_last = False 
+                
+                # Update total items dynamically if engine returned it
+                estimated_total = batch_data.get('total_items_in_session')
+                if estimated_total is not None and estimated_total > state.total_items:
+                    state.total_items = estimated_total
+
+        if not next_item_id:
+            return None
 
         # Load item data from DB
         item_data = self._load_item_data(next_item_id)
@@ -193,7 +205,8 @@ class VocabularyDriver(BaseSessionDriver):
 
         # Progress info
         current_pos = len(state.processed_ids) + 1
-        is_last = len(remaining) == 1
+        # For dynamic modes where remaining is empty, estimate remaining
+        remaining_count = len(remaining) if remaining else max(0, state.total_items - len(state.processed_ids))
 
         return InteractionPayload(
             item_id=next_item_id,
@@ -202,7 +215,7 @@ class VocabularyDriver(BaseSessionDriver):
             progress={
                 'current': current_pos,
                 'total': state.total_items,
-                'remaining': len(remaining),
+                'remaining': remaining_count,
             },
             is_last=is_last,
         )
