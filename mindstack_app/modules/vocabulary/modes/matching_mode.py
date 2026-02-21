@@ -46,13 +46,23 @@ class MatchingMode(BaseVocabMode):
         num_distractors = min(len(candidates), board_size - 1)
         distractors = random.sample(candidates, num_distractors)
         
+        # [NEW] Get media folders from container for BBCode resolution
+        from mindstack_app.models import LearningContainer
+        from mindstack_app.utils.bbcode_parser import bbcode_to_html
+        
+        container_id = item.get('container_id')
+        container = LearningContainer.query.get(container_id) if container_id else None
+        audio_folder = container.media_audio_folder if container else None
+        image_folder = container.media_image_folder if container else None
+        
         # Build pairs
         pairs = []
         for i in [item] + distractors:
+            raw_c = i.get('content') or {}
             pairs.append({
                 'id': i['item_id'],
-                'front': i.get('front') or (i.get('content') or {}).get('front', ''),
-                'back': i.get('back') or (i.get('content') or {}).get('back', ''),
+                'front': bbcode_to_html(i.get('front') or raw_c.get('front', ''), audio_folder=audio_folder, image_folder=image_folder),
+                'back': bbcode_to_html(i.get('back') or raw_c.get('back', ''), audio_folder=audio_folder, image_folder=image_folder),
             })
             
         # Shuffle positions (Frontend will handle layout, but we provide randomized list)

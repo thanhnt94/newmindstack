@@ -50,13 +50,24 @@ class TypingMode(BaseVocabMode):
             prompt_text = front
             target_text = back
 
-        # Generate Scrambled Hint
+        # 2. BBCode Rendering & Path Resolution for Prompt
+        from mindstack_app.utils.bbcode_parser import bbcode_to_html
+        from mindstack_app.models import LearningContainer
+        
+        container_id = item.get('container_id')
+        container = LearningContainer.query.get(container_id) if container_id else None
+        audio_folder = container.media_audio_folder if container else None
+        image_folder = container.media_image_folder if container else None
+        
+        rendered_prompt = bbcode_to_html(prompt_text, audio_folder=audio_folder, image_folder=image_folder)
+
+        # 3. Generate Scrambled Hint (from raw text, not rendered)
         hint_text = self._scramble_text(target_text)
         
         return {
             'type': 'typing',
             'item_id': item.get('item_id'),
-            'question': prompt_text,
+            'question': rendered_prompt,
             'hint': hint_text,
             'length': len(target_text),
             'meta': {

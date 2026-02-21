@@ -219,7 +219,9 @@ class MCQService:
             'question_key': config.get('question_key') or mcq_settings.get('question_key'),
             'answer_key': config.get('answer_key') or mcq_settings.get('answer_key'),
             'custom_pairs': config.get('custom_pairs') or mcq_settings.get('pairs') or mcq_settings.get('custom_pairs'),
-            'count': config.get('count') if config.get('count') is not None else mcq_settings.get('count', 0)
+            'count': config.get('count') if config.get('count') is not None else mcq_settings.get('count', 0),
+            'audio_folder': container.media_audio_folder if container else None,
+            'image_folder': container.media_image_folder if container else None,
         }
 
         # 2. Get learned items (Questions Source)

@@ -48,26 +48,24 @@ class FlashcardMode(BaseVocabMode):
         """
         Build a flashcard payload with full frontend support (BBCode, Stats, Audio).
         """
-        # 1. BBCode Rendering
+        # 1. BBCode Rendering & Path Resolution
         from mindstack_app.utils.content_renderer import render_content_dict
-        raw_content = item.get('content', {})
-        rendered_content = render_content_dict(raw_content)
-
-        # 2. Media Path Resolution (Audio/Images)
-        from mindstack_app.utils.media_paths import build_relative_media_path
+        from mindstack_app.utils.media_paths import resolve_media_in_content
         from mindstack_app.models import LearningContainer
         
         container_id = item.get('container_id')
         container = LearningContainer.query.get(container_id) if container_id else None
-        media_folder = container.media_audio_folder if container else None
+        audio_folder = container.media_audio_folder if container else None
+        image_folder = container.media_image_folder if container else None
         
-        # Resolve audio paths in rendered content
-        for field in ['front_audio_url', 'back_audio_url', 'front_img', 'back_img']:
-            val = rendered_content.get(field)
-            if val and not val.startswith(('http://', 'https://', '/')):
-                rel_path = build_relative_media_path(val, media_folder)
-                if rel_path:
-                    rendered_content[field] = f"/media/{rel_path}"
+        raw_content = item.get('content', {})
+        
+        # First, resolve relative paths for dedicated fields (front_img, front_audio_url, etc.)
+        # This ensures they are ready for renderer
+        resolved_content = resolve_media_in_content(dict(raw_content), audio_folder=audio_folder, image_folder=image_folder)
+        
+        # Then, render BBCode (which now also resolves relative paths in [img] tags)
+        rendered_content = render_content_dict(resolved_content, audio_folder=audio_folder, image_folder=image_folder)
 
         # 3. Fetch Stats (Local import to avoid cycle with core -> vocab_mode -> core)
         from mindstack_app.modules.vocabulary.flashcard.engine.core import FlashcardEngine

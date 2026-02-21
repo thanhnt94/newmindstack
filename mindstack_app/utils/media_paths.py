@@ -122,3 +122,38 @@ def build_relative_media_path(value, media_folder: Optional[str]) -> Optional[st
 
     return normalized
 
+
+def resolve_media_in_content(content: dict, audio_folder: Optional[str] = None, image_folder: Optional[str] = None) -> dict:
+    """
+    In-place resolve relative media paths in a content dictionary.
+    
+    Args:
+        content: The content dictionary to modify.
+        audio_folder: The base folder for audio files.
+        image_folder: The base folder for image files.
+        
+    Returns:
+        dict: The modified content dictionary.
+    """
+    if not isinstance(content, dict):
+        return content
+
+    # 1. Resolve Audio Fields
+    audio_fields = ['front_audio_url', 'back_audio_url', 'audio_url', 'question_audio_file', 'memrise_audio_url']
+    for field in audio_fields:
+        val = content.get(field)
+        if val and isinstance(val, str) and not val.startswith(('http://', 'https://', '/')):
+            rel_path = build_relative_media_path(val, audio_folder)
+            if rel_path:
+                content[field] = f"/media/{rel_path}"
+
+    # 2. Resolve Image Fields
+    image_fields = ['front_img', 'back_img', 'image_url', 'question_image_file', 'cover_image']
+    for field in image_fields:
+        val = content.get(field)
+        if val and isinstance(val, str) and not val.startswith(('http://', 'https://', '/')):
+            rel_path = build_relative_media_path(val, image_folder)
+            if rel_path:
+                content[field] = f"/media/{rel_path}"
+
+    return content

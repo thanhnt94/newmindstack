@@ -43,12 +43,20 @@ class MCQMode(BaseVocabMode):
         from mindstack_app.modules.vocabulary.mcq.engine.mcq_engine import MCQEngine
 
         settings = settings or {}
+        
+        # [NEW] Get media folders from container for BBCode resolution
+        from mindstack_app.models import LearningContainer
+        container_id = item.get('container_id')
+        container = LearningContainer.query.get(container_id) if container_id else None
+        
         config = {
             'mode': settings.get('direction', 'front_back'),
             'num_choices': settings.get('num_choices', 4),
             'question_key': settings.get('question_key'),
             'answer_key': settings.get('answer_key'),
             'custom_pairs': settings.get('custom_pairs'),
+            'audio_folder': container.media_audio_folder if container else None,
+            'image_folder': container.media_image_folder if container else None,
         }
 
         question_data = MCQEngine.generate_question(

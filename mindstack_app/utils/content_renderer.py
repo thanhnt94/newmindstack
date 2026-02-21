@@ -51,13 +51,15 @@ SKIP_FIELDS = {
 }
 
 
-def render_text_field(value, field_name=None):
+def render_text_field(value, field_name=None, audio_folder=None, image_folder=None):
     """
     Render BBCode trong một text field đơn lẻ.
     
     Args:
         value: Giá trị cần render
         field_name: Tên field (để check skip list)
+        audio_folder: Thư mục chứa audio (cho BBCode)
+        image_folder: Thư mục chứa ảnh (cho BBCode)
         
     Returns:
         str: HTML đã render hoặc value gốc nếu không phải string
@@ -68,10 +70,10 @@ def render_text_field(value, field_name=None):
         return value
     if not value.strip():
         return value
-    return bbcode_to_html(value)
+    return bbcode_to_html(value, audio_folder=audio_folder, image_folder=image_folder)
 
 
-def render_content_dict(content_dict, parent_key=None):
+def render_content_dict(content_dict, parent_key=None, audio_folder=None, image_folder=None):
     """
     Render BBCode trong tất cả text fields của một content dict.
     Hỗ trợ nested dicts (như 'options': {'A': '...', 'B': '...'}).
@@ -79,6 +81,8 @@ def render_content_dict(content_dict, parent_key=None):
     Args:
         content_dict: Dict chứa content cần render
         parent_key: Key của parent dict (để xử lý nested)
+        audio_folder: Thư mục chứa audio (cho BBCode)
+        image_folder: Thư mục chứa ảnh (cho BBCode)
         
     Returns:
         dict: Content đã được render BBCode
@@ -97,16 +101,16 @@ def render_content_dict(content_dict, parent_key=None):
             
         if isinstance(value, dict):
             # Recursive cho nested dicts (như options, shared_values)
-            result[key] = render_content_dict(value, parent_key=key)
+            result[key] = render_content_dict(value, parent_key=key, audio_folder=audio_folder, image_folder=image_folder)
         elif isinstance(value, list):
             # Handle lists (render each string item)
             result[key] = [
-                bbcode_to_html(item) if isinstance(item, str) else item
+                bbcode_to_html(item, audio_folder=audio_folder, image_folder=image_folder) if isinstance(item, str) else item
                 for item in value
             ]
         elif isinstance(value, str) and value.strip():
             # Render text fields
-            result[key] = bbcode_to_html(value)
+            result[key] = bbcode_to_html(value, audio_folder=audio_folder, image_folder=image_folder)
         else:
             # Keep as-is (numbers, booleans, None, empty strings)
             result[key] = value
@@ -114,13 +118,15 @@ def render_content_dict(content_dict, parent_key=None):
     return result
 
 
-def render_item_content(item_dict):
+def render_item_content(item_dict, audio_folder=None, image_folder=None):
     """
     Render BBCode cho toàn bộ item dict (flashcard hoặc quiz item).
     Áp dụng cho item_dict['content'] và các text fields ở top level.
     
     Args:
         item_dict: Dict chứa item data
+        audio_folder: Thư mục chứa audio (cho BBCode)
+        image_folder: Thư mục chứa ảnh (cho BBCode)
         
     Returns:
         dict: Item dict đã được render
@@ -132,11 +138,11 @@ def render_item_content(item_dict):
     
     # Render content dict nếu có
     if 'content' in result and isinstance(result['content'], dict):
-        result['content'] = render_content_dict(result['content'])
+        result['content'] = render_content_dict(result['content'], audio_folder=audio_folder, image_folder=image_folder)
     
     # Render các text fields ở top level
     for field in ['ai_explanation', 'note_content', 'explanation']:
         if field in result and isinstance(result[field], str):
-            result[field] = bbcode_to_html(result[field])
+            result[field] = bbcode_to_html(result[field], audio_folder=audio_folder, image_folder=image_folder)
     
     return result

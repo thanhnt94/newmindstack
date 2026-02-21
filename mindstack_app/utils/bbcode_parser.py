@@ -61,15 +61,33 @@ def render_youtube(tag_name, value, options, parent, context):
     )
     return embed_html
 
+# --- Custom Img Renderer ---
+
+def render_img(tag_name, value, options, parent, context):
+    """
+    Render [img]...[/img] with optional relative path resolution.
+    Value should be a URL or a filename.
+    """
+    if not value:
+        return ''
+    
+    src = str(value).strip()
+    image_folder = context.get('image_folder')
+    
+    # Resolve relative path if not absolute and image_folder is provided
+    if not src.startswith(('http://', 'https://', '/')) and image_folder:
+        from .media_paths import build_relative_media_path
+        rel = build_relative_media_path(src, image_folder)
+        if rel:
+            src = f"/media/{rel}"
+            
+    return f'<img src="{src}" class="parsed-content-img" alt="Hình ảnh bài học" />'
+
 # --- Cấu hình Parser ---
 
 parser = bbcode.Parser()
-# [img]...[/img]
-parser.add_simple_formatter(
-    'img',
-    '<img src="%(value)s" class="parsed-content-img" alt="Hình ảnh bài học" />',
-    replace_links=False
-)
+# [img]...[/img] - Use custom formatter for path resolution
+parser.add_formatter('img', render_img, replace_links=False)
 
 # [center]...[/center]
 parser.add_simple_formatter('center', '<div style="text-align: center;">%(value)s</div>')
@@ -96,15 +114,16 @@ parser.add_formatter('color', render_color)
 
 # --- Hàm chuyển đổi chính ---
 
-def bbcode_to_html(bbcode_text):
+def bbcode_to_html(bbcode_text, **kwargs):
     """
     Mô tả: Chuyển chuỗi BBCode thành HTML.
     Args:
         bbcode_text (str): Chuỗi BBCode cần chuyển đổi.
+        **kwargs: Tham số context (ví dụ image_folder, audio_folder).
     Returns:
         str: HTML đã được chuyển đổi.
     Lưu ý: Khi render trong Jinja2, nhớ dùng |safe để không bị escape HTML.
     """
     if not bbcode_text:
         return ""
-    return parser.format(bbcode_text)
+    return parser.format(bbcode_text, **kwargs)

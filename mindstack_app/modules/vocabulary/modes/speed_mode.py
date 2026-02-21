@@ -47,12 +47,19 @@ class SpeedMode(BaseVocabMode):
         settings = settings or {}
         timeout_ms = settings.get('timeout_ms', 5000) # Default 5s
         
+        # [NEW] Get media folders from container for path resolution
+        from mindstack_app.models import LearningContainer
+        container_id = item.get('container_id')
+        container = LearningContainer.query.get(container_id) if container_id else None
+        
         config = {
             'mode': settings.get('direction', 'front_back'),
             'num_choices': 4, # Fixed to 4 for consistency
             'question_key': settings.get('question_key'),
             'answer_key': settings.get('answer_key'),
             'custom_pairs': settings.get('custom_pairs'),
+            'audio_folder': container.media_audio_folder if container else None,
+            'image_folder': container.media_image_folder if container else None,
         }
 
         # Adapter: Flatten content

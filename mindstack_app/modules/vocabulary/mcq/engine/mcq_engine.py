@@ -85,13 +85,17 @@ class MCQEngine:
         a_audio_url = content.get(f"{answer_key}_audio") or content.get('back_audio') or content.get('back_audio_url')
         q_audio_url = a_audio_url or content.get(f"{question_key}_audio") or content.get('front_audio') or content.get('front_audio_url')
 
+        # [NEW] Get media folders for BBCode resolution
+        image_folder = config.get('image_folder')
+        audio_folder = config.get('audio_folder')
+
         return {
             'item_id': item_data['item_id'],
-            'question': bbcode_to_html(question_text),
-            'choices': [bbcode_to_html(c) for c in choices],
+            'question': bbcode_to_html(question_text, image_folder=image_folder, audio_folder=audio_folder),
+            'choices': [bbcode_to_html(c, image_folder=image_folder, audio_folder=audio_folder) for c in choices],
             'choice_item_ids': choice_item_ids,
             'correct_index': correct_index,
-            'correct_answer': bbcode_to_html(correct_answer),
+            'correct_answer': bbcode_to_html(correct_answer, image_folder=image_folder, audio_folder=audio_folder),
             'question_key': question_key,
             'answer_key': answer_key,
             'question_audio': q_audio_url,

@@ -89,16 +89,18 @@ class FlashcardEngine:
             # First Time Check
             is_first_time_card = (initial_stats.get('status') == 'new' and initial_stats.get('times_reviewed') == 0)
 
-            item_content = render_content_dict(item.content) if item.content else {}
-
-            # Audio Path Resolution
-            media_folder = item.container.media_audio_folder if item.container else None
-            for field in ['front_audio_url', 'back_audio_url']:
-                val = item_content.get(field)
-                if val and not val.startswith(('http://', 'https://', '/')):
-                    rel_path = build_relative_media_path(val, media_folder)
-                    if rel_path:
-                        item_content[field] = f"/media/{rel_path}"
+            # Media Path Resolution (Dedicated fields & BBCode content)
+            from mindstack_app.utils.media_paths import resolve_media_in_content
+            audio_folder = item.container.media_audio_folder if item.container else None
+            image_folder = item.container.media_image_folder if item.container else None
+            
+            # First resolve relative paths for dedicated fields (front_img, etc.)
+            resolved_content = resolve_media_in_content(dict(item.content) if item.content else {}, 
+                                                       audio_folder=audio_folder, 
+                                                       image_folder=image_folder)
+            
+            # Then render BBCode (with media folder context)
+            item_content = render_content_dict(resolved_content, audio_folder=audio_folder, image_folder=image_folder)
 
             # Backend Rendering [Refactor - Thin Client]
             from .renderer import FlashcardRenderer
