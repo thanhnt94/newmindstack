@@ -90,7 +90,7 @@ class FSRSInterface:
             
         dto = SchedulerService._model_to_dto(state)
         engine = FSRSEngine() 
-        return engine.get_realtime_retention(dto, datetime.now(timezone.utc))
+        return engine.get_realtime_retention(dto, datetime.utcnow())
 
     @staticmethod
     def predict_next_intervals(user_id: int, item_id: int) -> Dict[int, str]:
@@ -165,7 +165,7 @@ class FSRSInterface:
     def get_due_items(user_id: int, limit: int = 100) -> List[ItemMemoryState]:
         """Get items due for review."""
         from datetime import datetime, timezone
-        now = datetime.now(timezone.utc)
+        now = datetime.utcnow()
         return ItemMemoryState.query.filter(
             ItemMemoryState.user_id == user_id,
             ItemMemoryState.due_date <= now
@@ -190,7 +190,7 @@ class FSRSInterface:
         from sqlalchemy import func
         from mindstack_app.core.extensions import db
         
-        now = datetime.now(timezone.utc)
+        now = datetime.utcnow()
         
         total_cards = ItemMemoryState.query.filter(ItemMemoryState.user_id == user_id).count()
         due_count = ItemMemoryState.query.filter(
@@ -228,7 +228,7 @@ class FSRSInterface:
         from mindstack_app.core.extensions import db
         from mindstack_app.models import LearningItem
         
-        now = datetime.now(timezone.utc)
+        now = datetime.utcnow()
         
         # Use explicit select for IN clause to avoid SAWarning
         item_ids_select = select(LearningItem.item_id).filter(
@@ -424,12 +424,12 @@ class FSRSInterface:
             
             total_retention = 0.0
             count = 0
-            now = datetime.now(timezone.utc)
+            now = datetime.utcnow()
             
             for stability, last_review in active_items:
                 if not stability or not last_review: continue
-                if last_review.tzinfo is None:
-                    last_review = last_review.replace(tzinfo=timezone.utc)
+                if last_review.tzinfo is not None:
+                    last_review = last_review.replace(tzinfo=None)
                 
                 elapsed_days = max(0, (now - last_review).total_seconds() / 86400.0)
                 retention = 0.9 ** (elapsed_days / stability)
@@ -1237,7 +1237,7 @@ class FSRSInterface:
             return 0.0
 
         if now is None:
-            now = datetime.datetime.now(datetime.timezone.utc)
+            now = datetime.datetime.utcnow()
 
         # 1. Convert to DTO
         dto = SchedulerService._model_to_dto(record)

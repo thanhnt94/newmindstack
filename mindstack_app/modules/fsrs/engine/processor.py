@@ -65,7 +65,7 @@ class FSRSProcessor:
         else:
             fsrs_rating = FSRSProcessor._normalize_rating(quality)
             
-        now = datetime.datetime.now(datetime.timezone.utc)
+        now = datetime.datetime.utcnow()
         
         # 2. Fetch/Create Progress (Unified Item Memory)
         state_record = ItemMemoryState.query.filter_by(
@@ -83,8 +83,8 @@ class FSRSProcessor:
 
         # 3. Build CardState
         last_review = state_record.last_review
-        if last_review and last_review.tzinfo is None:
-            last_review = last_review.replace(tzinfo=datetime.timezone.utc)
+        if last_review and last_review.tzinfo is not None:
+            last_review = last_review.replace(tzinfo=None)
             
         # Calculate current_interval (scheduled_days) from stability/last_review if not stored explicitly?
         # FSRS formula: interval = (due - last_review).days approximately
@@ -93,7 +93,7 @@ class FSRSProcessor:
         # LearningProgress had it. I should use (due_date - last_review) or 0.
         current_ivl = 0.0
         if state_record.due_date and last_review:
-             delta = (state_record.due_date.replace(tzinfo=datetime.timezone.utc) - last_review)
+             delta = (state_record.due_date - last_review) if last_review else datetime.timedelta(0)
              current_ivl = max(0.0, delta.total_seconds() / 86400.0)
 
         card_dto = CardStateDTO(
@@ -195,13 +195,13 @@ class FSRSProcessor:
         if not state.stability or state.stability <= 0:
             return 1.0
         
-        now = datetime.datetime.now(datetime.timezone.utc)
+        now = datetime.datetime.utcnow()
         last_review = state.last_review
         if not last_review: 
             return 1.0
         
-        if last_review.tzinfo is None:
-            last_review = last_review.replace(tzinfo=datetime.timezone.utc)
+        if last_review.tzinfo is not None:
+            last_review = last_review.replace(tzinfo=None)
         
         elapsed_days = (now - last_review).total_seconds() / 86400.0
         # If just reviewed now, retrievability is 1.0 (100%)

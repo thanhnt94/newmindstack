@@ -102,17 +102,17 @@ class FSRSEngine:
         Process a review and return the new state, next due date, and log data.
         """
         if now is None:
-            now = datetime.datetime.now(datetime.timezone.utc)
-        if now.tzinfo is None:
-            now = now.replace(tzinfo=datetime.timezone.utc)
+            now = datetime.datetime.utcnow()
+        if now.tzinfo is not None:
+            now = now.replace(tzinfo=None)
 
         fsrs_rating = max(1, min(4, rating))
         memory_state = self._to_memory_state(card_state)
         
         if card_state.last_review:
             last_review = card_state.last_review
-            if last_review.tzinfo is None:
-                last_review = last_review.replace(tzinfo=datetime.timezone.utc)
+            if last_review.tzinfo is not None:
+                last_review = last_review.replace(tzinfo=None)
             days_elapsed = (now - last_review).total_seconds() / 86400.0
         else:
             days_elapsed = 0.0
@@ -172,12 +172,12 @@ class FSRSEngine:
         Returns a dict mapping Rating -> Display String (e.g. '1d').
         """
         memory_state = self._to_memory_state(card_state)
-        now = datetime.datetime.now(datetime.timezone.utc)
+        now = datetime.datetime.utcnow()
         
         if card_state.last_review:
             last_review = card_state.last_review
-            if last_review.tzinfo is None:
-                last_review = last_review.replace(tzinfo=datetime.timezone.utc)
+            if last_review.tzinfo is not None:
+                last_review = last_review.replace(tzinfo=None)
             days_elapsed = (now - last_review).total_seconds() / 86400.0
         else:
             days_elapsed = 0.0

@@ -71,7 +71,7 @@ class SchedulerService:
         item_state = SchedulerService._get_or_create_state(user_id, item_id)
         card_dto = SchedulerService._model_to_dto(item_state)
         
-        now = datetime.datetime.now(datetime.timezone.utc)
+        now = datetime.datetime.utcnow()
         
         if only_count:
             # [FIX] Do NOT update repetitions or last_review for practice modes.
@@ -217,7 +217,7 @@ class SchedulerService:
             desired_retention = float(FSRSSettingsService.get('FSRS_DESIRED_RETENTION', 0.9))
             engine = FSRSEngine(custom_weights=effective_weights, desired_retention=desired_retention)
             
-            now = datetime.datetime.now(datetime.timezone.utc)
+            now = datetime.datetime.utcnow()
             previews = {}
             
             for rating in [1, 2, 3, 4]:
