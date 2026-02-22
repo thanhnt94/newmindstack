@@ -2,6 +2,7 @@ from datetime import datetime, timezone
 from flask import current_app
 from mindstack_app.models import db, LearningSession, User
 from mindstack_app.utils.db_session import safe_commit
+from sqlalchemy.orm.attributes import flag_modified
 
 class LearningSessionService:
     """
@@ -134,6 +135,7 @@ class LearningSessionService:
                 session.correct_count = 0
                 session.incorrect_count = 0
                 session.vague_count = 0
+                flag_modified(session, 'processed_item_ids')
                 db.session.add(session)
                 safe_commit(db.session)
                 return True
@@ -170,6 +172,7 @@ class LearningSessionService:
                 if session.current_item_id == item_id:
                     session.current_item_id = None
 
+                flag_modified(session, 'processed_item_ids')
                 db.session.add(session)
                 safe_commit(db.session)
                 return True
@@ -310,7 +313,7 @@ class LearningSessionService:
             settings=settings,
         )
 
-        # 3. Persist to DB
+        # 3. Persist to DB (include settings for dynamic session reconstruction)
         db_session = LearningSessionService.create_session(
             user_id=user_id,
             learning_mode=learning_mode,
@@ -318,6 +321,7 @@ class LearningSessionService:
             set_id_data=container_id,
             total_items=driver_state.total_items,
             item_queue=driver_state.item_queue,
+            extra_data={'settings': settings},
         )
 
         if db_session is None:

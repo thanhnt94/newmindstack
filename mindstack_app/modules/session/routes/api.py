@@ -279,21 +279,37 @@ def api_get_next_interaction(session_id):
         container_id = session.set_id_data if isinstance(session.set_id_data, int) else 0
         from mindstack_app.models import LearningItem
         
-        # [FIX] Try to load persisted queue first
-        stored_queue = None
+        # [FIX] Restore settings from session_data (persisted at session start)
+        persisted_settings = {}
         if session.session_data and isinstance(session.session_data, dict):
-            stored_queue = session.session_data.get('item_queue')
-            
-        if stored_queue:
-            current_app.logger.info(f"[SESSION_API] Using persisted queue of length {len(stored_queue)}")
-            all_item_ids = stored_queue
+            persisted_settings = session.session_data.get('settings', {})
+        
+        # [FIX] Handle dynamic SRS modes:
+        # For dynamic modes (srs, mixed, due, new, etc.), keep queue EMPTY.
+        # VocabularyDriver.get_next_interaction() will do a fresh FSRS query.
+        DYNAMIC_FILTERS = {'srs', 'mixed', 'mixed_srs', 'due', 'new', 'review', 'available'}
+        current_filter = persisted_settings.get('filter', '')
+        
+        if current_filter in DYNAMIC_FILTERS:
+            # Dynamic mode: empty queue, let VocabularyDriver fetch on-demand
+            all_item_ids = []
+            current_app.logger.info(f"[SESSION_API] Dynamic SRS mode (filter={current_filter}). Queue kept empty for fresh FSRS query.")
         else:
-            current_app.logger.warning(f"[SESSION_API] No persisted queue found. Loading ALL items (legacy).")
-            all_item_ids = [
-                i.item_id for i in
-                LearningItem.query.filter_by(container_id=container_id)
-                .order_by(LearningItem.order_in_container.asc()).all()
-            ]
+            # Static mode: load persisted queue or fallback to all items
+            stored_queue = None
+            if session.session_data and isinstance(session.session_data, dict):
+                stored_queue = session.session_data.get('item_queue')
+                
+            if stored_queue:
+                current_app.logger.info(f"[SESSION_API] Using persisted queue of length {len(stored_queue)}")
+                all_item_ids = stored_queue
+            else:
+                current_app.logger.warning(f"[SESSION_API] No persisted queue found. Loading ALL items (legacy).")
+                all_item_ids = [
+                    i.item_id for i in
+                    LearningItem.query.filter_by(container_id=container_id)
+                    .order_by(LearningItem.order_in_container.asc()).all()
+                ]
 
         state = SessionState(
             user_id=session.user_id,
@@ -306,6 +322,7 @@ def api_get_next_interaction(session_id):
             incorrect_count=session.incorrect_count or 0,
             total_items=session.total_items or 0,
             started_at=session.start_time.isoformat() if session.start_time else '',
+            settings=persisted_settings,
         )
 
         payload = driver.get_next_interaction(state)

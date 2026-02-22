@@ -163,7 +163,8 @@ class VocabularyDriver(BaseSessionDriver):
             # state.settings['filter'] usually holds the FSRS mode. Default to state.mode.
             fetch_mode = state.settings.get('filter') or state.mode
             
-            batch_data = FlashcardEngine.get_next_batch(
+            # get_next_batch returns a LIST of item dicts, or None
+            batch_items = FlashcardEngine.get_next_batch(
                 user_id=state.user_id,
                 set_id=target_set_ids,
                 mode=fetch_mode,
@@ -171,16 +172,9 @@ class VocabularyDriver(BaseSessionDriver):
                 batch_size=1
             )
             
-            if batch_data and batch_data.get('items'):
-                next_item_id = batch_data['items'][0].get('item_id')
-                # If we dynamically fetch, we aren't completely sure if it's the last one
-                # unless we check total_items_in_session remaining, but typically dynamic means potentially endless until 0
-                is_last = False 
-                
-                # Update total items dynamically if engine returned it
-                estimated_total = batch_data.get('total_items_in_session')
-                if estimated_total is not None and estimated_total > state.total_items:
-                    state.total_items = estimated_total
+            if batch_items and len(batch_items) > 0:
+                next_item_id = batch_items[0].get('item_id')
+                is_last = False
 
         if not next_item_id:
             return None

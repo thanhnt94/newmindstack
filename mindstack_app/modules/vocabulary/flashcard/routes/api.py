@@ -297,46 +297,8 @@ def api_get_flashcard_batch():
             current_db_item_id=db_sess.current_item_id
         )
 
-        # [AUTO-RESCUE] If no items found with exclusion, check if user is 'stuck'
+        # [DYNAMIC SRS] No Auto-Rescue. If no items found, session is complete.
         if items_data is None:
-            # Check if items exist WITHOUT exclusion list
-            from ..services.query_builder import FlashcardQueryBuilder
-            rescue_qb = FlashcardQueryBuilder(current_user.user_id)
-            
-            # Re-apply filters similar to Engine
-            s_id_raw = session_data.get('set_id')
-            if s_id_raw == 'all':
-                accessible_ids = get_accessible_flashcard_set_ids(current_user.user_id)
-                rescue_qb.filter_by_containers(accessible_ids)
-            else:
-                s_ids = s_id_raw if isinstance(s_id_raw, list) else [int(s_id_raw)]
-                rescue_qb.filter_by_containers(s_ids)
-
-            from ..engine.vocab_flashcard_mode import get_flashcard_mode_by_id
-            mode_obj = get_flashcard_mode_by_id(session_data.get('mode'))
-            if mode_obj and hasattr(rescue_qb, mode_obj.filter_method):
-                getattr(rescue_qb, mode_obj.filter_method)()
-            else:
-                rescue_qb.filter_mixed()
-
-            # If items exist without processed_ids, then we are indeed stuck.
-            if rescue_qb.count() > 0:
-                current_app.logger.info(f"Auto-Rescue: Resetting session {db_id} for user {current_user.user_id} (Stuck by processed_ids)")
-                SessionInterface.reset_session_progress(db_id)
-                
-                # Retry fetch
-                items_data = FlashcardEngine.get_next_batch(
-                    user_id=current_user.user_id,
-                    set_id=session_data.get('set_id'),
-                    mode=session_data.get('mode'),
-                    processed_ids=[], # Cleared
-                    db_session_id=db_id,
-                    batch_size=batch_size,
-                    current_db_item_id=None
-                )
-
-        if items_data is None:
-            # Truly end of session
             SessionInterface.complete_session(db_id)
             return jsonify({'message': 'Bạn đã hoàn thành tất cả các thẻ trong phiên học này!'}), 404
         

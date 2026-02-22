@@ -108,61 +108,20 @@ def start_flashcard_session_all(mode):
     if ui_pref:
         session['flashcard_ui_pref'] = ui_pref
 
-    # [REFACTORED] Stateless Session Start
-    from ..services.query_builder import FlashcardQueryBuilder
-    
-    qb = FlashcardQueryBuilder(current_user.user_id)
-    accessible_ids = get_accessible_flashcard_set_ids(current_user.user_id)
-    qb.filter_by_containers(accessible_ids)
-    
+    # [DYNAMIC SRS] No pre-counting. Session is open-ended.
     mode_param = mode # Preserve original param
-    if mode == 'mixed_srs':
-        qb.filter_mixed()
-        mode = 'srs' # Underlying FSRS mode
+    if mode in ('mixed_srs', 'srs'):
+        mode = 'srs'
     elif mode == 'new':
-        qb.filter_new_only()
         mode = 'srs'
     elif mode == 'review':
-        qb.filter_due_only()
         mode = 'srs'
     elif mode == 'cram':
-        # [NEW] Cram Mode: Random review of learned items
-        qb.filter_cram()
-        mode = 'cram' # We might need to handle this in session manager or just treat as custom
-        # For now, let's treat it as 'flashcard' mode but with a special filter.
-        # However, the session manager might expect 'srs'.
-        # Let's check session interface and session manager logic.
-        # Actually, query builder does the filtering. The mode passed to start_driven_session
-        # determines the *behavior* (e.g. FSRS updates).
-        # We want SRS updates DISABLED for cram mode (practice).
-        # Our previous fix in SchedulerService disables FSRS if mode != 'flashcard'.
-        # So we should pass 'cram' (or 'practice') as the learning_mode to start_driven_session?
-        # No, start_driven_session takes `learning_mode`.
-        # The `mode` in settings is just config.
-        pass
+        pass  # Keep as 'cram'
     else:
-        # Default SRS
-        qb.filter_srs()
         mode = 'srs'
-        
-    total_items = qb.count()
-    if total_items == 0:
-        flash('Không có thẻ nào cho chế độ này.', 'warning')
-        return redirect(url_for('vocab_flashcard.dashboard'))
-
-    # [UPDATED] Use centralized Settings Service to resolve limits
-    from mindstack_app.modules.learning.interface import LearningInterface
-    session_config = LearningInterface.resolve_flashcard_session_config(
-        user=current_user,
-        container_id='all',
-        url_params=request.args.to_dict()
-    )
-    new_limit = session_config.get('new_limit', 50)
 
     # Determine learning_mode for Session
-    # If cram mode, we want to ensure FSRS updates are skipped.
-    # Our SchedulerService fix checks if mode in ('flashcard', 'typing').
-    # So if we pass 'cram', it will trigger only_count=True. Perfect.
     session_learning_mode = 'cram' if mode_param == 'cram' else 'flashcard'
 
     # Create DB Session using Driver API
@@ -171,17 +130,16 @@ def start_flashcard_session_all(mode):
         user_id=current_user.user_id,
         container_id='all',
         learning_mode=session_learning_mode,
-        settings={'filter': mode_param, 'mode_config_id': mode, 'new_limit': new_limit}
+        settings={'filter': mode_param, 'mode_config_id': mode}
     )
     
     if db_sess:
-        # Set Cookie
         session['flashcard_session'] = {
             'user_id': current_user.user_id,
             'set_id': 'all',
             'mode': mode,
             'batch_size': 1, 
-            'total_items_in_session': total_items, # Use DB count
+            'total_items_in_session': 0,  # Open-ended
             'processed_item_ids': [],
             'correct_answers': 0, 'incorrect_answers': 0, 'vague_answers': 0,
             'session_points': 0,
@@ -214,42 +172,20 @@ def start_flashcard_session_multi(mode):
         flash('Lỗi: Định dạng ID bộ thẻ không hợp lệ.', 'danger')
         return redirect(url_for('vocabulary.dashboard'))
 
-    # [REFACTORED] Stateless Session Start (Multi)
-    # ... (Simplified logic similar to 'all' but with specific set list)
-    from ..services.query_builder import FlashcardQueryBuilder
-    qb = FlashcardQueryBuilder(current_user.user_id)
-    qb.filter_by_containers(set_ids)
-    
+    # [DYNAMIC SRS] No pre-counting. Session is open-ended.
     mode = 'srs'
-    qb.filter_srs()
-        
-    total_items = qb.count()
-    if total_items == 0:
-        flash('Không có thẻ nào cho chế độ này.', 'warning')
-        return redirect(url_for('vocabulary.dashboard'))
-
-    # [UPDATED] Use centralized Settings Service
-    from mindstack_app.modules.learning.interface import LearningInterface
-    session_config = LearningInterface.resolve_flashcard_session_config(
-        user=current_user,
-        container_id=set_ids[0] if set_ids else 0,
-        url_params=request.args.to_dict()
-    )
-    new_limit = session_config.get('new_limit', 50)
 
     # Create DB Session using Driver API
     from mindstack_app.modules.session.interface import SessionInterface
-    # For multi-set, use first set as container_id (Driver will handle multi-set)
     container_id = set_ids[0] if isinstance(set_ids, list) and len(set_ids) > 0 else set_ids
     db_sess, driver_state = SessionInterface.start_driven_session(
         user_id=current_user.user_id,
         container_id=container_id,
         learning_mode='flashcard',
-        settings={'filter': 'srs', 'mode_config_id': mode, 'set_ids': set_ids, 'new_limit': new_limit}
+        settings={'filter': 'srs', 'mode_config_id': mode, 'set_ids': set_ids}
     )
     
     if db_sess:
-        # Resolve container name for UI display
         if len(set_ids) == 1:
             container = LearningContainer.query.get(set_ids[0])
             container_name = container.title if container else 'Học tập'
@@ -261,7 +197,7 @@ def start_flashcard_session_multi(mode):
             'set_id': set_ids,
             'mode': mode,
             'batch_size': 1,
-            'total_items_in_session': total_items,
+            'total_items_in_session': 0,  # Open-ended
             'processed_item_ids': [], 'correct_answers': 0, 'incorrect_answers': 0, 'vague_answers': 0, 'session_points': 0,
             'start_time': datetime.datetime.now(datetime.timezone.utc).isoformat(),
             'db_session_id': db_sess.session_id, 'current_item_id': None,
@@ -281,53 +217,19 @@ def start_flashcard_session_by_id(set_id, mode):
     Bắt đầu một phiên học Flashcard cho một bộ thẻ cụ thể.
     """
     
-    # [UPDATED v6] Use centralized Settings Service
-    from mindstack_app.modules.learning.interface import LearningInterface
-    # REFAC: Use Interface
-    session_config = LearningInterface.resolve_flashcard_session_config(
-        user=current_user,
-        container_id=set_id,
-        url_params=request.args.to_dict()
-    )
-    session['flashcard_button_count_override'] = session_config['button_count']
-    session['flashcard_visual_settings'] = session_config['visual_settings']
-
-        
-    # [REFACTORED] Stateless Session Start (Single ID)
-    from ..services.query_builder import FlashcardQueryBuilder
-    qb = FlashcardQueryBuilder(current_user.user_id)
-    qb.filter_by_containers([set_id])
-    
-    # Handle modes
-    mode_param = mode # Preserve original param
-    if mode == 'mixed_srs':
-        qb.filter_mixed()
+    # [DYNAMIC SRS] No pre-counting. Session is open-ended.
+    mode_param = mode
+    if mode in ('mixed_srs', 'srs'):
         mode = 'srs'
     elif mode == 'new':
-        qb.filter_new_only()
         mode = 'srs'
     elif mode == 'review':
-        qb.filter_due_only() # This is 'Due' review only?
-        # Re-check views.py logic. 'review' usually maps to Due.
-        # But for consistency with Cram Mode being "learned", we might want strict mapping.
-        # The 'review' mode in UI usually means 'Due Review'.
         mode = 'srs'
     elif mode == 'cram':
-        # Cram Mode: Random review of learned items
-        qb.filter_cram()
-        # Mode remains 'cram'
+        pass  # Keep as 'cram'
     else:
-        # Default SRS
-        qb.filter_srs()
         mode = 'srs'
-        
-    total_items = qb.count()
-    if total_items == 0:
-        flash('Không có thẻ nào cho chế độ này.', 'warning')
-        return redirect(url_for('vocab_flashcard.dashboard'))
 
-    # Determine learning_mode for Session
-    # Cram is a sub-mode of Flashcard, handled by VocabularyDriver via settings['filter']
     session_learning_mode = 'flashcard'
 
     # Create DB Session using Driver API
@@ -337,11 +239,10 @@ def start_flashcard_session_by_id(set_id, mode):
         user_id=current_user.user_id,
         container_id=set_id,
         learning_mode=session_learning_mode,
-        settings={'filter': mode_param, 'mode_config_id': mode, 'new_limit': session_config.get('new_limit', 50)}
+        settings={'filter': mode_param, 'mode_config_id': mode}
     )
     
     if db_sess:
-        # Resolve container name for UI display
         container = LearningContainer.query.get(set_id)
         container_name = container.title if container else 'Học tập'
         
@@ -350,7 +251,7 @@ def start_flashcard_session_by_id(set_id, mode):
             'set_id': set_id,
             'mode': mode,
             'batch_size': 1,
-            'total_items_in_session': total_items,
+            'total_items_in_session': 0,  # Open-ended
             'processed_item_ids': [], 'correct_answers': 0, 'incorrect_answers': 0, 'vague_answers': 0, 'session_points': 0,
             'start_time': datetime.datetime.now(datetime.timezone.utc).isoformat(),
             'db_session_id': db_sess.session_id, 'current_item_id': None,
@@ -603,29 +504,8 @@ def start():
         flash('Vui lòng chọn ít nhất một bộ thẻ.', 'warning')
         return redirect(url_for('vocabulary.dashboard'))
     
-    # [REFACTORED] Stateless Session Start (Generic)
-    # Using 'set_ids' from request (parsed above)
-    from ..services.query_builder import FlashcardQueryBuilder
-    qb = FlashcardQueryBuilder(current_user.user_id)
-    
-    if set_ids == 'all':
-        accessible = get_accessible_flashcard_set_ids(current_user.user_id)
-        qb.filter_by_containers(accessible)
-    else:
-        # set_ids is list of ints
-        qb.filter_by_containers(set_ids)
-        
-    # Always use SRS mode logic
-    qb.filter_srs()
-        
-    total_items = qb.count()
-    if total_items == 0:
-        flash('Không có thẻ nào.', 'warning')
-        return redirect(url_for('vocabulary.dashboard'))
-
-    # Create DB Session using Driver API
+    # [DYNAMIC SRS] No pre-counting. Session is open-ended.
     from mindstack_app.modules.session.interface import SessionInterface
-    # Handle 'all' or list of set IDs
     if set_ids == 'all':
         container_id = 'all'
     elif isinstance(set_ids, list) and len(set_ids) > 0:
@@ -644,7 +524,7 @@ def start():
         session['flashcard_session'] = {
             'user_id': current_user.user_id, 
             'set_id': set_ids,
-            'mode': mode, 'batch_size': 1, 'total_items_in_session': total_items,
+            'mode': mode, 'batch_size': 1, 'total_items_in_session': 0,  # Open-ended
             'processed_item_ids': [], 'correct_answers': 0, 'incorrect_answers': 0, 'vague_answers': 0, 'session_points': 0,
             'start_time': datetime.datetime.now(datetime.timezone.utc).isoformat(),
             'db_session_id': db_sess.session_id, 'current_item_id': None

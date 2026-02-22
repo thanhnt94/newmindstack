@@ -564,7 +564,8 @@ class FSRSInterface:
         if container_id:
             base_query = base_query.filter(LearningItem.container_id == container_id)
         
-        now = datetime.now(timezone.utc)
+        # [FIX] SQLite stores naive datetimes — must compare with naive UTC
+        now = datetime.utcnow()
         items = []
         
         if mode == 'review':
@@ -689,7 +690,7 @@ class FSRSInterface:
         query = query.outerjoin(
             ItemMemoryState,
             (ItemMemoryState.item_id == LearningItem.item_id) &
-            (ItemMemoryState.user_id == user_id)
+            (ItemMemoryState.user_id == int(user_id))
         )
         
         # DEBUG: Print query SQL
@@ -699,7 +700,9 @@ class FSRSInterface:
         except Exception as e:
             print(f" [FSRS] Query SQL (raw): {query}")
         
-        now = datetime.now(timezone.utc)
+        # [FIX] SQLite stores naive datetimes — must compare with naive UTC
+        now = datetime.utcnow()
+        print(f" [FSRS-FIX] apply_memory_filter type={filter_type} now={now} (NAIVE UTC)")
         
         if filter_type == 'new':
             return query.filter(
@@ -831,7 +834,7 @@ class FSRSInterface:
         query = query.outerjoin(
             ItemMemoryState,
             (ItemMemoryState.item_id == LearningItem.item_id) &
-            (ItemMemoryState.user_id == user_id)
+            (ItemMemoryState.user_id == int(user_id))
         )
         
         if order_type == 'due_date':
@@ -1261,12 +1264,20 @@ class FSRSInterface:
         if not item_ids:
             return query
             
-        now = datetime.now(timezone.utc)
+        # [FIX] SQLite stores naive datetimes — must compare with naive UTC
+        now = datetime.utcnow()
+        
+        # We must ensure ItemMemoryState is joined to check due_date
+        # FlashcardQueryBuilder usually joins it before calling this, 
+        # but we can't be 100% sure if called from elsewhere.
+        # However, if we outerjoin here again, it might duplicate joins if not careful.
+        # Given the current usage, we'll assume it's joined or add a safe join.
+        
         return query.filter(
             or_(
                 LearningItem.item_id.notin_(item_ids),
                 and_(
-                    ItemMemoryState.item_id.in_(item_ids),
+                    ItemMemoryState.state != 0,
                     ItemMemoryState.due_date <= now
                 )
             )

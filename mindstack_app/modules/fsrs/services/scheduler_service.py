@@ -255,7 +255,8 @@ class SchedulerService:
         from mindstack_app.models import LearningItem
         from sqlalchemy import func
         
-        now = datetime.datetime.now(datetime.timezone.utc)
+        # [FIX] SQLite stores naive datetimes — must compare with naive UTC
+        now = datetime.datetime.utcnow()
         
         results = (
             db.session.query(
