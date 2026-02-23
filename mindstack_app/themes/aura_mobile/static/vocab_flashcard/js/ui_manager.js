@@ -640,7 +640,9 @@ function renderCard(data) {
                 frontAudioContent: c.front_audio_content,
                 backAudioContent: c.back_audio_content,
                 canEditCurrentCard,
-                editUrl: data.edit_url || ""
+                editUrl: data.edit_url || "",
+                noteHtml: data.note_html || "",
+                noteRaw: data.note_html || ""
             };
             setFlashcardContent(window.renderCardHtml(data, renderOptions));
         } else {
@@ -888,7 +890,10 @@ function renderCard(data) {
                 const result = await resp.json();
                 if (resp.ok && result.success) {
                     // Update visible note content
-                    if (noteContent) noteContent.textContent = content;
+                    if (noteContent) {
+                        // Use innerHTML + formatTextForHtml to support newlines correctly
+                        noteContent.innerHTML = window.formatTextForHtml(content);
+                    }
                     if (viewMode) viewMode.classList.remove('hidden');
                     if (editMode) editMode.classList.add('hidden');
                 } else {

@@ -294,6 +294,19 @@ class VocabularyStatsService:
         markers = UserItemMarker.query.filter_by(user_id=user_id, item_id=item_id).all()
         marker_list = [m.marker_type for m in markers]
 
+        # [NEW] Single Source of Truth for Notes
+        from mindstack_app.modules.notes.interface import get_note as get_user_note
+        note_content = ""
+        try:
+            note_result = get_user_note(user_id, 'item', item_id)
+            if note_result.get('success') and note_result.get('exists'):
+                note_content = note_result.get('content', '')
+            else:
+                # Fallback to old FSRS state
+                note_content = (progress.data or {}).get('note', '') if progress else ''
+        except Exception:
+            pass
+
         durations = [log['review_duration'] for log in logs if log.get('review_duration')]
         min_duration = min(durations) if durations else 0
 
@@ -307,7 +320,7 @@ class VocabularyStatsService:
                 'example_meaning': render_text_field(content.get('example_meaning')), 'phonetic': content.get('phonetic'),
                 'tags': content.get('tags', []), 'custom_data': content.get('custom_data') or content.get('custom_content', {}),
                 'ai_explanation': render_text_field(item.ai_explanation),
-                'note': (progress.data or {}).get('note', '') if progress else '',
+                'note': note_content,
                 'full_content': content
             },
             'progress': {
@@ -371,6 +384,14 @@ class VocabularyStatsService:
         # REFAC: Use FsrsInterface
         progress_map = FsrsService.get_memory_states(user_id, item_ids)
         
+        # [NEW] Batch fetch notes from dedicated module
+        from mindstack_app.modules.notes.interface import get_notes_map
+        notes_map = {}
+        try:
+            notes_map = get_notes_map(user_id, 'item', item_ids)
+        except Exception:
+            pass
+
         now = datetime.now(timezone.utc)
         result_items = []
         for item in pagination.items:
@@ -398,7 +419,9 @@ class VocabularyStatsService:
                 memory_level = (progress.data or {}).get('memory_level', 0) if progress.data else 0
                 difficulty = progress.difficulty or 0.0
                 repetitions = progress.repetitions or 0
-                has_note = bool((progress.data or {}).get('note'))
+                
+                # Check both dedicated module and fallback
+                has_note = bool(notes_map.get(item.item_id) or (progress.data or {}).get('note'))
                 
                 if progress.due_date:
                     due_date = progress.due_date.replace(tzinfo=timezone.utc) if progress.due_date.tzinfo is None else progress.due_date

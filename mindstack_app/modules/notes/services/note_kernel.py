@@ -55,5 +55,16 @@ class NoteKernelService:
         return query.order_by(Note.updated_at.desc()).all()
 
     @staticmethod
+    def get_notes_for_entities(user_id: int, reference_type: str, reference_ids: List[int]) -> List[Note]:
+        """Batch fetch notes for multiple entities of the same type."""
+        if not reference_ids:
+            return []
+        return Note.query.filter(
+            Note.user_id == user_id,
+            Note.reference_type == reference_type,
+            Note.reference_id.in_(reference_ids)
+        ).all()
+
+    @staticmethod
     def bulk_delete_notes_for_entity(reference_type: str, reference_id: int):
         Note.query.filter_by(reference_type=reference_type, reference_id=reference_id).delete(synchronize_session=False)

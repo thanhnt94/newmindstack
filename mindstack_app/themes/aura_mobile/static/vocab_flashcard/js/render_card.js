@@ -77,7 +77,7 @@ window.renderCardHtml = function (data, o) {
                 </div>
                 <div class="note-frame-body js-note-view-mode">
                   <div class="note-frame-content">
-                    ${o.noteHtml}
+                    ${window.formatTextForHtml(o.noteHtml || '')}
                   </div>
                 </div>
                 <div class="note-frame-edit-mode hidden">

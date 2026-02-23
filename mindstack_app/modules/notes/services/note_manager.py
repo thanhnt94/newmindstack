@@ -54,6 +54,14 @@ class NoteManager:
             return {'success': False, 'message': 'Internal server error'}
 
     @staticmethod
+    def get_notes_map(user_id: int, reference_type: str, reference_ids: List[int]) -> Dict[int, str]:
+        """Returns a mapping of {reference_id: content} for the specified entities."""
+        if not reference_ids:
+            return {}
+        notes = NoteKernelService.get_notes_for_entities(user_id, reference_type, reference_ids)
+        return {n.reference_id: n.content for n in notes}
+
+    @staticmethod
     def _can_user_note_entity(user_id: int, reference_type: str, reference_id: int) -> bool:
         """Centralized permission check for creating/editing notes."""
         # For now, allow all authenticated users but could add specific checks

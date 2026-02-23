@@ -84,13 +84,20 @@ class FlashcardMode(BaseVocabMode):
         else:
             pass
 
-        # [NEW] Fetch Notes for this item from FSRS/Scheduler State
-        # Vocabulary notes are typically stored in ItemMemoryState.data['note']
+        # [NEW] Fetch Notes for this item from Notes Module (Single Source of Truth)
+        # We prefer the 'notes' module, but fallback to FSRS state for backward compatibility during transition.
+        from mindstack_app.modules.notes.interface import get_note as get_user_note
         initial_note = ""
         try:
-            state_record = FSRSInterface.get_item_state(current_user.user_id, item.get('item_id'))
-            if state_record and state_record.data:
-                initial_note = state_record.data.get('note', '')
+            # 1. Try fetching from dedicated Notes module
+            note_result = get_user_note(current_user.user_id, 'item', item.get('item_id'))
+            if note_result.get('success') and note_result.get('exists'):
+                initial_note = note_result.get('content', '')
+            else:
+                # 2. Fallback to old FSRS state storage if not found in notes module
+                state_record = FSRSInterface.get_item_state(current_user.user_id, item.get('item_id'))
+                if state_record and state_record.data:
+                    initial_note = state_record.data.get('note', '')
         except Exception:
             pass
         note_html = initial_note

@@ -306,31 +306,10 @@ class FSRSInterface:
 
     @staticmethod
     def save_item_note(user_id: int, item_id: int, note_content: str) -> bool:
-        """Save user personal note for an item."""
-        from mindstack_app.core.extensions import db
-        from datetime import datetime, timezone
-        from sqlalchemy.orm.attributes import flag_modified
-        
-        state_record = ItemMemoryState.query.filter_by(
-            user_id=user_id, item_id=item_id
-        ).first()
-        
-        if not state_record:
-            state_record = ItemMemoryState(
-                user_id=user_id, item_id=item_id,
-                state=0, # NEW
-                created_at=datetime.now(timezone.utc)
-            )
-            db.session.add(state_record)
-        
-        data = dict(state_record.data) if state_record.data else {}
-        data['note'] = note_content
-        state_record.data = data
-        
-        flag_modified(state_record, 'data')
-        
-        db.session.commit()
-        return True
+        """Save user personal note for an item using the dedicated Notes module."""
+        from mindstack_app.modules.notes.interface import save_note as save_user_note
+        result = save_user_note(user_id, 'item', item_id, note_content)
+        return result.get('success', False)
 
     @staticmethod
     def toggle_item_marker(user_id: int, item_id: int, marker: str) -> List[str]:

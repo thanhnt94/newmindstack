@@ -13,3 +13,7 @@ def save_note(user_id: int, reference_type: str, reference_id: int, content: str
 def list_notes(user_id: int) -> List[Dict[str, Any]]:
     """List all notes for management UI."""
     return NoteManager.get_manage_notes_data(user_id)
+
+def get_notes_map(user_id: int, reference_type: str, reference_ids: List[int]) -> Dict[int, str]:
+    """Batch fetch notes content mapping."""
+    return NoteManager.get_notes_map(user_id, reference_type, reference_ids)
