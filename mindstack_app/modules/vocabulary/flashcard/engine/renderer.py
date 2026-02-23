@@ -39,7 +39,8 @@ class FlashcardRenderer:
             
             # Category/Custom
             'card_category': item.category if hasattr(item, 'category') else item.get('category', 'default'),
-            'buttons_html': item.buttons_html if hasattr(item, 'buttons_html') else item.get('buttons_html', '')
+            'buttons_html': item.buttons_html if hasattr(item, 'buttons_html') else item.get('buttons_html', ''),
+            'note_html': item.note_html if hasattr(item, 'note_html') else item.get('note_html', '')
         }
         
         context = {

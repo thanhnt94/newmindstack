@@ -8,9 +8,45 @@
     <div class="_card-container">
         <div class="text-area">
             <div class="flashcard-content-text">{{ item.back_text | safe }}</div>
+
+            {% if item.note_html %}
+            <div class="js-note-container note-frame-container mt-3" data-item-id="{{ item.id }}"
+                style="transform: translateZ(1px);">
+                {# Header with icon + label + edit + close #}
+                <div class="note-frame-header">
+                    <div class="note-frame-label">
+                        <i class="fas fa-sticky-note"></i>
+                        <span>Ghi chú</span>
+                    </div>
+                    <div class="flex items-center gap-1.5">
+                        <button class="js-edit-note-btn note-frame-edit" title="Sửa ghi chú">
+                            <i class="fas fa-pencil-alt"></i>
+                        </button>
+                        <button class="js-close-note-btn note-frame-close">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+                {# View mode #}
+                <div class="note-frame-body js-note-view-mode">
+                    <div class="note-frame-content">
+                        {{ item.note_html | safe }}
+                    </div>
+                </div>
+                {# Edit mode (hidden by default) #}
+                <div class="note-frame-edit-mode hidden">
+                    <textarea class="js-note-textarea note-frame-textarea"
+                        placeholder="Nhập ghi chú...">{{ item.note_html | striptags }}</textarea>
+                    <div class="note-frame-edit-actions">
+                        <button class="js-note-cancel-btn note-frame-cancel-btn">Hủy</button>
+                        <button class="js-note-save-btn note-frame-save-btn">Lưu</button>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
         </div>
         {% if item.back_image %}
-        <div class="media-container">
+        <div class="media-container back-image-container">
             <img src="{{ item.back_image }}" alt="Mặt sau"
                 onerror="this.onerror=null;this.src='https://placehold.co/200x120?text=Image+not+found';">
         </div>

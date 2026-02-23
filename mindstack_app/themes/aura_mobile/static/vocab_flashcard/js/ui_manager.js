@@ -3,7 +3,10 @@
  */
 
 // --- Global UI State ---
-let isMediaHidden = false;
+let isMediaHidden = false; // Legacy (All media)
+let isFrontImageHidden = false;
+let isBackImageHidden = false;
+let isBackNoteHidden = false;
 let showStats = true;
 
 // --- Initialization ---
@@ -24,8 +27,18 @@ function initUiSettings() {
     try {
         if (visualSettings.show_image === undefined) {
             const storedImageVisibility = localStorage.getItem('flashcardHideImages');
-            if (storedImageVisibility === 'true') isMediaHidden = true;
+            if (storedImageVisibility === 'true') {
+                isMediaHidden = true;
+                isFrontImageHidden = true;
+                isBackImageHidden = true;
+            }
         }
+
+        // Detailed toggles (Load from localStorage)
+        isFrontImageHidden = localStorage.getItem('fc_hide_img_front') === 'true' || isMediaHidden;
+        isBackImageHidden = localStorage.getItem('fc_hide_img_back') === 'true' || isMediaHidden;
+        isBackNoteHidden = localStorage.getItem('fc_hide_note_back') === 'true';
+
     } catch (err) {
         console.warn('Không thể đọc localStorage:', err);
     }
@@ -336,44 +349,128 @@ function toggleSettingsMenu(menuEl) {
 // --- Media Visibility ---
 
 function applyMediaVisibility() {
-    const mediaContainers = document.querySelectorAll('.media-container');
-    const cardContainers = document.querySelectorAll('._card-container');
-
-    mediaContainers.forEach(container => {
-        container.classList.toggle('hidden', isMediaHidden);
+    // 1. Front Image
+    document.querySelectorAll('.front-image-container').forEach(el => {
+        el.classList.toggle('hidden', isFrontImageHidden);
     });
 
-    cardContainers.forEach(container => {
-        container.classList.toggle('media-hidden', isMediaHidden);
+    // 2. Back Image
+    document.querySelectorAll('.back-image-container').forEach(el => {
+        el.classList.toggle('hidden', isBackImageHidden);
     });
 
-    document.querySelectorAll('.image-toggle-btn').forEach(btn => {
-        btn.classList.toggle('is-active', isMediaHidden);
-        btn.setAttribute('aria-pressed', isMediaHidden ? 'true' : 'false');
-        btn.title = isMediaHidden ? 'Bật ảnh' : 'Tắt ảnh';
-        const icon = btn.querySelector('i');
-        if (icon) {
-            icon.className = `fas ${isMediaHidden ? 'fa-image-slash' : 'fa-image'}`;
-        }
+    // 3. Back Note
+    document.querySelectorAll('.js-note-container').forEach(el => {
+        el.classList.toggle('hidden', isBackNoteHidden);
     });
 
+    // Legacy Support for global 'isMediaHidden' (if ever used directly)
+    if (isMediaHidden) {
+        document.querySelectorAll('.media-container').forEach(el => el.classList.add('hidden'));
+    }
+
+    // Refresh viewport if needed
     if (window.flashcardViewport && typeof window.flashcardViewport.refresh === 'function') {
         window.flashcardViewport.refresh();
     }
 
     setTimeout(adjustCardLayout, 0);
+
+    // Sync to Settings Modal if open
+    if (window.syncSettingsModalUI) window.syncSettingsModalUI();
 }
+
+/**
+ * Toggle individual visual settings (Image Front, Image Back, Note Back)
+ */
+window.toggleVisualSetting = function (type) {
+    if (type === 'imgFront') {
+        isFrontImageHidden = !isFrontImageHidden;
+        localStorage.setItem('fc_hide_img_front', isFrontImageHidden);
+    } else if (type === 'imgBack') {
+        isBackImageHidden = !isBackImageHidden;
+        localStorage.setItem('fc_hide_img_back', isBackImageHidden);
+    } else if (type === 'noteBack') {
+        isBackNoteHidden = !isBackNoteHidden;
+        localStorage.setItem('fc_hide_note_back', isBackNoteHidden);
+    }
+
+    applyMediaVisibility();
+
+    // Optional: Sync to server
+    if (window.syncSettingsToServer) window.syncSettingsToServer();
+};
+
+/**
+ * Sync the generic settings modal UI with internal state
+ */
+window.syncSettingsModalUI = function () {
+    const configs = [
+        { id: 'settings-modal-img-front-toggle', active: !isFrontImageHidden },
+        { id: 'settings-modal-img-back-toggle', active: !isBackImageHidden },
+        { id: 'settings-modal-note-back-toggle', active: !isBackNoteHidden }
+    ];
+
+    configs.forEach(cfg => {
+        const btn = document.getElementById(cfg.id);
+        if (!btn) return;
+
+        const dot = btn.querySelector('div');
+        if (cfg.active) {
+            btn.classList.remove('bg-slate-300');
+            btn.classList.add('bg-emerald-500');
+            if (dot) dot.style.transform = 'translateX(1.25rem)';
+        } else {
+            btn.classList.add('bg-slate-300');
+            btn.classList.remove('bg-emerald-500');
+            if (dot) dot.style.transform = 'translateX(0)';
+        }
+    });
+};
 
 function setMediaHiddenState(hidden) {
     isMediaHidden = hidden;
+    isFrontImageHidden = hidden;
+    isBackImageHidden = hidden;
+
     try {
         localStorage.setItem('flashcardHideImages', hidden ? 'true' : 'false');
+        localStorage.setItem('fc_hide_img_front', hidden ? 'true' : 'false');
+        localStorage.setItem('fc_hide_img_back', hidden ? 'true' : 'false');
     } catch (err) { }
+
     applyMediaVisibility();
     if (window.syncSettingsToServer) window.syncSettingsToServer();
 }
 
 // --- Content Synchronization ---
+
+/**
+ * Modal Handling
+ */
+window.openSettingsModal = function () {
+    const m = document.getElementById('session-settings-modal');
+    const c = document.getElementById('session-settings-modal-content');
+    if (!m) return;
+
+    m.classList.remove('opacity-0', 'pointer-events-none');
+    m.classList.add('opacity-100', 'pointer-events-auto');
+    if (c) { c.classList.remove('scale-95'); c.classList.add('scale-100'); }
+
+    // Sync all settings
+    if (window.syncSettingsModalUI) window.syncSettingsModalUI();
+    if (window.syncAudioModalUI) window.syncAudioModalUI();
+};
+
+window.closeSettingsModal = function () {
+    const m = document.getElementById('session-settings-modal');
+    const c = document.getElementById('session-settings-modal-content');
+    if (!m) return;
+
+    m.classList.add('opacity-0', 'pointer-events-none');
+    m.classList.remove('opacity-100', 'pointer-events-auto');
+    if (c) { c.classList.add('scale-95'); c.classList.remove('scale-100'); }
+};
 
 // Simplified for Unified Mobile View
 function setFlashcardContent(html) {
@@ -739,9 +836,100 @@ function renderCard(data) {
         openAiModal(currentCard.item_id, currentCard.content.front);
     }));
 
-    document.querySelectorAll('.open-note-panel-btn').forEach(btn => btn.addEventListener('click', () => {
-        openNotePanel(btn.dataset.itemId);
-    }));
+    // [INLINE NOTE EDIT] - Edit, Save, Cancel buttons inside note frame
+    document.querySelectorAll('.js-edit-note-btn').forEach(btn => {
+        btn.addEventListener('click', (ev) => {
+            ev.stopPropagation();
+            const container = btn.closest('.js-note-container');
+            if (!container) return;
+            const viewMode = container.querySelector('.js-note-view-mode');
+            const editMode = container.querySelector('.note-frame-edit-mode');
+            const textarea = container.querySelector('.js-note-textarea');
+            if (viewMode) viewMode.classList.add('hidden');
+            if (editMode) editMode.classList.remove('hidden');
+            if (textarea) textarea.focus();
+        });
+    });
+
+    document.querySelectorAll('.js-note-cancel-btn').forEach(btn => {
+        btn.addEventListener('click', (ev) => {
+            ev.stopPropagation();
+            const container = btn.closest('.js-note-container');
+            if (!container) return;
+            const viewMode = container.querySelector('.js-note-view-mode');
+            const editMode = container.querySelector('.note-frame-edit-mode');
+            if (viewMode) viewMode.classList.remove('hidden');
+            if (editMode) editMode.classList.add('hidden');
+        });
+    });
+
+    document.querySelectorAll('.js-note-save-btn').forEach(btn => {
+        btn.addEventListener('click', async (ev) => {
+            ev.stopPropagation();
+            const container = btn.closest('.js-note-container');
+            if (!container) return;
+            const itemId = container.dataset.itemId;
+            const textarea = container.querySelector('.js-note-textarea');
+            const content = textarea ? textarea.value.trim() : '';
+            const viewMode = container.querySelector('.js-note-view-mode');
+            const editMode = container.querySelector('.note-frame-edit-mode');
+            const noteContent = container.querySelector('.note-frame-content');
+
+            btn.disabled = true;
+            btn.textContent = '...';
+            try {
+                const saveUrl = (window.FlashcardConfig.saveNoteUrl || '/learn/notes/notes/save/item/0').replace('/0', `/${itemId}`);
+                const csrfHeaders = window.FlashcardConfig.csrfHeaders || {};
+                const resp = await fetch(saveUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', ...csrfHeaders },
+                    body: JSON.stringify({ content })
+                });
+                const result = await resp.json();
+                if (resp.ok && result.success) {
+                    // Update visible note content
+                    if (noteContent) noteContent.textContent = content;
+                    if (viewMode) viewMode.classList.remove('hidden');
+                    if (editMode) editMode.classList.add('hidden');
+                } else {
+                    alert('Lỗi lưu ghi chú: ' + (result.error || 'Unknown'));
+                }
+            } catch (err) {
+                console.error('Save note error:', err);
+                alert('Lỗi kết nối khi lưu ghi chú');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Lưu';
+            }
+        });
+    });
+
+    // [NEW] Note Frame Toggle via Overlay + Close Button
+    const noteToggleOverlay = document.querySelector('.js-fc-note-toggle-overlay');
+    const noteContainer = document.querySelector('.js-note-container');
+
+    // Close button inside note header → hide note, show overlay button
+    document.querySelectorAll('.js-close-note-btn').forEach(btn => {
+        btn.addEventListener('click', (ev) => {
+            ev.stopPropagation();
+            if (noteContainer) noteContainer.classList.add('hidden');
+            if (noteToggleOverlay) noteToggleOverlay.classList.remove('hidden');
+        });
+    });
+
+    // Overlay button → show note, hide overlay button
+    if (noteToggleOverlay) {
+        if (noteContainer) {
+            // Note starts visible → overlay button starts hidden
+            noteToggleOverlay.classList.add('hidden');
+            noteToggleOverlay.addEventListener('click', () => {
+                noteContainer.classList.remove('hidden');
+                noteToggleOverlay.classList.add('hidden');
+            });
+        } else {
+            noteToggleOverlay.classList.add('hidden');
+        }
+    }
 
     document.querySelectorAll('.open-feedback-modal-btn').forEach(btn => btn.addEventListener('click', () => {
         const currentCard = window.currentFlashcardBatch[window.currentFlashcardIndex];

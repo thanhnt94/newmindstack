@@ -10,7 +10,7 @@
             <div class="flashcard-content-text">{{ item.front_text | safe }}</div>
         </div>
         {% if item.front_image %}
-        <div class="media-container">
+        <div class="media-container front-image-container">
             <img src="{{ item.front_image }}" alt="Mặt trước"
                 onerror="this.onerror=null;this.src='https://placehold.co/200x120?text=Image+not+found';">
         </div>

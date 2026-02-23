@@ -73,28 +73,42 @@
                         </div>
                     </div>
 
-                    {# Bottom-Left: Audio Button #}
-                    <div class="absolute bottom-2.5 left-2.5 pointer-events-auto">
-                        <div class="relative group/audio">
-                            <button
-                                class="js-fc-audio-btn-overlay w-8 h-8 rounded-full bg-blue-500/90 backdrop-blur-sm text-white flex items-center justify-center hover:bg-blue-600 transition-all shadow-lg hover:scale-110"
-                                data-has-audio="false">
-                                <i class="fa-solid fa-volume-xmark text-xs js-fc-audio-icon-overlay"></i>
-                            </button>
-                            {# Autoplay Indicator Badge #}
-                            <div
-                                class="js-fc-autoplay-badge absolute -top-1 -right-1 w-4 h-4 rounded-full bg-emerald-500 border-2 border-white shadow-sm flex items-center justify-center scale-0 transition-transform duration-300">
-                                <i class="fas fa-play text-[6px] text-white translate-x-[0.5px]"></i>
+                    {# Bottom: Audio (Left) | Note Toggle (Center) | Image Toggle (Right) #}
+                    <div
+                        class="absolute bottom-2.5 left-0 right-0 pointer-events-none z-20 flex items-center justify-between">
+                        {# Left: Audio Button #}
+                        <div class="pointer-events-auto">
+                            <div class="relative group/audio">
+                                <button
+                                    class="js-fc-audio-btn-overlay w-8 h-8 rounded-full bg-blue-500/90 backdrop-blur-sm text-white flex items-center justify-center hover:bg-blue-600 transition-all shadow-lg hover:scale-110"
+                                    data-has-audio="false">
+                                    <i class="fa-solid fa-volume-xmark text-xs js-fc-audio-icon-overlay"></i>
+                                </button>
+                                {# Autoplay Indicator Badge #}
+                                <div
+                                    class="js-fc-autoplay-badge absolute -top-1 -right-1 w-4 h-4 rounded-full bg-emerald-500 border-2 border-white shadow-sm flex items-center justify-center scale-0 transition-transform duration-300">
+                                    <i class="fas fa-play text-[6px] text-white translate-x-[0.5px]"></i>
+                                </div>
                             </div>
                         </div>
-                    </div>
 
-                    {# Bottom-Right: Image Toggle Button #}
-                    <div class="absolute bottom-2.5 right-2.5 pointer-events-auto z-30">
-                        <button
-                            class="js-fc-image-toggle-overlay w-8 h-8 rounded-full bg-slate-700/90 backdrop-blur-sm text-white flex items-center justify-center hover:bg-slate-800 transition-all shadow-lg hover:scale-110">
-                            <i class="fas fa-image text-xs js-fc-image-icon-overlay"></i>
-                        </button>
+                        {# Center: Note Toggle Button (pill with icon + text) #}
+                        <div class="absolute left-1/2 -translate-x-1/2 pointer-events-auto">
+                            <button
+                                class="js-fc-note-toggle-overlay h-8 px-3 rounded-full bg-amber-500/90 backdrop-blur-sm text-white flex items-center justify-center gap-1.5 hover:bg-amber-600 transition-all shadow-lg hover:scale-105 hidden text-[10px] font-bold uppercase tracking-wider"
+                                title="Hiện ghi chú">
+                                <i class="fas fa-sticky-note text-[10px]"></i>
+                                <span>Hiện ghi chú</span>
+                            </button>
+                        </div>
+
+                        {# Right: Image Toggle Button #}
+                        <div class="pointer-events-auto">
+                            <button
+                                class="js-fc-image-toggle-overlay w-8 h-8 rounded-full bg-slate-700/90 backdrop-blur-sm text-white flex items-center justify-center hover:bg-slate-800 transition-all shadow-lg hover:scale-110">
+                                <i class="fas fa-image text-xs js-fc-image-icon-overlay"></i>
+                            </button>
+                        </div>
                     </div>
                 </div>
 

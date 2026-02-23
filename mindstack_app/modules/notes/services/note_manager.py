@@ -72,7 +72,8 @@ class NoteManager:
         if reference_type == 'item':
             item = LearningItem.query.get(reference_id)
             if item:
-                return f"Note: {item.term or 'Item ' + str(reference_id)}"
+                front_text = item.content.get('front', '') if isinstance(item.content, dict) else ''
+                return f"Note: {front_text or 'Item ' + str(reference_id)}"
         elif reference_type == 'container':
             container = LearningContainer.query.get(reference_id)
             if container:

@@ -47,7 +47,7 @@ window.renderCardHtml = function (data, o) {
           ${toolbarFront}
           <div class="_card-container">
             <div class="text-area"><div class="flashcard-content-text">${o.fTxt}</div></div>
-            ${o.frontImg ? `<div class="media-container"><img src="${o.frontImg}" alt="Mặt trước" onerror="this.onerror=null;this.src='https://placehold.co/200x120?text=Image+not+found';"></div>` : ''}
+            ${o.frontImg ? `<div class="media-container front-image-container"><img src="${o.frontImg}" alt="Mặt trước" onerror="this.onerror=null;this.src='https://placehold.co/200x120?text=Image+not+found';"></div>` : ''}
             <audio id="front-audio-mobile" class="hidden" src="${o.frontAudioUrl || ''}"></audio>
           </div>
           <div class="flip-btn-container">
@@ -57,8 +57,39 @@ window.renderCardHtml = function (data, o) {
         <div class="face back ${backAlignClass} ${backBoldClass}">
           ${toolbarBack}
           <div class="_card-container">
-            <div class="text-area"><div class="flashcard-content-text">${o.bTxt}</div></div>
-            ${o.backImg ? `<div class="media-container"><img src="${o.backImg}" alt="Mặt sau" onerror="this.onerror=null;this.src='https://placehold.co/200x120?text=Image+not+found';"></div>` : ''}
+            <div class="text-area">
+              <div class="flashcard-content-text">${o.bTxt}</div>
+              ${o.noteHtml ? `
+              <div class="js-note-container note-frame-container mt-3" data-item-id="${o.itemId}" style="transform: translateZ(1px);">
+                <div class="note-frame-header">
+                  <div class="note-frame-label">
+                    <i class="fas fa-sticky-note"></i>
+                    <span>Ghi chú</span>
+                  </div>
+                  <div class="flex items-center gap-1.5">
+                    <button class="js-edit-note-btn note-frame-edit" title="Sửa ghi chú">
+                      <i class="fas fa-pencil-alt"></i>
+                    </button>
+                    <button class="js-close-note-btn note-frame-close">
+                      <i class="fas fa-times"></i>
+                    </button>
+                  </div>
+                </div>
+                <div class="note-frame-body js-note-view-mode">
+                  <div class="note-frame-content">
+                    ${o.noteHtml}
+                  </div>
+                </div>
+                <div class="note-frame-edit-mode hidden">
+                  <textarea class="js-note-textarea note-frame-textarea" placeholder="Nhập ghi chú...">${(o.noteRaw || '').replace(/</g, '&lt;')}</textarea>
+                  <div class="note-frame-edit-actions">
+                    <button class="js-note-cancel-btn note-frame-cancel-btn">Hủy</button>
+                    <button class="js-note-save-btn note-frame-save-btn">Lưu</button>
+                  </div>
+                </div>
+              </div>` : ''}
+            </div>
+            ${o.backImg ? `<div class="media-container back-image-container"><img src="${o.backImg}" alt="Mặt sau" onerror="this.onerror=null;this.src='https://placehold.co/200x120?text=Image+not+found';"></div>` : ''}
           </div>
           <div class="card-actions-wrapper">
             <div class="actions js-internal-actions">

@@ -541,7 +541,7 @@
 
                 // FSRS State
                 if (fsrsStateEl && log.fsrs_snapshot) {
-                    const stateStr = log.fsrs_snapshot.card_state || 'NEW';
+                    const stateStr = String(log.fsrs_snapshot.card_state || 'NEW');
                     let bg = '#d1fae5', color = '#059669'; // default new
                     if (stateStr.toUpperCase() === 'LEARNING') { bg = '#fef3c7'; color = '#d97706'; }
                     else if (stateStr.toUpperCase() === 'REVIEW') { bg = '#e0e7ff'; color = '#4f46e5'; }

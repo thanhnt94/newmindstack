@@ -108,28 +108,32 @@
 
                         {# Action Buttons #}
                         <div class="flex items-center gap-1.5 flex-shrink-0 relative">
-                            {# ===== Audio Settings Modal (Centered, Self-Contained) ===== #}
-                            <div id="audio-settings-modal"
+                            {# ===== Session Settings Modal (Centered, Self-Contained) ===== #}
+                            <div id="session-settings-modal"
                                 class="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 backdrop-blur-sm transition-opacity duration-200 opacity-0 pointer-events-none"
-                                onclick="if(event.target===this) closeAudioModal()">
-                                <div class="bg-white rounded-2xl shadow-2xl w-72 p-5 transform transition-transform duration-200 scale-95"
-                                    id="audio-settings-modal-content">
+                                onclick="if(event.target===this) closeSettingsModal()">
+                                <div class="bg-white rounded-2xl shadow-2xl w-80 p-5 transform transition-transform duration-200 scale-95"
+                                    id="session-settings-modal-content">
                                     <div class="flex items-center justify-between mb-4">
-                                        <span class="text-sm font-black text-slate-700 uppercase tracking-wider">🔊 Âm
-                                            thanh</span>
-                                        <button onclick="closeAudioModal()"
+                                        <span class="text-xs font-black text-slate-700 uppercase tracking-widest">⚙️ Cài
+                                            đặt phiên học</span>
+                                        <button onclick="closeSettingsModal()"
                                             class="w-7 h-7 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center hover:bg-slate-200 transition-colors">
                                             <i class="fas fa-times text-xs"></i>
                                         </button>
                                     </div>
-                                    <div class="flex flex-col gap-3">
-                                        {# Front Toggle #}
-                                        <div class="flex items-center justify-between p-3 rounded-xl bg-slate-50">
+                                    <div class="flex flex-col gap-2.5 max-h-[60vh] overflow-y-auto no-scrollbar">
+                                        {# Section: Audio #}
+                                        <div
+                                            class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-2 px-1">
+                                            Âm thanh</div>
+                                        <div
+                                            class="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-100">
                                             <div class="flex items-center gap-2">
                                                 <i class="fas fa-volume-up text-blue-500 text-sm"></i>
                                                 <span class="text-sm font-bold text-slate-700">Mặt trước</span>
                                             </div>
-                                            <button id="audio-modal-front-toggle"
+                                            <button id="settings-modal-audio-front-toggle"
                                                 onclick="window.toggleSideAutoplay('front')"
                                                 class="relative w-11 h-6 rounded-full transition-colors duration-200 bg-slate-300">
                                                 <div
@@ -137,14 +141,61 @@
                                                 </div>
                                             </button>
                                         </div>
-                                        {# Back Toggle #}
-                                        <div class="flex items-center justify-between p-3 rounded-xl bg-slate-50">
+                                        <div
+                                            class="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-100">
                                             <div class="flex items-center gap-2">
                                                 <i class="fas fa-volume-up text-rose-500 text-sm"></i>
                                                 <span class="text-sm font-bold text-slate-700">Mặt sau</span>
                                             </div>
-                                            <button id="audio-modal-back-toggle"
+                                            <button id="settings-modal-audio-back-toggle"
                                                 onclick="window.toggleSideAutoplay('back')"
+                                                class="relative w-11 h-6 rounded-full transition-colors duration-200 bg-slate-300">
+                                                <div
+                                                    class="absolute left-0.5 top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform duration-200">
+                                                </div>
+                                            </button>
+                                        </div>
+
+                                        {# Section: Media #}
+                                        <div
+                                            class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-2 px-1">
+                                            Hình ảnh & Ghi chú</div>
+                                        <div
+                                            class="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-100">
+                                            <div class="flex items-center gap-2">
+                                                <i class="fas fa-image text-emerald-500 text-sm"></i>
+                                                <span class="text-sm font-bold text-slate-700">Ảnh mặt trước</span>
+                                            </div>
+                                            <button id="settings-modal-img-front-toggle"
+                                                onclick="window.toggleVisualSetting('imgFront')"
+                                                class="relative w-11 h-6 rounded-full transition-colors duration-200 bg-slate-300">
+                                                <div
+                                                    class="absolute left-0.5 top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform duration-200">
+                                                </div>
+                                            </button>
+                                        </div>
+                                        <div
+                                            class="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-100">
+                                            <div class="flex items-center gap-2">
+                                                <i class="fas fa-image text-indigo-500 text-sm"></i>
+                                                <span class="text-sm font-bold text-slate-700">Ảnh mặt sau</span>
+                                            </div>
+                                            <button id="settings-modal-img-back-toggle"
+                                                onclick="window.toggleVisualSetting('imgBack')"
+                                                class="relative w-11 h-6 rounded-full transition-colors duration-200 bg-slate-300">
+                                                <div
+                                                    class="absolute left-0.5 top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform duration-200">
+                                                </div>
+                                            </button>
+                                        </div>
+                                        <div
+                                            class="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-100">
+                                            <div class="flex items-center gap-1.5">
+                                                <i class="fas fa-sticky-note text-amber-500 text-sm"></i>
+                                                <span class="text-sm font-bold text-slate-700">Ghi chú mặt sau</span>
+                                            </div>
+                                            <button id="settings-modal-note-back-toggle"
+                                                onclick="window.toggleVisualSetting('noteBack')"
                                                 class="relative w-11 h-6 rounded-full transition-colors duration-200 bg-slate-300">
                                                 <div
                                                     class="absolute left-0.5 top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform duration-200">
@@ -155,67 +206,21 @@
                                 </div>
                             </div>
 
-                            <script>
-                                // ── Audio Modal: 100% self-contained ──
-                                function openAudioModal() {
-                                    const m = document.getElementById('audio-settings-modal');
-                                    const c = document.getElementById('audio-settings-modal-content');
-                                    if (!m) return;
-                                    m.classList.remove('opacity-0', 'pointer-events-none');
-                                    m.classList.add('opacity-100', 'pointer-events-auto');
-                                    if (c) { c.classList.remove('scale-95'); c.classList.add('scale-100'); }
-                                    syncAudioModalUI();
-                                }
-                                function closeAudioModal() {
-                                    const m = document.getElementById('audio-settings-modal');
-                                    const c = document.getElementById('audio-settings-modal-content');
-                                    if (!m) return;
-                                    m.classList.add('opacity-0', 'pointer-events-none');
-                                    m.classList.remove('opacity-100', 'pointer-events-auto');
-                                    if (c) { c.classList.add('scale-95'); c.classList.remove('scale-100'); }
-                                }
-                                function syncAudioModalUI() {
-                                    const fb = document.getElementById('audio-modal-front-toggle');
-                                    const bb = document.getElementById('audio-modal-back-toggle');
-                                    _setToggleVisual(fb, !!window.isAudioAutoplayFrontEnabled);
-                                    _setToggleVisual(bb, !!window.isAudioAutoplayBackEnabled);
-                                }
-                                function _setToggleVisual(btn, isOn) {
-                                    if (!btn) return;
-                                    const knob = btn.querySelector('div');
-                                    if (isOn) {
-                                        btn.classList.remove('bg-slate-300');
-                                        btn.classList.add('bg-emerald-500');
-                                        if (knob) { knob.style.transform = 'translateX(1.25rem)'; }
-                                    } else {
-                                        btn.classList.remove('bg-emerald-500');
-                                        btn.classList.add('bg-slate-300');
-                                        if (knob) { knob.style.transform = 'translateX(0)'; }
-                                    }
-                                }
-                                // Expose globally so audio_manager.js can call it
-                                window.syncAudioModalUI = syncAudioModalUI;
-                                window.openAudioModal = openAudioModal;
-                                window.closeAudioModal = closeAudioModal;
-                            </script>
-
-                            {# Audio Settings Button (opens modal) #}
-                            <button onclick="openAudioModal()"
+                            <!-- Action Buttons -->
+                            <button onclick="openSettingsModal()"
                                 class="w-7 h-7 rounded-full bg-slate-50 text-slate-500 flex items-center justify-center hover:bg-slate-100 transition-transform active:scale-90"
-                                title="Cài đặt âm thanh">
-                                <i class="fas fa-volume-up text-[10px]"></i>
+                                title="Cài đặt">
+                                <i class="fas fa-cog text-[10px]"></i>
                             </button>
 
-
-
-                            {# Home Button #}
+                            <!-- Home Button -->
                             <a href="{{ url_for('dashboard.dashboard') }}"
                                 class="w-7 h-7 rounded-full bg-slate-50 text-slate-500 flex items-center justify-center hover:bg-slate-100"
                                 title="Về trang chủ">
                                 <i class="fas fa-home text-[10px]"></i>
                             </a>
 
-                            {# Exit Button #}
+                            <!-- Exit Button -->
                             <button onclick="showExitModal()"
                                 class="w-7 h-7 rounded-full bg-rose-50 text-rose-500 flex items-center justify-center hover:bg-rose-100"
                                 title="Thoát">
@@ -305,19 +310,19 @@
     const _userButtonCount = {{ user_button_count|default (4) }};
     const _isAutoplaySession = {{ is_autoplay_session|default (false) | tojson }};
     const _autoplayMode = "{{ autoplay_mode|default('') }}";
-    const _visualSettings = {{ (saved_visual_settings or { })| tojson }};
+    const _visualSettings = {{ (saved_visual_settings or { }) | tojson}};
     const _autoSaveOn = {{ saved_auto_save|default (true) | tojson }};
-    const _currentUserTotalScore = {{ current_user.total_score|default (0) }};
-    const _scoreAgain = {{ config.SCORE_FSRS_AGAIN|default (1) }};
-    const _scoreHard = {{ config.SCORE_FSRS_HARD|default (5) }};
-    const _scoreGood = {{ config.SCORE_FSRS_GOOD|default (10) }};
-    const _scoreEasy = {{ config.SCORE_FSRS_EASY|default (15) }};
+    const _currentUserTotalScore = {{ current_user.total_score |default (0) }};
+    const _scoreAgain = {{ config.SCORE_FSRS_AGAIN |default (1) }};
+    const _scoreHard = {{ config.SCORE_FSRS_HARD |default (5) }};
+    const _scoreGood = {{ config.SCORE_FSRS_GOOD |default (10) }};
+    const _scoreEasy = {{ config.SCORE_FSRS_EASY |default (15) }};
 
     // Notification Configs
-    const _notifScoreDuration = {{ config.NOTIF_SCORE_DURATION|default (1500) }};
-    const _notifScorePosition = "{{ config.NOTIF_SCORE_POSITION|default('center') }}";
-    const _notifStreakDuration = {{ config.NOTIF_STREAK_DURATION|default (2000) }};
-    const _notifAchievementDuration = {{ config.NOTIF_ACHIEVEMENT_DURATION|default (5000) }};
+    const _notifScoreDuration = {{ config.NOTIF_SCORE_DURATION |default (1500) }};
+    const _notifScorePosition = "{{ config.NOTIF_SCORE_POSITION |default('center') }}";
+    const _notifStreakDuration = {{ config.NOTIF_STREAK_DURATION |default (2000) }};
+    const _notifAchievementDuration = {{ config.NOTIF_ACHIEVEMENT_DURATION |default (5000) }};
     const _dbSessionId = {{ db_session_id|default (0) }};
     const _initialProcessedCount = {{ initial_processed_count|default (0) }};
     const _initialCorrectCount = {{ initial_correct_count|default (0) }};
@@ -325,7 +330,7 @@
     const _initialVagueCount = {{ initial_vague_count|default (0) }};
 
     // [SSR] Initial Data
-    window.initialFlashcardBatch = {{ (initial_batch or[])| tojson }};
+    window.initialFlashcardBatch = {{ (initial_batch or[]) | tojson }};
 
     window.FlashcardConfig = {
         getFlashcardBatchUrl: "{{ url_for('vocab_flashcard.api_get_flashcard_batch') }}",
@@ -364,7 +369,7 @@
                 streak_duration: _notifStreakDuration,
                     achievement_duration: _notifAchievementDuration
     }
-            };
+    };
 
 
     const csrfTokenMeta = document.querySelector('meta[name="csrf-token"]');
@@ -444,4 +449,6 @@
 {# Include existing Translation Module - Handled by _app_logic.html #}
 {#
 <script src="{{ url_for('translator.static', filename='js/translator.js') }}"></script> #}
+{# Note Panel - required for openNotePanel() to function #}
+{% include _v ~ '/modules/notes/_note_panel.html' %}
 {% endblock %}

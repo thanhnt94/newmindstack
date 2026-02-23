@@ -84,6 +84,17 @@ class FlashcardMode(BaseVocabMode):
         else:
             pass
 
+        # [NEW] Fetch Notes for this item from FSRS/Scheduler State
+        # Vocabulary notes are typically stored in ItemMemoryState.data['note']
+        initial_note = ""
+        try:
+            state_record = FSRSInterface.get_item_state(current_user.user_id, item.get('item_id'))
+            if state_record and state_record.data:
+                initial_note = state_record.data.get('note', '')
+        except Exception:
+            pass
+        note_html = initial_note
+
         # 4. Backend Rendering [Refactor - Thin Client]
         from ..flashcard.engine.renderer import FlashcardRenderer
         
@@ -113,7 +124,8 @@ class FlashcardMode(BaseVocabMode):
             'front_audio_content': rendered_content.get('front_audio_content') or rendered_content.get('front', ''),
             'back_audio_content': rendered_content.get('back_audio_content') or rendered_content.get('back', ''),
             'category': rendered_content.get('category', 'default'),
-            'buttons_html': rendered_content.get('buttons_html', '') # This might come from elsewhere
+            'buttons_html': rendered_content.get('buttons_html', ''), # This might come from elsewhere
+            'note_html': note_html # [NEW] Pass note to renderer
         }
         
         html_payload = FlashcardRenderer.render_item(item_for_renderer, initial_stats, display_settings=display_settings)
@@ -132,6 +144,7 @@ class FlashcardMode(BaseVocabMode):
             'content': rendered_content, # Includes resolved media URLs
             'initial_stats': initial_stats,
             'ai_explanation': item.get('ai_explanation', ''),
+            'note_html': note_html, # [NEW] Support client-side fallback
             # Helpers for frontend logic
             'can_edit': display_settings['can_edit'],
             'edit_url': display_settings['edit_url'],

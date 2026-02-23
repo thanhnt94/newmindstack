@@ -60,6 +60,35 @@ function initAudioSettings() {
     if (window.syncAudioModalUI) window.syncAudioModalUI();
 }
 
+/**
+ * Sync the audio part of settings modal
+ */
+window.syncAudioModalUI = function () {
+    const configs = [
+        { id: 'settings-modal-audio-front-toggle', active: window.isAudioAutoplayFrontEnabled },
+        { id: 'settings-modal-audio-back-toggle', active: window.isAudioAutoplayBackEnabled }
+    ];
+
+    configs.forEach(cfg => {
+        const btn = document.getElementById(cfg.id);
+        if (!btn) return;
+
+        const dot = btn.querySelector('div');
+        if (cfg.active) {
+            btn.classList.remove('bg-slate-300');
+            btn.classList.add('bg-emerald-500');
+            if (dot) dot.style.transform = 'translateX(1.25rem)';
+        } else {
+            btn.classList.add('bg-slate-300');
+            btn.classList.remove('bg-emerald-500');
+            if (dot) dot.style.transform = 'translateX(0)';
+        }
+    });
+
+    // Also sync the legacy toolbar buttons if they exist
+    if (window.updateAudioAutoplayToggleButtons) window.updateAudioAutoplayToggleButtons();
+};
+
 // --- Persist to localStorage ---
 function persistSideAutoplayPreference(side, enabled) {
     const key = side === 'front' ? 'flashcardAutoPlayFront' : 'flashcardAutoPlayBack';

@@ -470,6 +470,7 @@ body.flashcard-session-active>main {
     overflow-y: auto;
     padding: 0.5rem 0;
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
 }
@@ -486,7 +487,7 @@ body.flashcard-session-active>main {
 
 /* Ensure content doesn't get hidden behind absolute actions */
 .back .text-area {
-    padding-bottom: 5rem !important;
+    padding-bottom: 1rem !important;
 }
 
 .back .text-area .flashcard-content-text {
@@ -900,6 +901,34 @@ body.flashcard-session-active>main {
     display: flex;
     flex-direction: column;
     padding: 0 !important;
+}
+
+/* --- Notes Frame --- */
+.note-frame-container {
+    transition: all 0.2s ease-in-out;
+}
+
+.note-frame-header {
+    opacity: 0.8;
+}
+
+.note-frame-body {
+    font-family: 'Inter', sans-serif;
+    line-height: 1.5;
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.02);
+}
+
+.note-frame-body p {
+    margin-bottom: 0.5rem;
+}
+
+.note-frame-body p:last-child {
+    margin-bottom: 0;
+}
+
+/* Visibility classes */
+.hidden {
+    display: none !important;
 }
 
 .flashcard-mobile-view .session-layout {
@@ -1427,6 +1456,185 @@ body>main {
 
 .flashcard-mobile-view .fc-rating-btns.show {
     display: flex;
+}
+
+/* ──────────────── Note Frame - Premium Card ──────────────── */
+.note-frame-container {
+    width: 100%;
+    border-radius: 16px;
+    background: #fefce8;
+    border: 1px solid rgba(251, 191, 36, 0.25);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+    flex-shrink: 0;
+    overflow: hidden;
+}
+
+.note-frame-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 8px 4px 8px;
+}
+
+.note-frame-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: #b45309;
+    font-size: 9px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+}
+
+.note-frame-label i {
+    font-size: 10px;
+    color: #f59e0b;
+}
+
+.note-frame-close {
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    border: none;
+    background: rgba(180, 83, 9, 0.1);
+    color: #92400e;
+    font-size: 9px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.note-frame-close:hover {
+    background: rgba(180, 83, 9, 0.2);
+    transform: scale(1.1);
+}
+
+.note-frame-close:active {
+    transform: scale(0.9);
+}
+
+.note-frame-edit {
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    border: none;
+    background: rgba(180, 83, 9, 0.08);
+    color: #d97706;
+    font-size: 8px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.note-frame-edit:hover {
+    background: rgba(180, 83, 9, 0.18);
+    transform: scale(1.1);
+}
+
+.note-frame-edit:active {
+    transform: scale(0.9);
+}
+
+/* Inline note edit mode */
+.note-frame-edit-mode {
+    padding: 6px 8px 8px 8px;
+}
+
+.note-frame-edit-mode.hidden {
+    display: none;
+}
+
+.note-frame-textarea {
+    width: 100%;
+    min-height: 60px;
+    max-height: 120px;
+    border: 1px solid rgba(251, 191, 36, 0.4);
+    border-radius: 8px;
+    padding: 6px 8px;
+    font-size: 12px;
+    line-height: 1.5;
+    color: #78350f;
+    background: #fffef7;
+    resize: vertical;
+    outline: none;
+    font-family: inherit;
+}
+
+.note-frame-textarea:focus {
+    border-color: #f59e0b;
+    box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.15);
+}
+
+.note-frame-edit-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 6px;
+    margin-top: 6px;
+}
+
+.note-frame-cancel-btn,
+.note-frame-save-btn {
+    padding: 4px 12px;
+    border-radius: 6px;
+    border: none;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.note-frame-cancel-btn {
+    background: rgba(0, 0, 0, 0.06);
+    color: #64748b;
+}
+
+.note-frame-cancel-btn:hover {
+    background: rgba(0, 0, 0, 0.1);
+}
+
+.note-frame-save-btn {
+    background: #f59e0b;
+    color: white;
+}
+
+.note-frame-save-btn:hover {
+    background: #d97706;
+}
+
+.note-frame-body {
+    max-height: 100px;
+    overflow-y: auto;
+    padding: 2px 8px 8px 8px;
+    display: flex;
+    align-items: center;
+    min-height: 32px;
+}
+
+.note-frame-content {
+    width: 100%;
+    font-size: 12px;
+    line-height: 1.5;
+    color: #78350f;
+    font-style: italic;
+}
+
+/* Custom scrollbar for note body */
+.note-frame-body::-webkit-scrollbar {
+    width: 3px;
+}
+
+.note-frame-body::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.note-frame-body::-webkit-scrollbar-thumb {
+    background: rgba(251, 191, 36, 0.4);
+    border-radius: 3px;
 }
 
 .flashcard-mobile-view .fc-rating-btn {
