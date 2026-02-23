@@ -149,7 +149,12 @@ class VocabularyDriver(BaseSessionDriver):
         next_item_id = None
         is_last = False
 
-        if remaining:
+        # [FIX] Prioritize active_item_id if it's set and NOT yet processed
+        # This ensures page reload doesn't change the active card.
+        if state.active_item_id and state.active_item_id not in state.processed_ids:
+            next_item_id = state.active_item_id
+            is_last = (len(remaining) == 1) if remaining else False
+        elif remaining:
             next_item_id = remaining[0]
             is_last = len(remaining) == 1
         elif state.settings.get('filter') in ['due', 'new', 'review', 'available', 'srs', 'mixed', 'mixed_srs']:
@@ -197,10 +202,31 @@ class VocabularyDriver(BaseSessionDriver):
             settings=state.settings,
         )
 
-        # Progress info
+        # [FIX] Improve progress info for dynamic SRS
+        # If dynamic, the 'total' should reflect the actual number of due/available cards
+        is_dynamic = state.settings.get('filter') in ['srs', 'mixed', 'mixed_srs', 'due', 'new', 'review', 'available']
+        
         current_pos = len(state.processed_ids) + 1
-        # For dynamic modes where remaining is empty, estimate remaining
-        remaining_count = len(remaining) if remaining else max(0, state.total_items - len(state.processed_ids))
+        total_items = state.total_items
+        
+        if is_dynamic:
+            from mindstack_app.modules.fsrs.interface import FSRSInterface
+            # Get real-time stats for the specific set or global
+            if isinstance(state.container_id, int) and state.container_id > 0:
+                stats = FSRSInterface.get_container_stats(state.user_id, state.container_id)
+                # For SRS, 'due' + 'new' is a good estimate of total work
+                # But here we'll just use 'due' if filtering for due, etc.
+                if state.settings.get('filter') == 'due':
+                    total_items = stats.get('due', 0)
+                else:
+                    # For general srs/mixed, use total cards in set as base for 'total'
+                    total_items = stats.get('total', 0)
+            
+            # Update state so it persists
+            state.total_items = total_items
+            remaining_count = max(0, total_items - len(state.processed_ids))
+        else:
+            remaining_count = len(remaining) if remaining else max(0, state.total_items - len(state.processed_ids))
 
         return InteractionPayload(
             item_id=next_item_id,

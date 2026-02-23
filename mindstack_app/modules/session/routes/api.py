@@ -322,10 +322,18 @@ def api_get_next_interaction(session_id):
             incorrect_count=session.incorrect_count or 0,
             total_items=session.total_items or 0,
             started_at=session.start_time.isoformat() if session.start_time else '',
+            active_item_id=session.current_item_id,
             settings=persisted_settings,
         )
 
         payload = driver.get_next_interaction(state)
+
+        if payload is not None:
+             # [FIX] If a new item was chosen, persist it to the session record immediately.
+             # This ensures that if the page is reloaded, we stick with this item.
+             if session.current_item_id != payload.item_id:
+                 from mindstack_app.modules.session.services.session_service import LearningSessionService
+                 LearningSessionService.set_current_item(session_id, payload.item_id)
 
         if payload is None:
             # Auto-complete when queue is exhausted

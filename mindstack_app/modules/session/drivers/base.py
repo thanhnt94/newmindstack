@@ -47,6 +47,7 @@ class SessionState:
     incorrect_count: int = 0
     total_items: int = 0
     current_index: int = 0
+    active_item_id: Optional[int] = None
     settings: Dict[str, Any] = field(default_factory=dict)
     started_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     extra: Dict[str, Any] = field(default_factory=dict)   # driver-specific data
