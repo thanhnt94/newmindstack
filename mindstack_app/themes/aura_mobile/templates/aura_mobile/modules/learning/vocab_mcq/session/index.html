@@ -1523,7 +1523,7 @@
                 if (els.fsrsD) els.fsrsD.textContent = Number(q.srs.difficulty || 0).toFixed(1);
                 if (els.fsrsR) els.fsrsR.textContent = Math.round(Number(q.srs.retrievability || 0) * 100);
                 if (els.fsrsMcqReps) els.fsrsMcqReps.textContent = q.srs.mcq_reps || 0;
-                if (els.fsrsTotalReps) els.fsrsTotalReps.textContent = q.srs.repetitions || 0;
+                if (els.fsrsTotalReps) els.fsrsTotalReps.textContent = q.srs.total_reps || 0;
 
                 // Trigger entrance animation
                 requestAnimationFrame(() => {
@@ -1646,7 +1646,7 @@
             if (els.fsrsD) els.fsrsD.textContent = Number(data.difficulty || 0).toFixed(1);
             if (els.fsrsR) els.fsrsR.textContent = Math.round(Number(data.retrievability || 0) * 100);
             if (els.fsrsMcqReps) els.fsrsMcqReps.textContent = data.mcq_reps || 0;
-            if (els.fsrsTotalReps) els.fsrsTotalReps.textContent = data.repetitions || 0;
+            if (els.fsrsTotalReps) els.fsrsTotalReps.textContent = data.total_reps !== undefined ? data.total_reps : (data.repetitions || 0);
         } else {
             console.warn("[VOCAB_MCQ] No stability or sync marker found in saved answer data:", data);
         }
@@ -1786,8 +1786,8 @@
                         if (els.fsrsS) els.fsrsS.textContent = Number(data.stability).toFixed(1);
                         if (els.fsrsD) els.fsrsD.textContent = Number(data.difficulty).toFixed(1);
                         if (els.fsrsR) els.fsrsR.textContent = Math.round(Number(data.retrievability) * 100);
-                        if (els.fsrsMcqReps) els.fsrsMcqReps.textContent = data.mcq_reps || 0;
-                        if (els.fsrsTotalReps) els.fsrsTotalReps.textContent = data.repetitions || 0;
+                        if (els.fsrsMcqReps) els.fsrsMcqReps.textContent = data.mcq_reps !== undefined ? data.mcq_reps : 0;
+                        if (els.fsrsTotalReps) els.fsrsTotalReps.textContent = data.total_reps !== undefined ? data.total_reps : (data.repetitions || 0);
                     }
 
 

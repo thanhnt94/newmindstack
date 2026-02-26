@@ -894,7 +894,7 @@
                 els.fsrsD.textContent = Number(data.difficulty).toFixed(1);
                 els.fsrsR.textContent = Math.round(data.retrievability * 100);
                 els.fsrsTypeReps.textContent = data.typing_reps || 0;
-                els.fsrsTotalReps.textContent = data.repetitions || 0;
+                els.fsrsTotalReps.textContent = data.total_reps !== undefined ? data.total_reps : (data.repetitions || 0);
                 els.fsrsPill.classList.remove('hidden');
                 setTimeout(() => els.fsrsPill.classList.remove('opacity-0', '-translate-y-2'), 10);
             }

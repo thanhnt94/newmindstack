@@ -214,9 +214,14 @@ class MCQSessionManager:
             container = LearningContainer.query.get(self.set_id)
             mcq_settings = (container.settings or {}).get('mcq', {}) if container else {}
             
+            # Explicitly check for None to allow 0 (random) to pass through
+            p_choices = self.params.get('choices')
+            s_choices = mcq_settings.get('choices')
+            num_choices = p_choices if p_choices is not None else (s_choices if s_choices is not None else 0)
+
             merged_config = {
                 'mode': self.params.get('mode') or mcq_settings.get('mode', 'front_back'),
-                'num_choices': self.params.get('choices') or mcq_settings.get('choices', 4),
+                'num_choices': num_choices,
                 'question_key': self.params.get('question_key') or mcq_settings.get('question_key'),
                 'answer_key': self.params.get('answer_key') or mcq_settings.get('answer_key'),
                 'custom_pairs': self.params.get('custom_pairs') or mcq_settings.get('pairs'),
@@ -239,11 +244,27 @@ class MCQSessionManager:
             # 4. Generate the specific MCQ question
             generated = MCQEngine.generate_question(question, all_distractors, merged_config)
             
-            # 5. Update the question in the list (preserve existing SRS data)
-            srs_data = question.get('srs')
+            # [NEW] Fetch LATEST SRS state from DB to ensure accurate counts
+            try:
+                from mindstack_app.modules.fsrs.interface import FSRSInterface
+                latest_state = FSRSInterface.get_item_state(self.user_id, question['item_id'])
+                if latest_state:
+                    generated['srs'] = {
+                        'stability': latest_state.stability,
+                        'difficulty': latest_state.difficulty,
+                        'retrievability': FSRSInterface.get_retrievability(latest_state),
+                        'repetitions': latest_state.repetitions,
+                        'total_reps': (latest_state.times_correct or 0) + (latest_state.times_incorrect or 0),
+                        'mcq_reps': (latest_state.data or {}).get('mcq_reps', 0),
+                        'last_review': latest_state.last_review.isoformat() if latest_state.last_review else None
+                    }
+            except Exception as e_srs:
+                current_app.logger.warning(f"[VOCAB_MCQ] Failed to fetch latest SRS for item {question['item_id']}: {e_srs}")
+                # Fallback: keep existing SRS if available
+                if 'srs' in question: generated['srs'] = question['srs']
+
+            # 5. Update the question in the list
             self.questions[index] = generated
-            if srs_data:
-                self.questions[index]['srs'] = srs_data
                 
             # [CRITICAL] Save immediately to ensure correct_index is persisted for check_answer
             self.save_to_db()

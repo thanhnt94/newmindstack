@@ -174,7 +174,16 @@ def mcq_save_setup(set_id):
         else:
              new_settings['mcq']['count'] = 0
              
-        new_settings['mcq']['choices'] = int(choices) if choices is not None else 0
+        # Handle 'random' string or numeric choices
+        raw_choices = data.get('choices')
+        if raw_choices == 'random' or raw_choices == 0:
+            new_settings['mcq']['choices'] = 0
+        else:
+            try:
+                new_settings['mcq']['choices'] = int(raw_choices) if raw_choices is not None else 0
+            except (ValueError, TypeError):
+                new_settings['mcq']['choices'] = 0
+                
         new_settings['mcq']['use_custom_config'] = bool(use_custom_config)
         
         if custom_pairs:
@@ -212,7 +221,14 @@ def mcq_api_get_items(set_id):
         count = request.args.get('count', 0, type=int)
         mode = request.args.get('mode', 'front_back')
         study_mode = request.args.get('study_mode', 'review')
-        num_choices = request.args.get('choices', 0, type=int)
+        
+        # Safe extraction of choices
+        raw_choices = request.args.get('choices', '0')
+        try:
+            num_choices = int(raw_choices)
+        except (ValueError, TypeError):
+            num_choices = 0 # Default to 0/random if string 'random' passed
+            
         custom_pairs_str = request.args.get('custom_pairs', '')
         
         custom_pairs = None

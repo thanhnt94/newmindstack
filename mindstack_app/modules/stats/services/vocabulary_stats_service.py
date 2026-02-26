@@ -226,12 +226,18 @@ class VocabularyStatsService:
         
         from mindstack_app.modules.learning_history.interface import LearningHistoryInterface
         
-        # Fetch detailed history (limit 100 or all? UI usually needs some history list)
+        # Fetch detailed history (limit 500 for detailed log list)
         logs = LearningHistoryInterface.get_item_history(item_id, limit=500)
         # Note: HistoryQueryService.get_item_history now returns DTO dicts.
         
-        total_attempts = len(logs)
-        total_correct = sum(1 for log in logs if VocabularyStatsService._is_log_dict_correct(log))
+        # [NEW] Use absolute counters from ItemMemoryState if available for top-level stats
+        if progress:
+            total_attempts = (progress.times_correct or 0) + (progress.times_incorrect or 0)
+            total_correct = progress.times_correct or 0
+        else:
+            total_attempts = len(logs)
+            total_correct = sum(1 for log in logs if VocabularyStatsService._is_log_dict_correct(log))
+            
         total_duration_ms = sum(log['review_duration'] for log in logs if log.get('review_duration'))
         
         total_score = 0
@@ -328,8 +334,11 @@ class VocabularyStatsService:
                 'due_relative': VocabularyStatsService._get_relative_time_string(next_due) if next_due else 'Sẵn sàng',
                 'stability_trend': 0, 'mastery_trend': 0, 'first_reviewed': first_reviewed, 'last_reviewed_log': last_reviewed_log,
                 'last_reviewed_relative': VocabularyStatsService._get_relative_time_string(last_reviewed_log) if last_reviewed_log else 'Chưa học',
-                # [NEW] FSRS Stats
-                'fsrs_stability': stability, 'fsrs_difficulty': difficulty, 'fsrs_state': getattr(progress, 'state', 0) if progress else 0
+                # [NEW] FSRS Stats & Interaction Counters
+                'fsrs_stability': stability, 'fsrs_difficulty': difficulty, 'fsrs_state': getattr(progress, 'state', 0) if progress else 0,
+                'total_reps': total_attempts,
+                'mcq_reps': (progress.data or {}).get('mcq_reps', 0) if progress else 0,
+                'typing_reps': (progress.data or {}).get('typing_reps', 0) if progress else 0
             },
             'modes': mode_counts,
             'performance': {
@@ -418,7 +427,7 @@ class VocabularyStatsService:
                 
                 memory_level = (progress.data or {}).get('memory_level', 0) if progress.data else 0
                 difficulty = progress.difficulty or 0.0
-                repetitions = progress.repetitions or 0
+                repetitions = (progress.times_correct or 0) + (progress.times_incorrect or 0)
                 
                 # Check both dedicated module and fallback
                 has_note = bool(notes_map.get(item.item_id) or (progress.data or {}).get('note'))

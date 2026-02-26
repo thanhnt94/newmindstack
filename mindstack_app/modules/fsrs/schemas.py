@@ -45,5 +45,6 @@ class SrsResultDTO:
     score_breakdown: Dict[str, int]
     repetitions: int
     lapses: int
+    total_reps: int = 0
     mcq_reps: int = 0
     typing_reps: int = 0

@@ -242,6 +242,26 @@ class TypingService:
                 item['content'] = updated_content
             
             question = TypingEngine.generate_question(item, merged_config)
+            
+            # [NEW] [V3] Add SRS Data for frontend display
+            if user_id:
+                try:
+                    from mindstack_app.modules.fsrs.interface import FSRSInterface
+                    item_id = item.get('item_id') if isinstance(item, dict) else item.item_id
+                    state = FSRSInterface.get_item_state(user_id, item_id)
+                    if state:
+                        question['srs'] = {
+                            'stability': state.stability,
+                            'difficulty': state.difficulty,
+                            'retrievability': FSRSInterface.get_retrievability(state),
+                            'repetitions': state.repetitions,
+                            'total_reps': (state.times_correct or 0) + (state.times_incorrect or 0),
+                            'typing_reps': (state.data or {}).get('typing_reps', 0),
+                            'last_review': state.last_review.isoformat() if state.last_review else None
+                        }
+                except Exception as e_srs:
+                    current_app.logger.warning(f"[VOCAB_TYPING] Failed to fetch SRS for item {item_id}: {e_srs}")
+
             questions.append(question)
             
         return questions

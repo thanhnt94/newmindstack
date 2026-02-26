@@ -11,7 +11,7 @@
  * Usage:
  *   const client = new SessionDriverClient();
  *
- *   const { session_id } = await client.startSession(42, 'mcq', { num_choices: 4 });
+ *   const { session_id } = await client.startSession(42, 'mcq', { num_choices: 'random' });
  *   const interaction    = await client.getNextItem(session_id);
  *   const result         = await client.submitAnswer(session_id, {
  *       item_id: interaction.item_id,

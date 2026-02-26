@@ -506,7 +506,8 @@
         study_mode: savedSettings.study_mode || 'review',
         mode: savedSettings.mode || 'front_back',
         count: savedSettings.count !== undefined ? savedSettings.count : 0,
-        choices: savedSettings.choices !== undefined ? savedSettings.choices : 4,
+        // Đổi mặc định từ 4 sang 'random' để kích hoạt tính năng Dynamic Choices của Backend
+        choices: (savedSettings.choices !== undefined && savedSettings.choices !== 4) ? savedSettings.choices : 'random',
         auto_audio: savedSettings.auto_audio !== undefined ? savedSettings.auto_audio : true,
         use_custom_config: savedSettings.use_custom_config || false,
         custom_pairs: []

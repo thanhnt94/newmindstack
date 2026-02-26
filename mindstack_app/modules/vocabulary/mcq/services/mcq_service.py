@@ -253,6 +253,7 @@ class MCQService:
                     'difficulty': state.difficulty,
                     'retrievability': FSRSInterface.get_retrievability(state),
                     'repetitions': state.repetitions,
+                    'mcq_reps': (state.data or {}).get('mcq_reps', 0),
                     'last_review': state.last_review.isoformat() if state.last_review else None
                 }
         

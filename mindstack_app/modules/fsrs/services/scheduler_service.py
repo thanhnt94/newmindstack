@@ -162,6 +162,8 @@ class SchedulerService:
             raise e
         
         # 6. Prepare Result & Emit Signal
+        total_interactions = (item_state.times_correct or 0) + (item_state.times_incorrect or 0)
+        
         srs_result = SrsResultDTO(
             next_review=srs_result_next_due,
             interval_minutes=0, # Not strictly needed for DTO here
@@ -173,6 +175,7 @@ class SchedulerService:
             incorrect_streak=item_state.incorrect_streak,
             repetitions=item_state.repetitions,
             lapses=item_state.lapses,
+            total_reps=total_interactions,
             score_points=0,
             score_breakdown={},
             mcq_reps=item_state.data.get('mcq_reps', 0) if item_state.data else 0,
