@@ -1,142 +1,103 @@
 """
 Smart Distractor Selector for MCQ Generation.
 ================================================
-Implements a 4-step pipeline to generate high-quality, 
-tricky, but absolutely mutually-exclusive distractors.
+Implements a safe 4-step pipeline:
+1. Pre-filtering (Exact Match)
+2. Fallback Mechanism (Ensure quantity)
+3. Trickiness Scoring (Visual/Morphological Traps)
+4. Final Selection (Shuffle & Sort)
 
 Pure logic — no Database access, no Flask.
 """
 
 import random
 import re
-from typing import List, Set
-
-
-# Common English/Vietnamese stop words to ignore during overlap scoring
-STOP_WORDS = {
-    # Vietnamese
-    "là", "sự", "cái", "con", "những", "các", "một", "những", "của", "và", 
-    "có", "để", "làm", "được", "bị", "trong", "trên", "dưới", "với", "cho",
-    # English
-    "a", "an", "the", "and", "or", "but", "is", "are", "was", "were",
-    "to", "of", "in", "on", "at", "by", "for", "with", "about", "as"
-}
+from typing import List, Set, Dict
 
 
 class SmartDistractorSelector:
     """
-    Selects high-quality distractors (wrong answers).
-    
-    Algorithm Pipeline:
-        1. Fetch (handled by caller: provide random candidate pool).
-        2. Absolute Filtering (Sanitize) - strict overlap checks.
-        3. Trickiness Scoring - shape and keyword intersection bonuses.
-        4. Final Selection & Shuffling - output top M candidates.
+    Selects high-quality distractors (wrong answers) for MCQ.
     """
 
     @classmethod
     def select(
         cls,
-        correct_answer: str,
-        candidate_pool: List[str],
+        correct_item: Dict,
+        candidate_pool: List[Dict],
         amount: int = 3,
-    ) -> List[str]:
+    ) -> List[Dict]:
         """
         Main pipeline to select distractors.
+        
+        Args:
+            correct_item: Dict containing {'front': str, 'back': str, 'text': str}
+            candidate_pool: List of dicts containing {'front': str, 'back': str, 'text': str, ...}
+            amount: Number of distractors needed.
         """
         if not candidate_pool or amount <= 0:
             return []
 
-        # Step 2: Absolute Filtering (Sanitization)
-        valid_candidates = cls._filter_candidates(correct_answer, candidate_pool)
+        # Step 1: Pre-filtering (Hard Filter)
+        valid_candidates = cls._filter_exact_matches(correct_item, candidate_pool)
+
+        # Step 2: Fallback Mechanism
+        if len(valid_candidates) < amount:
+            # If not enough candidates after strict filtering, fallback to a looser filter
+            valid_candidates = [
+                cand for cand in candidate_pool 
+                if cand.get('text', '').strip().lower() != correct_item.get('text', '').strip().lower()
+            ]
 
         if not valid_candidates:
             return []
 
         # Step 3: Trickiness Scoring
-        scored_candidates = cls._score_candidates(correct_answer, valid_candidates)
+        scored_candidates = cls._score_candidates(correct_item, valid_candidates)
 
-        # Step 4: Final Selection & Shuffling (Handled partially by the caller merging + shuffling)
-        # We just return the top N here.
-        
-        # Take the top `amount` needed
-        top_candidates = [cand for score, cand in scored_candidates[:amount]]
-        
-        return top_candidates
+        # Step 4: Final Selection
+        # Shuffle first to randomize ties
+        random.shuffle(scored_candidates)
+        # Sort descending by score
+        scored_candidates.sort(key=lambda x: x[0], reverse=True)
 
-    # ------------------------------------------------------------------ #
-    #  Step 2 — Absolute Filtering (Sanitize)                              #
-    # ------------------------------------------------------------------ #
+        # Return top N candidates
+        return [cand for score, cand in scored_candidates[:amount]]
 
     @classmethod
-    def _split_meaning(cls, text: str) -> Set[str]:
+    def _filter_exact_matches(cls, correct_item: Dict, pool: List[Dict]) -> List[Dict]:
         """
-        Splits a vocabulary meaning string into a normalized set of base intents.
-        e.g., "Màu cam, quả cam / xe cộ" -> {"màu cam", "quả cam", "xe cộ"}
+        Removes distractors that match correct_item exactly on front, back, or display text.
         """
-        if not text:
-            return set()
+        c_front = correct_item.get('front', '').strip().lower()
+        c_back = correct_item.get('back', '').strip().lower()
+        c_text = correct_item.get('text', '').strip().lower()
         
-        # Split by typical dictionary delimiters
-        parts = re.split(r'[;/,|]+', text)
-        
-        # Strip whitespace and lowercase
-        clean_parts = {part.strip().lower() for part in parts if part.strip()}
-        return clean_parts
-
-    @classmethod
-    def _filter_candidates(cls, correct_answer: str, pool: List[str]) -> List[str]:
-        """
-        Discard any candidate that shares ANY meaning intent with the target.
-        Also discards identical string duplicates.
-        """
-        target_intents = cls._split_meaning(correct_answer)
-        
-        valid_pool = []
-        seen_texts = set()
-        
-        for candidate in pool:
-            # Skip physical string duplicates
-            if candidate.lower().strip() in seen_texts:
+        valid = []
+        for cand in pool:
+            d_front = cand.get('front', '').strip().lower()
+            d_back = cand.get('back', '').strip().lower()
+            d_text = cand.get('text', '').strip().lower()
+            
+            # Rule: Must be different on ALL critical fields to be considered a "hard" distractor
+            if d_front == c_front:
+                continue
+            if d_back == c_back:
+                continue
+            if d_text == c_text:
                 continue
                 
-            # Skip if candidate IS the correct answer
-            if candidate == correct_answer:
-                continue
-
-            cand_intents = cls._split_meaning(candidate)
-            
-            # Intersection Check: Is there any overlap in their meanings?
-            # E.g Target = {"to eat", "consume"}, Cand = {"to drink", "consume"} -> Overlap!
-            overlap = target_intents.intersection(cand_intents)
-            
-            if not overlap:
-                valid_pool.append(candidate)
-                seen_texts.add(candidate.lower().strip())
-                
-        return valid_pool
-
-    # ------------------------------------------------------------------ #
-    #  Step 3 — Trickiness Scoring                                         #
-    # ------------------------------------------------------------------ #
+            valid.append(cand)
+        return valid
 
     @classmethod
     def _get_jp_pattern(cls, text: str) -> str:
-        """
-        Returns a string representing the Japanese composition: 
-        K (Kanji), H (Hiragana), C (Katakana)
-        """
+        """Returns string representing composition: K (Kanji), H (Hiragana), C (Katakana)."""
         pattern = []
         for char in text:
-            # Kanji (CJK Unified Ideographs)
-            if '\u4e00' <= char <= '\u9faf':
-                pattern.append('K')
-            # Hiragana
-            elif '\u3040' <= char <= '\u309f':
-                pattern.append('H')
-            # Katakana
-            elif '\u30a0' <= char <= '\u30ff':
-                pattern.append('C')
+            if '\u4e00' <= char <= '\u9faf': pattern.append('K')
+            elif '\u3040' <= char <= '\u309f': pattern.append('H')
+            elif '\u30a0' <= char <= '\u30ff': pattern.append('C')
         return "".join(pattern)
 
     @classmethod
@@ -145,71 +106,38 @@ class SmartDistractorSelector:
         return {char for char in text if '\u4e00' <= char <= '\u9faf'}
 
     @classmethod
-    def _tokenize(cls, text: str) -> Set[str]:
-        """Splits into words and removes punctuation for scoring overlap."""
-        # Replace non-alphanumeric with space and split
-        clean_text = re.sub(r'[^\w\s]', ' ', text.lower())
-        return set(clean_text.split())
-
-    @classmethod
-    def _score_candidates(cls, correct_answer: str, valid_candidates: List[str]) -> List[tuple]:
+    def _score_candidates(cls, correct_item: Dict, candidates: List[Dict]) -> List[tuple]:
         """
-        Scores candidates based on physical similarity to the target answer.
-        Returns a sorted list of tuples: [(score, candidate), ...] (Descending)
+        Scores candidates based on visual/morphological similarity to the correct item.
         """
-        target_len_chars = len(correct_answer)
-        target_len_words = len(correct_answer.split())
-        target_tokens = cls._tokenize(correct_answer)
-        
-        # Analyze target for Japanese characteristics
-        target_jp_pattern = cls._get_jp_pattern(correct_answer)
-        target_kanji_set = cls._extract_kanji(correct_answer)
-        has_japanese = len(target_jp_pattern) > 0
+        c_front = correct_item.get('front', '')
+        c_kanji = cls._extract_kanji(c_front)
+        c_pattern = cls._get_jp_pattern(c_front)
+        c_len = len(c_front)
         
         scored = []
-        
-        for cand in valid_candidates:
+        for cand in candidates:
             score = 0
-            cand_len_chars = len(cand)
-            cand_len_words = len(cand.split())
-            cand_tokens = cls._tokenize(cand)
+            d_front = cand.get('front', '')
+            d_kanji = cls._extract_kanji(d_front)
+            d_pattern = cls._get_jp_pattern(d_front)
+            d_len = len(d_front)
             
-            # 1. Length Similarity (Characters): Smaller difference = higher score
-            char_diff = abs(target_len_chars - cand_len_chars)
-            score += max(0, 10 - char_diff)  # Max 10 points
-            
-            # 2. Word Count Similarity: Smaller difference = higher score
-            word_diff = abs(target_len_words - cand_len_words)
-            score += max(0, 10 - (word_diff * 3)) # Max 10 points
-            
-            # 3. Keyword Overlap (The Trap): 
-            # If they share non-stop-words, it looks like a tricky correct answer.
-            shared_tokens = target_tokens.intersection(cand_tokens)
-            meaningful_shared = shared_tokens - STOP_WORDS
-            
-            if meaningful_shared:
-                score += len(meaningful_shared) * 30  # Massive bonus
+            # 1. Shared Kanji (Very High Weight: +50)
+            if c_kanji.intersection(d_kanji):
+                score += 50
                 
-            # 4. Japanese Orthography Heuristics
-            if has_japanese:
-                cand_jp_pattern = cls._get_jp_pattern(cand)
-                cand_kanji_set = cls._extract_kanji(cand)
+            # 2. Length Similarity (+10 for exact, +5 for close)
+            len_diff = abs(c_len - d_len)
+            if len_diff == 0:
+                score += 10
+            elif len_diff <= 2:
+                score += 5
                 
-                # Rule 1: Exact Pattern Match (e.g. both are "KK" -> 2 Kanji)
-                if cand_jp_pattern and cand_jp_pattern == target_jp_pattern:
-                    score += 50
-                    
-                # Rule 2: Shared Kanji (Massive trap! Target "学校" vs Cand "学生" shares "学")
-                shared_kanji = target_kanji_set.intersection(cand_kanji_set)
-                if shared_kanji:
-                    score += len(shared_kanji) * 100
+            # 3. Japanese Pattern Match (+20 for exact pattern)
+            if d_pattern and d_pattern == c_pattern:
+                score += 20
                 
             scored.append((score, cand))
             
-        # Pre-shuffle so that candidates with the EXACT same score are randomly ordered
-        random.shuffle(scored)
-        
-        # Sort descending by score
-        scored.sort(key=lambda x: x[0], reverse=True)
-        
         return scored

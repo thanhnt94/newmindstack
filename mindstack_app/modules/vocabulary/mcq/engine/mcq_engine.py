@@ -44,26 +44,33 @@ class MCQEngine:
         question_text = get_content_value(content, question_key)
         correct_answer = get_content_value(content, answer_key)
         
-        # 5. Build Distractor Pool using the same answer_key
-        # Step 1: True Random Fetching & Full Set Evaluation
+        # Determine which side is 'front' and 'back' for filtering logic
+        # Usually front is the word and back is the meaning.
+        item_front = get_content_value(content, 'front')
+        item_back = get_content_value(content, 'back')
+
+        # 5. Build Distractor Pool using BOTH sides for filtering
         distractor_pool = []
         
         # Shuffle a copy to ensure predictability is gone for tie-breaking
         shuffled_items = list(all_items_data)
         random.shuffle(shuffled_items)
         
-        # Scan the entire shuffled set to allow Trickiness Scorer to find the best possible traps (e.g. shared Kanji).
-        # We cap at 2000 to prevent performance bottlenecks on massive dictionary sets.
         for other in shuffled_items:
             if len(distractor_pool) >= 2000:
                 break
                 
             if other['item_id'] != item_data['item_id']:
                 c = other.get('content', {})
-                val = get_content_value(c, answer_key)
-                if val and val != correct_answer:
+                d_front = get_content_value(c, 'front')
+                d_back = get_content_value(c, 'back')
+                d_val = get_content_value(c, answer_key)
+                
+                if d_val:
                     distractor_pool.append({
-                        'text': val, 
+                        'text': d_val, # The text to show in the choice
+                        'front': d_front,
+                        'back': d_back,
                         'item_id': other['item_id'],
                         'type': c.get('type') or c.get('pos') or ''
                     })
@@ -71,6 +78,8 @@ class MCQEngine:
         # 6. Select distractors using algorithms
         correct_item_data = {
             'text': correct_answer,
+            'front': item_front,
+            'back': item_back,
             'item_id': item_data['item_id'],
             'type': content.get('type') or content.get('pos') or ''
         }
@@ -81,7 +90,7 @@ class MCQEngine:
         choice_item_ids = [c.get('item_id') for c in choices_data]
         correct_index = choices.index(correct_answer) if correct_answer in choices else 0
         
-        # 7. Map Audio - [MODIFIED] Prioritize BACK/ANSWER audio for the question as requested
+        # 7. Map Audio - Prioritize BACK/ANSWER audio for the question as requested
         a_audio_url = content.get(f"{answer_key}_audio") or content.get('back_audio') or content.get('back_audio_url')
         q_audio_url = a_audio_url or content.get(f"{question_key}_audio") or content.get('front_audio') or content.get('front_audio_url')
 

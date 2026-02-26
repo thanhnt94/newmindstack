@@ -22,11 +22,11 @@ def select_smart_choices(correct_item: dict, distractor_pool: list, num_choices:
     Smart algorithm to select distractors based on similarity.
     
     Delegates to SmartDistractorSelector for intelligent distractor
-    selection based on length filtering and word/character overlap.
+    selection based on pre-filtering and morphological scoring.
     
     Args:
-        correct_item: Dict of correct item data {'text': str, 'item_id': int, 'type': str}.
-        distractor_pool: List of distractor dicts with 'text', 'item_id', 'type'.
+        correct_item: Dict {'text': str, 'front': str, 'back': str, 'item_id': int, ...}
+        distractor_pool: List of dicts with 'text', 'front', 'back', 'item_id'.
         num_choices: Requested number of choices. If 0, dynamic [3, 4, 6].
         
     Returns:
@@ -36,32 +36,17 @@ def select_smart_choices(correct_item: dict, distractor_pool: list, num_choices:
     if not num_choices:
         num_choices = random.choices([3, 4, 6], weights=[1, 3, 1], k=1)[0]
         
-    correct_text = correct_item['text']
     needed = num_choices - 1  # distractors needed (excluding correct answer)
     
-    # Filter duplicates
-    seen = {correct_text}
-    unique_pool = []
-    for d in distractor_pool:
-        if d['text'] not in seen:
-            seen.add(d['text'])
-            unique_pool.append(d)
-
     # --- Use SmartDistractorSelector for intelligent selection ---
-    candidate_texts = [d['text'] for d in unique_pool]
-    
-    selected_texts = SmartDistractorSelector.select(
-        correct_answer=correct_text,
-        candidate_pool=candidate_texts,
+    selected_items = SmartDistractorSelector.select(
+        correct_item=correct_item,
+        candidate_pool=distractor_pool,
         amount=needed
     )
-    
-    # Map selected texts back to their full dict (preserving item_id, type)
-    text_to_item = {d['text']: d for d in unique_pool}
-    selected_items = [text_to_item[t] for t in selected_texts if t in text_to_item]
 
     # Build final list
-    choices_data = [{'text': correct_text, 'item_id': correct_item['item_id']}] + selected_items
+    choices_data = [correct_item] + selected_items
     random.shuffle(choices_data)
     
     return choices_data
