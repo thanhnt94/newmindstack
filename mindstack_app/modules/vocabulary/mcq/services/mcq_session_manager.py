@@ -139,7 +139,10 @@ class MCQSessionManager:
             current_app.logger.error(f"[VOCAB_MCQ] [V3] DB SAVE ERROR: {str(e)}")
 
     def initialize_session(self, count, mode, choices, custom_pairs, study_mode='review'):
-        """Generates new questions and sets up the session."""
+        """Generates raw items and sets up the session (Lazy Generation)."""
+        import time
+        start_time = time.time()
+        
         from ..services.mcq_service import MCQService
         self.params = {
             'count': count,
@@ -149,17 +152,17 @@ class MCQSessionManager:
             'study_mode': study_mode
         }
         
-        # Use Service to generate questions (filters for learned items automatically)
-        questions = MCQService.generate_session_questions(
+        # [LAZY] Get raw items instead of generating full questions
+        raw_items = MCQService.get_raw_session_items(
             self.set_id, 
             config=self.params,
             user_id=self.user_id
         )
         
-        if not questions:
+        if not raw_items:
             return False, "Không tìm thấy đủ từ vựng đã học để tạo trắc nghiệm"
             
-        self.questions = questions
+        self.questions = raw_items
         self.currentIndex = 0
         self.stats = {'correct': 0, 'wrong': 0, 'points': 0}
         self.answers = {}
@@ -181,9 +184,79 @@ class MCQSessionManager:
             print(f"Error creating DB session for checking: {e}")
 
         self.save_to_db()
+        
+        duration = time.time() - start_time
+        current_app.logger.info(f"[VOCAB_MCQ] [LAZY] Session initialized in {duration:.4f}s for {len(self.questions)} items.")
+        
         return True, "Session initialized"
 
+    def ensure_question_generated(self, index: int) -> bool:
+        """
+        Just-In-Time Generation: Ensures the question at the given index 
+        has full MCQ payload (choices, correct_index, etc.)
+        """
+        if index < 0 or index >= len(self.questions):
+            return False
+            
+        question = self.questions[index]
+        
+        # Check if already generated (contains choices)
+        if 'choices' in question and 'correct_index' in question:
+            return True
+            
+        # Not generated yet - Generate it now
+        try:
+            from ..services.mcq_service import MCQService
+            from ..engine.mcq_engine import MCQEngine
+            from mindstack_app.models import LearningContainer
+            
+            # 1. Prepare config
+            container = LearningContainer.query.get(self.set_id)
+            mcq_settings = (container.settings or {}).get('mcq', {}) if container else {}
+            
+            merged_config = {
+                'mode': self.params.get('mode') or mcq_settings.get('mode', 'front_back'),
+                'num_choices': self.params.get('choices') or mcq_settings.get('choices', 4),
+                'question_key': self.params.get('question_key') or mcq_settings.get('question_key'),
+                'answer_key': self.params.get('answer_key') or mcq_settings.get('answer_key'),
+                'custom_pairs': self.params.get('custom_pairs') or mcq_settings.get('pairs'),
+                'audio_folder': container.media_audio_folder if container else None,
+                'image_folder': container.media_image_folder if container else None,
+            }
+
+            # 2. Get distractors pool (Lazy: Fetch only when needed or use a cached pool)
+            all_distractors = MCQService.get_all_items_for_distractors(self.set_id)
+            
+            # 3. Ensure audio URLs for the specific item
+            updated_content = MCQService.ensure_audio_urls(
+                question, 
+                container, 
+                q_key=merged_config['question_key'], 
+                a_key=merged_config['answer_key']
+            )
+            question['content'] = updated_content
+            
+            # 4. Generate the specific MCQ question
+            generated = MCQEngine.generate_question(question, all_distractors, merged_config)
+            
+            # 5. Update the question in the list (preserve existing SRS data)
+            srs_data = question.get('srs')
+            self.questions[index] = generated
+            if srs_data:
+                self.questions[index]['srs'] = srs_data
+                
+            # [CRITICAL] Save immediately to ensure correct_index is persisted for check_answer
+            self.save_to_db()
+            return True
+            
+        except Exception as e:
+            current_app.logger.error(f"[VOCAB_MCQ] [LAZY] Failed to generate question at index {index}: {e}")
+            return False
+
     def get_session_data(self):
+        # Ensure current question is generated
+        self.ensure_question_generated(self.currentIndex)
+        
         return {
             'success': True,
             'questions': self.questions,
@@ -197,25 +270,27 @@ class MCQSessionManager:
     def check_answer(self, user_answer_index):
         """Updates stats and records the answer."""
         from mindstack_app.modules.scoring.interface import ScoringInterface
+        from ..engine.mcq_engine import MCQEngine
         
         if self.currentIndex >= len(self.questions):
             return {'success': False, 'message': 'Index out of bounds'}
             
+        # Ensure generated (Safety check)
+        self.ensure_question_generated(self.currentIndex)
+            
         question = self.questions[self.currentIndex]
-        is_correct = (question['correct_index'] == user_answer_index)
         
-        # [NEW] [V3] Lấy giá trị điểm từ hệ thống scoring trung tâm
-        point_value = ScoringInterface.get_score_value('VOCAB_MCQ_CORRECT_BONUS')
+        # Use simplified engine check (Pure logic)
+        result = MCQEngine.check_answer(question['correct_index'], user_answer_index)
+        is_correct = result['is_correct']
         
+        # Delegate scoring to Scoring Module
+        # We fetch the standard bonus value through the interface
+        point_value = 0
         if is_correct:
             self.stats['correct'] += 1
-            # Ưu tiên params nếu có (do người dùng chỉnh tay lúc tạo session), nếu không lấy từ scoring module
-            session_points = self.params.get('MCQ_CORRECT_SCORE', point_value)
-            self.stats['points'] += session_points
-            
-            # [REMOVED] Awarding points here caused double counting because the controller (view) 
-            # also emits card_reviewed signal which awards points. 
-            # We keep stats tracking but delegate actual DB awarding to the signal handler.
+            point_value = ScoringInterface.get_score_value('VOCAB_MCQ_CORRECT_BONUS')
+            self.stats['points'] += point_value
         else:
             self.stats['wrong'] += 1
             
@@ -253,7 +328,8 @@ class MCQSessionManager:
             'success': True,
             'is_correct': is_correct,
             'correct_index': question['correct_index'],
-            'stats': self.stats
+            'stats': self.stats,
+            'score_change': point_value
         }
 
     def update_answer_srs(self, index, srs_data):
@@ -269,6 +345,8 @@ class MCQSessionManager:
         """Advances the index if possible."""
         if self.currentIndex < len(self.questions) - 1:
             self.currentIndex += 1
+            # [LAZY] Prefetch next question for smoothness
+            self.ensure_question_generated(self.currentIndex)
             self.save_to_db()
             return True
         return False

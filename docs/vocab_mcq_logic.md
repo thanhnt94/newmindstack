@@ -31,10 +31,23 @@ Hệ thống chấm điểm để chọn ra những "cái bẫy" chất lượng
 - **Độ tương đồng chiều dài (+20 điểm):** Thưởng điểm nếu số lượng ký tự của đáp án sai bằng đáp án đúng.
 
 ### Bước 4: Lựa chọn Cuối cùng (Final Selection)
-- Hệ thống xáo trộn ngẫu nhiên danh sách đã chấm điểm (để các đáp án bằng điểm không bị cố định vị trí).
-- Sắp xếp giảm dần theo điểm số và cắt lấy đúng số lượng đáp án nhiễu cần thiết (thường là 3 từ để tạo thành 4 lựa chọn).
+Hệ thống hỗ trợ số lượng đáp án linh hoạt để tạo sự đa dạng:
+- **Cấu hình cố định**: Theo giá trị `num_choices` (ví dụ: 4 hoặc 6 đáp án).
+- **Ngẫu nhiên (Random Dynamic)**: Nếu không có cấu hình cụ thể, hệ thống tự động chọn số lượng từ 3 đến 6 với trọng số ưu tiên 4 đáp án (60%) để tránh nhàm chán.
+- Sau khi xác định số lượng, hệ thống xáo trộn ngẫu nhiên danh sách đã chấm điểm, sắp xếp giảm dần theo điểm số và cắt lấy đúng số lượng cần thiết.
 
-## 3. Logic Kiểm tra Đáp án
-- **Đúng**: Trả về `quality: 5` và cộng điểm thưởng theo cấu hình `VOCAB_MCQ_CORRECT_BONUS`.
-- **Sai**: Trả về `quality: 0` và không cộng điểm.
-- Hệ thống ghi lại lịch sử câu trả lời để phục vụ thuật toán SRS (Spaced Repetition System).
+## 3. Logic Kiểm tra Đáp án và Hệ thống Điểm số
+
+Hệ thống tuân thủ nguyên tắc tách biệt trách nhiệm (Separation of Concerns) và triết lý thiết kế "Luyện tập không làm nhiễu dữ liệu học tập":
+
+### Nguyên tắc "No SRS Integration"
+- **Tách biệt hoàn toàn với FSRS**: Khác với chế độ Flashcard truyền thống, kết quả Đúng/Sai trong chế độ MCQ **KHÔNG** được gửi đến module FSRS. 
+- **Không thay đổi trạng thái trí nhớ**: Các thông số như Độ ổn định (Stability), Độ khó (Difficulty) hay Lịch ôn tập (Retrievability) của thẻ sẽ không bị tác động bởi việc trả lời MCQ. Điều này đảm bảo tính chính xác của thuật toán lặp lại ngắt quãng, tránh các sai số do người dùng "đoán mò" đáp án trong trắc nghiệm.
+- **Chế độ Luyện tập (Practice Mode)**: MCQ được định nghĩa là một hoạt động bổ trợ mang tính chất Gamification để tăng cường phản xạ và ghi nhớ hình thái từ vựng.
+
+### Quy trình Xử lý Kết quả
+1. **Kiểm tra Logic**: `MCQEngine` thực hiện so sánh `correct_index` và `user_answer_index` để xác định trạng thái `is_correct`.
+2. **Uỷ quyền Tính điểm (Scoring Delegation)**: Nếu kết quả là Đúng, `MCQSessionManager` sẽ uỷ quyền cho module `scoring` thông qua `ScoringInterface` để thực hiện:
+   - Cộng điểm thưởng cho người dùng (theo cấu hình `VOCAB_MCQ_CORRECT_BONUS`).
+   - Cập nhật tổng điểm (Total Score) và gửi tín hiệu (signal) về hệ thống Gamification.
+3. **Ghi chép Lịch sử (Activity Log)**: Hệ thống ghi lại lịch sử phiên học để người dùng theo dõi tiến độ luyện tập cá nhân, nhưng bản ghi này hoàn toàn độc lập với lịch sử ôn tập chuyên sâu của FSRS.

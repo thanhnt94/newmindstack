@@ -15,7 +15,15 @@ class MCQEngine:
         """
         content = item_data.get('content', {})
         mode = config.get('mode', 'front_back')
-        num_choices = config.get('num_choices', 4)
+        
+        # 0. Handle Dynamic/Random Number of Choices
+        num_choices_config = config.get('num_choices')
+        if num_choices_config == 'random' or not isinstance(num_choices_config, int) or num_choices_config <= 0:
+            # Weighted random: Favor 4 choices (60%), 3 (15%), 5 (15%), 6 (10%)
+            num_choices = random.choices([3, 4, 5, 6], weights=[15, 60, 15, 10], k=1)[0]
+        else:
+            num_choices = num_choices_config
+
         question_key = config.get('question_key')
         answer_key = config.get('answer_key')
         custom_pairs = config.get('custom_pairs')
@@ -75,7 +83,7 @@ class MCQEngine:
                         'type': c.get('type') or c.get('pos') or ''
                     })
             
-        # 6. Select distractors using algorithms
+        # 6. Select distractors using algorithms (pass dynamic num_choices)
         correct_item_data = {
             'text': correct_answer,
             'front': item_front,
@@ -115,14 +123,11 @@ class MCQEngine:
         }
 
     @staticmethod
-    def check_answer(correct_index: int, user_answer_index: int, config: dict = None) -> dict:
-        """Evaluate the user's answer."""
-        if config is None:
-            config = {}
-        score = config.get('MCQ_CORRECT_SCORE', 10)
-        is_correct = correct_index == user_answer_index
+    def check_answer(correct_index: int, user_answer_index: int) -> dict:
+        """
+        Evaluate the user's answer (Pure Logic).
+        Scoring is handled by the caller/manager.
+        """
         return {
-            'is_correct': is_correct,
-            'quality': 5 if is_correct else 0,
-            'score_change': score if is_correct else 0
+            'is_correct': correct_index == user_answer_index
         }

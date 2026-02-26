@@ -1828,13 +1828,12 @@
                 if (data.new_cycle && data.questions) {
                     questions = data.questions;
                     currentIndex = data.currentIndex; // Should be 0
-                    // Optional: Show toast
-                    if (typeof window.showScoreToast === 'function') {
-                        console.log("[VOCAB_MCQ] New cycle started (Unlimited mode)");
-                        // showScoreToast("Chu kỳ mới!", "info"); // Assuming signature
-                    }
                 } else {
                     currentIndex = data.currentIndex;
+                    // [LAZY] Update the local question object with full data from backend
+                    if (data.currentQuestion) {
+                        questions[currentIndex] = data.currentQuestion;
+                    }
                 }
                 renderQuestion();
             } else {

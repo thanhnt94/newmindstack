@@ -204,6 +204,61 @@ class MCQService:
         return MCQService.get_eligible_items(container_id, user_id=None)
 
     @staticmethod
+    def get_raw_session_items(container_id: int, config: dict, user_id: int = None) -> list:
+        """
+        Get raw items for a session without generating MCQ payloads (Lazy Generation).
+        Returns a list of items with their content and SRS state.
+        """
+        from mindstack_app.models import LearningContainer
+        container = LearningContainer.query.get(container_id)
+        if not container:
+            return []
+
+        # 1. Get eligible items based on study mode
+        study_mode = config.get('study_mode', 'review')
+        if study_mode == 'random':
+            eligible = MCQService.get_eligible_items(container_id, user_id=None)
+        else:
+            eligible = MCQService.get_eligible_items(container_id, user_id)
+            
+        if not eligible:
+            return []
+
+        # 2. Fetch FSRS States if user_id provided
+        srs_map = {}
+        if user_id:
+            try:
+                from mindstack_app.modules.fsrs.interface import FSRSInterface
+                item_ids = [item['item_id'] for item in eligible]
+                srs_map = FSRSInterface.get_memory_states(user_id, item_ids)
+            except Exception as e:
+                current_app.logger.error(f"[MCQService] Failed to fetch FSRS states: {e}")
+
+        # 3. Shuffle and Limit
+        random.shuffle(eligible)
+        count = config.get('count', 0)
+        if count > 0:
+            selected_items = eligible[:min(count, len(eligible))]
+        else:
+            selected_items = eligible
+
+        # 4. Attach SRS metadata
+        for item in selected_items:
+            item_id = item.get('item_id')
+            if item_id in srs_map:
+                state = srs_map[item_id]
+                from mindstack_app.modules.fsrs.interface import FSRSInterface
+                item['srs'] = {
+                    'stability': state.stability,
+                    'difficulty': state.difficulty,
+                    'retrievability': FSRSInterface.get_retrievability(state),
+                    'repetitions': state.repetitions,
+                    'last_review': state.last_review.isoformat() if state.last_review else None
+                }
+        
+        return selected_items
+
+    @staticmethod
     def generate_session_questions(container_id: int, config: dict, user_id: int = None) -> list:
         """Orchestrate question generation for a session."""
         # 1. Load container settings for defaults
