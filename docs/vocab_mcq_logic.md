@@ -1,38 +1,40 @@
 # Tài liệu Logic Chế độ Vocab MCQ (Multiple Choice Question)
 
-Tài liệu này giải thích chi tiết về logic hoạt động, quy trình tạo câu hỏi và thuật toán lựa chọn đáp án gây nhiễu trong chế độ học trắc nghiệm (MCQ).
+Tài liệu này giải thích chi tiết về logic hoạt động, quy trình tạo câu hỏi và thuật toán lựa chọn đáp án gây nhiễu (distractor) trong chế độ học trắc nghiệm (MCQ) của MindStack.
 
 ## 1. Tổng quan về Engine
 Chế độ MCQ sử dụng `MCQEngine` để tạo câu hỏi. Đây là lớp xử lý logic thuần túy (pure logic), không truy vấn trực tiếp cơ sở dữ liệu.
 
 ## 2. Quy trình Lựa chọn Đáp án Gây nhiễu (SmartDistractorSelector)
 
-Hệ thống sử dụng một quy trình 4 bước để đảm bảo tính an toàn, hiệu quả và tạo ra các câu hỏi có độ khó cao:
+Hệ thống áp dụng quy trình 4 bước tối ưu hóa bẫy hình thái (morphological traps), giúp người học phân biệt các từ có vẻ ngoài giống nhau nhưng nghĩa khác nhau:
 
-### Bước 1: Lọc thô An toàn (Pre-filtering)
-Để tránh các trường hợp đáp án sai nhưng lại giống hệt đáp án đúng (do đồng âm hoặc đồng nghĩa tuyệt đối), hệ thống thực hiện loại bỏ các mục từ trong `candidate_pool` nếu:
+### Bước 1: Phân tích và Lọc Hình thái (Morphological Filtering)
+Hệ thống phân loại từ vựng theo cấu trúc chữ Nhật Bản để nhận diện "hình thái":
+- **K**: Kanji, **H**: Hiragana, **C**: Katakana.
+- Ví dụ: `招待` (Mẫu: **KK** - 2 Kanji), `招く` (Mẫu: **KH** - Kanji + Hiragana).
+
+**Nguyên tắc Ưu tiên tuyệt đối:** 
+- Nếu tìm đủ số lượng đáp án nhiễu có **cùng cấu trúc hình thái** với đáp án đúng, hệ thống sẽ **CHỈ sử dụng** các từ này. 
+- Điều này giúp loại bỏ các từ "trông quá khác biệt" (như ví dụ `招待` và `招く` sẽ không xuất hiện cùng nhau nếu có đủ các từ 2 Kanji khác).
+
+### Bước 2: Lọc thô An toàn (Hard Filter)
+Để đảm bảo tính logic, hệ thống loại bỏ các mục từ nếu:
 - Mặt **Front** (Từ vựng) giống hệt nhau.
 - Mặt **Back** (Nghĩa) giống hệt nhau.
 - Chuỗi văn bản hiển thị (**Text**) của lựa chọn giống hệt nhau.
-*(Lưu ý: Tất cả so sánh đều được thực hiện sau khi `.strip().lower()`)*
-
-### Bước 2: Cơ chế Chốt chặn (Fallback Mechanism)
-Để đảm bảo câu hỏi MCQ luôn có đủ số lượng đáp án (thường là 4 lựa chọn), nếu sau Bước 1 số lượng ứng viên còn lại không đủ, hệ thống sẽ tự động nới lỏng điều kiện lọc:
-- Lấy lại danh sách ban đầu.
-- Chỉ lọc duy nhất một điều kiện: Văn bản hiển thị của lựa chọn phải khác với văn bản hiển thị của đáp án đúng.
 
 ### Bước 3: Chấm điểm Bẫy Hình thái (Trickiness Scoring)
-Hệ thống chấm điểm cho từng ứng viên để chọn ra những "cái bẫy" chất lượng nhất dựa trên các tiêu chí:
-- **Dùng chung Kanji (Shared Kanji):** Trọng số cao nhất (+50 điểm). Nếu từ vựng có chứa các ký tự Kanji giống với đáp án đúng (ví dụ: "学校" và "学生").
-- **Độ tương đồng chiều dài (Length Similarity):** Thưởng điểm nếu số lượng ký tự của đáp án sai bằng hoặc xấp xỉ đáp án đúng (+10 điểm cho bằng tuyệt đối, +5 điểm cho sai lệch ít).
-- **Mẫu tự tiếng Nhật (Japanese Pattern):** Thưởng điểm nếu cấu trúc Kanji/Hiragana/Katakana giống nhau hoàn toàn (+20 điểm).
+Hệ thống chấm điểm để chọn ra những "cái bẫy" chất lượng nhất. Các tiêu chí cộng điểm:
+- **Cùng Pattern Hình thái (+100 điểm):** Đảm bảo các từ có cùng cấu trúc (như cùng là 2 Kanji) luôn đứng đầu danh sách lựa chọn.
+- **Dùng chung Kanji (Shared Kanji Bonus - Trọng số rất cao: +50 điểm/chữ):** Ưu tiên cực cao cho các từ dùng chung ký tự Kanji với đáp án đúng (ví dụ: `招待` và `招集` chung chữ `招`).
+- **Độ tương đồng chiều dài (+20 điểm):** Thưởng điểm nếu số lượng ký tự của đáp án sai bằng đáp án đúng.
 
 ### Bước 4: Lựa chọn Cuối cùng (Final Selection)
 - Hệ thống xáo trộn ngẫu nhiên danh sách đã chấm điểm (để các đáp án bằng điểm không bị cố định vị trí).
-- Sắp xếp giảm dần theo điểm số.
-- Cắt lấy đúng số lượng đáp án nhiễu cần thiết.
+- Sắp xếp giảm dần theo điểm số và cắt lấy đúng số lượng đáp án nhiễu cần thiết (thường là 3 từ để tạo thành 4 lựa chọn).
 
 ## 3. Logic Kiểm tra Đáp án
-- **Đúng**: Trả về `quality: 5` và cộng điểm thưởng theo cấu hình.
+- **Đúng**: Trả về `quality: 5` và cộng điểm thưởng theo cấu hình `VOCAB_MCQ_CORRECT_BONUS`.
 - **Sai**: Trả về `quality: 0` và không cộng điểm.
 - Hệ thống ghi lại lịch sử câu trả lời để phục vụ thuật toán SRS (Spaced Repetition System).

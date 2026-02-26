@@ -1,11 +1,11 @@
 """
 Smart Distractor Selector for MCQ Generation.
 ================================================
-Implements a safe 4-step pipeline:
-1. Pre-filtering (Exact Match)
-2. Fallback Mechanism (Ensure quantity)
-3. Trickiness Scoring (Visual/Morphological Traps)
-4. Final Selection (Shuffle & Sort)
+Updated Logic: Morphological Priority
+1. Pattern Analysis (e.g., "KK" for 招待)
+2. Strict Pattern Filtering (Only pick same-pattern distractors if available)
+3. Exclusion of exact matches
+4. High-weight Shared Kanji Scoring
 
 Pure logic — no Database access, no Flask.
 """
@@ -18,6 +18,7 @@ from typing import List, Set, Dict
 class SmartDistractorSelector:
     """
     Selects high-quality distractors (wrong answers) for MCQ.
+    Focuses on morphological traps (same length, same Japanese pattern).
     """
 
     @classmethod
@@ -29,75 +30,73 @@ class SmartDistractorSelector:
     ) -> List[Dict]:
         """
         Main pipeline to select distractors.
-        
-        Args:
-            correct_item: Dict containing {'front': str, 'back': str, 'text': str}
-            candidate_pool: List of dicts containing {'front': str, 'back': str, 'text': str, ...}
-            amount: Number of distractors needed.
         """
         if not candidate_pool or amount <= 0:
             return []
 
-        # Step 1: Pre-filtering (Hard Filter)
-        valid_candidates = cls._filter_exact_matches(correct_item, candidate_pool)
+        # Step 1: Pattern Analysis & Strict Filtering
+        c_front = correct_item.get('front', '').strip()
+        target_pattern = cls._get_jp_pattern(c_front)
+        
+        # Categorize candidates by pattern
+        same_pattern_pool = []
+        other_pool = []
+        
+        for cand in candidate_pool:
+            d_front = cand.get('front', '').strip()
+            # Hard Filter 1: Exact Match (already in _filter_logic but let's be safe)
+            if not cls._is_not_exact_match(correct_item, cand):
+                continue
+                
+            if cls._get_jp_pattern(d_front) == target_pattern:
+                same_pattern_pool.append(cand)
+            else:
+                other_pool.append(cand)
 
-        # Step 2: Fallback Mechanism
-        if len(valid_candidates) < amount:
-            # If not enough candidates after strict filtering, fallback to a looser filter
-            valid_candidates = [
-                cand for cand in candidate_pool 
-                if cand.get('text', '').strip().lower() != correct_item.get('text', '').strip().lower()
-            ]
+        # "Ưu tiên hình thái và chỉ lấy những từ đó nếu đủ"
+        if len(same_pattern_pool) >= amount:
+            final_pool = same_pattern_pool
+        else:
+            # Fallback: Mix if same-pattern is not enough
+            final_pool = same_pattern_pool + other_pool
 
-        if not valid_candidates:
+        if not final_pool:
             return []
 
-        # Step 3: Trickiness Scoring
-        scored_candidates = cls._score_candidates(correct_item, valid_candidates)
+        # Step 2: Scoring (Emphasis on Shared Kanji within the pool)
+        scored_candidates = cls._score_candidates(correct_item, final_pool)
 
-        # Step 4: Final Selection
-        # Shuffle first to randomize ties
+        # Step 3: Final Selection
         random.shuffle(scored_candidates)
-        # Sort descending by score
         scored_candidates.sort(key=lambda x: x[0], reverse=True)
 
-        # Return top N candidates
         return [cand for score, cand in scored_candidates[:amount]]
 
     @classmethod
-    def _filter_exact_matches(cls, correct_item: Dict, pool: List[Dict]) -> List[Dict]:
-        """
-        Removes distractors that match correct_item exactly on front, back, or display text.
-        """
+    def _is_not_exact_match(cls, correct_item: Dict, cand: Dict) -> bool:
+        """Helper for basic exclusion."""
         c_front = correct_item.get('front', '').strip().lower()
         c_back = correct_item.get('back', '').strip().lower()
         c_text = correct_item.get('text', '').strip().lower()
         
-        valid = []
-        for cand in pool:
-            d_front = cand.get('front', '').strip().lower()
-            d_back = cand.get('back', '').strip().lower()
-            d_text = cand.get('text', '').strip().lower()
-            
-            # Rule: Must be different on ALL critical fields to be considered a "hard" distractor
-            if d_front == c_front:
-                continue
-            if d_back == c_back:
-                continue
-            if d_text == c_text:
-                continue
-                
-            valid.append(cand)
-        return valid
+        d_front = cand.get('front', '').strip().lower()
+        d_back = cand.get('back', '').strip().lower()
+        d_text = cand.get('text', '').strip().lower()
+        
+        return not (d_front == c_front or d_back == c_back or d_text == c_text)
 
     @classmethod
     def _get_jp_pattern(cls, text: str) -> str:
-        """Returns string representing composition: K (Kanji), H (Hiragana), C (Katakana)."""
+        """
+        Returns string representing composition: K (Kanji), H (Hiragana), C (Katakana).
+        Example: "招待" -> "KK", "招く" -> "KH"
+        """
         pattern = []
         for char in text:
             if '\u4e00' <= char <= '\u9faf': pattern.append('K')
             elif '\u3040' <= char <= '\u309f': pattern.append('H')
             elif '\u30a0' <= char <= '\u30ff': pattern.append('C')
+            else: pattern.append('O') # Other/Romaji
         return "".join(pattern)
 
     @classmethod
@@ -108,12 +107,11 @@ class SmartDistractorSelector:
     @classmethod
     def _score_candidates(cls, correct_item: Dict, candidates: List[Dict]) -> List[tuple]:
         """
-        Scores candidates based on visual/morphological similarity to the correct item.
+        Scores candidates. Within the same pattern, Shared Kanji is king.
         """
         c_front = correct_item.get('front', '')
         c_kanji = cls._extract_kanji(c_front)
         c_pattern = cls._get_jp_pattern(c_front)
-        c_len = len(c_front)
         
         scored = []
         for cand in candidates:
@@ -121,21 +119,17 @@ class SmartDistractorSelector:
             d_front = cand.get('front', '')
             d_kanji = cls._extract_kanji(d_front)
             d_pattern = cls._get_jp_pattern(d_front)
-            d_len = len(d_front)
             
-            # 1. Shared Kanji (Very High Weight: +50)
-            if c_kanji.intersection(d_kanji):
-                score += 50
-                
-            # 2. Length Similarity (+10 for exact, +5 for close)
-            len_diff = abs(c_len - d_len)
-            if len_diff == 0:
-                score += 10
-            elif len_diff <= 2:
-                score += 5
-                
-            # 3. Japanese Pattern Match (+20 for exact pattern)
-            if d_pattern and d_pattern == c_pattern:
+            # 1. Pattern Match Bonus (Already filtered but good for mixed fallback)
+            if d_pattern == c_pattern:
+                score += 100
+            
+            # 2. Shared Kanji (Massive trap: +50 per Kanji)
+            shared_kanji = c_kanji.intersection(d_kanji)
+            score += len(shared_kanji) * 50
+            
+            # 3. Length Similarity
+            if len(d_front) == len(c_front):
                 score += 20
                 
             scored.append((score, cand))
