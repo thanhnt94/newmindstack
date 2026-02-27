@@ -10,9 +10,10 @@ Chế độ MCQ sử dụng `MCQEngine` để tạo câu hỏi. Đây là lớp 
 Hệ thống áp dụng quy trình 4 bước tối ưu hóa bẫy hình thái (morphological traps), giúp người học phân biệt các từ có vẻ ngoài giống nhau nhưng nghĩa khác nhau:
 
 ### Bước 1: Phân tích và Lọc Hình thái (Morphological Filtering)
-Hệ thống phân loại từ vựng theo cấu trúc chữ Nhật Bản để nhận diện "hình thái":
+Hệ thống phân tích **nội dung hiển thị của các lựa chọn (Choices)** để nhận diện "hình thái" đồng nhất:
 - **K**: Kanji, **H**: Hiragana, **C**: Katakana.
-- Ví dụ: `招待` (Mẫu: **KK** - 2 Kanji), `招く` (Mẫu: **KH** - Kanji + Hiragana).
+- **W**: Word Count (Dành cho tiếng Việt/Anh - đếm số lượng từ).
+- Ví dụ: `招待` (**KK**), `招く` (**KH**), `Đồng nghiệp` (**W2**).
 
 **Nguyên tắc Ưu tiên tuyệt đối:** 
 - Nếu tìm đủ số lượng đáp án nhiễu có **cùng cấu trúc hình thái** với đáp án đúng, hệ thống sẽ **CHỈ sử dụng** các từ này. 
@@ -27,8 +28,11 @@ Hệ thống phân loại từ vựng theo cấu trúc chữ Nhật Bản để 
 
 ### Bước 3: Chấm điểm Bẫy Hình thái (Trickiness Scoring)
 Hệ thống chấm điểm để chọn ra những "cái bẫy" chất lượng nhất. Các tiêu chí cộng điểm:
-- **Cùng Pattern Hình thái (+100 điểm):** Đảm bảo các từ có cùng cấu trúc (như cùng là 2 Kanji) luôn đứng đầu danh sách lựa chọn.
-- **Dùng chung Kanji (Shared Kanji Bonus - Trọng số rất cao: +150 điểm/chữ):** Ưu tiên cực cao cho các từ dùng chung ký tự Kanji với đáp án đúng (ví dụ: `招待` và `招集` chung chữ `招`). Trọng số này đã được nâng cao để đảm bảo các từ "bẫy" chữ Hán luôn đứng đầu.
+- **Cùng Pattern Hình thái (+100 điểm):** Đảm bảo các từ có cùng cấu trúc (như cùng 2 Kanji hoặc cùng số lượng từ tiếng Việt) luôn đứng đầu.
+- **Dùng chung nội dung (Shared Tokens - +150 điểm/đơn vị):** 
+    - Với tiếng Nhật: Thưởng theo số chữ Kanji trùng.
+    - Với tiếng Việt/Anh: Thưởng theo số lượng **từ vựng** trùng nhau (ví dụ: "Đồng nghiệp" và "Đồng môn" chung từ "Đồng").
+- **Tương đồng loại từ (+30 điểm):** Ưu tiên các từ có cùng từ loại (Danh từ, Động từ, v.v.) để tạo bẫy logic hơn.
 - **Độ tương đồng chiều dài (+20 điểm):** Thưởng điểm nếu số lượng ký tự của đáp án sai bằng đáp án đúng.
 
 ### Bước 4: Lựa chọn Cuối cùng (Final Selection)

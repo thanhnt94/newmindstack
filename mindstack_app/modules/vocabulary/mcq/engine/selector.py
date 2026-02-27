@@ -14,6 +14,8 @@ import random
 import re
 from typing import List, Set, Dict
 
+from mindstack_app.utils.content_renderer import strip_bbcode
+
 
 class SmartDistractorSelector:
     """
@@ -35,20 +37,20 @@ class SmartDistractorSelector:
             return []
 
         # Step 1: Pattern Analysis & Strict Filtering
-        c_front = correct_item.get('front', '').strip()
-        target_pattern = cls._get_jp_pattern(c_front)
+        c_disp = strip_bbcode(correct_item.get('text', '')).strip()
+        target_pattern = cls._get_jp_pattern(c_disp)
         
         # Categorize candidates by pattern
         same_pattern_pool = []
         other_pool = []
         
         for cand in candidate_pool:
-            d_front = cand.get('front', '').strip()
-            # Hard Filter 1: Exact Match (already in _filter_logic but let's be safe)
+            d_disp = strip_bbcode(cand.get('text', '')).strip()
+            # Hard Filter: Exact Match
             if not cls._is_not_exact_match(correct_item, cand):
                 continue
                 
-            if cls._get_jp_pattern(d_front) == target_pattern:
+            if cls._get_jp_pattern(d_disp) == target_pattern:
                 same_pattern_pool.append(cand)
             else:
                 other_pool.append(cand)
@@ -90,51 +92,80 @@ class SmartDistractorSelector:
     def _get_jp_pattern(cls, text: str) -> str:
         """
         Returns string representing composition: K (Kanji), H (Hiragana), C (Katakana).
-        Example: "招待" -> "KK", "招く" -> "KH"
+        For Non-JP content (Vietnamese/English), returns word count "WX".
+        Example: "招待" -> "KK", "Đồng nghiệp" -> "W2"
         """
-        pattern = []
-        for char in text:
-            # Robust Kanji range: Common + Extension A
-            if ('\u4e00' <= char <= '\u9fff') or ('\u3400' <= char <= '\u4dbf'):
-                pattern.append('K')
-            elif '\u3040' <= char <= '\u309f': pattern.append('H')
-            elif '\u30a0' <= char <= '\u30ff': pattern.append('C')
-            else: pattern.append('O') # Other/Romaji
-        return "".join(pattern)
+        if not text: return ""
+        
+        # Check if contains ANY Japanese characters
+        is_jp = any(('\u4e00' <= c <= '\u9fff') or ('\u3400' <= c <= '\u4dbf') or 
+                    ('\u3040' <= c <= '\u309f') or ('\u30a0' <= c <= '\u30ff') 
+                    for c in text)
+        
+        if is_jp:
+            pattern = []
+            for char in text:
+                # Robust Kanji range: Common + Extension A
+                if ('\u4e00' <= char <= '\u9fff') or ('\u3400' <= char <= '\u4dbf'):
+                    pattern.append('K')
+                elif '\u3040' <= char <= '\u309f': pattern.append('H')
+                elif '\u30a0' <= char <= '\u30ff': pattern.append('C')
+                else: pattern.append('O') # Other/Romaji
+            return "".join(pattern)
+        else:
+            # Vietnamese/English: Count words
+            words = [w for w in re.split(r'\s+', text.strip()) if w]
+            return f"W{len(words)}"
 
     @classmethod
-    def _extract_kanji(cls, text: str) -> Set[str]:
-        """Extracts a set of all Kanji characters from a string using robust range."""
-        return {char for char in text if ('\u4e00' <= char <= '\u9fff') or ('\u3400' <= char <= '\u4dbf')}
+    def _extract_tokens(cls, text: str) -> Set[str]:
+        """
+        Extracts comparison tokens:
+        - If Kanji present: returns set of Kanji.
+        - Otherwise: returns set of normalized words (lowercase, stripped).
+        """
+        kanji = {char for char in text if ('\u4e00' <= char <= '\u9fff') or ('\u3400' <= char <= '\u4dbf')}
+        if kanji:
+            return kanji
+        
+        # Vietnamese/English/Non-Kanji: Split by whitespace and common punctuation
+        words = {w.strip().lower() for w in re.split(r'[\s,.;/|]+', text) if len(w.strip()) > 1}
+        return words
 
     @classmethod
     def _score_candidates(cls, correct_item: Dict, candidates: List[Dict]) -> List[tuple]:
         """
-        Scores candidates. Within the same pattern, Shared Kanji is king.
+        Scores candidates based on pattern, shared tokens (Kanji/Words), and POS.
         """
-        c_front = correct_item.get('front', '')
-        c_kanji = cls._extract_kanji(c_front)
-        c_pattern = cls._get_jp_pattern(c_front)
+        # Use display 'text' for pattern and tokens, as that's what the user sees
+        c_disp = strip_bbcode(correct_item.get('text', '')).strip()
+        c_pattern = cls._get_jp_pattern(c_disp)
+        c_tokens = cls._extract_tokens(c_disp)
+        c_type = correct_item.get('type', '').strip().lower()
         
         scored = []
         for cand in candidates:
             score = 0
-            d_front = cand.get('front', '')
-            d_kanji = cls._extract_kanji(d_front)
-            d_pattern = cls._get_jp_pattern(d_front)
+            d_disp = strip_bbcode(cand.get('text', '')).strip()
+            d_pattern = cls._get_jp_pattern(d_disp)
+            d_tokens = cls._extract_tokens(d_disp)
+            d_type = cand.get('type', '').strip().lower()
             
-            # 1. Pattern Match Bonus (Already filtered but good for mixed fallback)
+            # 1. Pattern Match Bonus (+100)
             if d_pattern == c_pattern:
                 score += 100
             
-            # 2. Shared Kanji (Massive trap: +150 per Kanji)
-            # Increased from +50 to ensure words with shared Kanji outrank those with only pattern match.
-            shared_kanji = c_kanji.intersection(d_kanji)
-            score += len(shared_kanji) * 150
+            # 2. Shared Tokens (Kanji bẫy or Word bẫy: +150 per token)
+            shared_tokens = c_tokens.intersection(d_tokens)
+            score += len(shared_tokens) * 150
             
-            # 3. Length Similarity
-            if len(d_front) == len(c_front):
+            # 3. Length Similarity (+20)
+            if len(d_disp) == len(c_disp):
                 score += 20
+                
+            # 4. Grammatical Type Match (+30)
+            if d_type and c_type and d_type == c_type:
+                score += 30
                 
             scored.append((score, cand))
             

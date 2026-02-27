@@ -75,9 +75,11 @@ class HistoryQueryService:
         ]
 
     @staticmethod
-    def get_item_history(item_id: int, limit: int = 50, learning_mode: Optional[str] = None) -> List[Dict[str, Any]]:
-        """Get history for a specific item."""
+    def get_item_history(item_id: int, limit: int = 50, learning_mode: Optional[str] = None, user_id: Optional[int] = None) -> List[Dict[str, Any]]:
+        """Get history for a specific item, optionally filtered by user."""
         query = StudyLog.query.filter_by(item_id=item_id)
+        if user_id:
+            query = query.filter_by(user_id=user_id)
         if learning_mode:
             query = query.filter_by(learning_mode=learning_mode)
             

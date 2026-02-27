@@ -343,6 +343,19 @@ class FlashcardEngine:
              delta = (state_record.due_date.replace(tzinfo=timezone.utc) - state_record.last_review.replace(tzinfo=timezone.utc))
              interval_val = max(0.0, delta.total_seconds() / 86400.0)
 
+        # [DEFINITIVE MONOTONIC FIX] 
+        # 1. Total interactions recorded in History (True Show Count for this user)
+        # We use a direct count(logs) to bypass any list-limiting logic or contamination.
+        total_user_item_logs = LearningHistoryInterface.get_total_count(user_id, item_id)
+        
+        # 2. FSRS algorithm repetitions
+        fsrs_reps = state_record.repetitions if state_record else 0
+
+        # We display the HIGHEST count. This prevents drops if history logs are pruned/limited 
+        # or if FSRS sync lagged. It also handles legacy cases correctly.
+        # User defined "Show Count" = total_user_item_logs.
+        display_times_reviewed = max(total_user_item_logs, fsrs_reps)
+
         stats.update({
             'first_seen': _fmt_date(state_record.created_at),
             'last_reviewed': _fmt_date(state_record.last_review),
@@ -352,83 +365,58 @@ class FlashcardEngine:
             'stability': round(state_record.stability or 0.0, 2),
             'retrievability': round(FSRSInterface.get_retrievability(state_record) * 100, 1),
             'retention': round(FSRSInterface.get_retrievability(state_record) * 100, 1),
-            'repetitions': state_record.repetitions,
+            'repetitions': fsrs_reps,
+            'times_reviewed': display_times_reviewed,
             'interval': interval_val,
             'status': {0: 'new', 1: 'learning', 2: 'review', 3: 'relearning'}.get(state_record.state, 'new'),
             'custom_state': (state_record.data or {}).get('custom_state', 'new') if state_record.data else 'new',
             'predicted_intervals': FSRSInterface.predict_next_intervals(user_id, item_id)
         })
 
-        # Use LearningHistoryInterface to fetch item history
-        logs = LearningHistoryInterface.get_item_history(item_id)
-        
-        # Fallback: if logs are empty but repetitions > 0 (legacy data), 
-        # use repetitions as the review count for the UI.
-        if not logs and state_record.repetitions > 0:
-            # Add display DTO for legacy fallback
-            stats['display'] = {
-                'difficulty': f"{stats['difficulty']:.1f}",
-                'stability': f"{stats['stability']:.1f}" if stats['stability'] >= 1 else str(int(stats['stability'])),
-                'retrievability': f"{int(stats['retrievability'])}%",
-                'times_reviewed': str(stats['times_reviewed']),
-                'status_label': stats['status'].upper(),
-                'status_color': 'emerald' if stats['status'] == 'review' else 'blue'
-            }
-            return stats
-
-        if not logs:
-            # Add display DTO for cards with FSRS state but no logs (e.g. newly migrated)
-            stats['display'] = {
-                'difficulty': f"{stats['difficulty']:.1f}",
-                'stability': f"{stats['stability']:.1f}" if stats['stability'] >= 1 else str(int(stats['stability'])),
-                'retrievability': f"{int(stats['retrievability'])}%",
-                'times_reviewed': str(stats['times_reviewed']),
-                'status_label': stats['status'].upper(),
-                'status_color': 'blue'
-            }
-            return stats
+        # Fetch recent logs for Sparkline/History View (limit to 50 is fine here)
+        logs = LearningHistoryInterface.get_item_history(item_id, user_id=user_id, limit=50)
 
         review_qualities = []
         normalized_entries = []
 
-        for log in logs:
-            quality = log.get('rating', 0)
-            timestamp = log.get('timestamp')
-            ts_str = timestamp.isoformat() if timestamp else None
-            
-            norm_entry = {
-                'timestamp': ts_str, 
-                'type': 'review',
-                'user_answer_quality': quality,
-                'result': 'correct' if quality >= 4 else ('vague' if quality >= 2 else 'incorrect')
-            }
-            review_qualities.append(quality)
-            normalized_entries.append(norm_entry)
+        if logs:
+            for log in logs:
+                quality = log.get('rating', 0)
+                timestamp = log.get('timestamp')
+                ts_str = timestamp.isoformat() if timestamp else None
+                
+                norm_entry = {
+                    'timestamp': ts_str, 
+                    'type': 'review',
+                    'user_answer_quality': quality,
+                    'result': 'correct' if quality >= 4 else ('vague' if quality >= 2 else 'incorrect')
+                }
+                review_qualities.append(quality)
+                normalized_entries.append(norm_entry)
 
-        if not review_qualities:
-            return stats
-
+        # Calculate streak from available logs
         c = 0 ; ic = 0 ; v = 0 ; curr_s = 0 ; long_s = 0
-        for q in review_qualities:
-            if q >= 2:
-                c += 1 ; curr_s += 1
-            else:
-                ic += 1
-                if curr_s > long_s: long_s = curr_s
-                curr_s = 0
+        if review_qualities:
+            for q in review_qualities:
+                if q >= 2:
+                    c += 1 ; curr_s += 1
+                else:
+                    ic += 1
+                    if curr_s > long_s: long_s = curr_s
+                    curr_s = 0
+            if curr_s > long_s: long_s = curr_s
         
-        if curr_s > long_s: long_s = curr_s
-        
-        total = len(review_qualities)
+        # [FIX] Use FSRS streak as the source of truth for the CURRENT streak
+        final_streak = state_record.streak if (state_record and state_record.streak >= curr_s) else curr_s
+
         stats.update({
-            'times_reviewed': total,
             'correct_count': c,
             'incorrect_count': ic,
             'vague_count': v,
-            'correct_rate': round((c/total)*100, 2) if total > 0 else 0.0,
-            'current_streak': curr_s,
+            'correct_rate': round((c/len(review_qualities))*100, 2) if review_qualities else 0.0,
+            'current_streak': final_streak,
             'longest_streak': long_s,
-            'has_real_reviews': True,
+            'has_real_reviews': bool(review_qualities),
             'recent_reviews': normalized_entries[-20:],
             'rating_counts': {
                 1: review_qualities.count(1),
@@ -452,5 +440,4 @@ class FlashcardEngine:
                 'relearning': 'rose'
             }.get(stats['status'], 'blue')
         }
-
         return stats

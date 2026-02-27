@@ -52,10 +52,19 @@ class LearningHistoryInterface:
         return HistoryQueryService.delete_user_history(user_id)
 
     @staticmethod
-    def get_item_history(item_id: int) -> List[Dict[str, Any]]:
-        """Get history for a specific item."""
-        return HistoryQueryService.get_item_history(item_id)
+    def get_total_count(user_id: int, item_id: int) -> int:
+        """Count all study interactions for a user/item."""
+        return HistoryQueryService.count_mode_reps(user_id, item_id, None)
 
+    @staticmethod
+    def get_mode_count(user_id: int, item_id: int, mode: str) -> int:
+        """Count study interactions for a user/item in a specific mode."""
+        return HistoryQueryService.count_mode_reps(user_id, item_id, mode)
+
+    @staticmethod
+    def get_item_history(item_id: int, limit: int = 50, learning_mode: str = None, user_id: Optional[int] = None) -> List[Dict[str, Any]]:
+        """Get history for a specific item, optionally filtered by user."""
+        return HistoryQueryService.get_item_history(item_id, limit, learning_mode, user_id=user_id)
     @staticmethod
     def get_model_class():
         """
@@ -76,10 +85,6 @@ class LearningHistoryInterface:
         """Get daily activity series."""
         return HistoryQueryService.get_daily_activity_series(user_id, start_date, end_date, container_id, item_type)
 
-    @staticmethod
-    def get_item_history(item_id: int, limit: int = 50, learning_mode: str = None) -> List[Dict[str, Any]]:
-        """Get history for a specific item."""
-        return HistoryQueryService.get_item_history(item_id, limit, learning_mode)
 
     @staticmethod
     def get_study_log_timeline(user_id: int, item_ids: List[int], start_date: datetime) -> List[Dict[str, Any]]:
