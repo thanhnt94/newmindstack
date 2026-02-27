@@ -86,6 +86,7 @@ class MCQEngine:
         # 6. Select distractors using algorithms (pass dynamic num_choices)
         correct_item_data = {
             'text': correct_answer,
+            'q_text': question_text, # [NEW] Pass question text for filtering
             'front': item_front,
             'back': item_back,
             'item_id': item_data['item_id'],

@@ -78,12 +78,13 @@ class SmartDistractorSelector:
         c_front = correct_item.get('front', '').strip().lower()
         c_back = correct_item.get('back', '').strip().lower()
         c_text = correct_item.get('text', '').strip().lower()
+        c_q_text = correct_item.get('q_text', '').strip().lower()
         
         d_front = cand.get('front', '').strip().lower()
         d_back = cand.get('back', '').strip().lower()
         d_text = cand.get('text', '').strip().lower()
         
-        return not (d_front == c_front or d_back == c_back or d_text == c_text)
+        return not (d_front == c_front or d_back == c_back or d_text == c_text or (c_q_text and d_text == c_q_text))
 
     @classmethod
     def _get_jp_pattern(cls, text: str) -> str:
@@ -93,7 +94,9 @@ class SmartDistractorSelector:
         """
         pattern = []
         for char in text:
-            if '\u4e00' <= char <= '\u9faf': pattern.append('K')
+            # Robust Kanji range: Common + Extension A
+            if ('\u4e00' <= char <= '\u9fff') or ('\u3400' <= char <= '\u4dbf'):
+                pattern.append('K')
             elif '\u3040' <= char <= '\u309f': pattern.append('H')
             elif '\u30a0' <= char <= '\u30ff': pattern.append('C')
             else: pattern.append('O') # Other/Romaji
@@ -101,8 +104,8 @@ class SmartDistractorSelector:
 
     @classmethod
     def _extract_kanji(cls, text: str) -> Set[str]:
-        """Extracts a set of all Kanji characters from a string."""
-        return {char for char in text if '\u4e00' <= char <= '\u9faf'}
+        """Extracts a set of all Kanji characters from a string using robust range."""
+        return {char for char in text if ('\u4e00' <= char <= '\u9fff') or ('\u3400' <= char <= '\u4dbf')}
 
     @classmethod
     def _score_candidates(cls, correct_item: Dict, candidates: List[Dict]) -> List[tuple]:
@@ -124,9 +127,10 @@ class SmartDistractorSelector:
             if d_pattern == c_pattern:
                 score += 100
             
-            # 2. Shared Kanji (Massive trap: +50 per Kanji)
+            # 2. Shared Kanji (Massive trap: +150 per Kanji)
+            # Increased from +50 to ensure words with shared Kanji outrank those with only pattern match.
             shared_kanji = c_kanji.intersection(d_kanji)
-            score += len(shared_kanji) * 50
+            score += len(shared_kanji) * 150
             
             # 3. Length Similarity
             if len(d_front) == len(c_front):

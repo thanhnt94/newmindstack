@@ -23,11 +23,12 @@ Hệ thống phân loại từ vựng theo cấu trúc chữ Nhật Bản để 
 - Mặt **Front** (Từ vựng) giống hệt nhau.
 - Mặt **Back** (Nghĩa) giống hệt nhau.
 - Chuỗi văn bản hiển thị (**Text**) của lựa chọn giống hệt nhau.
+- **Mới**: Chuỗi văn bản hiển thị (**Text**) của lựa chọn giống hệt văn bản của **Câu hỏi**.
 
 ### Bước 3: Chấm điểm Bẫy Hình thái (Trickiness Scoring)
 Hệ thống chấm điểm để chọn ra những "cái bẫy" chất lượng nhất. Các tiêu chí cộng điểm:
 - **Cùng Pattern Hình thái (+100 điểm):** Đảm bảo các từ có cùng cấu trúc (như cùng là 2 Kanji) luôn đứng đầu danh sách lựa chọn.
-- **Dùng chung Kanji (Shared Kanji Bonus - Trọng số rất cao: +50 điểm/chữ):** Ưu tiên cực cao cho các từ dùng chung ký tự Kanji với đáp án đúng (ví dụ: `招待` và `招集` chung chữ `招`).
+- **Dùng chung Kanji (Shared Kanji Bonus - Trọng số rất cao: +150 điểm/chữ):** Ưu tiên cực cao cho các từ dùng chung ký tự Kanji với đáp án đúng (ví dụ: `招待` và `招集` chung chữ `招`). Trọng số này đã được nâng cao để đảm bảo các từ "bẫy" chữ Hán luôn đứng đầu.
 - **Độ tương đồng chiều dài (+20 điểm):** Thưởng điểm nếu số lượng ký tự của đáp án sai bằng đáp án đúng.
 
 ### Bước 4: Lựa chọn Cuối cùng (Final Selection)
