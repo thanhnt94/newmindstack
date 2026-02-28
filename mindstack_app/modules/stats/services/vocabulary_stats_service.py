@@ -354,8 +354,17 @@ class VocabularyStatsService:
         avg_duration = (total_duration_ms / total_attempts) if total_attempts > 0 else 0
         avg_score = (total_score / total_attempts) if total_attempts > 0 else 0
         
-        first_reviewed = logs[-1]['timestamp'] if logs else None
-        last_reviewed_log = logs[0]['timestamp'] if logs else None
+        if logs:
+            timestamps = [log['timestamp'] for log in logs if log.get('timestamp')]
+            if timestamps:
+                first_reviewed = min(timestamps)
+                last_reviewed_log = max(timestamps)
+            else:
+                first_reviewed = None
+                last_reviewed_log = None
+        else:
+            first_reviewed = None
+            last_reviewed_log = None
         
         status = 'new'
         if progress:

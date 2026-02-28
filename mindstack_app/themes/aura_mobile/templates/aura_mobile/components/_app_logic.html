@@ -170,7 +170,7 @@ transition-opacity duration-500 opacity-100 data-dismissible`;
         const heatmapWrap = statsContainer.querySelector('#activity-heatmap');
         if (heatmapWrap) {
             heatmapWrap.innerHTML = ''; // Clear
-            const weeks = 12;
+            const weeks = 24;
             const daysPerWeek = 7;
             const totalDays = weeks * daysPerWeek;
 
@@ -197,8 +197,8 @@ transition-opacity duration-500 opacity-100 data-dismissible`;
                 const count = activityMap[dateKey] || 0;
 
                 const cell = document.createElement('div');
-                cell.style.width = '10px';
-                cell.style.height = '10px';
+                cell.style.width = '12px';
+                cell.style.height = '12px';
                 cell.style.borderRadius = '2px';
                 cell.title = `${dateKey}: ${count} lần học`;
 

@@ -51,44 +51,60 @@ back_icon='fa-chevron-left')
 
 {% macro render_unified_header(title, subtitle=None, score_overview=None, back_url=None, back_func=None,
 back_icon='fa-arrow-left',
-hide_default_actions=False) %}
+hide_default_actions=False, hide_avatar=False, title_icon='fa-layer-group', hide_subtitle=False) %}
 <div
-    class="px-4 pt-5 pb-3 flex items-center justify-between sticky top-0 z-[100] bg-slate-50/80 backdrop-blur-md w-full gap-3">
-    <div class="flex items-center gap-3 min-w-0">
+    class="px-3 pt-4 pb-3 flex items-center justify-between sticky top-0 z-[100] bg-white/95 backdrop-blur-md w-full gap-3 shadow-[0_4px_20px_-8px_rgba(0,0,0,0.08)] border-b border-indigo-50/50">
+    <div class="flex items-center gap-2.5 min-w-0">
         {# Back Button #}
         {% if back_url %}
         <a href="{{ back_url }}"
-            class="w-9 h-9 flex-shrink-0 rounded-full bg-white text-slate-500 flex items-center justify-center border border-slate-100 shadow-sm active:scale-95 transition-all">
+            class="w-10 h-10 flex-shrink-0 rounded-full bg-slate-50 text-slate-500 flex items-center justify-center border border-slate-100 hover:bg-white hover:text-indigo-600 hover:border-indigo-100 hover:shadow-sm active:scale-95 transition-all duration-200">
             <i class="fas {{ back_icon }} text-sm"></i>
         </a>
         {% elif back_func %}
         <button onclick="{{ back_func }}"
-            class="w-9 h-9 flex-shrink-0 rounded-full bg-white text-slate-500 flex items-center justify-center border border-slate-100 shadow-sm active:scale-95 transition-all">
+            class="w-10 h-10 flex-shrink-0 rounded-full bg-slate-50 text-slate-500 flex items-center justify-center border border-slate-100 hover:bg-white hover:text-indigo-600 hover:border-indigo-100 hover:shadow-sm active:scale-95 transition-all duration-200">
             <i class="fas {{ back_icon }} text-sm"></i>
         </button>
         {% else %}
+        {% if not hide_avatar %}
         <div
-            class="w-11 h-11 rounded-full flex-shrink-0 flex items-center justify-center border-2 border-white shadow-sm overflow-hidden bg-indigo-50">
+            class="w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center border border-indigo-100 shadow-sm overflow-hidden bg-gradient-to-br from-indigo-50 to-blue-50">
             {% if current_user.avatar_url %}
             <img src="{{ current_user.get_avatar_url() }}" class="w-full h-full object-cover"
                 onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-            <div class="w-full h-full flex items-center justify-center text-indigo-600 font-bold text-lg"
+            <div class="w-full h-full flex items-center justify-center text-indigo-600 font-bold text-base"
                 style="display:none">
                 {{ current_user.username[0] | upper }}
             </div>
             {% else %}
-            <div class="w-full h-full flex items-center justify-center text-indigo-600 font-bold text-lg">
+            <div class="w-full h-full flex items-center justify-center text-indigo-600 font-bold text-base">
                 {{ current_user.username[0] | upper }}
             </div>
             {% endif %}
         </div>
         {% endif %}
+        {% endif %}
 
-        <div class="min-w-0">
-            <h1 class="text-base font-bold text-slate-800 leading-none truncate js-header-title">{{ title }}</h1>
-            <p class="text-[10px] text-slate-500 font-medium mt-1 line-clamp-1 js-header-subtitle">
+        <div class="min-w-0 flex flex-col justify-center">
+            <h1
+                class="text-lg sm:text-xl font-extrabold leading-tight truncate tracking-tight js-header-title flex items-center gap-2">
+                {% if not hide_subtitle %}
+                <div
+                    class="hidden sm:flex w-6 h-6 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 items-center justify-center shadow-sm text-white text-[11px] shrink-0">
+                    <i class="fa-solid {{ title_icon }}"></i>
+                </div>
+                {% endif %}
+                <span class="bg-clip-text text-transparent bg-gradient-to-r from-slate-800 to-slate-600 truncate">{{
+                    title
+                    }}</span>
+            </h1>
+            {% if not hide_subtitle %}
+            <p
+                class="text-[10px] uppercase tracking-wider text-slate-500 font-bold mt-1 line-clamp-1 js-header-subtitle">
                 {% if subtitle %}{{ subtitle }}{% else %}Hi, {{ current_user.username }}!{% endif %}
             </p>
+            {% endif %}
         </div>
     </div>
 

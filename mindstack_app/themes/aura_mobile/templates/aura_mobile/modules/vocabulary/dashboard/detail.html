@@ -190,7 +190,7 @@ render_unified_header with context %}
     <div id="detail-view-wrapper" class="js-detail-view-wrapper">
         <div id="step-detail" class="vocab-step active">
             {% call render_unified_header(title='Tên bộ thẻ', score_overview=score_overview,
-            back_url='/learn/vocabulary/', hide_default_actions=True) %}
+            back_url='/learn/vocabulary/', hide_default_actions=True, hide_subtitle=True) %}
             <a href="javascript:void(0)"
                 class="w-8 h-8 flex items-center justify-center rounded-full bg-white text-slate-500 border border-slate-100 shadow-sm js-edit-set-btn open-modal-btn"
                 title="Sửa bộ thẻ" style="display: none;">

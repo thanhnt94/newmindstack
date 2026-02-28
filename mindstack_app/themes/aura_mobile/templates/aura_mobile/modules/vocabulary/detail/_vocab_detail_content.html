@@ -1,6 +1,7 @@
 {% set s = stats %}
 {% set p = s.progress %}
 {% set perf = s.performance %}
+<link rel="stylesheet" href="{{ url_for('aura_mobile.static', filename='vocabulary/css/vocab_hub.css') }}">
 <div class="stats-container" data-can-edit="{{ 'true' if s.permissions.can_edit else 'false' }}"
     data-edit-url="{{ s.permissions.edit_url }}" data-history='{{ s.history | tojson | safe }}'
     data-forgetting-curve='{{ p.forgetting_curve | tojson | safe }}'
@@ -105,16 +106,13 @@
         <div id="header-sub-tabs" class="sub-tab-navigation"
             style="display: flex; gap: 0.75rem; justify-content: center; padding-top: 0.75rem; border-top: 1px solid #f1f5f9; margin-top: 0.5rem;">
             <button class="sub-tab-btn active" data-subtab="sub-flashcard"
-                onclick="switchVocabSubTab('sub-flashcard', this)"
-                style="flex: 1; font-size: 0.85rem; font-weight: 700; color: #64748b; background: #f1f5f9; border: none; cursor: pointer; padding: 0.5rem 1rem; border-radius: 99px; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 0.4rem;">
+                onclick="switchVocabSubTab('sub-flashcard', this)">
                 <i class="fas fa-layer-group"></i> Flashcard
             </button>
-            <button class="sub-tab-btn" data-subtab="sub-ai" onclick="switchVocabSubTab('sub-ai', this)"
-                style="flex: 1; font-size: 0.85rem; font-weight: 700; color: #64748b; background: #f1f5f9; border: none; cursor: pointer; padding: 0.5rem 1rem; border-radius: 99px; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 0.4rem;">
+            <button class="sub-tab-btn" data-subtab="sub-ai" onclick="switchVocabSubTab('sub-ai', this)">
                 <i class="fas fa-sparkles"></i> AI Coach
             </button>
-            <button class="sub-tab-btn" data-subtab="sub-media" onclick="switchVocabSubTab('sub-media', this)"
-                style="flex: 1; font-size: 0.85rem; font-weight: 700; color: #64748b; background: #f1f5f9; border: none; cursor: pointer; padding: 0.5rem 1rem; border-radius: 99px; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 0.4rem;">
+            <button class="sub-tab-btn" data-subtab="sub-media" onclick="switchVocabSubTab('sub-media', this)">
                 <i class="fas fa-play-circle"></i> Media
             </button>
         </div>
@@ -400,25 +398,21 @@
 
             <!-- Sub-tab Navigation (Analysis) -->
             <div class="sub-tab-navigation"
-                style="display: flex; background: #e2e8f0; padding: 0.2rem; border-radius: 0.5rem; margin: 0.75rem 1rem; gap: 0.2rem;">
+                style="display: flex; gap: 0.75rem; justify-content: center; padding-top: 0.5rem; margin: 0 1rem 0.5rem 1rem;">
                 <button class="sub-tab-btn active" data-subtab="sub-overview"
-                    onclick="window.switchVocabSubTab('sub-overview', this)"
-                    style="flex: 1; padding: 0.4rem; border-radius: 0.4rem; font-size: 0.65rem; font-weight: 800; border: none; background: white; color: #4f46e5; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
+                    onclick="window.switchVocabSubTab('sub-overview', this)" style="text-transform: uppercase;">
                     TỔNG QUAN
                 </button>
                 <button class="sub-tab-btn" data-subtab="sub-detail"
-                    onclick="window.switchVocabSubTab('sub-detail', this)"
-                    style="flex: 1; padding: 0.4rem; border-radius: 0.4rem; font-size: 0.65rem; font-weight: 800; border: none; background: transparent; color: #64748b;">
+                    onclick="window.switchVocabSubTab('sub-detail', this)" style="text-transform: uppercase;">
                     CHI TIẾT
                 </button>
                 <button class="sub-tab-btn" data-subtab="sub-charts"
-                    onclick="window.switchVocabSubTab('sub-charts', this)"
-                    style="flex: 1; padding: 0.4rem; border-radius: 0.4rem; font-size: 0.65rem; font-weight: 800; border: none; background: transparent; color: #64748b;">
+                    onclick="window.switchVocabSubTab('sub-charts', this)" style="text-transform: uppercase;">
                     BIỂU ĐỒ
                 </button>
                 <button class="sub-tab-btn" data-subtab="sub-community"
-                    onclick="window.switchVocabSubTab('sub-community', this)"
-                    style="flex: 1; padding: 0.4rem; border-radius: 0.4rem; font-size: 0.65rem; font-weight: 800; border: none; background: transparent; color: #64748b;">
+                    onclick="window.switchVocabSubTab('sub-community', this)" style="text-transform: uppercase;">
                     CỘNG ĐỒNG
                 </button>
             </div>
@@ -454,7 +448,7 @@
                         </div>
                     </div>
 
-                    <!-- Next Review -->
+                    <!-- Top row: Next Review & FSRS S -->
                     <div class="bento-item" style="border: 1px solid #fed7aa; background: #fffaf5;">
                         <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
                             <div
@@ -466,22 +460,54 @@
                         <div class="bento-value" style="font-size: 1rem; color: #9a3412;">{{ p.due_relative }}</div>
                     </div>
 
-                    <!-- Streak -->
-                    <div class="bento-item" style="border: 1px solid #fecaca; background: #fff5f5;">
+                    <div class="bento-item" style="border: 1px solid #c7d2fe; background: #eef2ff;">
                         <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
                             <div
-                                style="width: 24px; height: 24px; border-radius: 6px; background: #fee2e2; color: #ef4444; display: flex; align-items: center; justify-content: center; font-size: 0.7rem;">
-                                <i class="fas fa-fire"></i>
+                                style="width: 24px; height: 24px; border-radius: 6px; background: #e0e7ff; color: #4f46e5; display: flex; align-items: center; justify-content: center; font-size: 0.7rem;">
+                                <i class="fas fa-anchor"></i>
                             </div>
-                            <div class="bento-label" style="margin: 0;">CHUỖI</div>
+                            <div class="bento-label" style="margin: 0;">ỔN ĐỊNH (S)</div>
                         </div>
-                        <div class="bento-value" style="font-size: 1rem; color: #991b1b;">{{ p.streak }} LẦN</div>
+                        <div class="bento-value" style="font-size: 1rem; color: #3730a3;">{{ p.fsrs_stability|round(1)
+                            if p.fsrs_stability else '0' }} ngày</div>
                     </div>
 
-                    <!-- Repetitions (Dynamic by Mode) -->
+                    <!-- Second row: FSRS D & First Review -->
+                    <div class="bento-item" style="border: 1px solid #fecdd3; background: #fff1f2;">
+                        <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+                            <div
+                                style="width: 24px; height: 24px; border-radius: 6px; background: #ffe4e6; color: #e11d48; display: flex; align-items: center; justify-content: center; font-size: 0.7rem;">
+                                <i class="fas fa-dumbbell"></i>
+                            </div>
+                            <div class="bento-label" style="margin: 0;">ĐỘ KHÓ (D)</div>
+                        </div>
+                        <div class="bento-value" style="font-size: 1rem; color: #9f1239;">{{ p.fsrs_difficulty|round(1)
+                            if p.fsrs_difficulty else '0' }}</div>
+                    </div>
+
+                    <div class="bento-item" style="border: 1px solid #d8b4fe; background: #faf5ff;">
+                        <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+                            <div
+                                style="width: 24px; height: 24px; border-radius: 6px; background: #f3e8ff; color: #9333ea; display: flex; align-items: center; justify-content: center; font-size: 0.7rem;">
+                                <i class="fas fa-flag"></i>
+                            </div>
+                            <div class="bento-label" style="margin: 0;">LẦN ĐẦU TIÊN</div>
+                        </div>
+                        <div class="bento-value" style="font-size: 0.9rem; color: #6b21a8;">{{
+                            p.first_reviewed|user_timezone('%d/%m/%Y') if p.first_reviewed else 'Chưa học' }}</div>
+                    </div>
+
+                    <!-- Repetitions (Dynamic by Mode) with Total -->
                     <div class="bento-item"
                         style="border: 1px solid #bfdbfe; background: #f0f7ff; grid-column: span 2;">
-                        <div class="bento-label" style="margin-bottom: 0.75rem;">PHƯƠNG PHÁP ÔN TẬP</div>
+                        <div
+                            style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+                            <div class="bento-label" style="margin: 0;">SỐ LẦN ÔN TẬP</div>
+                            <div
+                                style="font-size: 0.8rem; font-weight: 800; color: #1e40af; background: #dbeafe; padding: 0.15rem 0.5rem; border-radius: 99px;">
+                                Tổng: {{ perf.total_reviews }}
+                            </div>
+                        </div>
                         <div style="display: flex; gap: 1rem; overflow-x: auto; padding-bottom: 0.25rem;"
                             class="no-scrollbar">
                             {% for mode, data in s.modes.items() %}
@@ -501,7 +527,7 @@
                         </div>
                     </div>
 
-                    <!-- Accuracy -->
+                    <!-- Accuracy & Streak Row -->
                     <div class="bento-item" style="border: 1px solid #a7f3d0; background: #f0fdf4;">
                         <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
                             <div
@@ -512,12 +538,24 @@
                         </div>
                         <div class="bento-value" style="font-size: 1rem; color: #065f46;">{{ perf.accuracy }}%</div>
                     </div>
+
+                    <!-- Streak -->
+                    <div class="bento-item" style="border: 1px solid #fecaca; background: #fff5f5;">
+                        <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+                            <div
+                                style="width: 24px; height: 24px; border-radius: 6px; background: #fee2e2; color: #ef4444; display: flex; align-items: center; justify-content: center; font-size: 0.7rem;">
+                                <i class="fas fa-fire"></i>
+                            </div>
+                            <div class="bento-label" style="margin: 0;">CHUỖI</div>
+                        </div>
+                        <div class="bento-value" style="font-size: 1rem; color: #991b1b;">{{ p.streak }} LẦN</div>
+                    </div>
                 </div>
             </div>
 
             <!-- Sub-tab 2: Review Detail History -->
             <div id="sub-detail" class="sub-tab-content"
-                style="display: none; padding: 0; height: 500px; flex-direction: column; overflow: hidden; background: white; border-radius: 1rem; border: 1px solid #e2e8f0; margin: 0 1rem 1rem 1rem;">
+                style="display: none; padding: 0; flex: 1; min-height: 0; flex-direction: column; overflow: hidden; background: white; border-radius: 1rem; border: 1px solid #e2e8f0; margin: 0 1rem 1rem 1rem;">
                 <!-- Fixed Header Layer (Sticks to top) -->
                 <div style="padding: 0.75rem 1rem 0 1rem; background: white; z-index: 10; flex-shrink: 0;">
                     <!-- Selected History detail card -->
@@ -596,7 +634,7 @@
 
                 <!-- Scrollable History List Section -->
                 <div class="history-vertical-list no-scrollbar"
-                    style="flex: 1; overflow-y: auto; padding: 0 1rem 1rem 1rem; display: flex; flex-direction: column; gap: 0.75rem;">
+                    style="flex: 1; overflow-y: auto; padding: 0.75rem 1rem 1rem 1rem; display: flex; flex-direction: column; gap: 0.75rem;">
                     {% if s.history %}
                     {% for log in s.history %}
                     <div class="history-item js-history-item" data-log-idx="{{ loop.index0 }}"
@@ -735,7 +773,7 @@
                         <div class="bento-label" style="margin-bottom: 0; color: #475569;">MẬT ĐỘ KIẾN THỨC</div>
                         <div
                             style="font-size: 0.55rem; color: #94a3b8; font-weight: 800; background: #f8fafc; padding: 0.15rem 0.4rem; border-radius: 4px;">
-                            12 TUẦN GẦN NHẤT</div>
+                            24 TUẦN GẦN NHẤT</div>
                     </div>
                     <div id="activity-heatmap"
                         style="display: flex; justify-content: center; align-items: center; min-height: 80px;">

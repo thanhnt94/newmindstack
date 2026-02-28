@@ -123,58 +123,52 @@ render_unified_header with context %}
 
 
 
-    /* Search */
-
+    /* Search - Premium Pill */
     .vocab-search-wrap {
-
         padding: 0.75rem 1rem;
-
-        background: white;
-
-        border-bottom: 1px solid #e2e8f0;
-
+        background: transparent;
     }
-
-
 
     .vocab-search {
-
         display: flex;
-
         align-items: center;
-
-        background: #f1f5f9;
-
-        border-radius: 0.75rem;
-
-        padding: 0.5rem 0.75rem;
-
-        gap: 0.5rem;
-
+        background: white;
+        border-radius: 100px;
+        padding: 0.625rem 1rem;
+        gap: 0.625rem;
+        border: 1.5px solid #e2e8f0;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
-
+    .vocab-search:focus-within {
+        border-color: #818cf8;
+        box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12), 0 4px 12px rgba(99, 102, 241, 0.08);
+    }
 
     .vocab-search i {
-
         color: #94a3b8;
-
+        font-size: 0.8rem;
+        transition: color 0.2s;
     }
 
-
+    .vocab-search:focus-within i {
+        color: #6366f1;
+    }
 
     .vocab-search input {
-
         border: none;
-
         background: transparent;
-
         flex: 1;
-
         font-size: 0.875rem;
-
         outline: none;
+        font-weight: 500;
+        color: #1e293b;
+    }
 
+    .vocab-search input::placeholder {
+        color: #94a3b8;
+        font-weight: 400;
     }
 
     /* Active Sessions Section */
@@ -272,54 +266,40 @@ render_unified_header with context %}
 
 
 
-    /* Category Tabs */
-
+    /* Category Tabs - Premium Pill Style */
     .vocab-tabs {
-
         display: flex;
-
-        gap: 0.25rem;
-
-        padding: 0.5rem 1rem;
-
-        background: white;
-
-        border-bottom: 1px solid #e2e8f0;
-
+        gap: 0.5rem;
+        padding: 0 1rem 0.75rem;
+        background: transparent;
     }
-
-
 
     .vocab-tab {
-
         flex: 1;
-
-        padding: 0.5rem;
-
+        padding: 0.6rem 0.5rem;
         text-align: center;
-
         font-size: 0.8rem;
-
-        font-weight: 600;
-
+        font-weight: 700;
         color: #64748b;
-
-        border-radius: 0.5rem;
-
+        border-radius: 100px;
         cursor: pointer;
-
-        transition: all 0.2s;
-
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        background: white;
+        border: 1.5px solid #e2e8f0;
+        letter-spacing: 0.01em;
     }
 
-
+    .vocab-tab:hover:not(.active) {
+        border-color: #c7d2fe;
+        color: #4f46e5;
+        background: #f5f3ff;
+    }
 
     .vocab-tab.active {
-
-        background: var(--vocab-primary);
-
+        background: linear-gradient(135deg, #4f46e5, #6366f1);
         color: white;
-
+        border-color: transparent;
+        box-shadow: 0 4px 14px rgba(79, 70, 229, 0.35);
     }
 
 
@@ -356,49 +336,31 @@ render_unified_header with context %}
 
 
     /* Set Card - Premium App Style */
-
     .vocab-set-card {
-
         background: white;
-
-        border-radius: 1rem;
-
+        border-radius: 1.25rem;
         overflow: hidden;
-
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0, 0, 0, 0.06);
-
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06), 0 4px 16px rgba(0, 0, 0, 0.04);
         cursor: pointer;
-
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-
-        border: 1px solid rgba(0, 0, 0, 0.04);
-
+        transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+        border: 1px solid rgba(0, 0, 0, 0.05);
     }
-
-
 
     .vocab-set-card:hover {
-
         transform: translateY(-4px);
-
-        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-        border-color: rgba(79, 70, 229, 0.3);
-
+        box-shadow: 0 12px 28px rgba(99, 102, 241, 0.15), 0 4px 8px rgba(0, 0, 0, 0.06);
+        border-color: rgba(99, 102, 241, 0.25);
     }
 
-
-
     .vocab-set-card:active {
-
-        transform: translateY(-2px) scale(0.98);
-
+        transform: translateY(-1px) scale(0.985);
     }
 
 
 
     .vocab-set-cover {
-        height: 110px;
-        background: linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%);
+        aspect-ratio: 4 / 3;
+        background: linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 50%, #a5b4fc 100%);
         display: flex;
         align-items: center;
         justify-content: center;
@@ -572,8 +534,9 @@ render_unified_header with context %}
     /* Detail View - Modern Hero */
 
     .vocab-detail-hero {
-        height: 240px;
-        background: linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%);
+        aspect-ratio: 16 / 9;
+        max-height: 260px;
+        background: linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 50%, #a5b4fc 100%);
         display: flex;
         align-items: center;
         justify-content: center;
@@ -1168,25 +1131,10 @@ render_unified_header with context %}
         border: 1px solid rgba(255, 255, 255, 0.5);
     }
 
-    .vocab-set-card {
-        background: white;
-        border-radius: 1.5rem;
-        border: 1px solid #f1f5f9;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
-        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-        overflow: hidden;
-        position: relative;
-    }
-
-    .vocab-set-card:hover {
-        transform: translateY(-6px) scale(1.02);
-        box-shadow: 0 20px 30px rgba(99, 102, 241, 0.12);
-        border-color: #c4b5fd;
-        z-index: 10;
-    }
+    /* Duplicate card override removed — see primary .vocab-set-card above */
 
     .vocab-progress-mini {
-        height: 4px;
+        height: 3px;
         width: 100%;
         background: #f1f5f9;
         border-radius: 2px;
@@ -1199,16 +1147,6 @@ render_unified_header with context %}
         background: linear-gradient(90deg, #6366f1, #8b5cf6);
         border-radius: 2px;
         transition: width 1s ease;
-    }
-
-    .vocab-set-cover {
-        height: 140px;
-        background: #f8fafc;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        position: relative;
-        overflow: hidden;
     }
 
 
@@ -2587,7 +2525,13 @@ render_unified_header with context %}
     {# Mobile View - Step Browser only - Hidden on lg+ #}
     <div id="step-browser" class="vocab-step active">
 
-        {% call render_unified_header(title='Học từ vựng', score_overview=score_overview) %}
+        {% call render_unified_header(title='Học từ vựng', subtitle='Tổng quan', hide_default_actions=True,
+        hide_avatar=True) %}
+        <a href="/dashboard"
+            class="w-10 h-10 flex-shrink-0 rounded-full bg-slate-50 text-slate-500 flex items-center justify-center border border-slate-100 hover:bg-white hover:text-indigo-600 hover:border-indigo-100 hover:shadow-sm active:scale-95 transition-all duration-200"
+            title="Trang chủ">
+            <i class="fas fa-home text-sm"></i>
+        </a>
         {% endcall %}
 
 
@@ -2672,16 +2616,17 @@ render_unified_header with context %}
 
     <div id="step-detail" class="vocab-step">
 
-        {% call render_unified_header(title='Tên bộ thẻ', subtitle='...', back_url='/learn/vocabulary/') %}
+        {% call render_unified_header(title='Tên bộ thẻ', back_url='/learn/vocabulary/',
+        hide_default_actions=True, hide_avatar=True, hide_subtitle=True) %}
         <a href="#"
-            class="w-8 h-8 flex items-center justify-center rounded-full bg-white text-slate-500 hover:text-indigo-600 transition-colors border border-slate-100 shadow-sm js-edit-set-btn"
+            class="w-10 h-10 flex items-center justify-center rounded-full bg-slate-50 text-slate-500 hover:bg-white hover:text-indigo-600 hover:border-indigo-100 hover:shadow-sm transition-all duration-200 border border-slate-100 js-edit-set-btn active:scale-95"
             title="Sửa bộ thẻ" style="display: none;">
-            <i class="fas fa-edit text-xs"></i>
+            <i class="fas fa-edit text-sm"></i>
         </a>
         <a href="/dashboard"
-            class="w-8 h-8 rounded-full bg-white text-slate-500 flex items-center justify-center hover:text-indigo-600 transition-colors border border-slate-100 shadow-sm"
+            class="w-10 h-10 flex shrink-0 items-center justify-center rounded-full bg-slate-50 text-slate-500 hover:bg-white hover:text-indigo-600 hover:border-indigo-100 hover:shadow-sm transition-all duration-200 border border-slate-100 active:scale-95"
             title="Trang chủ">
-            <i class="fas fa-home text-xs"></i>
+            <i class="fas fa-home text-sm"></i>
         </a>
         {% endcall %}
 
@@ -3951,33 +3896,36 @@ render_unified_header with context %}
                 html += '<div class="vocab-set-cover ' + hasImageClass + '">';
 
                 if (coverPath) {
-                    html += '<img src="' + coverPath + '" class="vocab-set-cover-img" alt="">';
+                    html += '<img src="' + coverPath + '" class="vocab-set-cover-img" alt="" loading="lazy">';
                 } else {
-                    html += '<div class="w-full h-full bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center text-slate-300 text-3xl"><i class="fas fa-book-open"></i></div>';
+                    html += '<div class="w-full h-full flex items-center justify-center bg-gradient-to-br from-indigo-50 to-slate-50">';
+                    html += '<div class="w-14 h-14 rounded-2xl bg-white shadow-sm flex items-center justify-center border border-indigo-100/50 text-indigo-400 text-2xl">';
+                    html += '<i class="fa-solid fa-layer-group"></i>';
+                    html += '</div></div>';
                 }
 
                 // Add progress badge overlay
                 if (progressPercent > 0) {
-                    html += '<div class="absolute top-2 right-2 px-2 py-1 rounded-lg glass-morphism text-[10px] font-bold text-indigo-600 border border-indigo-100/50">' + progressPercent + '%</div>';
+                    html += '<div class="absolute top-2.5 right-2.5 px-2.5 py-1 rounded-full text-[10px] font-extrabold text-white shadow-lg" style="background: linear-gradient(135deg, #6366f1, #8b5cf6);">' + progressPercent + '%</div>';
                 }
 
                 html += '</div>';
 
-                html += '<div class="vocab-set-info p-4">';
+                html += '<div class="p-3.5">';
 
-                html += '<div class="vocab-set-title text-sm font-bold text-slate-800 line-clamp-2 mb-2 h-10">' + s.title + '</div>';
+                html += '<div class="text-[13px] font-bold text-slate-800 line-clamp-2 mb-2.5 leading-snug" style="min-height: 2.5em;">' + s.title + '</div>';
 
-                html += '<div class="vocab-set-meta flex items-center justify-between">';
+                html += '<div class="flex items-center justify-between">';
 
-                html += '<div class="vocab-set-author flex items-center gap-2">';
+                html += '<div class="flex items-center gap-1.5">';
 
-                html += '<span class="vocab-set-avatar w-5 h-5 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center text-[8px] font-black">' + authorInitial + '</span>';
+                html += '<span class="w-5 h-5 rounded-full bg-gradient-to-br from-indigo-500 to-purple-500 text-white flex items-center justify-center text-[8px] font-black shadow-sm">' + authorInitial + '</span>';
 
-                html += '<span class="text-[10px] font-bold text-slate-500 truncate max-w-[70px]">' + authorName + '</span>';
+                html += '<span class="text-[10px] font-medium text-slate-400 truncate max-w-[70px]">' + authorName + '</span>';
 
                 html += '</div>';
 
-                html += '<div class="vocab-set-count text-[10px] font-bold text-slate-400 bg-slate-50 px-2 py-0.5 rounded-md flex items-center gap-1"><i class="fas fa-clone text-[8px]"></i>' + s.card_count + '</div>';
+                html += '<div class="text-[10px] font-bold text-indigo-500 bg-indigo-50 px-2 py-0.5 rounded-full flex items-center gap-1"><i class="fas fa-clone text-[7px]"></i>' + s.card_count + '</div>';
 
                 html += '</div>';
 
