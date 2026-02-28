@@ -1624,6 +1624,7 @@ body>main {
     font-style: italic;
     white-space: pre-wrap;
     word-break: break-word;
+    text-align: left;
 }
 
 /* Custom scrollbar for note body */

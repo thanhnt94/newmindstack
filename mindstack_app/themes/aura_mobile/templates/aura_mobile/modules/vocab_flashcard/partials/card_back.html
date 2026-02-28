@@ -29,9 +29,7 @@
                 </div>
                 {# View mode #}
                 <div class="note-frame-body js-note-view-mode">
-                    <div class="note-frame-content">
-                        {{ item.note_html | safe }}
-                    </div>
+                    <div class="note-frame-content">{{ item.note_html | safe }}</div>
                 </div>
                 {# Edit mode (hidden by default) #}
                 <div class="note-frame-edit-mode hidden">
