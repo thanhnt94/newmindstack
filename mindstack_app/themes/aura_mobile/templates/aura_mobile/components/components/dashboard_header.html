@@ -49,7 +49,8 @@ back_icon='fa-chevron-left')
 <div class="h-[60px] w-full shrink-0"></div>
 {% endmacro %}
 
-{% macro render_unified_header(title, score_overview=None, back_url=None, back_func=None, back_icon='fa-arrow-left',
+{% macro render_unified_header(title, subtitle=None, score_overview=None, back_url=None, back_func=None,
+back_icon='fa-arrow-left',
 hide_default_actions=False) %}
 <div
     class="px-4 pt-5 pb-3 flex items-center justify-between sticky top-0 z-[100] bg-slate-50/80 backdrop-blur-md w-full gap-3">
@@ -84,8 +85,10 @@ hide_default_actions=False) %}
         {% endif %}
 
         <div class="min-w-0">
-            <h1 class="text-base font-bold text-slate-800 leading-none truncate">{{ title }}</h1>
-            <p class="text-[10px] text-slate-500 font-medium mt-1 line-clamp-1">Hi, {{ current_user.username }}!</p>
+            <h1 class="text-base font-bold text-slate-800 leading-none truncate js-header-title">{{ title }}</h1>
+            <p class="text-[10px] text-slate-500 font-medium mt-1 line-clamp-1 js-header-subtitle">
+                {% if subtitle %}{{ subtitle }}{% else %}Hi, {{ current_user.username }}!{% endif %}
+            </p>
         </div>
     </div>
 

@@ -62,6 +62,7 @@
     <script>
         window.MindStack = window.MindStack || {};
         window.MindStack.userTimezone = "{{ current_user.timezone if current_user.is_authenticated else 'UTC' }}";
+        window.MindStack.username = "{{ current_user.username if current_user.is_authenticated else 'Guest' }}";
 
         // Helper to format user time from JS
         window.formatUserTime = function (isoString, options = {}) {

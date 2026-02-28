@@ -389,16 +389,18 @@
             });
         };
 
-        window.selectHistoryItem = function (element, index) {
+        window.selectHistoryItemV3 = function (element, index) {
             // 1. Highlight selected item
             document.querySelectorAll('.js-history-item').forEach(el => el.classList.remove('active'));
             element.classList.add('active');
 
-            // 2. GetData
-            const historyScript = document.getElementById('vocab-history-data');
+            // 2. GetData from container
+            const container = element.closest('.stats-container');
+            if (!container) return;
+
             let history = [];
             try {
-                history = JSON.parse(historyScript.textContent) || [];
+                history = JSON.parse(container.getAttribute('data-history') || '[]');
             } catch (e) {
                 console.error("Failed to parse history", e);
                 return;
@@ -613,8 +615,8 @@
 
                         // Auto-select first history item
                         const firstHist = statsContainer.querySelector('.js-history-item');
-                        if (firstHist && typeof window.selectHistoryItem === 'function') {
-                            window.selectHistoryItem(firstHist, 0);
+                        if (firstHist && typeof window.selectHistoryItemV3 === 'function') {
+                            window.selectHistoryItemV3(firstHist, 0);
                         }
 
                         // Initialize Charts

@@ -353,8 +353,16 @@
         if (subNav) subNav.style.display = (targetTabId === 'content') ? 'flex' : 'none';
 
         // Re-init charts if switching to stats tab
-        if (targetTabId === 'stats' && window.initVocabDetailCharts) {
-            window.initVocabDetailCharts(container);
+        if (targetTabId === 'stats') {
+            // Ensure a sub-tab is visible (default to overview)
+            const activeSub = container.querySelector('.sub-tab-content.active');
+            if (!activeSub || activeSub.style.display === 'none') {
+                const overviewBtn = container.querySelector('.sub-tab-btn[data-subtab="sub-overview"]');
+                if (overviewBtn) window.switchVocabSubTab('sub-overview', overviewBtn);
+            }
+            if (window.initVocabDetailCharts) {
+                window.initVocabDetailCharts(container);
+            }
         }
     };
 
@@ -364,11 +372,35 @@
         if (!container) return;
         const subBtns = container.querySelectorAll('.sub-tab-navigation .sub-tab-btn');
         const subContents = container.querySelectorAll('.sub-tab-content');
-        subBtns.forEach(b => b.classList.toggle('active', b.dataset.subtab === targetSubId));
+        subBtns.forEach(b => {
+            b.classList.toggle('active', b.dataset.subtab === targetSubId);
+            b.style.background = (b.dataset.subtab === targetSubId) ? '#fff' : 'transparent';
+            b.style.color = (b.dataset.subtab === targetSubId) ? '#4f46e5' : '#64748b';
+            b.style.boxShadow = (b.dataset.subtab === targetSubId) ? '0 1px 3px rgba(0,0,0,0.1)' : 'none';
+        });
         subContents.forEach(content => {
             if (content.id === targetSubId) {
-                content.style.display = 'block';
+                content.style.display = (targetSubId === 'sub-detail') ? 'flex' : 'block';
                 content.classList.add('active');
+
+                // Auto-select first history item if in chi tiết tab
+                if (targetSubId === 'sub-detail') {
+                    const firstHist = content.querySelector('.js-history-item');
+                    if (firstHist && typeof window.selectHistoryItemV3 === 'function') {
+                        window.selectHistoryItemV3(firstHist, 0);
+                    }
+                }
+
+                // Re-init charts if switching to charts sub-tab
+                if (targetSubId === 'sub-charts' && window.initVocabDetailCharts) {
+                    window.initVocabDetailCharts(container);
+                    // Explicitly trigger activity heatmap
+                    if (window.renderActivityHeatmap) {
+                        const heatmapEl = document.getElementById('activity-heatmap');
+                        if (heatmapEl) window.renderActivityHeatmap(heatmapEl);
+                    }
+                }
+
                 if (targetSubId === 'sub-ai' && typeof window.loadStatsAiHistory === 'function') {
                     const markerBtn = container.querySelector('.js-toggle-vocab-marker');
                     const itemId = markerBtn?.onclick?.toString().match(/\d+/)?.[0];
@@ -394,25 +426,30 @@
 
 
     // --- History Selection Logic ---
-    window.selectHistoryItem = function (element, index) {
+    window.selectHistoryItemV3 = function (element, index) {
         // 1. Highlight selected item
         document.querySelectorAll('.js-history-item').forEach(el => el.classList.remove('active'));
         element.classList.add('active');
 
-        // 2. GetData
-        const historyScript = document.getElementById('vocab-history-data');
+        // 2. GetData from container
+        const container = element.closest('.stats-container');
+        if (!container) return;
+
         let history = [];
         try {
-            history = JSON.parse(historyScript.textContent) || [];
+            history = JSON.parse(container.getAttribute('data-history') || '[]');
         } catch (e) {
-            console.error("Failed to parse history", e);
+            console.error("Failed to parse history from attribute", e);
             return;
         }
 
         const log = history[index];
         if (!log) return;
 
-        // 3. Update Detail Bar
+        // 3. Update Detail Card
+        const detailCard = document.getElementById('history-detail-card');
+        if (detailCard) detailCard.style.display = 'block';
+
         const resultEl = document.getElementById('hist-result');
         const modeEl = document.getElementById('hist-mode-badge');
         const timeEl = document.getElementById('hist-time');
@@ -423,23 +460,48 @@
         // Result Style
         if (resultEl) {
             if (log.result === 'Correct') {
-                resultEl.textContent = 'Đúng';
+                resultEl.textContent = 'ĐÚNG';
                 resultEl.style.backgroundColor = '#dcfce7';
                 resultEl.style.color = '#16a34a';
             } else {
-                resultEl.textContent = 'Sai';
+                resultEl.textContent = 'SAI';
                 resultEl.style.backgroundColor = '#fee2e2';
                 resultEl.style.color = '#dc2626';
             }
         }
 
-        // Mode & Time
-        if (modeEl) modeEl.textContent = log.mode || 'N/A';
+        // Mode & Time & Rating
+        if (modeEl) modeEl.textContent = log.mode || 'MCQ';
 
-        // Format relative time (naive approx)
+        const ratingEl = document.getElementById('hist-rating');
+        if (ratingEl) {
+            if (log.rating && (log.mode === 'Flashcard' || log.mode === 'flashcard')) {
+                ratingEl.style.display = 'inline-block';
+                const ratingLabels = { 1: 'AGAIN', 2: 'HARD', 3: 'GOOD', 4: 'EASY' };
+                ratingEl.textContent = ratingLabels[log.rating] || 'RATING: ' + log.rating;
+
+                // Simple styling based on rating
+                if (log.rating === 1) {
+                    ratingEl.style.color = '#ef4444';
+                    ratingEl.style.background = '#fef2f2';
+                } else if (log.rating === 2) {
+                    ratingEl.style.color = '#f59e0b';
+                    ratingEl.style.background = '#fffbeb';
+                } else if (log.rating === 3) {
+                    ratingEl.style.color = '#3b82f6';
+                    ratingEl.style.background = '#eff6ff';
+                } else {
+                    ratingEl.style.color = '#10b981';
+                    ratingEl.style.background = '#f0fdf4';
+                }
+            } else {
+                ratingEl.style.display = 'none';
+            }
+        }
+
         if (timeEl) {
             const date = new Date(log.timestamp);
-            timeEl.textContent = date.toLocaleDateString('vi-VN') + ' ' + date.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+            timeEl.textContent = date.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) + ' ' + date.toLocaleDateString('vi-VN');
         }
 
         // Duration
@@ -452,9 +514,14 @@
         if (scoreEl) {
             const scoreVal = log.score_change || 0;
             scoreEl.textContent = scoreVal >= 0 ? '+' + scoreVal : scoreVal;
+            scoreEl.style.color = scoreVal >= 0 ? '#10b981' : '#ef4444';
         }
 
-        // Mastery (Stability)
+        // Mastery (Stability), Difficulty, Interval, Retrievability
+        const diffEl = document.getElementById('hist-difficulty');
+        const intervalEl = document.getElementById('hist-interval');
+        const rEl = document.getElementById('hist-retrievability');
+
         if (masteryEl) {
             let stability = '-';
             if (log.fsrs_snapshot && log.fsrs_snapshot.stability) {
@@ -462,7 +529,32 @@
             }
             masteryEl.textContent = stability;
         }
-    }
+
+        if (diffEl) {
+            let difficulty = '-';
+            if (log.fsrs_snapshot && log.fsrs_snapshot.difficulty) {
+                difficulty = parseFloat(log.fsrs_snapshot.difficulty).toFixed(1);
+            }
+            diffEl.textContent = difficulty;
+        }
+
+        if (intervalEl) {
+            let interval = '-';
+            if (log.fsrs_snapshot && log.fsrs_snapshot.scheduled_days) {
+                const days = log.fsrs_snapshot.scheduled_days;
+                interval = days >= 1 ? Math.round(days) + 'd' : Math.round(days * 24) + 'h';
+            }
+            intervalEl.textContent = interval;
+        }
+
+        if (rEl) {
+            let retrievability = '-';
+            if (log.fsrs_snapshot && log.fsrs_snapshot.retrievability) {
+                retrievability = (parseFloat(log.fsrs_snapshot.retrievability) * 100).toFixed(0) + '%';
+            }
+            rEl.textContent = retrievability;
+        }
+    };
 
     // --- Marker Logic ---
     window.toggleVocabMarker = function (itemId, markerType, btn) {

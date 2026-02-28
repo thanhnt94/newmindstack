@@ -21,6 +21,7 @@ class VocabSetDTO:
     card_count: int
     creator_name: str
     cover_image: Optional[str] = None
+    processed_count: int = 0
     is_public: bool = False
     ai_capabilities: List[str] = field(default_factory=list)
 

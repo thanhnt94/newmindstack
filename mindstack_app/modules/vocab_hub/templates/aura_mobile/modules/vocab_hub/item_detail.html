@@ -81,13 +81,20 @@
         });
     };
 
-    window.selectHistoryItem = function (element, index) {
+    window.selectHistoryItemV3 = function (element, index) {
         document.querySelectorAll('.js-history-item').forEach(el => el.classList.remove('active'));
         element.classList.add('active');
 
-        const historyScript = document.getElementById('vocab-history-data');
+        const container = element.closest('.stats-container');
+        if (!container) return;
+
         let history = [];
-        try { history = JSON.parse(historyScript.textContent) || []; } catch (e) { return; }
+        try {
+            history = JSON.parse(container.getAttribute('data-history') || '[]');
+        } catch (e) {
+            console.error("Failed to parse history", e);
+            return;
+        }
         const log = history[index];
         if (!log) return;
 
@@ -143,7 +150,7 @@
                     }
                     scoreHtml += `</div>`;
                 }
-                scoreEl.innerHTML = `<div style="display: flex; flex-direction: column; align-items: center; justify-content: flex-start; line-height: 1; width: 100%;">${scoreHtml}</div>`;
+                scoreEl.innerHTML = scoreHtml;
             } else {
                 scoreEl.innerHTML = `<span style="color: #94a3b8;">0</span>`;
             }

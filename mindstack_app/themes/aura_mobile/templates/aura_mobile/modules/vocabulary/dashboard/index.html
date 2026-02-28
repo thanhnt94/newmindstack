@@ -1146,6 +1146,73 @@ render_unified_header with context %}
 
 
 
+    /* Premium Bento Grid for Dashboard */
+    .bento-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.75rem;
+    }
+
+    .bento-item {
+        border-radius: 1.25rem;
+        background: white;
+        border: 1px solid #f1f5f9;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .glass-morphism {
+        background: rgba(255, 255, 255, 0.7);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid rgba(255, 255, 255, 0.5);
+    }
+
+    .vocab-set-card {
+        background: white;
+        border-radius: 1.5rem;
+        border: 1px solid #f1f5f9;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        overflow: hidden;
+        position: relative;
+    }
+
+    .vocab-set-card:hover {
+        transform: translateY(-6px) scale(1.02);
+        box-shadow: 0 20px 30px rgba(99, 102, 241, 0.12);
+        border-color: #c4b5fd;
+        z-index: 10;
+    }
+
+    .vocab-progress-mini {
+        height: 4px;
+        width: 100%;
+        background: #f1f5f9;
+        border-radius: 2px;
+        overflow: hidden;
+        margin-top: 0.75rem;
+    }
+
+    .vocab-progress-mini-bar {
+        height: 100%;
+        background: linear-gradient(90deg, #6366f1, #8b5cf6);
+        border-radius: 2px;
+        transition: width 1s ease;
+    }
+
+    .vocab-set-cover {
+        height: 140px;
+        background: #f8fafc;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+        overflow: hidden;
+    }
+
+
+
     .vocab-mode-icon i {
 
         font-size: 1.25rem;
@@ -2521,18 +2588,6 @@ render_unified_header with context %}
     <div id="step-browser" class="vocab-step active">
 
         {% call render_unified_header(title='Học từ vựng', score_overview=score_overview) %}
-        <div class="flex gap-2">
-            <a href="{{ url_for('vocab_hub.hub_index') }}"
-                class="w-8 h-8 flex items-center justify-center rounded-full bg-indigo-50 text-indigo-600 border border-indigo-100 shadow-sm"
-                title="Vocab Hub">
-                <i class="fas fa-chart-pie text-xs"></i>
-            </a>
-            <a href="{{ url_for('dashboard.dashboard') }}"
-                class="w-8 h-8 flex items-center justify-center rounded-full bg-white text-slate-500 border border-slate-100 shadow-sm"
-                title="Trang chủ">
-                <i class="fas fa-home text-xs"></i>
-            </a>
-        </div>
         {% endcall %}
 
 
@@ -2617,17 +2672,17 @@ render_unified_header with context %}
 
     <div id="step-detail" class="vocab-step">
 
-        {% call render_dashboard_header(title='Tên bộ thẻ', subtitle='...', back_url='/learn/vocabulary/') %}
+        {% call render_unified_header(title='Tên bộ thẻ', subtitle='...', back_url='/learn/vocabulary/') %}
         <a href="#"
-            class="w-9 h-9 flex items-center justify-center rounded-xl bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-slate-800 transition-colors cursor-pointer border-none shadow-none js-edit-set-btn"
+            class="w-8 h-8 flex items-center justify-center rounded-full bg-white text-slate-500 hover:text-indigo-600 transition-colors border border-slate-100 shadow-sm js-edit-set-btn"
             title="Sửa bộ thẻ" style="display: none;">
-            <i class="fas fa-edit"></i>
+            <i class="fas fa-edit text-xs"></i>
         </a>
-        <button type="button"
-            class="w-9 h-9 flex items-center justify-center rounded-xl bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-slate-800 transition-colors cursor-pointer border-none shadow-none js-open-flashcard-settings"
-            title="Cài đặt học tập">
-            <i class="fas fa-cog"></i>
-        </button>
+        <a href="/dashboard"
+            class="w-8 h-8 rounded-full bg-white text-slate-500 flex items-center justify-center hover:text-indigo-600 transition-colors border border-slate-100 shadow-sm"
+            title="Trang chủ">
+            <i class="fas fa-home text-xs"></i>
+        </a>
         {% endcall %}
 
         <div class="vocab-scroll">
@@ -3831,7 +3886,28 @@ render_unified_header with context %}
 
                         for (const [id, value] of Object.entries(mappings)) {
                             const el = document.getElementById(id);
-                            if (el) el.textContent = value;
+                            if (el) {
+                                // Animate value
+                                let start = 0;
+                                let end = parseInt(value) || 0;
+                                let duration = 1000;
+                                let startTime = null;
+
+                                function animate(timestamp) {
+                                    if (!startTime) startTime = timestamp;
+                                    let progress = Math.min((timestamp - startTime) / duration, 1);
+                                    el.textContent = Math.floor(progress * end);
+                                    if (progress < 1) window.requestAnimationFrame(animate);
+                                }
+                                window.requestAnimationFrame(animate);
+                            }
+                        }
+
+                        // Update global progress bar
+                        const progressEl = document.getElementById('global-mastery-progress');
+                        if (progressEl && stats.total_cards > 0) {
+                            const percent = Math.min(100, Math.round((stats.mastered / stats.total_cards) * 100));
+                            setTimeout(() => progressEl.style.width = percent + '%', 300);
                         }
                     }
                 })
@@ -3867,6 +3943,9 @@ render_unified_header with context %}
 
                 var authorName = s.creator_name || 'Unknown';
 
+                // Calculate progress
+                var progressPercent = s.card_count > 0 ? Math.round(((s.processed_count || 0) / s.card_count) * 100) : 0;
+
                 html += '<div class="vocab-set-card" data-set-id="' + s.id + '">';
 
                 html += '<div class="vocab-set-cover ' + hasImageClass + '">';
@@ -3874,28 +3953,36 @@ render_unified_header with context %}
                 if (coverPath) {
                     html += '<img src="' + coverPath + '" class="vocab-set-cover-img" alt="">';
                 } else {
-                    html += '<i class="fas fa-book-open"></i>';
+                    html += '<div class="w-full h-full bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center text-slate-300 text-3xl"><i class="fas fa-book-open"></i></div>';
+                }
+
+                // Add progress badge overlay
+                if (progressPercent > 0) {
+                    html += '<div class="absolute top-2 right-2 px-2 py-1 rounded-lg glass-morphism text-[10px] font-bold text-indigo-600 border border-indigo-100/50">' + progressPercent + '%</div>';
                 }
 
                 html += '</div>';
 
-                html += '<div class="vocab-set-info">';
+                html += '<div class="vocab-set-info p-4">';
 
-                html += '<div class="vocab-set-title">' + s.title + '</div>';
+                html += '<div class="vocab-set-title text-sm font-bold text-slate-800 line-clamp-2 mb-2 h-10">' + s.title + '</div>';
 
-                html += '<div class="vocab-set-meta">';
+                html += '<div class="vocab-set-meta flex items-center justify-between">';
 
-                html += '<div class="vocab-set-author">';
+                html += '<div class="vocab-set-author flex items-center gap-2">';
 
-                html += '<span class="vocab-set-avatar">' + authorInitial + '</span>';
+                html += '<span class="vocab-set-avatar w-5 h-5 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center text-[8px] font-black">' + authorInitial + '</span>';
 
-                html += '<span>' + authorName + '</span>';
+                html += '<span class="text-[10px] font-bold text-slate-500 truncate max-w-[70px]">' + authorName + '</span>';
+
+                html += '</div>';
+
+                html += '<div class="vocab-set-count text-[10px] font-bold text-slate-400 bg-slate-50 px-2 py-0.5 rounded-md flex items-center gap-1"><i class="fas fa-clone text-[8px]"></i>' + s.card_count + '</div>';
 
                 html += '</div>';
 
-                html += '<div class="vocab-set-count"><i class="fas fa-clone"></i>' + s.card_count + '</div>';
-
-                html += '</div>';
+                // Mini progress bar at bottom
+                html += '<div class="vocab-progress-mini"><div class="vocab-progress-mini-bar" style="width: ' + progressPercent + '%"></div></div>';
 
                 html += '</div></div>';
 

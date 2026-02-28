@@ -116,7 +116,8 @@ document.addEventListener('DOMContentLoaded', function () {
             document.querySelectorAll('.js-detail-title').forEach(el => el.textContent = s.title);
 
             // New header selectors from render_unified_header
-            document.querySelectorAll('h1.text-base.font-bold.text-slate-800').forEach(el => el.textContent = s.title);
+            document.querySelectorAll('.js-header-title').forEach(el => el.textContent = s.title);
+            document.querySelectorAll('.js-header-subtitle').forEach(el => el.textContent = 'Hi, ' + (window.MindStack?.username || 'user') + '!');
 
             document.querySelectorAll('.js-header-title').forEach(el => el.textContent = s.title);
             document.querySelectorAll('.js-header-card-count').forEach(el => el.textContent = s.card_count);

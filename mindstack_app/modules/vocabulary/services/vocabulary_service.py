@@ -1,5 +1,5 @@
 from mindstack_app.models import (
-    db, LearningContainer, LearningItem, User, UserContainerState
+    db, LearningContainer, LearningItem, User, UserContainerState, ItemMemoryState
 )
 
 from mindstack_app.modules.fsrs.interface import FSRSInterface as FsrsInterface
@@ -61,12 +61,22 @@ class VocabularyService:
                 ).count()
                 creator = User.query.get(c.creator_user_id)
                 
+                # Get learned count for this user in this container
+                learned_count = db.session.query(func.count(ItemMemoryState.state_id)).join(
+                    LearningItem, LearningItem.item_id == ItemMemoryState.item_id
+                ).filter(
+                    LearningItem.container_id == c.container_id,
+                    ItemMemoryState.user_id == user_id,
+                    ItemMemoryState.state != 0
+                ).scalar() or 0
+
                 sets_data.append(VocabSetDTO(
                     id=c.container_id,
                     title=c.title,
                     description=c.description or '',
                     cover_image=get_cover_url(c.cover_image),
                     card_count=card_count,
+                    processed_count=learned_count,
                     creator_name=creator.username if creator else 'Unknown',
                     is_public=c.is_public,
                     ai_capabilities=list(c.capability_flags())
@@ -107,6 +117,7 @@ class VocabularyService:
             description=container.description or '',
             cover_image=get_cover_url(container.cover_image),
             card_count=card_count,
+            processed_count=course_stats.get('learned_count', 0),
             creator_name=creator.username if creator else 'Unknown',
             is_public=container.is_public,
             ai_capabilities=list(container.capability_flags())

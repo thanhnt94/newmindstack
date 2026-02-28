@@ -212,6 +212,87 @@ transition-opacity duration-500 opacity-100 data-dismissible`;
             }
             heatmapWrap.appendChild(grid);
         }
+
+        // 3. LEARNING TREND CHART (Cumulative)
+        const trendCanvas = statsContainer.querySelector('#learningTrendChart');
+        if (trendCanvas && typeof Chart !== 'undefined') {
+            const sortedHistory = [...history].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+            const trendData = [];
+            let cumulative = 0;
+
+            // Group by date and calculate cumulative
+            const dateMap = {};
+            sortedHistory.forEach(h => {
+                const d = new Date(h.timestamp).toLocaleDateString();
+                dateMap[d] = (dateMap[d] || 0) + 1;
+            });
+
+            const labels = Object.keys(dateMap);
+            labels.forEach(date => {
+                cumulative += dateMap[date];
+                trendData.push(cumulative);
+            });
+
+            const existingTrend = Chart.getChart(trendCanvas);
+            if (existingTrend) existingTrend.destroy();
+
+            new Chart(trendCanvas, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Tổng số lượt học',
+                        data: trendData,
+                        borderColor: '#10b981',
+                        backgroundColor: 'rgba(16, 185, 129, 0.05)',
+                        borderWidth: 2,
+                        tension: 0.1,
+                        fill: true,
+                        pointRadius: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { beginAtZero: true, grid: { color: '#f1f5f9' }, ticks: { font: { size: 9 }, color: '#94a3b8' } },
+                        x: { grid: { display: false }, ticks: { font: { size: 9 }, color: '#94a3b8', maxTicksLimit: 5 } }
+                    }
+                }
+            });
+        }
+
+        // 4. RESULT DISTRIBUTION CHART (Doughnut)
+        const distCanvas = statsContainer.querySelector('#resultDistributionChart');
+        if (distCanvas && typeof Chart !== 'undefined') {
+            const correctCount = history.filter(h => h.result === 'Correct').length;
+            const incorrectCount = history.length - correctCount;
+
+            const existingDist = Chart.getChart(distCanvas);
+            if (existingDist) existingDist.destroy();
+
+            new Chart(distCanvas, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Đúng', 'Sai'],
+                    datasets: [{
+                        data: [correctCount, incorrectCount],
+                        backgroundColor: ['#10b981', '#ef4444'],
+                        borderWidth: 0,
+                        hoverOffset: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '70%',
+                    plugins: {
+                        legend: { position: 'bottom', labels: { boxWidth: 8, font: { size: 10 }, usePointStyle: true } }
+                    }
+                }
+            });
+        }
     };
 
     document.addEventListener('DOMContentLoaded', function () {
