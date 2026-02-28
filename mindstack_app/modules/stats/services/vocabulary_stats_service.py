@@ -53,15 +53,98 @@ class VocabularyStatsService:
     @staticmethod
     def get_global_stats(user_id: int) -> dict:
         total_sets = LearningContainer.query.filter(LearningContainer.creator_user_id == user_id, LearningContainer.container_type == 'FLASHCARD_SET').count()
-        # REFAC: Use FsrsInterface for global FSRS stats
+        # REFAC: Use FSRS interface for global FSRS stats
         fsrs_stats = FsrsService.get_global_stats(user_id)
         
+        # [NEW] Enhanced Global Retention Calculation
+        # We estimate overall retention across all learned items
+        learned_item_ids = FsrsService.get_learned_item_ids(user_id)
+        avg_retention = 0.0
+        if learned_item_ids:
+            states = FsrsService.get_memory_states(user_id, learned_item_ids)
+            total_r = sum(FsrsService.get_retrievability(s) for s in states.values())
+            avg_retention = round((total_r / len(learned_item_ids)) * 100, 1)
+
         return {
             'total_sets': total_sets, 
             'total_cards': fsrs_stats.get('total_cards', 0), 
-            'mastered': fsrs_stats.get('mastered_count', 0), 
-            'due': fsrs_stats.get('due_count', 0)
+            'learned_count': fsrs_stats.get('total_cards', 0), # Alias for total cards in this context
+            'mastered_count': fsrs_stats.get('mastered_count', 0), 
+            'due_count': fsrs_stats.get('due_count', 0),
+            'mastery_percentage': round((fsrs_stats.get('mastered_count', 0) / max(fsrs_stats.get('total_cards', 0), 1) * 100), 1),
+            'average_retention': avg_retention
         }
+
+    @staticmethod
+    def get_difficult_items_overview(user_id: int, limit: int = 10) -> list:
+        """Get the most difficult items for a user based on FSRS difficulty."""
+        # Using FSRS interface to get items with high difficulty
+        hard_items_data = FsrsService.get_hard_items(user_id, limit=limit)
+        
+        results = []
+        for item_data in hard_items_data:
+            item_id = item_data['item_id']
+            item = LearningItem.query.get(item_id)
+            if not item: continue
+            
+            content = item.content or {}
+            
+            # [NEW] Item Insights for Hub 2.0
+            social = VocabularyStatsService.get_item_social_metrics(item_id)
+            
+            results.append({
+                'id': item_id,
+                'front': render_text_field(content.get('front', '?')),
+                'container_title': item.container.title if item.container else 'Unknown',
+                'difficulty': item_data['difficulty'],
+                'retrievability': round(item_data['retrievability'] * 100, 1),
+                'audio_url': content.get('audio'),
+                'image_url': content.get('image'),
+                'social': social
+            })
+        return results
+
+    @staticmethod
+    def get_item_social_metrics(item_id: int) -> dict:
+        """Get aggregated social/community metrics for a specific item (anonymized)."""
+        from mindstack_app.modules.fsrs.models import ItemMemoryState
+        from sqlalchemy import func
+        
+        # 1. Total learners
+        learners_count = ItemMemoryState.query.filter_by(item_id=item_id).count()
+        
+        # 2. Avg community difficulty
+        avg_diff = db.session.query(func.avg(ItemMemoryState.difficulty)).filter_by(item_id=item_id).scalar() or 0.0
+        
+        # 3. Community accuracy (based on absolute correct/incorrect counts across all users)
+        stats = db.session.query(
+            func.sum(ItemMemoryState.times_correct).label('total_c'),
+            func.sum(ItemMemoryState.times_incorrect).label('total_i')
+        ).filter_by(item_id=item_id).first()
+        
+        total_attempts = (stats.total_c or 0) + (stats.total_i or 0)
+        accuracy = round((stats.total_c or 0) / total_attempts * 100, 1) if total_attempts > 0 else 0.0
+        
+        # 4. Total reviews
+        total_reviews = db.session.query(func.sum(ItemMemoryState.repetitions)).filter_by(item_id=item_id).scalar() or 0
+        
+        # 5. Mastered count
+        mastered_count = ItemMemoryState.query.filter(ItemMemoryState.item_id == item_id, ItemMemoryState.stability >= 21.0).count()
+        
+        return {
+            'learners_count': learners_count,
+            'community_difficulty': round(avg_diff, 1),
+            'community_accuracy': accuracy,
+            'total_reviews': total_reviews,
+            'mastered_count': mastered_count
+        }
+
+    @staticmethod
+    def get_user_activity_heatmap(user_id: int, weeks: int = 12) -> list:
+        """Get activity data for a heatmap (reviews per day)."""
+        from mindstack_app.modules.learning_history.interface import LearningHistoryInterface
+        start_date = datetime.now(timezone.utc) - timedelta(weeks=weeks)
+        return LearningHistoryInterface.get_daily_activity_counts(user_id, start_date)
 
     @staticmethod
     def get_full_stats(user_id: int, container_id: int) -> dict:
@@ -316,13 +399,49 @@ class VocabularyStatsService:
         durations = [log['review_duration'] for log in logs if log.get('review_duration')]
         min_duration = min(durations) if durations else 0
 
+        # [NEW] Advanced Memory Insights
+        time_to_mastery = "N/A"
+        forgetting_curve = []
+        if progress and progress.stability > 0:
+            # Estimate days to mastery (stability >= 21)
+            # Stability grows roughly by a factor (S_new = S_old * factor)
+            # For simplicity, we assume a growth factor of 2.5 per successful review
+            # S * (2.5 ^ n) = 21 => n = log2.5(21/S)
+            import math
+            if stability < 21:
+                reviews_needed = math.ceil(math.log(21/stability, 2.5)) if stability > 0 else 5
+                # Assuming avg interval is equal to current stability
+                days_estimated = reviews_needed * stability
+                time_to_mastery = f"~{int(days_estimated)} ngày"
+            else:
+                time_to_mastery = "Đã thành thạo"
+
+            # Generate Forgetting Curve (Next 30 days)
+            now = datetime.now(timezone.utc)
+            for i in range(0, 31, 5):
+                elapsed = i
+                # retrievability = 0.9 ^ (elapsed / stability)
+                r = 0.9 ** (elapsed / stability)
+                forgetting_curve.append({
+                    'day': i,
+                    'retrievability': round(r * 100, 1)
+                })
+
+        # [NEW] Item Insights for Detail Hub 2.0
+        social = VocabularyStatsService.get_item_social_metrics(item_id)
+
         return {
+            'social': social,
             'markers': marker_list,
             'item': {
                 'id': item.item_id, 'container_title': item.container.title if item.container else 'Unknown Set', 'container_id': item.container_id,
                 'front': render_text_field(content.get('front', '?')), 'back': render_text_field(content.get('back', '?')),
                 'pronunciation': content.get('pronunciation'), 'meaning': render_text_field(content.get('meaning')),
-                'image': content.get('image'), 'audio': content.get('audio'), 'example': render_text_field(content.get('example')),
+                'image': content.get('image') or content.get('image_url') or content.get('image_front'),
+                'audio': content.get('audio') or content.get('audio_url') or content.get('audio_front'),
+                'audio_back': content.get('audio_back'),
+                'image_back': content.get('image_back'),
+                'example': render_text_field(content.get('example')),
                 'example_meaning': render_text_field(content.get('example_meaning')), 'phonetic': content.get('phonetic'),
                 'tags': content.get('tags', []), 'custom_data': content.get('custom_data') or content.get('custom_content', {}),
                 'ai_explanation': render_text_field(item.ai_explanation),
@@ -336,9 +455,11 @@ class VocabularyStatsService:
                 'last_reviewed_relative': VocabularyStatsService._get_relative_time_string(last_reviewed_log) if last_reviewed_log else 'Chưa học',
                 # [NEW] FSRS Stats & Interaction Counters
                 'fsrs_stability': stability, 'fsrs_difficulty': difficulty, 'fsrs_state': getattr(progress, 'state', 0) if progress else 0,
+                'mastery_days': time_to_mastery,
+                'forgetting_curve': forgetting_curve,
                 'total_reps': total_attempts,
                 'mcq_reps': (progress.data or {}).get('mcq_reps', 0) if progress else 0,
-                'typing_reps': (progress.data or {}).get('typing_reps', 0) if progress else 0
+                'typing_reps': (progress.data or {}).get('typing_reps', 0) if progress else 0,
             },
             'modes': mode_counts,
             'performance': {

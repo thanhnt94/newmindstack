@@ -1,0 +1,752 @@
+﻿{% set s = stats %}
+{% set p = s.progress %}
+{% set perf = s.performance %}
+<div class="stats-container" data-can-edit="{{ 'true' if s.permissions.can_edit else 'false' }}"
+    data-edit-url="{{ s.permissions.edit_url }}" data-history='{{ s.history | tojson | safe }}'
+    style="display: flex; flex-direction: column; height: 100%; width: 100%; background: white; overflow: hidden; border-radius: 1rem; position: relative;">
+
+    <!-- Absolute Close Button -->
+    <button class="aura-modal-close js-close-stats-modal"
+        style="position: absolute; top: 0.5rem; right: 0.5rem; z-index: 100; background: #f8fafc; color: #94a3b8; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 1px solid #f1f5f9; cursor: pointer;">
+        <i class="fas fa-times" style="font-size: 13px;"></i>
+    </button>
+
+    <!-- Set Name (Positioned top-left) -->
+    <div
+        style="position: absolute; top: 0.75rem; left: 0.5rem; font-size: 0.6rem; font-weight: 800; color: #cbd5e1; text-transform: uppercase; letter-spacing: 0.05em; display: flex; align-items: center; gap: 4px;">
+        <i class="fas fa-layer-group"></i> {{ s.item.container_title }}
+    </div>
+
+    <!-- FIXED TOP SECTION -->
+    <div class="stats-fixed-header"
+        style="background: white; border-bottom: 1px solid #f1f5f9; padding: 1.75rem 0.4rem 0.5rem 0.4rem; flex-shrink: 0; text-align: center;">
+
+        <div class="stats-header-info">
+            <h1 style="font-size: 1.4rem; margin: 0; color: #0f172a; line-height: 1.1;">
+                {{ s.item.front | safe }}
+            </h1>
+
+            <div style="display: flex; align-items: center; gap: 0.5rem; margin-top: 0.4rem; justify-content: center;">
+                {% if s.item.pronunciation %}
+                <span
+                    style="font-family:'Courier New', monospace; color:#6366f1; font-weight: 600; font-size: 0.85rem;">
+                    /{{ s.item.pronunciation }}/
+                </span>
+                {% endif %}
+
+                <span class="status-badge"
+                    style="display: inline-flex; align-items: center; gap: 0.25rem; padding: 0.15rem 0.4rem; border-radius: 4px; font-weight: 800; font-size: 0.55rem; text-transform: uppercase; 
+                    {% if p.status == 'new' %}background: #f0f9ff; color: #0369a1;{% elif p.status == 'learning' %}background: #fffbeb; color: #b45309;{% elif p.status == 'mastered' %}background: #f0fdf4; color: #15803d;{% elif p.status == 'hard' %}background: #fef2f2; color: #b91c1c;{% elif p.status == 'due' %}background: #fff7ed; color: #c2410c; border: 1px solid #fed7aa;{% endif %}">
+                    {% if p.status == 'mastered' %}THUß╗ÿC
+                    {% elif p.status == 'due' %}Cß║ªN ├öN
+                    {% elif p.status == 'hard' %}KH├ô
+                    {% elif p.status == 'learning' %}Hß╗îC
+                    {% else %}Mß╗ÜI
+                    {% endif %}
+                </span>
+            </div>
+
+            <!-- [NEW] Marker Toggles (Compact) -->
+            <div style="display: flex; gap: 0.6rem; justify-content: center; margin-top: 0.75rem;">
+                <button class="marker-btn js-toggle-vocab-marker {% if 'difficult' in s.markers %}active{% endif %}"
+                    onclick="window.toggleVocabMarker({{ s.item.id }}, 'difficult', this)"
+                    style="width: 32px; height: 32px; border-radius: 50%; border: 1px solid #e2e8f0; background: {% if 'difficult' in s.markers %}#ffedd5{% else %}white{% endif %}; color: {% if 'difficult' in s.markers %}#ea580c{% else %}#94a3b8{% endif %}; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s;">
+                    <i class="fas fa-bolt" style="font-size: 13px;"></i>
+                </button>
+                <button class="marker-btn js-toggle-vocab-marker {% if 'ignored' in s.markers %}active{% endif %}"
+                    onclick="window.toggleVocabMarker({{ s.item.id }}, 'ignored', this)"
+                    style="width: 32px; height: 32px; border-radius: 50%; border: 1px solid #e2e8f0; background: {% if 'ignored' in s.markers %}#cbd5e1{% else %}white{% endif %}; color: {% if 'ignored' in s.markers %}#475569{% else %}#94a3b8{% endif %}; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s;">
+                    <i class="fas fa-eye-slash" style="font-size: 13px;"></i>
+                </button>
+                <button class="marker-btn js-toggle-vocab-marker {% if 'favorite' in s.markers %}active{% endif %}"
+                    onclick="window.toggleVocabMarker({{ s.item.id }}, 'favorite', this)"
+                    style="width: 32px; height: 32px; border-radius: 50%; border: 1px solid #e2e8f0; background: {% if 'favorite' in s.markers %}#ffe4e6{% else %}white{% endif %}; color: {% if 'favorite' in s.markers %}#e11d48{% else %}#94a3b8{% endif %}; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s;">
+                    <i class="{% if 'favorite' in s.markers %}fas{% else %}far{% endif %} fa-heart"
+                        style="font-size: 13px;"></i>
+                </button>
+
+                <!-- [NEW] Report Button -->
+                <button class="marker-btn js-fc-report-btn"
+                    onclick='window.openFeedbackModal({{ s.item.id }}, {{ s.item.front | tojson }})'
+                    style="width: 32px; height: 32px; border-radius: 50%; border: 1px solid #e2e8f0; background: white; color: #94a3b8; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s;"
+                    title="B├ío c├ío lß╗ùi">
+                    <i class="fas fa-flag" style="font-size: 13px;"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- MAIN TAB NAVIGATION -->
+        <div class="tab-navigation"
+            style="display: flex; gap: 0.25rem; margin-top: 1rem; margin-bottom: 0.5rem; background: #f8fafc; padding: 0.25rem; border-radius: 0.75rem; border: 1px solid #f1f5f9; overflow-x: auto; scrollbar-width: none;">
+            <button class="tab-btn active" data-tab="content" onclick="switchVocabMainTab('content', this)"
+                style="flex: 1; min-width: 60px;">Nß╗Öi dung</button>
+            <button class="tab-btn" data-tab="notes" onclick="switchVocabMainTab('notes', this)"
+                style="flex: 1; min-width: 60px;">Ghi ch├║</button>
+            <button class="tab-btn" data-tab="stats" onclick="switchVocabMainTab('stats', this)"
+                style="flex: 1; min-width: 60px;">Thß╗æng k├¬</button>
+            <button class="tab-btn" data-tab="details" onclick="switchVocabMainTab('details', this)"
+                style="flex: 1; min-width: 60px;">Chi tiß║┐t</button>
+        </div>
+
+        <!-- [MOVED] SUB-NAVIGATION (Only Flashcard and AI) -->
+        <div id="header-sub-tabs" class="sub-tab-navigation"
+            style="display: flex; gap: 0.75rem; justify-content: center; padding-top: 0.75rem; border-top: 1px solid #f1f5f9; margin-top: 0.5rem;">
+            <button class="sub-tab-btn active" data-subtab="sub-flashcard"
+                onclick="switchVocabSubTab('sub-flashcard', this)"
+                style="flex: 1; font-size: 0.85rem; font-weight: 700; color: #64748b; background: #f1f5f9; border: none; cursor: pointer; padding: 0.5rem 1rem; border-radius: 99px; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 0.4rem;">
+                <i class="fas fa-layer-group"></i> Flashcard
+            </button>
+            <button class="sub-tab-btn" data-subtab="sub-ai" onclick="switchVocabSubTab('sub-ai', this)"
+                style="flex: 1; font-size: 0.85rem; font-weight: 700; color: #64748b; background: #f1f5f9; border: none; cursor: pointer; padding: 0.5rem 1rem; border-radius: 99px; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 0.4rem;">
+                <i class="fas fa-sparkles"></i> AI Coach
+            </button>
+        </div>
+    </div>
+
+    <!-- SCROLLABLE BODY -->
+    <div class="stats-scroll-body" style="flex: 1; overflow-y: auto; padding: 1rem 0.4rem; background: white;">
+
+        <!-- TAB 1: CONTENT -->
+        <div class="tab-content active" id="tab-content" style="text-align: left;">
+
+            <!-- SUB-TAB A: FLASHCARD -->
+            <div id="sub-flashcard" class="sub-tab-content active">
+                {% if s.item.image %}
+                <div style="margin-bottom: 1.25rem; text-align: center;">
+                    <img src="{{ s.item.image }}"
+                        style="max-width: 100%; max-height: 200px; object-fit: contain; border-radius: 0.75rem; border: 1px solid #f1f5f9; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+                </div>
+                {% endif %}
+
+                <div style="margin-bottom: 1.5rem;">
+                    <div
+                        style="font-size: 0.65rem; font-weight: 800; color: #94a3b8; text-transform: uppercase; margin-bottom: 0.4rem; letter-spacing: 0.05em;">
+                        ├¥ ngh─⌐a</div>
+                    <div
+                        style="font-size: 1.2rem; color: #1e293b; line-height: 1.4; white-space: pre-wrap; text-align: left !important; display: block !important; width: 100% !important;">
+                        {%- if s.item.back or s.item.meaning -%}{{- (s.item.back or s.item.meaning).splitlines() |
+                        map('trim') | join('\n') | trim | safe -}}{%- endif -%}</div>
+                </div>
+
+                {% if s.item.example %}
+                <div style="margin-bottom: 1.5rem; text-align: left !important;">
+                    <div
+                        style="font-size: 0.65rem; font-weight: 800; color: #94a3b8; text-transform: uppercase; margin-bottom: 0.4rem; letter-spacing: 0.05em; text-align: left !important;">
+                        V├¡ dß╗Ñ</div>
+                    <div
+                        style="background: #f8fafc; padding: 1rem; border-radius: 0.75rem; border-left: 4px solid #6366f1; border: 1px solid #f1f5f9; text-align: left !important;">
+                        <div
+                            style="font-size: 1rem; color: #334155; font-style: italic; font-weight: 500; line-height: 1.5; white-space: pre-wrap; text-align: left !important;">
+                            "{{- s.item.example.splitlines() | map('trim') | join('\n') | trim | safe -}}"
+                        </div>
+                        {% if s.item.example_meaning %}
+                        <div
+                            style="font-size: 0.85rem; color: #64748b; margin-top: 0.5rem; border-top: 1px dashed #e2e8f0; padding-top: 0.5rem; white-space: pre-wrap; text-align: left !important;">
+                            {{- s.item.example_meaning.splitlines() | map('trim') | join('\n') | trim | safe -}}</div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endif %}
+
+                {% if s.item.audio %}
+                <div style="margin-top: 1.5rem; text-align: center;">
+                    <button onclick="new Audio('{{ s.item.audio }}').play()"
+                        style="display: inline-flex; align-items: center; gap: 0.5rem; background: #eef2ff; color: #4f46e5; border: 1px solid #c7d2fe; padding: 0.6rem 1.25rem; border-radius: 99px; font-weight: 700; font-size: 0.9rem; cursor: pointer; transition: all 0.2s;">
+                        <i class="fas fa-volume-up"></i> Nghe ph├ít ├óm
+                    </button>
+                </div>
+                {% endif %}
+            </div>
+
+
+            <!-- SUB-TAB C: AI CONTENT -->
+            <div id="sub-ai" class="sub-tab-content" style="display: none;">
+                <div class="flex flex-col h-full">
+                    <!-- Actions Header -->
+                    <div class="flex items-center justify-between mb-3">
+                        <div class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Phi├¬n thß║úo luß║¡n AI
+                        </div>
+                        <div class="flex gap-2">
+                            <button onclick="generateStatsAIExplanation({{ s.item.id }}, true)"
+                                class="px-3 py-1.5 bg-white border border-slate-200 text-slate-600 rounded-lg text-[10px] font-bold shadow-sm active:scale-95 transition-all">
+                                <i class="fas fa-sync-alt"></i> Mß║╖c ─æß╗ïnh
+                            </button>
+                            <button onclick="toggleStatsAiChat()"
+                                class="px-3 py-1.5 bg-indigo-600 text-white rounded-lg text-[10px] font-bold shadow-sm active:scale-95 transition-all">
+                                <i class="fas fa-plus"></i> ─Éß║╖t c├óu hß╗Åi
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Horizontal Version Tabs with Scroll Arrows -->
+                    <div class="flex items-center gap-1 mb-3 border-b border-slate-100 pb-1">
+                        <button onclick="scrollAiTabs(-1)"
+                            class="w-6 h-8 flex items-center justify-center text-slate-300 hover:text-indigo-600 transition-colors">
+                            <i class="fas fa-chevron-left text-[10px]"></i>
+                        </button>
+                        <div id="stats-ai-version-tabs"
+                            class="flex-1 flex gap-2 overflow-x-auto no-scrollbar scroll-smooth">
+                            <div class="text-xs text-slate-400 py-1 italic">─Éang tß║úi lß╗ïch sß╗¡...</div>
+                        </div>
+                        <button onclick="scrollAiTabs(1)"
+                            class="w-6 h-8 flex items-center justify-center text-slate-300 hover:text-indigo-600 transition-colors">
+                            <i class="fas fa-chevron-right text-[10px]"></i>
+                        </button>
+                    </div>
+
+                    <!-- Chat Input Container (Hidden by default) -->
+                    <div id="stats-ai-chat-input"
+                        class="hidden mb-4 p-3 bg-indigo-50 rounded-xl border border-indigo-100 shadow-inner">
+                        <div class="flex justify-between items-center mb-2">
+                            <span class="text-[10px] font-bold text-indigo-800 uppercase">C├óu hß╗Åi cß╗ºa bß║ín</span>
+                            <button onclick="toggleStatsAiChat()" class="text-slate-400"><i
+                                    class="fas fa-times"></i></button>
+                        </div>
+                        <textarea id="stats-ai-question"
+                            class="w-full p-3 border border-slate-200 rounded-lg text-sm outline-none shadow-sm bg-white"
+                            rows="2" placeholder="Nhß║¡p thß║»c mß║»c cß╗ºa bß║ín..."></textarea>
+                        <div class="flex justify-end mt-2">
+                            <button onclick="submitStatsAiQuestion({{ s.item.id }})"
+                                class="px-4 py-1.5 bg-indigo-600 text-white text-[10px] font-bold rounded-lg shadow-md">
+                                <i class="fas fa-paper-plane mr-1"></i> Gß╗¡i c├óu hß╗Åi
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Full Question Display (Only for custom questions) -->
+                    <div id="stats-ai-full-question-box"
+                        class="hidden mb-3 p-3 bg-slate-50 border border-slate-100 rounded-lg">
+                        <div class="text-[9px] font-bold text-slate-400 uppercase mb-1">Nß╗Öi dung c├óu hß╗Åi:</div>
+                        <div id="stats-ai-full-question-text" class="text-xs font-semibold text-slate-800 italic"></div>
+                    </div>
+
+                    <!-- Main Response Display Wrapper -->
+                    <div id="stats-ai-response-wrapper"
+                        class="flex-1 bg-white rounded-xl border border-slate-200 overflow-hidden flex flex-col shadow-sm">
+                        <!-- Content Meta Header -->
+                        <div id="stats-ai-meta-header"
+                            class="px-4 py-2 bg-slate-50 border-b border-slate-100 flex justify-between items-center">
+                            <div class="flex items-center gap-2">
+                                <i class="fas fa-robot text-indigo-500 text-xs"></i>
+                                <div class="flex flex-col">
+                                    <div class="flex items-center gap-1.5">
+                                        <span id="stats-ai-author" class="font-bold text-slate-700 text-[10px]">Hß╗ç
+                                            thß╗æng</span>
+                                        <span class="text-slate-300 text-[10px]">ΓÇó</span>
+                                        <span id="stats-ai-model"
+                                            class="text-slate-500 text-[9px] font-medium">Gemini</span>
+                                    </div>
+                                    <span id="stats-ai-date" class="text-slate-400 text-[8px]">-</span>
+                                </div>
+                            </div>
+                            <span id="stats-ai-type-label"
+                                class="text-[8px] font-black text-white uppercase bg-indigo-400 px-2 py-0.5 rounded-full">GIß║óI
+                                TH├ìCH</span>
+                        </div>
+
+                        <!-- AI Answer Area -->
+                        <div id="stats-ai-content-box"
+                            class="p-4 overflow-y-auto markdown-body text-sm leading-relaxed text-slate-700 min-h-[200px]">
+                            <div class="flex flex-col items-center justify-center py-12 text-slate-300">
+                                <i class="fas fa-brain text-4xl mb-2 opacity-20"></i>
+                                <p class="text-xs">─Éang sß║╡n s├áng ph├ón t├¡ch...</p>
+                            </div>
+                        </div>
+
+                        <!-- Contextual Actions -->
+                        <div class="p-2 bg-slate-50 border-t border-slate-100 flex justify-end gap-2"
+                            id="stats-ai-footer-actions"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+        <!-- TAB 3: NOTES -->
+        <div class="tab-content" id="tab-notes" style="display: none;">
+            <!-- Display Mode (Always show first) -->
+            <div id="note-display-mode" style="display: block;">
+                <div
+                    style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+                    <label style="font-size: 0.85rem; font-weight: 700; color: #64748b;">
+                        Ghi ch├║ c├í nh├ón
+                    </label>
+                    <button onclick="toggleNoteEdit(true)"
+                        style="background: #eef2ff; color: #4f46e5; border: none; padding: 0.4rem 0.75rem; border-radius: 0.5rem; font-size: 0.75rem; font-weight: 700; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 0.3rem;">
+                        <i class="fas fa-edit"></i> Sß╗¡a
+                    </button>
+                </div>
+                <div id="note-static-content"
+                    style="background: #f8fafc; padding: 1.25rem; border-radius: 0.75rem; border: 1px solid #f1f5f9; color: #334155; font-size: 0.95rem; line-height: 1.6; white-space: pre-wrap; min-height: 100px;">
+                    {{- s.item.note if s.item.note else "Ch╞░a c├│ ghi ch├║ n├áo." -}}
+                </div>
+            </div>
+
+            <!-- Edit Mode (Hidden initially) -->
+            <div id="note-edit-mode" style="display: none;">
+                <div style="margin-bottom: 1rem;">
+                    <label
+                        style="display: block; font-size: 0.85rem; font-weight: 700; color: #64748b; margin-bottom: 0.5rem;">
+                        Cß║¡p nhß║¡t ghi ch├║
+                    </label>
+                    <textarea id="item-note-input" rows="8"
+                        style="width: 100%; border: 1px solid #cbd5e1; border-radius: 0.75rem; padding: 1rem; font-family: inherit; font-size: 0.95rem; resize: vertical; outline: none; transition: all 0.2s;"
+                        placeholder="Viß║┐t ghi ch├║ cß╗ºa bß║ín vß╗ü tß╗½ n├áy...">{{ s.item.note }}</textarea>
+                </div>
+                <div style="display: flex; gap: 0.5rem;">
+                    <button id="save-note-btn" onclick="saveItemNote({{ s.item.id }})"
+                        style="flex: 2; background: #4f46e5; color: white; border: none; padding: 0.75rem; border-radius: 0.75rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.5rem; transition: background 0.2s;">
+                        <i class="fas fa-save"></i> L╞░u ghi ch├║
+                    </button>
+                    {% if s.item.note %}
+                    <button onclick="toggleNoteEdit(false)"
+                        style="flex: 1; background: #f1f5f9; color: #64748b; border: none; padding: 0.75rem; border-radius: 0.75rem; font-weight: 700; cursor: pointer; transition: background 0.2s;">
+                        Hß╗ºy
+                    </button>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 2: STATS (Reordered) -->
+        <!-- TAB 2: STATS (Reordered) -->
+        <div class="tab-content" id="tab-stats" style="display: none;">
+
+            <!-- FSRS Core Stats -->
+            <div class="mb-4 grid grid-cols-3 gap-2">
+                <div class="stat-box">
+                    <div class="stat-label">STABILITY (S)</div>
+                    <div class="stat-value text-indigo-600" style="font-size: 1.1rem;">{{ p.fsrs_stability | round(1) }}
+                    </div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">DIFFICULTY (D)</div>
+                    <div class="stat-value text-rose-500" style="font-size: 1.1rem;">{{ p.fsrs_difficulty | round(1) }}
+                    </div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">RECOVERY (R)</div>
+                    <div class="stat-value text-emerald-600" style="font-size: 1.1rem;">{{ p.retrievability }}%</div>
+                </div>
+            </div>
+
+            <!-- Visualization Section -->
+            <div style="margin-bottom: 2rem;">
+                <!-- Stability Trend -->
+                <div
+                    style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 0.75rem;">
+                    <h3
+                        style="font-size: 0.75rem; font-weight: 800; color: #475569; text-transform: uppercase; letter-spacing: 0.05em;">
+                        BIß╗éU ─Éß╗Æ GHI NHß╗Ü</h3>
+                    <div style="font-size: 0.6rem; color: #94a3b8; font-weight: 700;">STABILITY TREND</div>
+                </div>
+
+                <div
+                    style="background: #ffffff; border-radius: 1rem; border: 1px solid #f1f5f9; padding: 1.25rem; height: 180px; position: relative; margin-bottom: 1.5rem;">
+                    <canvas id="fsrsHistoryChart"></canvas>
+                    <div id="chart-empty-state"
+                        style="display: none; position: absolute; inset:0; flex-direction: column; align-items: center; justify-content: center; color: #94a3b8; font-size: 0.8rem; background: white; border-radius: 1rem;">
+                        <i class="fas fa-chart-line" style="font-size: 2rem; margin-bottom: 0.5rem; opacity: 0.2;"></i>
+                        <span>Ch╞░a c├│ dß╗» liß╗çu hß╗ìc tß║¡p</span>
+                    </div>
+                </div>
+
+                <!-- Activity Heatmap -->
+                <div>
+                    <div
+                        style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 0.75rem;">
+                        <h3
+                            style="font-size: 0.75rem; font-weight: 800; color: #475569; text-transform: uppercase; letter-spacing: 0.05em;">
+                            HOß║áT ─Éß╗ÿNG (12 TUß║ªN)</h3>
+                        <div style="font-size: 0.6rem; color: #94a3b8; font-weight: 700;">ACTIVITY HEATMAP</div>
+                    </div>
+                    <div
+                        style="background: #ffffff; border-radius: 1rem; border: 1px solid #f1f5f9; padding: 1.25rem; overflow-x: auto;">
+                        <div id="activity-heatmap" style="min-width: 100%;"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Stats Grid -->
+            <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 0.75rem;">
+                <h3
+                    style="font-size: 0.75rem; font-weight: 800; color: #475569; text-transform: uppercase; letter-spacing: 0.05em;">
+                    CHß╗ê Sß╗É TIß║╛N ─Éß╗ÿ</h3>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem; margin-bottom: 1rem;">
+                <div class="stat-box">
+                    <div class="stat-label">CHUß╗ûI ─É├ÜNG</div>
+                    <div class="stat-value" style="color: #f59e0b;">{{ p.streak }} ≡ƒöÑ</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">CH├ìNH X├üC</div>
+                    <div class="stat-value" style="color: #10b981;">{{ perf.accuracy }}%</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">Tß╗öNG ─ÉIß╗éM</div>
+                    <div class="stat-value" style="color: #0891b2;">+{{ perf.total_score }}</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">├öN TIß║╛P</div>
+                    <div class="stat-value" style="color: #7c3aed; font-size: 0.85rem;">{{ p.due_relative }}</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">Lß║ªN ─Éß║ªU</div>
+                    <div class="stat-value" style="color: #06b6d4; font-size: 0.85rem;">{% if p.first_reviewed %}{{
+                        p.first_reviewed.strftime('%d/%m/%y') }}{% else %}-{% endif %}</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">Gß║ªN NHß║ñT</div>
+                    <div class="stat-value" style="color: #8b5cf6; font-size: 0.85rem;">{{ p.last_reviewed_relative }}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 4: DETAILS -->
+        <div class="tab-content" id="tab-details" style="display: none; padding-bottom: 7rem;">
+            <!-- Mode Analysis -->
+            <div style="margin-bottom: 1.5rem;">
+                <div
+                    style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem;">
+                    <h3
+                        style="font-size: 0.85rem; font-weight: 800; color: #475569; text-transform: uppercase; letter-spacing: 0.05em; margin: 0;">
+                        Ph├ón t├¡ch chß║┐ ─æß╗Ö
+                    </h3>
+                    <i class="fas fa-chart-pie" style="color: #cbd5e1; font-size: 1rem;"></i>
+                </div>
+
+                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 0.75rem;">
+                    {% if s.modes %}
+                    {% for mode, data in s.modes.items() %}
+                    <div
+                        style="background: white; border-radius: 1rem; border: 1px solid #e2e8f0; padding: 1rem; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.02), 0 2px 4px -1px rgba(0,0,0,0.02); position: relative; overflow: hidden; transition: transform 0.2s;">
+                        <!-- Top Info -->
+                        <div
+                            style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.75rem;">
+                            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                <div
+                                    style="width: 28px; height: 28px; border-radius: 8px; background: {% if mode|lower == 'mcq' %}#e0e7ff{% elif mode|lower == 'flashcard' %}#fce7f3{% elif mode|lower == 'typing' %}#dcfce7{% else %}#f1f5f9{% endif %}; color: {% if mode|lower == 'mcq' %}#4f46e5{% elif mode|lower == 'flashcard' %}#db2777{% elif mode|lower == 'typing' %}#16a34a{% else %}#64748b{% endif %}; display: flex; align-items: center; justify-content: center; font-size: 0.8rem;">
+                                    <i
+                                        class="fas {% if mode|lower == 'mcq' %}fa-list-ul{% elif mode|lower == 'flashcard' %}fa-clone{% elif mode|lower == 'typing' %}fa-keyboard{% else %}fa-cube{% endif %}"></i>
+                                </div>
+                                <span
+                                    style="font-weight: 800; color: #1e293b; text-transform: capitalize; font-size: 0.85rem;">{{
+                                    mode }}</span>
+                            </div>
+                        </div>
+
+                        <!-- Middle Stats -->
+                        <div style="display: flex; align-items: baseline; gap: 0.4rem; margin-bottom: 0.75rem;">
+                            <span style="font-size: 1.4rem; font-weight: 900; color: #0f172a; line-height: 1;">{{
+                                data.accuracy }}<span
+                                    style="font-size: 0.8rem; font-weight: 700; color: #64748b; margin-left: 2px;">%</span></span>
+                            <span
+                                style="font-size: 0.7rem; font-weight: 700; color: #94a3b8; background: #f8fafc; border: 1px solid #f1f5f9; padding: 0.15rem 0.4rem; border-radius: 6px;">{{
+                                data.count }} l╞░ß╗út</span>
+                        </div>
+
+                        <!-- Bottom Progress Bar -->
+                        <div
+                            style="width: 100%; background: #f1f5f9; height: 6px; border-radius: 3px; overflow: hidden;">
+                            <div
+                                style="height: 100%; border-radius: 3px; width: {{ data.accuracy }}%; background: {% if data.accuracy >= 80 %}#10b981{% elif data.accuracy >= 50 %}#f59e0b{% else %}#ef4444{% endif %}; transition: width 0.5s ease-out;">
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                    {% else %}
+                    <div
+                        style="grid-column: 1 / -1; background: #f8fafc; padding: 1.5rem; text-align: center; border-radius: 1rem; border: 1px dashed #cbd5e1; color: #94a3b8; font-size: 0.85rem; font-weight: 600;">
+                        <i class="fas fa-inbox" style="font-size: 1.5rem; margin-bottom: 0.5rem; opacity: 0.4;"></i><br>
+                        Ch╞░a c├│ dß╗» liß╗çu hß╗ìc tß║¡p
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Time Stats -->
+            <div style="margin-bottom: 2rem;">
+                <div
+                    style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem;">
+                    <h3
+                        style="font-size: 0.85rem; font-weight: 800; color: #475569; text-transform: uppercase; letter-spacing: 0.05em; margin: 0;">
+                        Thß╗¥i gian hß╗ìc
+                    </h3>
+                    <i class="fas fa-stopwatch" style="color: #cbd5e1; font-size: 1rem;"></i>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+                    <!-- Average Time -->
+                    <div
+                        style="background: white; border-radius: 1rem; border: 1px solid #e2e8f0; padding: 1rem; display: flex; flex-direction: column; align-items: flex-start; box-shadow: 0 2px 4px -1px rgba(0,0,0,0.02);">
+                        <div
+                            style="display: flex; align-items: center; gap: 0.4rem; color: #64748b; margin-bottom: 0.5rem;">
+                            <i class="fas fa-hourglass-half" style="font-size: 0.75rem; color: #94a3b8;"></i>
+                            <span style="font-size: 0.75rem; font-weight: 700; text-transform: uppercase;">Trung
+                                b├¼nh</span>
+                        </div>
+                        <div style="display: flex; align-items: baseline; gap: 2px;">
+                            <span style="font-size: 1.5rem; font-weight: 900; color: #1e293b;">{{ (perf.avg_time_ms /
+                                1000) | round(1) }}</span>
+                            <span style="font-size: 0.85rem; font-weight: 700; color: #94a3b8;">s</span>
+                        </div>
+                    </div>
+
+                    <!-- Fastest Time -->
+                    <div
+                        style="background: white; border-radius: 1rem; border: 1px solid #e2e8f0; padding: 1rem; display: flex; flex-direction: column; align-items: flex-start; box-shadow: 0 2px 4px -1px rgba(0,0,0,0.02);">
+                        <div
+                            style="display: flex; align-items: center; gap: 0.4rem; color: #10b981; margin-bottom: 0.5rem;">
+                            <i class="fas fa-bolt" style="font-size: 0.75rem; color: #34d399;"></i>
+                            <span style="font-size: 0.75rem; font-weight: 700; text-transform: uppercase;">Nhanh
+                                nhß║Ñt</span>
+                        </div>
+                        <div style="display: flex; align-items: baseline; gap: 2px;">
+                            <span style="font-size: 1.5rem; font-weight: 900; color: #1e293b;">{{ (perf.min_time_ms /
+                                1000) | round(1) }}</span>
+                            <span style="font-size: 0.85rem; font-weight: 700; color: #94a3b8;">s</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- History Section -->
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem;">
+                <h3
+                    style="font-size: 0.85rem; font-weight: 800; color: #475569; text-transform: uppercase; letter-spacing: 0.05em; margin: 0;">
+                    Lß╗ïch sß╗¡ gß║ºn ─æ├óy
+                </h3>
+                <i class="fas fa-history" style="color: #cbd5e1; font-size: 1rem;"></i>
+            </div>
+
+            <div class="history-grid"
+                style="display: flex; gap: 0.6rem; overflow-x: auto; padding: 0.25rem 0.25rem 1.25rem 0.25rem; scrollbar-width: none; margin-bottom: 5.5rem;">
+                {% if s.history %}
+                {% for log in s.history %}
+                <div class="history-item js-history-item" data-log-idx="{{ loop.index0 }}"
+                    style="flex-shrink: 0; width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; cursor: pointer; transition: all 0.2s; border: 2px solid transparent; 
+                        {% if log.result == 'Correct' %}background: #f0fdf4; color: #22c55e; border-color: #dcfce7;{% else %}background: #fef2f2; color: #ef4444; border-color: #fee2e2;{% endif %}"
+                    onclick="window.selectHistoryItem(this, {{ loop.index0 }})">
+                    {% if log.result == 'Correct' %}<i class="fas fa-check"></i>{% else %}<i class="fas fa-times"></i>{%
+                    endif %}
+                </div>
+                {% endfor %}
+                {% else %}
+                <div
+                    style="flex: 1; text-align: center; color: #94a3b8; font-size: 0.8rem; font-style: italic; padding: 1rem; background: #f8fafc; border-radius: 0.75rem; border: 1px dashed #e2e8f0;">
+                    Ch╞░a c├│ l╞░ß╗út ├┤n tß║¡p n├áo
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- History Detail Bar (Enhanced) -->
+            <div id="history-detail-bar"
+                style="position: absolute; bottom: 0; left: 0; right: 0; background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(8px); border-top: 1px solid #f1f5f9; padding: 1rem 1.25rem; display: flex; flex-direction: column; gap: 0.75rem; z-index: 5; box-shadow: 0 -10px 15px -3px rgba(0,0,0,0.03); max-height: 45%; overflow-y: auto;">
+
+                <!-- Top Row: Result & Mode -->
+                <div style="display: flex; align-items: center; justify-content: space-between;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        <span id="hist-result"
+                            style="font-weight: 800; font-size: 0.7rem; padding: 0.25rem 0.6rem; border-radius: 99px; text-transform: uppercase; letter-spacing: 0.05em; display: inline-flex; align-items: center; gap: 0.25rem;">
+                            <!-- Icon and text set by JS -->
+                            -
+                        </span>
+                        <div style="width: 4px; height: 4px; border-radius: 50%; background: #cbd5e1;"></div>
+                        <span id="hist-mode-badge"
+                            style="color: #64748b; font-weight: 700; font-size: 0.75rem; text-transform: capitalize; display: flex; align-items: center; gap: 0.3rem;">
+                            <i class="fas fa-layer-group" style="font-size: 0.7rem; color: #94a3b8;"></i> -
+                        </span>
+                    </div>
+                    <div
+                        style="font-size: 0.7rem; color: #94a3b8; font-weight: 700; display: flex; align-items: center; gap: 0.3rem; background: #f8fafc; padding: 0.2rem 0.5rem; border-radius: 6px;">
+                        <i class="far fa-clock"></i> <span id="hist-time">-</span>
+                    </div>
+                </div>
+
+                <!-- Middle Row: Context Tags -->
+                <div id="hist-context-row" style="display: none; align-items: center; gap: 0.5rem; margin-top: 0.2rem;">
+                    <span id="hist-context-device"
+                        style="font-size: 0.65rem; font-weight: 700; color: #64748b; background: #f1f5f9; padding: 0.15rem 0.4rem; border-radius: 4px; text-transform: capitalize;">
+                        <i class="fas fa-mobile-alt"></i> N/A
+                    </span>
+                    <span id="hist-context-rep"
+                        style="font-size: 0.65rem; font-weight: 800; color: #4f46e5; background: #e0e7ff; padding: 0.15rem 0.4rem; border-radius: 4px;">
+                        #0
+                    </span>
+                    <span id="hist-fsrs-state"
+                        style="font-size: 0.65rem; font-weight: 800; color: #059669; background: #d1fae5; padding: 0.15rem 0.4rem; border-radius: 4px; text-transform: uppercase; margin-left: auto;">
+                        <i class="fas fa-microchip"></i> NEW
+                    </span>
+                </div>
+
+                <!-- Main Metrics Grid -->
+                <div
+                    style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; background: #f8fafc; padding: 0.75rem; border-radius: 0.75rem; border: 1px solid #f1f5f9;">
+                    <!-- Duration -->
+                    <div
+                        style="display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative;">
+                        <div
+                            style="color: #94a3b8; font-size: 0.6rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.2rem;">
+                            Thß╗¥i gian</div>
+                        <div style="display: flex; align-items: baseline; gap: 1px; min-height: 1.5rem;">
+                            <span id="hist-duration"
+                                style="color: #334155; font-weight: 800; font-size: 0.95rem;">-</span>
+                        </div>
+                        <div
+                            style="position: absolute; right: 0; top: 15%; height: 70%; width: 1px; background: #e2e8f0;">
+                        </div>
+                    </div>
+
+                    <!-- Score -->
+                    <div
+                        style="display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative;">
+                        <div
+                            style="color: #94a3b8; font-size: 0.6rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.2rem;">
+                            ─Éiß╗âm sß╗æ</div>
+                        <div
+                            style="display: flex; align-items: center; justify-content: center; min-height: 1.5rem; width: 100%;">
+                            <span id="hist-score" style="color: #334155; font-weight: 800; font-size: 0.95rem;">-</span>
+                        </div>
+                        <div
+                            style="position: absolute; right: 0; top: 15%; height: 70%; width: 1px; background: #e2e8f0;">
+                        </div>
+                    </div>
+
+                    <!-- Mastery -->
+                    <div style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
+                        <div
+                            style="color: #94a3b8; font-size: 0.6rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.2rem;">
+                            Stability</div>
+                        <div
+                            style="display: flex; align-items: center; justify-content: center; min-height: 1.5rem; width: 100%;">
+                            <span id="hist-mastery"
+                                style="color: #334155; font-weight: 800; font-size: 0.95rem;">-</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script id="vocab-history-data" type="application/json">
+    {{ s.history | tojson | safe }}
+</script>
+
+<style>
+    /* Styling for buttons and boxes */
+    .tab-btn {
+        padding: 0.45rem;
+        border-radius: 0.5rem;
+        font-weight: 700;
+        font-size: 0.75rem;
+        border: none;
+        transition: all 0.2s;
+        cursor: pointer;
+        text-align: center;
+        background: transparent;
+        color: #64748b;
+        white-space: nowrap;
+    }
+
+    .tab-btn.active {
+        background: white;
+        color: #4f46e5;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+    }
+
+    .sub-tab-btn.active {
+        background: #eef2ff !important;
+        color: #4f46e5 !important;
+    }
+
+    .history-item.active {
+        border-color: #4f46e5 !important;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.2);
+    }
+
+    .stat-box {
+        background: #f8fafc;
+        border-radius: 0.7rem;
+        padding: 0.4rem 0.25rem;
+        text-align: center;
+        border: 1px solid #f1f5f9;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        width: 100%;
+        box-sizing: border-box;
+    }
+
+    .stat-label {
+        font-size: 0.6rem;
+        font-weight: 700;
+        color: #94a3b8;
+        text-transform: uppercase;
+        margin-bottom: 0.25rem;
+    }
+
+    .stat-value {
+        font-size: 1.3rem;
+        font-weight: 800;
+        white-space: nowrap;
+    }
+
+    .tab-content {
+        animation: fadeIn 0.25s ease;
+        width: 100%;
+        display: none;
+    }
+
+    .tab-content.active {
+        display: block;
+    }
+
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(4px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .no-scrollbar::-webkit-scrollbar {
+        display: none;
+    }
+
+    .no-scrollbar {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+    }
+
+    .ai-session-tab {
+        flex-shrink: 0;
+        padding: 6px 12px;
+        background: #f1f5f9;
+        color: #64748b;
+        border-radius: 8px;
+        font-size: 10px;
+        font-weight: 700;
+        cursor: pointer;
+        border: 1px solid transparent;
+        transition: all 0.2s;
+        max-width: 120px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        text-transform: uppercase;
+    }
+
+    .ai-session-tab.active {
+        background: #eef2ff;
+        color: #4f46e5;
+        border-color: #c7d2fe;
+        box-shadow: 0 2px 4px rgba(79, 70, 229, 0.1);
+    }
+</style>

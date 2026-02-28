@@ -2521,11 +2521,18 @@ render_unified_header with context %}
     <div id="step-browser" class="vocab-step active">
 
         {% call render_unified_header(title='Học từ vựng', score_overview=score_overview) %}
-        <a href="{{ url_for('dashboard.dashboard') }}"
-            class="w-8 h-8 flex items-center justify-center rounded-full bg-white text-slate-500 border border-slate-100 shadow-sm"
-            title="Trang chủ">
-            <i class="fas fa-home text-xs"></i>
-        </a>
+        <div class="flex gap-2">
+            <a href="{{ url_for('vocab_hub.hub_index') }}"
+                class="w-8 h-8 flex items-center justify-center rounded-full bg-indigo-50 text-indigo-600 border border-indigo-100 shadow-sm"
+                title="Vocab Hub">
+                <i class="fas fa-chart-pie text-xs"></i>
+            </a>
+            <a href="{{ url_for('dashboard.dashboard') }}"
+                class="w-8 h-8 flex items-center justify-center rounded-full bg-white text-slate-500 border border-slate-100 shadow-sm"
+                title="Trang chủ">
+                <i class="fas fa-home text-xs"></i>
+            </a>
+        </div>
         {% endcall %}
 
 

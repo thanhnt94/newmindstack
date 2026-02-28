@@ -90,6 +90,14 @@ class StatsInterface:
         return get_dashboard_activity(user_id)
 
     @staticmethod
+    def get_mastery_distribution(user_id: int) -> dict:
+        return get_mastery_distribution(user_id)
+
+    @staticmethod
+    def get_retention_trend(user_id: int, days: int = 7) -> list:
+        return get_retention_trend(user_id, days)
+
+    @staticmethod
     def get_vocab_item_stats(user_id: int, item_id: int) -> dict:
         """Get detailed statistics for a vocabulary item."""
         from .services.vocabulary_stats_service import VocabularyStatsService
@@ -108,6 +116,18 @@ class StatsInterface:
         return VocabularyStatsService.get_global_stats(user_id)
 
     @staticmethod
+    def get_difficult_items_overview(user_id: int, limit: int = 10) -> list:
+        """Get top difficult items."""
+        from .services.vocabulary_stats_service import VocabularyStatsService
+        return VocabularyStatsService.get_difficult_items_overview(user_id, limit)
+
+    @staticmethod
+    def get_user_activity_heatmap(user_id: int, weeks: int = 12) -> list:
+        """Get user activity heatmap data."""
+        from .services.vocabulary_stats_service import VocabularyStatsService
+        return VocabularyStatsService.get_user_activity_heatmap(user_id, weeks)
+
+    @staticmethod
     def get_full_stats(user_id: int, container_id: int) -> dict:
         """Get full statistics for a container."""
         from .services.vocabulary_stats_service import VocabularyStatsService
@@ -118,3 +138,15 @@ class StatsInterface:
         """Get chart data for a container."""
         from .services.vocabulary_stats_service import VocabularyStatsService
         return VocabularyStatsService.get_chart_data(user_id, container_id, user_timezone)
+
+    @staticmethod
+    def get_mastery_distribution(user_id: int) -> dict:
+        """Get count of items by mastery level."""
+        from .services.vocabulary_stats_service import VocabularyStatsService
+        return VocabularyStatsService.get_mastery_distribution(user_id)
+
+    @staticmethod
+    def get_retention_trend(user_id: int, days: int = 7) -> list:
+        """Get daily average retention trend."""
+        from .services.vocabulary_stats_service import VocabularyStatsService
+        return VocabularyStatsService.get_retention_trend(user_id, days)

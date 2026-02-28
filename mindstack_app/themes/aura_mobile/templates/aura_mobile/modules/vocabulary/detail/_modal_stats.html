@@ -348,7 +348,7 @@
             tabContents.forEach(content => {
                 const id = content.id.replace('tab-', '');
                 if (id === targetTabId) {
-                    content.style.display = 'block';
+                    content.style.display = '';
                     content.classList.add('active');
                 } else {
                     content.style.display = 'none';
@@ -365,18 +365,21 @@
 
         window.switchVocabSubTab = function (targetSubId, btn) {
             if (window.event) window.event.preventDefault();
-            const container = btn.closest('.stats-container');
+            const container = btn.closest('.stats-container') || document.getElementById('item-stats-container');
             if (!container) return;
-            const subBtns = container.querySelectorAll('.sub-tab-navigation .sub-tab-btn');
-            const subContents = container.querySelectorAll('.sub-tab-content');
+            const subBtns = document.querySelectorAll('.sub-tab-btn');
+            const subContents = document.querySelectorAll('.sub-tab-content');
+
             subBtns.forEach(b => b.classList.toggle('active', b.dataset.subtab === targetSubId));
             subContents.forEach(content => {
                 if (content.id === targetSubId) {
-                    content.style.display = 'block';
+                    content.style.display = 'flex';
                     content.classList.add('active');
+
+                    // Specific Logic for AI and History
                     if (targetSubId === 'sub-ai' && typeof window.loadStatsAiHistory === 'function') {
                         const markerBtn = container.querySelector('.js-toggle-vocab-marker');
-                        const itemId = markerBtn?.onclick?.toString().match(/\d+/)?.[0];
+                        const itemId = markerBtn?.getAttribute('onclick')?.match(/\d+/)?.[0];
                         if (itemId) window.loadStatsAiHistory(itemId);
                     }
                 } else {
@@ -575,8 +578,18 @@
 
             if (statsModal) {
                 statsModal.addEventListener('click', function (e) {
-                    if (e.target.closest('.js-close-stats-modal')) {
+                    // Close if clicking directly on overlay (backdrop) OR on close button
+                    if (e.target === statsModal || e.target.closest('.js-close-stats-modal')) {
                         statsModal.classList.remove('active');
+                    }
+                });
+            }
+
+            const editOverlay = document.getElementById('vocab-edit-overlay-modal');
+            if (editOverlay) {
+                editOverlay.addEventListener('click', function (e) {
+                    if (e.target === editOverlay) {
+                        window.closeVocabEditOverlay();
                     }
                 });
             }
@@ -615,6 +628,70 @@
                         }
                     });
             };
+        };
+
+        window.playOrGenerateVocabAudio = function (btn, itemId, side, contentToRead, existingUrl) {
+            if (!btn) return;
+
+            const icon = btn.querySelector('i');
+            const originalClass = icon ? icon.className : '';
+
+            // 1. If we have a valid URL, just play it
+            if (existingUrl && existingUrl !== 'None' && existingUrl !== '') {
+                const audio = new Audio(existingUrl);
+                audio.play().catch(err => {
+                    console.warn("Audio play failed, attempting regeneration:", err);
+                    regenerate();
+                });
+                return;
+            }
+
+            // 2. Otherwise, regenerate
+            regenerate();
+
+            function regenerate() {
+                if (btn.classList.contains('generating')) return;
+
+                btn.classList.add('generating');
+                btn.disabled = true;
+                if (icon) icon.className = 'fas fa-spinner fa-spin';
+
+                const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+
+                fetch('/learn/vocab-flashcard/regenerate-audio-from-content', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    },
+                    body: JSON.stringify({
+                        item_id: itemId,
+                        side: side
+                    })
+                })
+                    .then(r => r.json())
+                    .then(data => {
+                        btn.classList.remove('generating');
+                        btn.disabled = false;
+                        if (icon) icon.className = originalClass;
+
+                        if (data.success && data.audio_url) {
+                            // Update the button's onclick to use the new URL next time
+                            btn.setAttribute('onclick', `window.playOrGenerateVocabAudio(this, ${itemId}, '${side}', '${contentToRead}', '${data.audio_url}')`);
+                            // Play it
+                            new Audio(data.audio_url).play();
+                        } else {
+                            alert("Lỗi tạo audio: " + (data.message || "Không rõ nguyên nhân"));
+                        }
+                    })
+                    .catch(err => {
+                        console.error("Audio generation fetch error:", err);
+                        btn.classList.remove('generating');
+                        btn.disabled = false;
+                        if (icon) icon.className = originalClass;
+                        alert("Lỗi kết nối khi tạo audio.");
+                    });
+            }
         };
 
         if (document.readyState === 'loading') {

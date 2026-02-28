@@ -1,0 +1,61 @@
+{% set _v = template_version or 'aura_mobile' %}
+{% extends _v ~ '/layouts/base.html' %}
+
+{% block title %}Vocab Hub - {{ stats.item.front }}{% endblock %}
+
+{% block head %}
+{{ super() }}
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+    /* Custom styles for Vocab Hub */
+    body {
+        background-color: #f8fafc;
+        font-family: 'Inter', sans-serif;
+    }
+
+    .hub-container {
+        padding-bottom: 2rem;
+    }
+
+    /* Reuse styles from _vocab_detail_content if needed, 
+       but we will include the content template which has its own styles */
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="hub-container">
+    {% include _v ~ '/modules/vocabulary/detail/_vocab_detail_content.html' %}
+</div>
+{% include _v ~ '/modules/feedback/_feedback_modal.html' %}
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+    // Initialize Hub specific logic
+    document.addEventListener('DOMContentLoaded', function () {
+        // Auto-select first history item
+        const firstHist = document.querySelector('.js-history-item');
+        if (firstHist && typeof window.selectHistoryItem === 'function') {
+            window.selectHistoryItem(firstHist, 0);
+        }
+
+        // Initialize Charts
+        if (window.initVocabDetailCharts) {
+            window.initVocabDetailCharts();
+        }
+
+        // Hide the close button in Hub view (since it's not a modal)
+        const closeBtn = document.querySelector('.js-close-stats-modal');
+        if (closeBtn) closeBtn.style.display = 'none';
+
+        // Adjust container for full-page feel
+        const statsContainer = document.querySelector('.stats-container');
+        if (statsContainer) {
+            statsContainer.style.height = 'auto';
+            statsContainer.style.minHeight = '100vh';
+            statsContainer.style.borderRadius = '0';
+        }
+    });
+</script>
+{% endblock %}

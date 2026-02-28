@@ -1,0 +1,253 @@
+{% set _v = template_version or 'aura_mobile' %}
+{% extends _v ~ '/layouts/base.html' %}
+
+{% block title %}Vocabulary Hub{% endblock %}
+
+{% block head %}
+{{ super() }}
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+    body {
+        background: #f8fafc;
+        font-family: 'Outfit', sans-serif;
+    }
+
+    .memory-progress-bar {
+        height: 100%;
+        background: #22c55e;
+    }
+
+    .premium-header {
+        background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+        padding: 2.5rem 1.5rem 4rem 1.5rem;
+        color: white;
+        border-bottom-left-radius: 2.5rem;
+        border-bottom-right-radius: 2.5rem;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .premium-header::after {
+        content: "";
+        position: absolute;
+        top: -50%;
+        right: -10%;
+        width: 200px;
+        height: 200px;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 50%;
+        filter: blur(40px);
+    }
+
+    .hub-grid {
+        padding: 0 1rem;
+        margin-top: -2.5rem;
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+    }
+
+    .stat-card {
+        background: white;
+        border-radius: 1.5rem;
+        padding: 1.5rem;
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
+        border: 1px solid rgba(241, 245, 249, 1);
+    }
+
+    .section-title {
+        font-weight: 800;
+        font-size: 0.9rem;
+        color: #64748b;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        margin-bottom: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .word-list-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.75rem;
+        border-radius: 1rem;
+        background: #f8fafc;
+        margin-bottom: 0.5rem;
+        border: 1px solid transparent;
+        transition: all 0.2s;
+        text-decoration: none;
+        color: inherit;
+    }
+
+    .word-list-item:hover {
+        border-color: #e2e8f0;
+        transform: translateX(4px);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="premium-header">
+    <div style="display: flex; gap: 1rem; align-items: center; margin-bottom: 1.5rem;">
+        <a href="/learn/vocabulary/"
+            style="color: white; opacity: 0.8; text-decoration: none; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.1); border-radius: 0.75rem;">
+            <i class="fas fa-chevron-left"></i>
+        </a>
+        <div
+            style="font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; opacity: 0.7;">
+            Vocabulary Dashboard</div>
+    </div>
+
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+        <div>
+            <h1 style="font-size: 1.75rem; font-weight: 800; margin: 0;">Vocab Hub</h1>
+            <p style="font-size: 0.9rem; opacity: 0.8; margin: 0.25rem 0 0 0;">Xây dựng vốn từ mỗi ngày</p>
+        </div>
+        <div
+            style="background: rgba(255,255,255,0.2); width: 48px; height: 48px; border-radius: 1rem; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(10px);">
+            <i class="fas fa-brain text-xl"></i>
+        </div>
+    </div>
+
+    <div style="display: flex; gap: 1rem; margin-top: 2rem;">
+        <div style="flex: 1;">
+            <div style="font-size: 0.6rem; font-weight: 800; opacity: 0.7; text-transform: uppercase;">Ghi nhớ
+                (Retention)
+            </div>
+            <div style="font-size: 1.5rem; font-weight: 800;">{{ hub_data.overview.average_retention | default(0) }}%
+            </div>
+        </div>
+        <div style="flex: 1;">
+            <div style="font-size: 0.6rem; font-weight: 800; opacity: 0.7; text-transform: uppercase;">Điểm hôm nay
+            </div>
+            <div style="font-size: 1.5rem; font-weight: 800;">+{{ score_overview.today | default(0) }}</div>
+        </div>
+    </div>
+</div>
+
+<div class="hub-grid">
+    <!-- Area 0: Memory Insights 2.0 -->
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+        <!-- Memory Health Trend -->
+        <div class="stat-card" style="padding: 1.25rem;">
+            <div class="section-title" style="margin-bottom: 0.5rem; font-size: 0.7rem;">
+                <i class="fas fa-heartbeat text-rose-500"></i> Sức khỏe trí nhớ
+            </div>
+            <div style="display: flex; align-items: baseline; gap: 0.5rem;">
+                <div style="font-size: 1.5rem; font-weight: 800; color: #0f172a;">{{ hub_data.overview.average_retention
+                    | default(0) }}%</div>
+                <div style="font-size: 0.7rem; font-weight: 700; color: #22c55e;">+1.2%</div>
+            </div>
+            <div style="height: 40px; margin-top: 0.75rem;">
+                <canvas id="memoryTrendSparkline" data-trend="{{ hub_data.retention_trend | tojson }}"></canvas>
+            </div>
+        </div>
+
+        <!-- Mastery Distribution -->
+        <div class="stat-card"
+            style="padding: 1.25rem; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+            <div style="width: 70px; height: 70px; position: relative;">
+                <canvas id="masteryDistributionChart" data-dist="{{ hub_data.mastery_distribution | tojson }}"></canvas>
+                <div
+                    style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; flex-direction: column; pointer-events: none;">
+                    <div style="font-size: 0.8rem; font-weight: 800; color: #1e293b;">{{
+                        hub_data.overview.mastery_percentage }}%</div>
+                </div>
+            </div>
+            <div
+                style="font-size: 0.6rem; font-weight: 700; color: #94a3b8; text-transform: uppercase; margin-top: 0.5rem;">
+                Thành thạo</div>
+        </div>
+    </div>
+    <!-- Area 1: Difficult Words -->
+    <div class="stat-card">
+        <div class="section-title">
+            <i class="fas fa-bolt text-amber-500"></i> Từ vựng cần chú ý
+        </div>
+        {% if hub_data.difficult_items %}
+        {% for item in hub_data.difficult_items %}
+        <div class="word-list-item-wrapper" style="position: relative; margin-bottom: 0.75rem;">
+            <a href="{{ url_for('vocab_hub.item_hub_page', item_id=item.id) }}" class="word-list-item"
+                style="margin-bottom: 0;">
+                <div style="display: flex; align-items: center; gap: 0.75rem; flex: 1;">
+                    {% if item.image_url %}
+                    <img src="{{ item.image_url }}"
+                        style="width: 40px; height: 40px; border-radius: 0.5rem; object-fit: cover; border: 1px solid #f1f5f9;">
+                    {% else %}
+                    <div
+                        style="width: 40px; height: 40px; border-radius: 0.5rem; background: #f8fafc; border: 1px dashed #e2e8f0; display: flex; align-items: center; justify-content: center; color: #cbd5e1;">
+                        <i class="fas fa-image" style="font-size: 0.8rem;"></i>
+                    </div>
+                    {% endif %}
+                    <div style="flex: 1; min-width: 0;">
+                        <div
+                            style="font-weight: 700; font-size: 1rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                            {{ item.front }}</div>
+                        <div style="display: flex; align-items: center; gap: 0.5rem; margin-top: 0.1rem;">
+                            <span
+                                style="font-size: 0.6rem; color: #94a3b8; font-weight: 600; text-transform: uppercase;">{{
+                                item.container_title }}</span>
+                            {% if item.social and item.social.learners_count > 1 %}
+                            <span
+                                style="font-size: 0.6rem; color: #6366f1; background: #eef2ff; padding: 0.1rem 0.4rem; border-radius: 4px; font-weight: 700;">
+                                <i class="fas fa-users" style="font-size: 0.5rem;"></i> {{ item.social.learners_count }}
+                            </span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                <div style="text-align: right; margin: 0 0.5rem;">
+                    <div style="font-weight: 800; color: #ef4444; font-size: 0.8rem;">D: {{ item.difficulty | round(1)
+                        }}</div>
+                    {% if item.social and item.social.community_accuracy < 70 %} <div
+                        style="font-size: 0.55rem; color: #f59e0b; font-weight: 700; text-transform: uppercase;">Cộng
+                        đồng hay sai
+                </div>
+                {% else %}
+                <div style="font-size: 0.6rem; color: #cbd5e1;">R: {{ item.retrievability | default(0) }}%</div>
+                {% endif %}
+        </div>
+        </a>
+
+        {% if item.audio_url %}
+        <button onclick="event.preventDefault(); event.stopPropagation(); new Audio('{{ item.audio_url }}').play()"
+            style="position: absolute; right: -5px; top: 50%; transform: translateY(-50%); width: 32px; height: 32px; border-radius: 50%; background: white; border: 1px solid #e2e8f0; color: #4f46e5; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); transition: all 0.2s; z-index: 10;"
+            onmouseover="this.style.background='#f1f5f9'; this.style.transform='translateY(-50%) scale(1.1)'"
+            onmouseout="this.style.background='white'; this.style.transform='translateY(-50%) scale(1.0)'">
+            <i class="fas fa-volume-up" style="font-size: 0.8rem;"></i>
+        </button>
+        {% endif %}
+    </div>
+    {% endfor %}
+    {% else %}
+    <div style="text-align: center; padding: 2rem; color: #cbd5e1;">
+        <i class="fas fa-check-circle text-3xl mb-2 opacity-20"></i>
+        <p style="font-size: 0.8rem;">Bạn đang làm rất tốt!</p>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Area 2: Progress Overview -->
+<div class="stat-card">
+    <div class="section-title">
+        <i class="fas fa-chart-line text-indigo-500"></i> Tiến độ tổng quan
+    </div>
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+        <div style="background: #eef2ff; padding: 1rem; border-radius: 1rem; text-align: center;">
+            <div style="font-size: 0.6rem; font-weight: 800; color: #6366f1; text-transform: uppercase;">Đã học
+            </div>
+            <div style="font-size: 1.25rem; font-weight: 800; color: #1e293b;">{{ hub_data.overview.learned_count |
+                default(0) }}</div>
+        </div>
+        <div style="background: #f0fdf4; padding: 1rem; border-radius: 1rem; text-align: center;">
+            <div style="font-size: 0.6rem; font-weight: 800; color: #16a34a; text-transform: uppercase;">Thành thạo
+            </div>
+            <div style="font-size: 1.25rem; font-weight: 800; color: #1e293b;">{{ hub_data.overview.mastered_count |
+                default(0) }}</div>
+        </div>
+    </div>
+</div>
+</div>
+{% endblock %}

@@ -110,6 +110,62 @@ transition-opacity duration-500 opacity-100 data-dismissible`;
             });
         }
 
+        // 1.2 FORGETTING CURVE CHART
+        const curveCanvas = statsContainer.querySelector('#forgettingCurveChart');
+        const curveData = statsContainer.getAttribute('data-forgetting-curve'); // We need to add this to the container!
+
+        if (curveCanvas && typeof Chart !== 'undefined') {
+            let curvePoints = [];
+            try {
+                curvePoints = JSON.parse(curveData || '[]');
+            } catch (e) { }
+
+            if (curvePoints.length > 0) {
+                const existingCurve = Chart.getChart(curveCanvas);
+                if (existingCurve) existingCurve.destroy();
+
+                new Chart(curveCanvas, {
+                    type: 'line',
+                    data: {
+                        labels: curvePoints.map(p => `Ngày ${p.day}`),
+                        datasets: [{
+                            label: 'Khả năng nhớ (R)',
+                            data: curvePoints.map(p => p.retrievability),
+                            borderColor: '#ef4444',
+                            backgroundColor: 'rgba(239, 68, 68, 0.05)',
+                            borderWidth: 2,
+                            tension: 0.3,
+                            fill: true,
+                            pointRadius: 3
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: {
+                                callbacks: {
+                                    label: (context) => `Khả năng nhớ: ${context.raw}%`
+                                }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                min: 0, max: 100,
+                                grid: { color: '#f1f5f9' },
+                                ticks: { font: { size: 9 }, color: '#94a3b8' }
+                            },
+                            x: {
+                                grid: { display: false },
+                                ticks: { font: { size: 9 }, color: '#94a3b8' }
+                            }
+                        }
+                    }
+                });
+            }
+        }
+
         // 2. ACTIVITY HEATMAP (GitHub Style)
         const heatmapWrap = statsContainer.querySelector('#activity-heatmap');
         if (heatmapWrap) {
@@ -168,6 +224,65 @@ transition-opacity duration-500 opacity-100 data-dismissible`;
         });
 
 
+        function initHubCharts() {
+            // 1. Mastery Distribution (Doughnut)
+            const masteryCanvas = document.getElementById('masteryDistributionChart');
+            if (masteryCanvas && masteryCanvas.dataset.dist) {
+                try {
+                    const dist = JSON.parse(masteryCanvas.dataset.dist);
+                    new Chart(masteryCanvas, {
+                        type: 'doughnut',
+                        data: {
+                            labels: ['Mới', 'Đang học', 'Ôn tập', 'Thành thạo'],
+                            datasets: [{
+                                data: [dist.new, dist.learning, dist.review, dist.mastered],
+                                backgroundColor: ['#f1f5f9', '#e0e7ff', '#c7d2fe', '#4f46e5'],
+                                borderWidth: 0,
+                                weight: 1
+                            }]
+                        },
+                        options: {
+                            cutout: '75%',
+                            plugins: { legend: { display: false }, tooltip: { enabled: true } },
+                            maintainAspectRatio: false
+                        }
+                    });
+                } catch (e) { console.error("Error init mastery chart", e); }
+            }
+
+            // 2. Memory Trend Sparkline
+            const trendCanvas = document.getElementById('memoryTrendSparkline');
+            if (trendCanvas && trendCanvas.dataset.trend) {
+                try {
+                    const trend = JSON.parse(trendCanvas.dataset.trend);
+                    new Chart(trendCanvas, {
+                        type: 'line',
+                        data: {
+                            labels: trend.map((_, i) => i),
+                            datasets: [{
+                                data: trend,
+                                borderColor: '#e11d48',
+                                borderWidth: 2,
+                                pointRadius: 0,
+                                fill: true,
+                                backgroundColor: 'rgba(225, 29, 72, 0.1)',
+                                tension: 0.4
+                            }]
+                        },
+                        options: {
+                            plugins: { legend: { display: false }, tooltip: { enabled: false } },
+                            scales: { x: { display: false }, y: { display: false } },
+                            maintainAspectRatio: false
+                        }
+                    });
+                } catch (e) { console.error("Error init trend chart", e); }
+            }
+        }
+
+        // Auto-init Hub charts if on hub page
+        if (document.querySelector('.premium-header')) {
+            initHubCharts();
+        }
     });
 </script>
 <script src="{{ url_for('translator.static', filename='js/translator.js') }}"></script>
