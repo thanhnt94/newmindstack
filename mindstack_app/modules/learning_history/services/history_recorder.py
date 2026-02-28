@@ -30,6 +30,26 @@ class HistoryRecorder:
             game_snapshot: Points earned, streak info, breakdown
             context_snapshot: Detailed context (Reps, Device, Pre-values)
         """
+        from flask import request, has_request_context
+        
+        if context_snapshot is None:
+            context_snapshot = {}
+            
+        if not context_snapshot.get('input_device') or context_snapshot.get('input_device').lower() == 'unknown':
+            device_name = 'Web'
+            if has_request_context() and request.user_agent:
+                platform = request.user_agent.platform
+                if platform:
+                    platform = platform.lower()
+                    if platform in ['android', 'iphone', 'ios']:
+                        device_name = 'Mobile'
+                    elif platform in ['ipad']:
+                        device_name = 'Tablet'
+                    elif platform in ['windows', 'macos', 'linux', 'chromeos']:
+                        device_name = 'Web'
+                    else:
+                        device_name = platform.capitalize()
+            context_snapshot['input_device'] = device_name
         log = StudyLog(
             user_id=user_id,
             item_id=item_id,

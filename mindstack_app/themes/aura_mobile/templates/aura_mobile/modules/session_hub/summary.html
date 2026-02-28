@@ -1,0 +1,276 @@
+{% set _v = template_version or 'aura_mobile' %}
+{% extends _v ~ '/layouts/base.html' %}
+{% block title %}Tổng kết phiên học - {{ summary.mode_name }}{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-slate-50 flex flex-col">
+    <!-- Header with Confetti Background -->
+    <div class="relative bg-gradient-to-br from-indigo-600 to-violet-700 pb-24 pt-12 overflow-hidden">
+        <!-- Decorative circles -->
+        <div class="absolute top-0 left-0 w-64 h-64 bg-white/10 rounded-full -translate-x-1/2 -translate-y-1/2"></div>
+        <div class="absolute bottom-0 right-0 w-96 h-96 bg-white/5 rounded-full translate-x-1/3 translate-y-1/3"></div>
+
+        <div class="container mx-auto px-4 relative z-10 text-center">
+            <div
+                class="inline-flex items-center justify-center w-20 h-20 bg-white/20 backdrop-blur-md rounded-2xl mb-6 shadow-xl ring-4 ring-white/10">
+                <i class="fas fa-trophy text-4xl text-amber-300 drop-shadow-md"></i>
+            </div>
+
+            <h1 class="text-3xl md:text-4xl font-black text-white mb-2 tracking-tight">Hoàn thành phiên học!</h1>
+            <div class="text-indigo-100 text-lg font-medium flex flex-wrap justify-center items-center gap-x-3">
+                <span class="max-w-[200px] truncate">{{ summary.container_name }}</span>
+                <span class="opacity-30">|</span>
+                <span>{{ summary.learning_mode_label }}</span>
+                <span class="opacity-30">|</span>
+                <span class="px-2 py-0.5 bg-white/10 rounded-lg text-sm">{{ summary.sub_mode_label }}</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stats Cards Container -->
+    <div class="container mx-auto px-4 -mt-16 pb-12 relative z-20 max-w-4xl">
+        <!-- Main Stats Grid -->
+        <div class="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4 mb-8">
+            <!-- Accuracy -->
+            <div
+                class="bg-white rounded-2xl p-4 md:p-6 shadow-xl shadow-indigo-900/5 text-center border border-slate-100">
+                <div class="text-emerald-500 mb-1 md:mb-2">
+                    <i class="fas fa-bullseye text-xl md:text-2xl"></i>
+                </div>
+                <div class="text-2xl md:text-3xl font-black text-slate-800 tracking-tight">{{ summary.accuracy }}%</div>
+                <div class="text-[10px] md:text-xs font-bold text-slate-400 uppercase tracking-wide">Chính xác</div>
+            </div>
+
+            <!-- Points -->
+            <div
+                class="bg-white rounded-2xl p-4 md:p-6 shadow-xl shadow-indigo-900/5 text-center border border-slate-100">
+                <div class="text-amber-500 mb-1 md:mb-2">
+                    <i class="fas fa-gem text-xl md:text-2xl"></i>
+                </div>
+                <div class="text-2xl md:text-3xl font-black text-slate-800 tracking-tight">+{{ summary.points }}</div>
+                <div class="text-[10px] md:text-xs font-bold text-slate-400 uppercase tracking-wide">Điểm số</div>
+            </div>
+
+            <!-- Answered Count -->
+            <div
+                class="bg-white rounded-2xl p-4 md:p-6 shadow-xl shadow-indigo-900/5 text-center border border-slate-100">
+                <div class="text-indigo-500 mb-1 md:mb-2">
+                    <i class="fas fa-check-circle text-xl md:text-2xl"></i>
+                </div>
+                <div class="text-2xl md:text-3xl font-black text-slate-800 tracking-tight">{{ summary.answered }}</div>
+                <div class="text-[10px] md:text-xs font-bold text-slate-400 uppercase tracking-wide">Số câu trả lời
+                </div>
+            </div>
+        </div>
+
+        <!-- Review Logs Section -->
+        <div class="bg-white rounded-2xl shadow-xl shadow-indigo-900/5 border border-slate-100 overflow-hidden mb-8">
+            <div class="p-6 border-b border-slate-100 flex items-center justify-between">
+                <h2 class="text-xl font-bold text-slate-800 flex items-center gap-2">
+                    <i class="fas fa-list-ul text-indigo-500"></i>
+                    Chi tiết phiên học
+                </h2>
+                <span class="text-sm font-medium text-slate-500 bg-slate-100 px-3 py-1 rounded-full">
+                    {{ pagination.total }} lượt xem
+                </span>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr
+                            class="bg-slate-50 border-b border-slate-100 text-xs uppercase text-slate-500 font-semibold tracking-wider">
+                            <th class="px-6 py-4 hidden md:table-cell w-16 text-center">STT</th>
+                            <th class="px-4 md:px-6 py-4">Nội dung</th>
+                            <th class="px-4 md:px-6 py-4 text-center w-24">Kết quả</th>
+                            <th class="px-4 md:px-6 py-4 text-center w-20 hidden md:table-cell">Thẻ</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100">
+                        {% for log in logs %}
+                        <tr class="hover:bg-slate-50/50 transition-colors group">
+                            <td class="px-6 py-4 text-slate-400 font-medium text-sm text-center hidden md:table-cell">
+                                {{ (pagination.page - 1) * pagination.per_page + loop.index }}
+                            </td>
+                            <td class="px-4 md:px-6 py-4 cursor-pointer hover:bg-indigo-50/50 transition-colors"
+                                onclick="openDetailModal('{{ url_for('session.api_get_log_detail', log_id=log.log_id) }}', 'Chi tiết lần học')">
+                                <div class="flex flex-col gap-0.5 max-w-[200px] md:max-w-[400px]">
+                                    <div class="font-bold text-slate-800 text-sm md:text-base leading-tight truncate"
+                                        title="{{ log.front | striptags }}">
+                                        {{ log.front | safe }}
+                                    </div>
+                                    {% if log.back %}
+                                    <div class="text-[11px] md:text-xs text-slate-400 truncate font-medium"
+                                        title="{{ log.back | striptags }}">
+                                        {{ log.back | striptags }}
+                                    </div>
+                                    {% endif %}
+                                </div>
+                                <div class="text-[10px] md:text-xs text-slate-400 mt-0.5">
+                                    {{ log.timestamp.strftime('%H:%M:%S') }}
+                                </div>
+                            </td>
+                            <td class="px-4 md:px-6 py-4 text-center">
+                                {% if summary.learning_mode == 'flashcard' %}
+                                {# Flashcard: 4 ratings #}
+                                {% if log.rating >= 4 %}
+                                <span
+                                    class="inline-flex items-center gap-1 px-2 py-0.5 md:px-2.5 md:py-1 rounded-full text-[10px] md:text-xs font-bold bg-emerald-100 text-emerald-700 border border-emerald-200">
+                                    <i class="fas fa-laugh-beam"></i> Easy
+                                </span>
+                                {% elif log.rating >= 3 %}
+                                <span
+                                    class="inline-flex items-center gap-1 px-2 py-0.5 md:px-2.5 md:py-1 rounded-full text-[10px] md:text-xs font-bold bg-indigo-100 text-indigo-700 border border-indigo-200">
+                                    <i class="fas fa-smile"></i> Good
+                                </span>
+                                {% elif log.rating >= 2 %}
+                                <span
+                                    class="inline-flex items-center gap-1 px-2 py-0.5 md:px-2.5 md:py-1 rounded-full text-[10px] md:text-xs font-bold bg-amber-100 text-amber-700 border border-amber-200">
+                                    <i class="fas fa-meh"></i> Hard
+                                </span>
+                                {% else %}
+                                <span
+                                    class="inline-flex items-center gap-1 px-2 py-0.5 md:px-2.5 md:py-1 rounded-full text-[10px] md:text-xs font-bold bg-rose-100 text-rose-700 border border-rose-200">
+                                    <i class="fas fa-frown"></i> Again
+                                </span>
+                                {% endif %}
+                                {% else %}
+                                {# Other modes: Correct/Incorrect #}
+                                {% if log.is_correct %}
+                                <span
+                                    class="inline-flex items-center gap-1 px-2 py-0.5 md:px-2.5 md:py-1 rounded-full text-[10px] md:text-xs font-bold bg-emerald-100 text-emerald-700 border border-emerald-200">
+                                    <i class="fas fa-check text-[10px]"></i> Đúng
+                                </span>
+                                {% else %}
+                                <span
+                                    class="inline-flex items-center gap-1 px-2 py-0.5 md:px-2.5 md:py-1 rounded-full text-[10px] md:text-xs font-bold bg-rose-100 text-rose-700 border border-rose-200">
+                                    <i class="fas fa-times text-[10px]"></i> Sai
+                                </span>
+                                {% endif %}
+                                {% endif %}
+                            </td>
+                            <td class="px-4 md:px-6 py-4 text-center hidden md:table-cell">
+                                <button
+                                    onclick="event.stopPropagation(); window.openModal('{{ url_for('vocab_hub.item_hub_page', item_id=log.item_id) }}', 'Chi tiết thẻ')"
+                                    class="px-2.5 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 rounded-lg text-[10px] font-bold transition-all active:scale-95 border border-indigo-100"
+                                    title="Xem chi tiết trong Vocab Hub">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="4" class="px-6 py-12 text-center text-slate-400 italic">
+                                Chưa có dữ liệu chi tiết cho phiên học này.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+
+        <!-- Pagination Controls -->
+        {% if pagination.pages > 1 %}
+        <div class="px-6 py-4 border-t border-slate-100 bg-slate-50 flex items-center justify-between">
+            <div class="text-sm text-slate-500">
+                Trang <span class="font-bold text-slate-700">{{ pagination.page }}</span> / {{ pagination.pages }}
+            </div>
+            <div class="flex gap-2">
+                {% if pagination.has_prev %}
+                <a href="{{ url_for('session_hub.session_summary_hub', session_id=summary.session_id, page=pagination.prev_num) }}"
+                    class="px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-sm font-medium text-slate-600 hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-200 transition-all shadow-sm">
+                    <i class="fas fa-chevron-left mr-1"></i> Trước
+                </a>
+                {% else %}
+                <span
+                    class="px-3 py-1.5 bg-slate-100 border border-slate-200 rounded-lg text-sm font-medium text-slate-300 cursor-not-allowed">
+                    <i class="fas fa-chevron-left mr-1"></i> Trước
+                </span>
+                {% endif %}
+
+                {% if pagination.has_next %}
+                <a href="{{ url_for('session_hub.session_summary_hub', session_id=summary.session_id, page=pagination.next_num) }}"
+                    class="px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-sm font-medium text-slate-600 hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-200 transition-all shadow-sm">
+                    Sau <i class="fas fa-chevron-right ml-1"></i>
+                </a>
+                {% else %}
+                <span
+                    class="px-3 py-1.5 bg-slate-100 border border-slate-200 rounded-lg text-sm font-medium text-slate-300 cursor-not-allowed">
+                    Sau <i class="fas fa-chevron-right ml-1"></i>
+                </span>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+</div>
+
+<!-- Mobile Fixed Bottom Navigation Bar -->
+<div class="fixed bottom-0 left-0 right-0 z-50 md:hidden bg-white/80 backdrop-blur-xl border-t border-slate-100 p-4">
+    <div class="flex gap-3">
+        <!-- Home -->
+        <a href="{{ url_for('dashboard.dashboard') }}"
+            class="flex-1 flex items-center justify-center gap-2 h-14 bg-slate-100 text-slate-600 font-bold rounded-2xl transition-all active:scale-95">
+            <i class="fas fa-home text-lg"></i>
+            <span>Trang chủ</span>
+        </a>
+
+        <!-- Continue Learning -->
+        {% if set_id %}
+        <a href="{{ url_for('vocabulary.modes_selection_page', set_id=set_id) }}"
+            class="flex-[2] flex items-center justify-center gap-2 h-14 bg-indigo-600 text-white font-bold rounded-2xl transition-all shadow-lg shadow-indigo-500/20 active:scale-95">
+            <i class="fas fa-play-circle text-lg"></i>
+            <span>Học tiếp</span>
+        </a>
+        {% else %}
+        <a href="{{ url_for('vocabulary.dashboard') }}"
+            class="flex-[2] flex items-center justify-center gap-2 h-14 bg-emerald-600 text-white font-bold rounded-2xl transition-all shadow-lg shadow-emerald-500/20 active:scale-95">
+            <i class="fas fa-book text-lg"></i>
+            <span>Từ vựng</span>
+        </a>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Mobile Bottom Padding -->
+<div class="h-16 md:hidden"></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+<script>
+    // Celebration Confetti
+    document.addEventListener('DOMContentLoaded', () => {
+        const duration = 3000;
+        const animationEnd = Date.now() + duration;
+        const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 0 };
+
+        function random(min, max) {
+            return Math.random() * (max - min) + min;
+        }
+
+        const interval = setInterval(function () {
+            const timeLeft = animationEnd - Date.now();
+
+            if (timeLeft <= 0) {
+                return clearInterval(interval);
+            }
+
+            const particleCount = 50 * (timeLeft / duration);
+            confetti(Object.assign({}, defaults, { particleCount, origin: { x: random(0.1, 0.3), y: Math.random() - 0.2 } }));
+            confetti(Object.assign({}, defaults, { particleCount, origin: { x: random(0.7, 0.9), y: Math.random() - 0.2 } }));
+        }, 250);
+
+        // [LOGS BUTTON LISTENER]
+        window.openDetailModal = function (url, title) {
+            if (window.openModal && url) {
+                window.openModal(url, title);
+            } else {
+                console.error("openModal function not found or invalid URL");
+            }
+        };
+    });
+</script>
+{% endblock %}

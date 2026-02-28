@@ -16,9 +16,6 @@
     .hub-container {
         padding-bottom: 2rem;
     }
-
-    /* Reuse styles from _vocab_detail_content if needed, 
-       but we will include the content template which has its own styles */
 </style>
 {% endblock %}
 
@@ -32,7 +29,190 @@
 {% block scripts %}
 {{ super() }}
 <script>
-    // Initialize Hub specific logic
+    // --- TAB SWITCHING FUNCTIONS ---
+    // These are required by _vocab_detail_content.html onclick handlers
+    window.switchVocabMainTab = function (targetTabId, btn) {
+        if (window.event) window.event.preventDefault();
+        const container = btn.closest('.stats-container');
+        if (!container) return;
+        const tabBtns = container.querySelectorAll('.tab-navigation .tab-btn');
+        const tabContents = container.querySelectorAll('.tab-content');
+        const subNav = container.querySelector('#header-sub-tabs');
+        tabBtns.forEach(b => b.classList.toggle('active', b.dataset.tab === targetTabId));
+        tabContents.forEach(content => {
+            const id = content.id.replace('tab-', '');
+            if (id === targetTabId) {
+                content.style.display = '';
+                content.classList.add('active');
+            } else {
+                content.style.display = 'none';
+                content.classList.remove('active');
+            }
+        });
+        if (subNav) subNav.style.display = (targetTabId === 'content') ? 'flex' : 'none';
+
+        // Re-init charts if switching to stats tab
+        if (targetTabId === 'stats' && window.initVocabDetailCharts) {
+            window.initVocabDetailCharts(container);
+        }
+    };
+
+    window.switchVocabSubTab = function (targetSubId, btn) {
+        if (window.event) window.event.preventDefault();
+        const container = btn.closest('.stats-container') || document.querySelector('.stats-container');
+        if (!container) return;
+        const subBtns = document.querySelectorAll('.sub-tab-btn');
+        const subContents = document.querySelectorAll('.sub-tab-content');
+
+        subBtns.forEach(b => b.classList.toggle('active', b.dataset.subtab === targetSubId));
+        subContents.forEach(content => {
+            if (content.id === targetSubId) {
+                content.style.display = 'flex';
+                content.classList.add('active');
+                if (targetSubId === 'sub-ai' && typeof window.loadStatsAiHistory === 'function') {
+                    const markerBtn = container.querySelector('.js-toggle-vocab-marker');
+                    const itemId = markerBtn?.getAttribute('onclick')?.match(/\d+/)?.[0];
+                    if (itemId) window.loadStatsAiHistory(itemId);
+                }
+            } else {
+                content.style.display = 'none';
+                content.classList.remove('active');
+            }
+        });
+    };
+
+    window.selectHistoryItem = function (element, index) {
+        document.querySelectorAll('.js-history-item').forEach(el => el.classList.remove('active'));
+        element.classList.add('active');
+
+        const historyScript = document.getElementById('vocab-history-data');
+        let history = [];
+        try { history = JSON.parse(historyScript.textContent) || []; } catch (e) { return; }
+        const log = history[index];
+        if (!log) return;
+
+        const resultEl = document.getElementById('hist-result');
+        const modeEl = document.getElementById('hist-mode-badge');
+        const timeEl = document.getElementById('hist-time');
+        const durEl = document.getElementById('hist-duration');
+        const scoreEl = document.getElementById('hist-score');
+        const masteryEl = document.getElementById('hist-mastery');
+        const contextRow = document.getElementById('hist-context-row');
+        const deviceEl = document.getElementById('hist-context-device');
+        const repEl = document.getElementById('hist-context-rep');
+        const fsrsStateEl = document.getElementById('hist-fsrs-state');
+
+        if (resultEl) {
+            if (log.result === 'Correct') {
+                resultEl.innerHTML = '<i class="fas fa-check-circle"></i> Đúng';
+                resultEl.style.backgroundColor = '#dcfce7'; resultEl.style.color = '#16a34a';
+            } else {
+                resultEl.innerHTML = '<i class="fas fa-times-circle"></i> Sai';
+                resultEl.style.backgroundColor = '#fee2e2'; resultEl.style.color = '#dc2626';
+            }
+        }
+        if (modeEl) {
+            const modeIconMap = { 'mcq': 'fa-list-ul', 'flashcard': 'fa-clone', 'typing': 'fa-keyboard' };
+            const iconClass = modeIconMap[log.mode?.toLowerCase()] || 'fa-layer-group';
+            modeEl.innerHTML = `<i class="fas ${iconClass}" style="font-size: 0.7rem; color: #94a3b8;"></i> ${log.mode || 'N/A'}`;
+        }
+        if (timeEl) {
+            const date = new Date(log.timestamp);
+            timeEl.textContent = date.toLocaleDateString('vi-VN') + ' ' + date.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+        }
+        if (durEl) {
+            const durSec = ((log.duration_ms || 0) / 1000).toFixed(1);
+            durEl.innerHTML = `${durSec}<span style="font-size: 0.65rem; color: #94a3b8; margin-left: 2px;">s</span>`;
+        }
+        if (scoreEl) {
+            const gami = log.gamification_snapshot || {};
+            const scoreChange = log.score_change || gami.total_score || 0;
+            if (scoreChange > 0) {
+                let scoreHtml = `<span style="color: #f59e0b;">+${scoreChange}</span>`;
+                if (gami.breakdown && Object.keys(gami.breakdown).length > 0) {
+                    scoreHtml += `<div style="font-size: 0.55rem; color: #94a3b8; font-weight: 600; margin-top: 4px; text-transform: none; display: flex; flex-direction: column; gap: 2px; align-items: center; border-top: 1px dashed #e2e8f0; padding-top: 4px; width: 100%;">`;
+                    const labelMap = { 'base': 'Cơ bản', 'difficulty': 'Độ khó', 'streak': 'Chuỗi', 'streak_bonus': 'Chuỗi', 'time': 'Tốc độ', 'time_bonus': 'Tốc độ' };
+                    let lines = 0;
+                    for (const [key, val] of Object.entries(gami.breakdown)) {
+                        if (key !== 'total' && val !== 0 && lines < 3) {
+                            const lbl = labelMap[key] || key;
+                            const valStr = (typeof val === 'number' && val > 0 && val < 1) ? `x${val}` : `+${Math.round(val)}`;
+                            scoreHtml += `<div style="display: flex; justify-content: space-between; width: 100%;"><span style="color: #cbd5e1;">${lbl}</span> <span style="color: #f59e0b;">${valStr}</span></div>`;
+                            lines++;
+                        }
+                    }
+                    scoreHtml += `</div>`;
+                }
+                scoreEl.innerHTML = `<div style="display: flex; flex-direction: column; align-items: center; justify-content: flex-start; line-height: 1; width: 100%;">${scoreHtml}</div>`;
+            } else {
+                scoreEl.innerHTML = `<span style="color: #94a3b8;">0</span>`;
+            }
+        }
+        if (masteryEl) {
+            let stabilityHtml = '<span style="color: #94a3b8;">-</span>';
+            if (log.fsrs_snapshot && log.fsrs_snapshot.stability !== undefined) {
+                const diff = log.fsrs_snapshot.difficulty !== undefined ? parseFloat(log.fsrs_snapshot.difficulty).toFixed(1) : '-';
+                const stab = parseFloat(log.fsrs_snapshot.stability).toFixed(1);
+                stabilityHtml = `<div style="display: flex; flex-direction: column; align-items: center; line-height: 1; width: 100%;"><span>${stab}</span><div style="font-size: 0.55rem; color: #94a3b8; font-weight: 600; margin-top: 4px; border-top: 1px dashed #e2e8f0; padding-top: 4px; width: 100%; text-align: center;">Độ khó: ${diff}</div></div>`;
+            }
+            masteryEl.innerHTML = stabilityHtml;
+        }
+        if (contextRow) {
+            let hasContext = false;
+            if (deviceEl) {
+                const dev = (log.context_snapshot || {}).input_device || 'Unknown';
+                let icon = 'fa-desktop';
+                if (dev.toLowerCase().includes('mobile')) icon = 'fa-mobile-alt';
+                if (dev.toLowerCase().includes('tablet')) icon = 'fa-tablet-alt';
+                deviceEl.innerHTML = `<i class="fas ${icon}"></i> ${dev}`;
+                hasContext = true;
+            }
+            if (repEl) { repEl.textContent = `#${(log.context_snapshot || {}).reps_global || 1}`; hasContext = true; }
+            if (fsrsStateEl && log.fsrs_snapshot) {
+                const stateStr = String(log.fsrs_snapshot.card_state || 'NEW');
+                let bg = '#d1fae5', color = '#059669';
+                if (stateStr.toUpperCase() === 'LEARNING') { bg = '#fef3c7'; color = '#d97706'; }
+                else if (stateStr.toUpperCase() === 'REVIEW') { bg = '#e0e7ff'; color = '#4f46e5'; }
+                else if (stateStr.toUpperCase() === 'RELEARNING') { bg = '#ffe4e6'; color = '#e11d48'; }
+                fsrsStateEl.style.background = bg; fsrsStateEl.style.color = color;
+                fsrsStateEl.innerHTML = `<i class="fas fa-microchip"></i> ${stateStr}`;
+                hasContext = true;
+            } else if (fsrsStateEl) { fsrsStateEl.style.display = 'none'; }
+            contextRow.style.display = hasContext ? 'flex' : 'none';
+        }
+    };
+
+    // --- AUDIO PLAYBACK ---
+    window.playOrGenerateVocabAudio = function (btn, itemId, side, contentToRead, existingUrl) {
+        if (!btn) return;
+        const icon = btn.querySelector('i');
+        const originalClass = icon ? icon.className : '';
+        if (existingUrl && existingUrl !== 'None' && existingUrl !== '') {
+            const audio = new Audio(existingUrl);
+            audio.play().catch(err => { console.warn("Audio play failed:", err); });
+            return;
+        }
+        if (btn.classList.contains('generating')) return;
+        btn.classList.add('generating'); btn.disabled = true;
+        if (icon) icon.className = 'fas fa-spinner fa-spin';
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+        fetch('/learn/vocab-flashcard/regenerate-audio-from-content', {
+            method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+            body: JSON.stringify({ item_id: itemId, side: side })
+        }).then(r => r.json()).then(data => {
+            btn.classList.remove('generating'); btn.disabled = false;
+            if (icon) icon.className = originalClass;
+            if (data.success && data.audio_url) {
+                btn.setAttribute('onclick', `window.playOrGenerateVocabAudio(this, ${itemId}, '${side}', '${contentToRead}', '${data.audio_url}')`);
+                new Audio(data.audio_url).play();
+            }
+        }).catch(err => {
+            btn.classList.remove('generating'); btn.disabled = false;
+            if (icon) icon.className = originalClass;
+        });
+    };
+
+    // --- INITIALIZATION ---
     document.addEventListener('DOMContentLoaded', function () {
         // Auto-select first history item
         const firstHist = document.querySelector('.js-history-item');
@@ -45,16 +225,40 @@
             window.initVocabDetailCharts();
         }
 
-        // Hide the close button in Hub view (since it's not a modal)
-        const closeBtn = document.querySelector('.js-close-stats-modal');
-        if (closeBtn) closeBtn.style.display = 'none';
-
-        // Adjust container for full-page feel
-        const statsContainer = document.querySelector('.stats-container');
-        if (statsContainer) {
-            statsContainer.style.height = 'auto';
-            statsContainer.style.minHeight = '100vh';
-            statsContainer.style.borderRadius = '0';
+        // Detect is_modal mode — hide base.html navigation chrome
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('is_modal') === 'true') {
+            // Hide base.html nav elements
+            document.querySelectorAll('header, nav, footer, .main-nav, .bottom-nav, .aura-bottom-nav').forEach(el => {
+                if (el) el.style.display = 'none';
+            });
+            // Wire the close button to close the parent modal
+            const closeBtn = document.querySelector('.js-close-stats-modal');
+            if (closeBtn) {
+                closeBtn.style.display = 'flex';
+                closeBtn.onclick = function () {
+                    try { window.parent.closeModal(); } catch (e) { window.close(); }
+                };
+            }
+            // Adjust container for modal feel
+            document.body.style.background = 'white';
+            document.body.style.padding = '0';
+            document.body.style.margin = '0';
+            const statsContainer = document.querySelector('.stats-container');
+            if (statsContainer) {
+                statsContainer.style.height = '100vh';
+                statsContainer.style.borderRadius = '0';
+            }
+        } else {
+            // Full-page mode: hide close button, expand container
+            const closeBtn = document.querySelector('.js-close-stats-modal');
+            if (closeBtn) closeBtn.style.display = 'none';
+            const statsContainer = document.querySelector('.stats-container');
+            if (statsContainer) {
+                statsContainer.style.height = 'auto';
+                statsContainer.style.minHeight = '100vh';
+                statsContainer.style.borderRadius = '0';
+            }
         }
     });
 </script>

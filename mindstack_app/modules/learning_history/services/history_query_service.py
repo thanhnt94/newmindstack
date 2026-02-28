@@ -95,7 +95,8 @@ class HistoryQueryService:
                 'review_duration': log.review_duration,
                 'user_answer': log.user_answer,
                 'gamification_snapshot': log.gamification_snapshot,
-                'fsrs_snapshot': log.fsrs_snapshot
+                'fsrs_snapshot': log.fsrs_snapshot,
+                'context_snapshot': log.context_snapshot
             }
             for log in logs
         ]

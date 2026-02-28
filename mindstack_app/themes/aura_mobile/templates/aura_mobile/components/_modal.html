@@ -37,8 +37,17 @@
             modalIframe.onload = function () {
                 if (loadingEl) loadingEl.style.display = 'none';
                 try {
+                    const iframeDoc = modalIframe.contentDocument;
+                    // Auto-hide modal header for vocab detail pages (they have their own UI)
+                    const hasStatsContainer = iframeDoc.querySelector('.stats-container');
+                    const headerEl = document.querySelector('.aura-modal-header');
+                    if (hasStatsContainer && headerEl) {
+                        headerEl.style.display = 'none';
+                    } else if (headerEl) {
+                        headerEl.style.display = '';
+                    }
                     // Update title from iframe if available
-                    const iframeTitle = modalIframe.contentDocument.title;
+                    const iframeTitle = iframeDoc.title;
                     if (iframeTitle && iframeTitle !== 'Mindstack App' && title === 'Thông tin') {
                         titleEl.textContent = iframeTitle;
                     }
@@ -54,6 +63,9 @@
             modalOverlay.classList.remove('open');
             modalIframe.src = '';
             document.body.style.overflow = '';
+            // Restore modal header (may have been hidden for vocab detail)
+            const headerEl = document.querySelector('.aura-modal-header');
+            if (headerEl) headerEl.style.display = '';
         }
     };
 
