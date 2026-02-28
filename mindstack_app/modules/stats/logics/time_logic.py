@@ -13,7 +13,8 @@ class TimeLogic:
         if timeframe == 'day':
             return today_start
         elif timeframe == 'week':
-            return today_start - timedelta(days=6)
+            # Monday-start week
+            return today_start - timedelta(days=today_start.weekday())
         elif timeframe == 'month':
             return today_start - timedelta(days=29)
         elif timeframe == '30d':

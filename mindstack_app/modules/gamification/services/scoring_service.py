@@ -132,7 +132,8 @@ class ScoreService:
             start_date = now - timedelta(days=1)
             query = query.filter(ScoreLog.timestamp >= start_date)
         elif timeframe == 'week':
-            start_date = now - timedelta(weeks=1)
+            # Monday-start week
+            start_date = now.replace(hour=0, minute=0, second=0, microsecond=0) - timedelta(days=now.weekday())
             query = query.filter(ScoreLog.timestamp >= start_date)
         elif timeframe == 'month':
             start_date = now - timedelta(days=30)
