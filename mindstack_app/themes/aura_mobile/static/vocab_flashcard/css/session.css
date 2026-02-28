@@ -827,9 +827,11 @@ body.flashcard-session-active>main {
     display: none;
     /* Controlled by .open class */
     flex-direction: column;
-    justify-content: flex-end;
-    background-color: rgba(0, 0, 0, 0.5) !important;
-    backdrop-filter: blur(2px);
+    justify-content: center;
+    align-items: center;
+    background-color: rgba(15, 23, 42, 0.6) !important;
+    backdrop-filter: blur(8px);
+    padding: 0.75rem;
 }
 
 .stats-modal-overlay.open {
@@ -842,17 +844,20 @@ body.flashcard-session-active>main {
     right: auto;
     bottom: auto;
     width: 100%;
-    height: calc(100% - 50px);
+    max-width: 900px;
+    height: 100%;
     max-height: none;
-    border-radius: 24px 24px 0 0;
-    box-shadow: 0 -10px 25px rgba(0, 0, 0, 0.1);
+    border-radius: 1rem;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
     overflow: hidden;
-    transform: translateY(100%);
-    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    transform: translateY(20px);
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    opacity: 0;
 }
 
 .stats-modal-content.open {
     transform: translateY(0);
+    opacity: 1;
 }
 
 .stats-modal-header {

@@ -293,6 +293,90 @@ transition-opacity duration-500 opacity-100 data-dismissible`;
                 }
             });
         }
+
+        // 5. ACCURACY OVER TIME CHART (Line) — rolling accuracy
+        const accCanvas = statsContainer.querySelector('#accuracyTrendChart');
+        if (accCanvas && typeof Chart !== 'undefined') {
+            const sortedH = [...history].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+            let correctRun = 0;
+            const accLabels = [];
+            const accData = [];
+            sortedH.forEach((h, i) => {
+                if (h.result === 'Correct') correctRun++;
+                const accPct = Math.round((correctRun / (i + 1)) * 100);
+                accData.push(accPct);
+                const d = new Date(h.timestamp);
+                accLabels.push(d.getDate() + '/' + (d.getMonth() + 1));
+            });
+
+            const existingAcc = Chart.getChart(accCanvas);
+            if (existingAcc) existingAcc.destroy();
+
+            new Chart(accCanvas, {
+                type: 'line',
+                data: {
+                    labels: accLabels,
+                    datasets: [{
+                        label: 'Tỷ lệ đúng (%)',
+                        data: accData,
+                        borderColor: '#10b981',
+                        backgroundColor: 'rgba(16, 185, 129, 0.06)',
+                        borderWidth: 2,
+                        tension: 0.3,
+                        fill: true,
+                        pointRadius: accData.length > 20 ? 0 : 3,
+                        pointBackgroundColor: '#10b981'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { min: 0, max: 100, grid: { color: '#f1f5f9' }, ticks: { font: { size: 9 }, color: '#94a3b8', callback: v => v + '%' } },
+                        x: { grid: { display: false }, ticks: { font: { size: 9 }, color: '#94a3b8', maxTicksLimit: 6 } }
+                    }
+                }
+            });
+        }
+
+        // 6. REVIEW DURATION CHART (Bar) — time per review
+        const durCanvas = statsContainer.querySelector('#reviewDurationChart');
+        if (durCanvas && typeof Chart !== 'undefined') {
+            const sortedH2 = [...history].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+            const durLabels = sortedH2.map(h => {
+                const d = new Date(h.timestamp);
+                return d.getDate() + '/' + (d.getMonth() + 1);
+            });
+            const durData = sortedH2.map(h => ((h.duration_ms || 0) / 1000).toFixed(1));
+            const durColors = sortedH2.map(h => h.result === 'Correct' ? '#10b981' : '#ef4444');
+
+            const existingDur = Chart.getChart(durCanvas);
+            if (existingDur) existingDur.destroy();
+
+            new Chart(durCanvas, {
+                type: 'bar',
+                data: {
+                    labels: durLabels,
+                    datasets: [{
+                        label: 'Thời gian (s)',
+                        data: durData,
+                        backgroundColor: durColors,
+                        borderRadius: 4,
+                        barPercentage: 0.7
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { beginAtZero: true, grid: { color: '#f1f5f9' }, ticks: { font: { size: 9 }, color: '#94a3b8', callback: v => v + 's' } },
+                        x: { grid: { display: false }, ticks: { font: { size: 9 }, color: '#94a3b8', maxTicksLimit: 8, maxRotation: 0 } }
+                    }
+                }
+            });
+        }
     };
 
     document.addEventListener('DOMContentLoaded', function () {

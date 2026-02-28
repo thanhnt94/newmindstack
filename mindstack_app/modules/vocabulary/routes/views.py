@@ -82,7 +82,5 @@ def item_stats_page(item_id):
     if not stats:
         abort(404, description="Item not found")
 
-    # We always return the full vocab_detail.html so that the iframe has <head> and <body>.
-    # The frontend handles hiding unnecessary elements when is_modal is true.
-    return render_dynamic_template('modules/vocabulary/detail/vocab_detail.html', stats=stats)
-
+    # Always return the partial template. It will be injected into _modal_stats.html
+    return render_dynamic_template('modules/vocabulary/detail/_vocab_detail_content.html', stats=stats)

@@ -394,11 +394,11 @@
 
         <div class="tab-content stats-container" id="tab-stats" data-history='{{ s.history|tojson|safe }}'
             data-forgetting-curve='{{ (s.progress.forgetting_curve or [])|tojson|safe }}'
-            style="display: none; height: 100%; flex: 1; flex-direction: column;">
+            style="display: none; flex: 1; flex-direction: column; overflow: hidden;">
 
-            <!-- Sub-tab Navigation (Analysis) -->
+            <!-- Sticky Sub-tab Navigation -->
             <div class="sub-tab-navigation"
-                style="display: flex; gap: 0.75rem; justify-content: center; padding-top: 0.5rem; margin: 0 1rem 0.5rem 1rem;">
+                style="display: flex; gap: 0.5rem; justify-content: center; padding: 0.5rem 1rem; background: white; position: sticky; top: 0; z-index: 20; border-bottom: 1px solid #f1f5f9; flex-shrink: 0;">
                 <button class="sub-tab-btn active" data-subtab="sub-overview"
                     onclick="window.switchVocabSubTab('sub-overview', this)" style="text-transform: uppercase;">
                     TỔNG QUAN
@@ -417,439 +417,519 @@
                 </button>
             </div>
 
-            <!-- Sub-tab 1: Personal Overview -->
-            <div id="sub-overview" class="sub-tab-content active" style="padding: 0 1rem 1rem 1rem; display: block;">
-                <div class="bento-grid">
-                    <!-- Memory Strength (Large) -->
-                    <div class="bento-item large"
-                        style="background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%); color: white; border: none; padding: 1.25rem;">
-                        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-                            <div>
-                                <div class="bento-label" style="color: rgba(255,255,255,0.7); font-size: 0.6rem;">KHẢ
-                                    NĂNG GHI NHỚ</div>
-                                <div class="bento-value" style="color: white; font-size: 2.2rem; line-height: 1;">{{
-                                    p.retrievability }}%</div>
+            <!-- Scrollable sub-tab content area -->
+            <div style="flex: 1; overflow-y: auto; min-height: 0;">
+
+                <!-- Sub-tab 1: Overview -->
+                <div id="sub-overview" class="sub-tab-content active"
+                    style="padding: 0.75rem 1rem 1rem 1rem; display: block;">
+                    <div class="bento-grid">
+                        <!-- Memory Strength Hero -->
+                        <div class="bento-item large"
+                            style="background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%); color: white; border: none; padding: 1.25rem;">
+                            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                                <div>
+                                    <div class="bento-label" style="color: rgba(255,255,255,0.7); font-size: 0.6rem;">
+                                        KHẢ NĂNG GHI NHỚ</div>
+                                    <div class="bento-value" style="color: white; font-size: 2.2rem; line-height: 1;">{{
+                                        p.retrievability }}%</div>
+                                </div>
+                                <div
+                                    style="width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; background: rgba(255,255,255,0.15);">
+                                    <i class="fas fa-brain"></i>
+                                </div>
                             </div>
-                            <div class="glass"
-                                style="width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; background: rgba(255,255,255,0.15);">
-                                <i class="fas fa-brain"></i>
-                            </div>
-                        </div>
-                        <div
-                            style="margin-top: 1.25rem; background: rgba(255,255,255,0.15); height: 6px; border-radius: 3px; overflow: hidden;">
                             <div
-                                style="width: {{ p.retrievability }}%; height: 100%; background: white; box-shadow: 0 0 12px rgba(255,255,255,0.5);">
+                                style="margin-top: 1.25rem; background: rgba(255,255,255,0.15); height: 6px; border-radius: 3px; overflow: hidden;">
+                                <div
+                                    style="width: {{ p.retrievability }}%; height: 100%; background: white; box-shadow: 0 0 12px rgba(255,255,255,0.5);">
+                                </div>
+                            </div>
+                            <div style="margin-top: 0.75rem; font-size: 0.65rem; font-weight: 600; opacity: 0.9;">
+                                {% if p.retrievability >= 90 %}Trạng thái hoàn hảo!{% elif p.retrievability >= 70 %}Bạn
+                                đang giữ phong độ tốt.{% else %}Hãy ôn tập ngay để củng cố.{% endif %}
                             </div>
                         </div>
-                        <div
-                            style="margin-top: 0.75rem; font-size: 0.65rem; font-weight: 600; opacity: 0.9; letter-spacing: 0.01em;">
-                            {% if p.retrievability >= 90 %}Trạng thái hoàn hảo!{% elif p.retrievability >= 70 %}Bạn đang
-                            giữ phong độ tốt.{% else %}Hãy ôn tập ngay để củng cố.{% endif %}
+
+                        <!-- Next Review -->
+                        <div class="bento-item" style="border: 1px solid #fed7aa; background: #fffaf5;">
+                            <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+                                <div
+                                    style="width: 24px; height: 24px; border-radius: 6px; background: #ffedd5; color: #f59e0b; display: flex; align-items: center; justify-content: center; font-size: 0.7rem;">
+                                    <i class="fas fa-calendar-alt"></i>
+                                </div>
+                                <div class="bento-label" style="margin: 0;">SẮP TỚI</div>
+                            </div>
+                            <div class="bento-value" style="font-size: 1rem; color: #9a3412;">{{ p.due_relative }}</div>
+                        </div>
+
+                        <!-- Stability -->
+                        <div class="bento-item" style="border: 1px solid #c7d2fe; background: #eef2ff;">
+                            <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+                                <div
+                                    style="width: 24px; height: 24px; border-radius: 6px; background: #e0e7ff; color: #4f46e5; display: flex; align-items: center; justify-content: center; font-size: 0.7rem;">
+                                    <i class="fas fa-anchor"></i>
+                                </div>
+                                <div class="bento-label" style="margin: 0;">ỔN ĐỊNH (S)</div>
+                            </div>
+                            <div class="bento-value" style="font-size: 1rem; color: #3730a3;">{{
+                                p.fsrs_stability|round(1) if p.fsrs_stability else '0' }} ngày</div>
+                        </div>
+
+                        <!-- Difficulty -->
+                        <div class="bento-item" style="border: 1px solid #fecdd3; background: #fff1f2;">
+                            <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+                                <div
+                                    style="width: 24px; height: 24px; border-radius: 6px; background: #ffe4e6; color: #e11d48; display: flex; align-items: center; justify-content: center; font-size: 0.7rem;">
+                                    <i class="fas fa-dumbbell"></i>
+                                </div>
+                                <div class="bento-label" style="margin: 0;">ĐỘ KHÓ (D)</div>
+                            </div>
+                            <div class="bento-value" style="font-size: 1rem; color: #9f1239;">{{
+                                p.fsrs_difficulty|round(1) if p.fsrs_difficulty else '0' }}</div>
+                        </div>
+
+                        <!-- First Review -->
+                        <div class="bento-item" style="border: 1px solid #d8b4fe; background: #faf5ff;">
+                            <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+                                <div
+                                    style="width: 24px; height: 24px; border-radius: 6px; background: #f3e8ff; color: #9333ea; display: flex; align-items: center; justify-content: center; font-size: 0.7rem;">
+                                    <i class="fas fa-flag"></i>
+                                </div>
+                                <div class="bento-label" style="margin: 0;">LẦN ĐẦU TIÊN</div>
+                            </div>
+                            <div class="bento-value" style="font-size: 0.9rem; color: #6b21a8;">{{
+                                p.first_reviewed|user_timezone('%d/%m/%Y') if p.first_reviewed else 'Chưa học' }}</div>
+                        </div>
+
+                        <!-- Repetitions -->
+                        <div class="bento-item"
+                            style="border: 1px solid #bfdbfe; background: #f0f7ff; grid-column: span 2;">
+                            <div
+                                style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+                                <div class="bento-label" style="margin: 0;">SỐ LẦN ÔN TẬP</div>
+                                <div
+                                    style="font-size: 0.8rem; font-weight: 800; color: #1e40af; background: #dbeafe; padding: 0.15rem 0.5rem; border-radius: 99px;">
+                                    Tổng: {{ perf.total_reviews }}</div>
+                            </div>
+                            <div style="display: flex; gap: 1rem; overflow-x: auto; padding-bottom: 0.25rem;"
+                                class="no-scrollbar">
+                                {% for mode, data in s.modes.items() %}
+                                <div style="text-align: center; flex-shrink: 0; min-width: 45px;">
+                                    <div
+                                        style="font-size: 0.55rem; color: #64748b; font-weight: 800; text-transform: uppercase;">
+                                        {{ mode }}</div>
+                                    <div style="font-size: 1rem; font-weight: 800; color: #1e40af;">{{ data.count }}
+                                    </div>
+                                </div>
+                                {% if not loop.last %}<div
+                                    style="width: 1px; height: 20px; background: #dbeafe; align-self: center;"></div>{%
+                                endif %}
+                                {% endfor %}
+                                {% if not s.modes %}<div style="font-size: 0.7rem; color: #94a3b8; font-style: italic;">
+                                    Chưa có dữ liệu</div>{% endif %}
+                            </div>
+                        </div>
+
+                        <!-- Total Study Time -->
+                        <div class="bento-item" style="border: 1px solid #99f6e4; background: #f0fdfa;">
+                            <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+                                <div
+                                    style="width: 24px; height: 24px; border-radius: 6px; background: #ccfbf1; color: #0d9488; display: flex; align-items: center; justify-content: center; font-size: 0.7rem;">
+                                    <i class="fas fa-clock"></i>
+                                </div>
+                                <div class="bento-label" style="margin: 0;">TỔNG THỜI GIAN</div>
+                            </div>
+                            {% set total_sec = (perf.total_time_ms / 1000)|round(0)|int %}
+                            {% set mins = total_sec // 60 %}
+                            {% set secs = total_sec % 60 %}
+                            <div class="bento-value" style="font-size: 1rem; color: #115e59;">{% if mins > 0 %}{{ mins
+                                }}p {{ secs }}s{% else %}{{ secs }}s{% endif %}</div>
+                        </div>
+
+                        <!-- Avg Time -->
+                        <div class="bento-item" style="border: 1px solid #fde68a; background: #fffbeb;">
+                            <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+                                <div
+                                    style="width: 24px; height: 24px; border-radius: 6px; background: #fef3c7; color: #d97706; display: flex; align-items: center; justify-content: center; font-size: 0.7rem;">
+                                    <i class="fas fa-tachometer-alt"></i>
+                                </div>
+                                <div class="bento-label" style="margin: 0;">TB / LẦN</div>
+                            </div>
+                            <div class="bento-value" style="font-size: 1rem; color: #92400e;">{{ (perf.avg_time_ms /
+                                1000)|round(1) if perf.avg_time_ms else '0' }}s</div>
+                        </div>
+
+                        <!-- Accuracy -->
+                        <div class="bento-item" style="border: 1px solid #a7f3d0; background: #f0fdf4;">
+                            <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+                                <div
+                                    style="width: 24px; height: 24px; border-radius: 6px; background: #d1fae5; color: #10b981; display: flex; align-items: center; justify-content: center; font-size: 0.7rem;">
+                                    <i class="fas fa-bullseye"></i>
+                                </div>
+                                <div class="bento-label" style="margin: 0;">ĐÚNG</div>
+                            </div>
+                            <div class="bento-value" style="font-size: 1rem; color: #065f46;">{{ perf.accuracy }}%</div>
+                        </div>
+
+                        <!-- Streak -->
+                        <div class="bento-item" style="border: 1px solid #fecaca; background: #fff5f5;">
+                            <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+                                <div
+                                    style="width: 24px; height: 24px; border-radius: 6px; background: #fee2e2; color: #ef4444; display: flex; align-items: center; justify-content: center; font-size: 0.7rem;">
+                                    <i class="fas fa-fire"></i>
+                                </div>
+                                <div class="bento-label" style="margin: 0;">CHUỖI</div>
+                            </div>
+                            <div class="bento-value" style="font-size: 1rem; color: #991b1b;">{{ p.streak }} LẦN</div>
                         </div>
                     </div>
+                </div>
 
-                    <!-- Top row: Next Review & FSRS S -->
-                    <div class="bento-item" style="border: 1px solid #fed7aa; background: #fffaf5;">
-                        <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+                <!-- Sub-tab 2: Detail History -->
+                <div id="sub-detail" class="sub-tab-content"
+                    style="display: none; padding: 0; flex-direction: column; overflow: hidden; background: white; border-radius: 0.75rem; border: 1px solid #e2e8f0; margin: 0 0.75rem; height: 100%; min-height: 0;">
+                    <!-- Fixed Header -->
+                    <div style="padding: 0.75rem 1rem 0 1rem; background: white; z-index: 10; flex-shrink: 0;">
+                        <div id="history-detail-card-stats"
+                            style="background: white; border: 1px solid #e2e8f0; border-radius: 1rem; padding: 1rem; margin-bottom: 0.75rem; box-shadow: 0 4px 12px rgba(0,0,0,0.03);">
                             <div
-                                style="width: 24px; height: 24px; border-radius: 6px; background: #ffedd5; color: #f59e0b; display: flex; align-items: center; justify-content: center; font-size: 0.7rem;">
-                                <i class="fas fa-calendar-alt"></i>
+                                style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                    <span id="hist-result"
+                                        style="font-size: 0.65rem; padding: 0.2rem 0.6rem; background: #ecfdf5; color: #10b981; border-radius: 20px; font-weight: 800; text-transform: uppercase;"><i
+                                            class="fas fa-check-circle"></i> Đúng</span>
+                                    <span id="hist-time"
+                                        style="font-size: 0.6rem; color: #94a3b8; font-weight: 600;"></span>
+                                </div>
+                                <span id="hist-mode-badge"
+                                    style="font-size: 0.6rem; color: #64748b; font-weight: 800; background: #f1f5f9; padding: 0.2rem 0.5rem; border-radius: 4px; text-transform: uppercase;"><i
+                                        class="fas fa-layer-group" style="font-size: 0.55rem;"></i> -</span>
                             </div>
-                            <div class="bento-label" style="margin: 0;">SẮP TỚI</div>
-                        </div>
-                        <div class="bento-value" style="font-size: 1rem; color: #9a3412;">{{ p.due_relative }}</div>
-                    </div>
-
-                    <div class="bento-item" style="border: 1px solid #c7d2fe; background: #eef2ff;">
-                        <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
-                            <div
-                                style="width: 24px; height: 24px; border-radius: 6px; background: #e0e7ff; color: #4f46e5; display: flex; align-items: center; justify-content: center; font-size: 0.7rem;">
-                                <i class="fas fa-anchor"></i>
-                            </div>
-                            <div class="bento-label" style="margin: 0;">ỔN ĐỊNH (S)</div>
-                        </div>
-                        <div class="bento-value" style="font-size: 1rem; color: #3730a3;">{{ p.fsrs_stability|round(1)
-                            if p.fsrs_stability else '0' }} ngày</div>
-                    </div>
-
-                    <!-- Second row: FSRS D & First Review -->
-                    <div class="bento-item" style="border: 1px solid #fecdd3; background: #fff1f2;">
-                        <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
-                            <div
-                                style="width: 24px; height: 24px; border-radius: 6px; background: #ffe4e6; color: #e11d48; display: flex; align-items: center; justify-content: center; font-size: 0.7rem;">
-                                <i class="fas fa-dumbbell"></i>
-                            </div>
-                            <div class="bento-label" style="margin: 0;">ĐỘ KHÓ (D)</div>
-                        </div>
-                        <div class="bento-value" style="font-size: 1rem; color: #9f1239;">{{ p.fsrs_difficulty|round(1)
-                            if p.fsrs_difficulty else '0' }}</div>
-                    </div>
-
-                    <div class="bento-item" style="border: 1px solid #d8b4fe; background: #faf5ff;">
-                        <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
-                            <div
-                                style="width: 24px; height: 24px; border-radius: 6px; background: #f3e8ff; color: #9333ea; display: flex; align-items: center; justify-content: center; font-size: 0.7rem;">
-                                <i class="fas fa-flag"></i>
-                            </div>
-                            <div class="bento-label" style="margin: 0;">LẦN ĐẦU TIÊN</div>
-                        </div>
-                        <div class="bento-value" style="font-size: 0.9rem; color: #6b21a8;">{{
-                            p.first_reviewed|user_timezone('%d/%m/%Y') if p.first_reviewed else 'Chưa học' }}</div>
-                    </div>
-
-                    <!-- Repetitions (Dynamic by Mode) with Total -->
-                    <div class="bento-item"
-                        style="border: 1px solid #bfdbfe; background: #f0f7ff; grid-column: span 2;">
-                        <div
-                            style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
-                            <div class="bento-label" style="margin: 0;">SỐ LẦN ÔN TẬP</div>
-                            <div
-                                style="font-size: 0.8rem; font-weight: 800; color: #1e40af; background: #dbeafe; padding: 0.15rem 0.5rem; border-radius: 99px;">
-                                Tổng: {{ perf.total_reviews }}
+                            <!-- 3x3 Stat Grid -->
+                            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem;">
+                                <div class="stat-box">
+                                    <div class="stat-label">Thời gian</div>
+                                    <div id="hist-duration" class="stat-value" style="font-size: 1rem; color: #334155;">
+                                        -</div>
+                                </div>
+                                <div class="stat-box">
+                                    <div class="stat-label">Điểm số</div>
+                                    <div id="hist-score" class="stat-value" style="font-size: 1rem; color: #f59e0b;">0
+                                    </div>
+                                </div>
+                                <div class="stat-box">
+                                    <div class="stat-label">Ổn định (S)</div>
+                                    <div id="hist-mastery" class="stat-value" style="font-size: 1rem; color: #4f46e5;">-
+                                    </div>
+                                </div>
+                                <div class="stat-box">
+                                    <div class="stat-label">Độ khó (D)</div>
+                                    <div id="hist-difficulty" class="stat-value"
+                                        style="font-size: 1rem; color: #e11d48;">-</div>
+                                </div>
+                                <div class="stat-box">
+                                    <div class="stat-label">Hạn dùng</div>
+                                    <div id="hist-interval" class="stat-value" style="font-size: 1rem; color: #0d9488;">
+                                        -</div>
+                                </div>
+                                <div class="stat-box">
+                                    <div class="stat-label">Nhớ (R)</div>
+                                    <div id="hist-retrievability" class="stat-value"
+                                        style="font-size: 1rem; color: #7c3aed;">-</div>
+                                </div>
+                                <div class="stat-box">
+                                    <div class="stat-label">Trạng thái</div>
+                                    <div id="hist-fsrs-state" class="stat-value"
+                                        style="font-size: 0.7rem; color: #059669;">-</div>
+                                </div>
+                                <div class="stat-box">
+                                    <div class="stat-label">Thiết bị</div>
+                                    <div id="hist-context-device" class="stat-value"
+                                        style="font-size: 0.7rem; color: #64748b;">-</div>
+                                </div>
+                                <div class="stat-box">
+                                    <div class="stat-label">Lần thứ</div>
+                                    <div id="hist-context-rep" class="stat-value"
+                                        style="font-size: 1rem; color: #1e40af;">-</div>
+                                </div>
                             </div>
                         </div>
-                        <div style="display: flex; gap: 1rem; overflow-x: auto; padding-bottom: 0.25rem;"
+                        <div style="display: flex; gap: 0.4rem; overflow-x: auto; padding-bottom: 0.3rem;"
                             class="no-scrollbar">
                             {% for mode, data in s.modes.items() %}
-                            <div style="text-align: center; flex-shrink: 0; min-width: 45px;">
-                                <div
-                                    style="font-size: 0.55rem; color: #64748b; font-weight: 800; text-transform: uppercase;">
-                                    {{ mode }}</div>
-                                <div style="font-size: 1rem; font-weight: 800; color: #1e40af;">{{ data.count }}</div>
-                            </div>
-                            {% if not loop.last %}
-                            <div style="width: 1px; height: 20px; background: #dbeafe; align-self: center;"></div>
-                            {% endif %}
+                            <span
+                                style="flex-shrink: 0; font-size: 0.6rem; font-weight: 800; color: #475569; background: #f1f5f9; padding: 0.2rem 0.5rem; border-radius: 4px; text-transform: uppercase;">{{
+                                mode }} {{ data.count }}</span>
                             {% endfor %}
-                            {% if not s.modes %}
-                            <div style="font-size: 0.7rem; color: #94a3b8; font-style: italic;">Chưa có dữ liệu</div>
-                            {% endif %}
                         </div>
-                    </div>
-
-                    <!-- Accuracy & Streak Row -->
-                    <div class="bento-item" style="border: 1px solid #a7f3d0; background: #f0fdf4;">
-                        <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
-                            <div
-                                style="width: 24px; height: 24px; border-radius: 6px; background: #d1fae5; color: #10b981; display: flex; align-items: center; justify-content: center; font-size: 0.7rem;">
-                                <i class="fas fa-bullseye"></i>
-                            </div>
-                            <div class="bento-label" style="margin: 0;">ĐÚNG</div>
-                        </div>
-                        <div class="bento-value" style="font-size: 1rem; color: #065f46;">{{ perf.accuracy }}%</div>
-                    </div>
-
-                    <!-- Streak -->
-                    <div class="bento-item" style="border: 1px solid #fecaca; background: #fff5f5;">
-                        <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
-                            <div
-                                style="width: 24px; height: 24px; border-radius: 6px; background: #fee2e2; color: #ef4444; display: flex; align-items: center; justify-content: center; font-size: 0.7rem;">
-                                <i class="fas fa-fire"></i>
-                            </div>
-                            <div class="bento-label" style="margin: 0;">CHUỖI</div>
-                        </div>
-                        <div class="bento-value" style="font-size: 1rem; color: #991b1b;">{{ p.streak }} LẦN</div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Sub-tab 2: Review Detail History -->
-            <div id="sub-detail" class="sub-tab-content"
-                style="display: none; padding: 0; flex: 1; min-height: 0; flex-direction: column; overflow: hidden; background: white; border-radius: 1rem; border: 1px solid #e2e8f0; margin: 0 1rem 1rem 1rem;">
-                <!-- Fixed Header Layer (Sticks to top) -->
-                <div style="padding: 0.75rem 1rem 0 1rem; background: white; z-index: 10; flex-shrink: 0;">
-                    <!-- Selected History detail card -->
-                    <div id="history-detail-card-stats"
-                        style="background: white; border: 1px solid #e2e8f0; border-radius: 1rem; padding: 1rem; margin-bottom: 0.75rem; box-shadow: 0 4px 12px rgba(0,0,0,0.03);">
                         <div
-                            style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-                            <div style="display: flex; align-items: center; gap: 0.5rem;">
-                                <span id="hist-result" class="result-pill"
-                                    style="font-size: 0.65rem; padding: 0.2rem 0.6rem; background: #ecfdf5; color: #10b981; border-radius: 20px; font-weight: 800; text-transform: uppercase;">
-                                    <i class="fas fa-check-circle"></i> Đúng
-                                </span>
-                                <span id="hist-rating"
-                                    style="display: none; font-size: 0.65rem; padding: 0.2rem 0.6rem; background: #f1f5f9; color: #475569; border-radius: 20px; font-weight: 800; text-transform: uppercase; border: 1px solid #e2e8f0;">
-                                    GOOD
-                                </span>
-                                <span id="hist-time"
-                                    style="font-size: 0.7rem; color: #94a3b8; font-weight: 600;">--:--</span>
-                            </div>
-                            <span id="hist-mode-badge"
-                                style="font-size: 0.6rem; font-weight: 800; background: #f1f5f9; color: #64748b; padding: 0.3rem 0.6rem; border-radius: 6px; text-transform: uppercase; border: 1px solid #e2e8f0;">MCQ</span>
+                            style="display: flex; justify-content: space-between; align-items: center; padding-bottom: 0.5rem; border-bottom: 1px solid #f1f5f9; margin-top: 0.5rem;">
+                            <div class="bento-label" style="margin: 0; color: #64748b; font-size: 0.65rem;">DÒNG THỜI
+                                GIAN ÔN TẬP</div>
+                            <span style="font-size: 0.6rem; font-weight: 800; color: #94a3b8;">{{ s.history|length }}
+                                LẦN</span>
                         </div>
-
-                        <div
-                            style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.75rem; border-top: 1px dashed #f1f5f9; padding-top: 0.75rem;">
-                            <div class="stat-box">
-                                <div class="stat-label">Thời gian</div>
-                                <div id="hist-duration" class="stat-value" style="font-size: 0.85rem;">0s</div>
-                            </div>
-                            <div class="stat-box">
-                                <div class="stat-label">Điểm số</div>
-                                <div id="hist-score" class="stat-value" style="font-size: 0.85rem; color: #f59e0b;">0
+                    </div>
+                    <!-- Scrollable History List -->
+                    <div class="history-vertical-list no-scrollbar"
+                        style="flex: 1; overflow-y: auto; padding: 0.75rem 1rem 1rem 1rem; display: flex; flex-direction: column; gap: 0.75rem;">
+                        {% if s.history %}
+                        {% for log in s.history %}
+                        <div class="history-item js-history-item" data-log-idx="{{ loop.index0 }}"
+                            style="display: flex; align-items: center; justify-content: space-between; padding: 0.75rem 1rem; background: white; border: 1px solid #e2e8f0; border-radius: 0.75rem; cursor: pointer; transition: all 0.2s;"
+                            onclick="window.selectHistoryItemV3(this, {{ loop.index0 }})">
+                            <div style="display: flex; align-items: center; gap: 0.75rem;">
+                                <div
+                                    style="width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 0.7rem; {% if log.result == 'Correct' %}background: #ecfdf5; color: #10b981;{% else %}background: #fef2f2; color: #ef4444;{% endif %}">
+                                    {% if log.result == 'Correct' %}<i class="fas fa-check"></i>{% else %}<i
+                                        class="fas fa-times"></i>{% endif %}
+                                </div>
+                                <div>
+                                    <div style="font-size: 0.75rem; font-weight: 700; color: #1e293b;">{{ log.mode|upper
+                                        or 'MCQ' }}</div>
+                                    <span style="font-size: 0.6rem; color: #94a3b8; font-weight: 700;">{{
+                                        log.timestamp|user_timezone("%d/%m") }} • {{ (log.duration_ms / 1000)|round(1)
+                                        }}s</span>
                                 </div>
                             </div>
-                            <div class="stat-box" title="Độ ổn định (Stability)">
-                                <div class="stat-label">Ổn định</div>
-                                <div id="hist-mastery" class="stat-value" style="font-size: 0.85rem;">0</div>
+                            <div style="text-align: right;">
+                                <div
+                                    style="font-size: 0.75rem; font-weight: 800; color: {% if log.score_change >= 0 %}#10b981{% else %}#ef4444{% endif %};">
+                                    {{ '+' if log.score_change > 0 else '' }}{{ log.score_change }}</div>
+                                <div style="font-size: 0.55rem; color: #cbd5e1; font-weight: 700;">POINTS</div>
                             </div>
-                            <div class="stat-box" title="Độ khó (Difficulty)">
-                                <div class="stat-label">Độ khó</div>
-                                <div id="hist-difficulty" class="stat-value" style="font-size: 0.85rem;">0</div>
-                            </div>
-                            <div class="stat-box" title="Khoảng cách ôn tập lần sau (Interval)">
-                                <div class="stat-label">Hạn dùng</div>
-                                <div id="hist-interval" class="stat-value" style="font-size: 0.85rem;">-</div>
-                            </div>
-                            <div class="stat-box" title="Khả năng nhớ hiện tại (Retrievability)">
-                                <div class="stat-label">Nhớ</div>
-                                <div id="hist-retrievability" class="stat-value" style="font-size: 0.85rem;">-</div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Mode Summary Row (Compact) -->
-                    <div style="display: flex; gap: 0.5rem; margin-bottom: 0.75rem; overflow-x: auto; padding-bottom: 0.25rem;"
-                        class="no-scrollbar">
-                        {% for mode, data in s.modes.items() %}
-                        <div
-                            style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 0.35rem 0.6rem; display: flex; align-items: center; gap: 0.4rem; flex-shrink: 0;">
-                            <span
-                                style="font-size: 0.55rem; font-weight: 800; color: #64748b; text-transform: uppercase;">{{
-                                mode }}</span>
-                            <span style="font-size: 0.75rem; font-weight: 800; color: #4f46e5;">{{ data.count }}</span>
                         </div>
                         {% endfor %}
-                    </div>
-
-                    <div
-                        style="display: flex; justify-content: space-between; align-items: center; padding-bottom: 0.5rem; border-bottom: 1px solid #f1f5f9;">
-                        <div class="bento-label" style="margin: 0; color: #64748b; font-size: 0.65rem;">DÒNG THỜI GIAN
-                            ÔN TẬP</div>
-                        <span style="font-size: 0.6rem; font-weight: 800; color: #94a3b8;">{{ s.history|length }}
-                            LẦN</span>
-                    </div>
-                </div>
-
-                <!-- Scrollable History List Section -->
-                <div class="history-vertical-list no-scrollbar"
-                    style="flex: 1; overflow-y: auto; padding: 0.75rem 1rem 1rem 1rem; display: flex; flex-direction: column; gap: 0.75rem;">
-                    {% if s.history %}
-                    {% for log in s.history %}
-                    <div class="history-item js-history-item" data-log-idx="{{ loop.index0 }}"
-                        style="display: flex; align-items: center; justify-content: space-between; padding: 0.75rem 1rem; background: white; border: 1px solid #e2e8f0; border-radius: 0.75rem; cursor: pointer; transition: all 0.2s;"
-                        onclick="window.selectHistoryItemV3(this, {{ loop.index0 }})">
-                        <div style="display: flex; align-items: center; gap: 0.75rem;">
-                            <div
-                                style="width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 0.7rem; 
-                                             {% if log.result == 'Correct' %}background: #ecfdf5; color: #10b981;{% else %}background: #fef2f2; color: #ef4444;{% endif %}">
-                                {% if log.result == 'Correct' %}<i class="fas fa-check"></i>{% else %}<i
-                                    class="fas fa-times"></i>{% endif %}
-                            </div>
-                            <div>
-                                <div style="font-size: 0.75rem; font-weight: 700; color: #1e293b;">
-                                    {{ log.mode|upper or 'MCQ' }}
-                                </div>
-                                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                                    {{ log.timestamp|user_timezone("%d/%m") }} • {{ (log.duration_ms /
-                                    1000)|round(1) }}s
-                                </span>
-                            </div>
-                        </div>
-                        <div style="text-align: right;">
-                            <div
-                                style="font-size: 0.75rem; font-weight: 800; color: {% if log.score_change >= 0 %}#10b981{% else %}#ef4444{% endif %};">
-                                {{ '+' if log.score_change > 0 else '' }}{{ log.score_change }}
-                            </div>
-                            <div style="font-size: 0.55rem; color: #cbd5e1; font-weight: 700;">POINTS</div>
-                        </div>
-                    </div>
-                    {% endfor %}
-                    {% else %}
-                    <div
-                        style="text-align: center; padding: 2rem; color: #94a3b8; font-style: italic; font-size: 0.75rem;">
-                        <i class="fas fa-history" style="font-size: 1.5rem; margin-bottom: 0.5rem; opacity: 0.3;"></i>
-                        <p>Chưa phát sinh lượt học nào.</p>
-                    </div>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
-
-        <!-- Sub-tab 2: Community Insights -->
-        <div id="sub-community" class="sub-tab-content" style="display: none; padding: 0 1rem 1rem 1rem;">
-            <div class="bento-grid">
-                <!-- Total Learners -->
-                <div class="bento-item" style="background: #f8fafc; border: 1px solid #e2e8f0;">
-                    <div>
-                        <div class="bento-icon" style="background: #e0e7ff; color: #4f46e5;"><i
-                                class="fas fa-users"></i></div>
-                        <div class="bento-label">NGƯỜI HỌC</div>
-                    </div>
-                    <div class="bento-value" style="font-size: 1.4rem; color: #1e1b4b;">{{ s.social.learners_count
-                        }}</div>
-                </div>
-
-                <!-- Mastered Count -->
-                <div class="bento-item" style="background: #f8fafc; border: 1px solid #e2e8f0;">
-                    <div>
-                        <div class="bento-icon" style="background: #fef3c7; color: #d97706;"><i
-                                class="fas fa-award"></i></div>
-                        <div class="bento-label">THÀNH THẠO</div>
-                    </div>
-                    <div class="bento-value" style="font-size: 1.4rem; color: #1e1b4b;">{{ s.social.mastered_count
-                        }}</div>
-                </div>
-
-                <!-- Community Accuracy Comparison -->
-                <div class="bento-item large" style="background: white; border: 1px solid #e2e8f0; padding: 1.25rem;">
-                    <div class="bento-label" style="display: flex; justify-content: space-between;">
-                        <span>TỶ LỆ LÀM ĐÚNG</span>
-                        <span style="color: #6366f1;">BẠN VS CỘNG ĐỒNG</span>
-                    </div>
-                    <div style="margin-top: 1.25rem; display: flex; flex-direction: column; gap: 1rem;">
-                        <!-- Personal -->
-                        <div>
-                            <div
-                                style="display: flex; justify-content: space-between; align-items: center; font-size: 0.65rem; font-weight: 800; margin-bottom: 0.4rem;">
-                                <span style="color: #475569;">BẠN</span>
-                                <span style="color: #4f46e5;">{{ perf.accuracy }}%</span>
-                            </div>
-                            <div style="height: 10px; background: #f1f5f9; border-radius: 5px; overflow: hidden;">
-                                <div
-                                    style="width: {{ perf.accuracy }}%; height: 100%; background: linear-gradient(90deg, #4f46e5, #818cf8);">
-                                </div>
-                            </div>
-                        </div>
-                        <!-- Community -->
-                        <div>
-                            <div
-                                style="display: flex; justify-content: space-between; align-items: center; font-size: 0.65rem; font-weight: 800; margin-bottom: 0.4rem;">
-                                <span style="color: #475569;">CỘNG ĐỒNG</span>
-                                <span style="color: #10b981;">{{ s.social.community_accuracy }}%</span>
-                            </div>
-                            <div style="height: 10px; background: #f1f5f9; border-radius: 5px; overflow: hidden;">
-                                <div
-                                    style="width: {{ s.social.community_accuracy }}%; height: 100%; background: linear-gradient(90deg, #10b981, #34d399);">
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Community Difficulty -->
-                <div class="bento-item" style="background: #fdf2f8; border: 1px solid #fbcfe8;">
-                    <div>
-                        <div class="bento-icon" style="background: #fce7f3; color: #db2777;"><i
-                                class="fas fa-chart-area"></i></div>
-                        <div class="bento-label">ĐỘ KHÓ CHUNG</div>
-                    </div>
-                    <div class="bento-value" style="font-size: 1.4rem; color: #9d174d;">{{
-                        s.social.community_difficulty }}</div>
-                </div>
-
-                <!-- Total Community Reviews -->
-                <div class="bento-item" style="background: #f0fdfa; border: 1px solid #99f6e4;">
-                    <div>
-                        <div class="bento-icon" style="background: #ccfbf1; color: #0d9488;"><i
-                                class="fas fa-layer-group"></i></div>
-                        <div class="bento-label">TỔNG LƯỢT ÔN</div>
-                    </div>
-                    <div class="bento-value" style="font-size: 1.4rem; color: #115e59;">{{ s.social.total_reviews }}
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Sub-tab 3: Visual Charts -->
-        <div id="sub-charts" class="sub-tab-content" style="display: none; padding: 0 1rem 1rem 1rem;">
-            <div class="bento-grid">
-                <!-- Activity Heatmap (Now in Charts) -->
-                <div class="bento-item large"
-                    style="min-height: 140px; background: #ffffff; border: 1px solid #e2e8f0; padding: 1rem;">
-                    <div
-                        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
-                        <div class="bento-label" style="margin-bottom: 0; color: #475569;">MẬT ĐỘ KIẾN THỨC</div>
+                        {% else %}
                         <div
-                            style="font-size: 0.55rem; color: #94a3b8; font-weight: 800; background: #f8fafc; padding: 0.15rem 0.4rem; border-radius: 4px;">
-                            24 TUẦN GẦN NHẤT</div>
+                            style="text-align: center; padding: 2rem; color: #94a3b8; font-style: italic; font-size: 0.75rem;">
+                            <i class="fas fa-history"
+                                style="font-size: 1.5rem; margin-bottom: 0.5rem; opacity: 0.3;"></i>
+                            <p>Chưa phát sinh lượt học nào.</p>
+                        </div>
+                        {% endif %}
                     </div>
-                    <div id="activity-heatmap"
-                        style="display: flex; justify-content: center; align-items: center; min-height: 80px;">
-                        <div style="font-size: 0.7rem; color: #94a3b8; font-style: italic;">Đang tải dữ liệu...
+                </div>
+
+                <!-- Sub-tab 3: Community -->
+                <div id="sub-community" class="sub-tab-content" style="display: none; padding: 0.75rem 1rem 1rem 1rem;">
+                    <div class="bento-grid">
+                        <div class="bento-item" style="background: #f8fafc; border: 1px solid #e2e8f0;">
+                            <div>
+                                <div class="bento-icon" style="background: #e0e7ff; color: #4f46e5;"><i
+                                        class="fas fa-users"></i></div>
+                                <div class="bento-label">NGƯỜI HỌC</div>
+                            </div>
+                            <div class="bento-value" style="font-size: 1.4rem; color: #1e1b4b;">{{
+                                s.social.learners_count }}</div>
+                        </div>
+                        <div class="bento-item" style="background: #f8fafc; border: 1px solid #e2e8f0;">
+                            <div>
+                                <div class="bento-icon" style="background: #fef3c7; color: #d97706;"><i
+                                        class="fas fa-award"></i></div>
+                                <div class="bento-label">THÀNH THẠO</div>
+                            </div>
+                            <div class="bento-value" style="font-size: 1.4rem; color: #1e1b4b;">{{
+                                s.social.mastered_count }}</div>
+                        </div>
+                        <!-- Mastery Rate -->
+                        <div class="bento-item large"
+                            style="background: linear-gradient(135deg, #f0fdf4, #ecfdf5); border: 1px solid #a7f3d0; padding: 1.25rem;">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <div class="bento-label" style="margin: 0;">TỶ LỆ THÀNH THẠO</div>
+                                <div style="font-size: 0.55rem; color: #059669; font-weight: 800;">COMMUNITY</div>
+                            </div>
+                            {% set mastery_rate = ((s.social.mastered_count / s.social.learners_count * 100)|round(1))
+                            if s.social.learners_count > 0 else 0 %}
+                            <div style="margin-top: 0.75rem;">
+                                <div
+                                    style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 0.4rem;">
+                                    <span style="font-size: 1.5rem; font-weight: 900; color: #065f46;">{{ mastery_rate
+                                        }}%</span>
+                                    <span style="font-size: 0.65rem; color: #94a3b8; font-weight: 700;">{{
+                                        s.social.mastered_count }}/{{ s.social.learners_count }} người</span>
+                                </div>
+                                <div style="height: 8px; background: #d1fae5; border-radius: 4px; overflow: hidden;">
+                                    <div
+                                        style="width: {{ mastery_rate }}%; height: 100%; background: linear-gradient(90deg, #10b981, #34d399); border-radius: 4px;">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- You vs Community -->
+                        <div class="bento-item large"
+                            style="background: white; border: 1px solid #e2e8f0; padding: 1.25rem;">
+                            <div class="bento-label" style="display: flex; justify-content: space-between;"><span>TỶ LỆ
+                                    LÀM ĐÚNG</span><span style="color: #6366f1;">BẠN VS CỘNG ĐỒNG</span></div>
+                            <div style="margin-top: 1.25rem; display: flex; flex-direction: column; gap: 1rem;">
+                                <div>
+                                    <div
+                                        style="display: flex; justify-content: space-between; font-size: 0.65rem; font-weight: 800; margin-bottom: 0.4rem;">
+                                        <span style="color: #475569;">BẠN</span><span style="color: #4f46e5;">{{
+                                            perf.accuracy }}%</span>
+                                    </div>
+                                    <div
+                                        style="height: 10px; background: #f1f5f9; border-radius: 5px; overflow: hidden;">
+                                        <div
+                                            style="width: {{ perf.accuracy }}%; height: 100%; background: linear-gradient(90deg, #4f46e5, #818cf8);">
+                                        </div>
+                                    </div>
+                                </div>
+                                <div>
+                                    <div
+                                        style="display: flex; justify-content: space-between; font-size: 0.65rem; font-weight: 800; margin-bottom: 0.4rem;">
+                                        <span style="color: #475569;">CỘNG ĐỒNG</span><span style="color: #10b981;">{{
+                                            s.social.community_accuracy }}%</span>
+                                    </div>
+                                    <div
+                                        style="height: 10px; background: #f1f5f9; border-radius: 5px; overflow: hidden;">
+                                        <div
+                                            style="width: {{ s.social.community_accuracy }}%; height: 100%; background: linear-gradient(90deg, #10b981, #34d399);">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="bento-item" style="background: #fdf2f8; border: 1px solid #fbcfe8;">
+                            <div>
+                                <div class="bento-icon" style="background: #fce7f3; color: #db2777;"><i
+                                        class="fas fa-chart-area"></i></div>
+                                <div class="bento-label">ĐỘ KHÓ CHUNG</div>
+                            </div>
+                            <div class="bento-value" style="font-size: 1.4rem; color: #9d174d;">{{
+                                s.social.community_difficulty }}</div>
+                        </div>
+                        <div class="bento-item" style="background: #f0fdfa; border: 1px solid #99f6e4;">
+                            <div>
+                                <div class="bento-icon" style="background: #ccfbf1; color: #0d9488;"><i
+                                        class="fas fa-layer-group"></i></div>
+                                <div class="bento-label">TỔNG LƯỢT ÔN</div>
+                            </div>
+                            <div class="bento-value" style="font-size: 1.4rem; color: #115e59;">{{
+                                s.social.total_reviews }}</div>
+                        </div>
+                        <div class="bento-item" style="background: #eff6ff; border: 1px solid #bfdbfe;">
+                            <div>
+                                <div class="bento-icon" style="background: #dbeafe; color: #2563eb;"><i
+                                        class="fas fa-stopwatch"></i></div>
+                                <div class="bento-label">TB THỜI GIAN</div>
+                            </div>
+                            <div class="bento-value" style="font-size: 1.4rem; color: #1e40af;">{{
+                                ((s.social.community_avg_duration or 0) / 1000)|round(1) }}s</div>
+                        </div>
+                        <div class="bento-item" style="background: #faf5ff; border: 1px solid #d8b4fe;">
+                            <div>
+                                <div class="bento-icon" style="background: #f3e8ff; color: #7c3aed;"><i
+                                        class="fas fa-star"></i></div>
+                                <div class="bento-label">PP PHỔ BIẾN</div>
+                            </div>
+                            <div class="bento-value"
+                                style="font-size: 1rem; color: #5b21b6; text-transform: uppercase;">{{
+                                s.social.most_popular_mode or 'N/A' }}</div>
                         </div>
                     </div>
                 </div>
 
-                <!-- FSRS Stability Trend -->
-                <div class="bento-item large"
-                    style="min-height: 220px; background: white; border: 1px solid #e2e8f0; padding: 1.25rem;">
-                    <div
-                        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-                        <div class="bento-label" style="color: #475569;">XU HƯỚNG GHI NHỚ (S)</div>
-                        <div style="font-size: 0.55rem; color: #94a3b8; font-weight: 800;">FSRS LOGS</div>
-                    </div>
-                    <div style="height: 160px; width: 100%;">
-                        <canvas id="fsrsHistoryChart" height="160"></canvas>
-                    </div>
-                </div>
-
-                <!-- Forgetting Curve -->
-                <div class="bento-item large"
-                    style="min-height: 220px; background: white; border: 1px solid #e2e8f0; padding: 1.25rem;">
-                    <div
-                        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-                        <div class="bento-label" style="color: #475569;">DỰ BÁO KHẢ NĂNG NHỚ (R)</div>
-                        <div style="font-size: 0.55rem; color: #94a3b8; font-weight: 800;">30 NGÀY TỚI</div>
-                    </div>
-                    <div style="height: 160px; width: 100%;">
-                        <canvas id="forgettingCurveChart" height="160"></canvas>
-                    </div>
-                </div>
-
-                <!-- Learning Trend (Added) -->
-                <div class="bento-item large"
-                    style="min-height: 220px; background: white; border: 1px solid #e2e8f0; padding: 1.25rem;">
-                    <div
-                        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-                        <div class="bento-label" style="color: #475569;">LỊCH SỬ ÔN TẬP TÍCH LŨY</div>
-                        <div style="font-size: 0.55rem; color: #94a3b8; font-weight: 800;">30 NGÀY QUA</div>
-                    </div>
-                    <div style="height: 160px; width: 100%;">
-                        <canvas id="learningTrendChart" height="160"></canvas>
-                    </div>
-                </div>
-
-                <!-- Performance Breakdown (Added) -->
-                <div class="bento-item"
-                    style="min-height: 220px; background: #fff; border: 1px solid #e2e8f0; padding: 1.25rem;">
-                    <div class="bento-label" style="margin-bottom: 1rem; color: #475569;">CƠ CẤU KẾT QUẢ</div>
-                    <div
-                        style="height: 140px; width: 100%; display: flex; justify-content: center; align-items: center;">
-                        <canvas id="resultDistributionChart" height="140"></canvas>
-                    </div>
-                </div>
-
-                <!-- Difficulty Context (Added) -->
-                <div class="bento-item"
-                    style="min-height: 220px; background: #fff; border: 1px solid #e2e8f0; padding: 1.25rem;">
-                    <div class="bento-label" style="margin-bottom: 1rem; color: #475569;">ĐỘ KHÓ TƯƠNG QUAN</div>
-                    <div style="text-align: center; margin-top: 1rem;">
-                        <div style="font-size: 0.55rem; color: #94a3b8; font-weight: 800; margin-bottom: 0.5rem;">
-                            CHỈ SỐ COMMUNITY</div>
-                        <div class="bento-value" style="font-size: 2.2rem; color: #ef4444; line-height: 1;">{{
-                            s.social.community_difficulty }}</div>
-                        <div style="font-size: 0.65rem; font-weight: 700; color: #64748b; margin-top: 0.75rem;">MỨC
-                            ĐỘ THỬ THÁCH</div>
+                <!-- Sub-tab 4: Charts -->
+                <div id="sub-charts" class="sub-tab-content" style="display: none; padding: 0.75rem 1rem 1rem 1rem;">
+                    <div class="bento-grid">
+                        <div class="bento-item large"
+                            style="min-height: 140px; background: #ffffff; border: 1px solid #e2e8f0; padding: 1rem;">
+                            <div
+                                style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+                                <div class="bento-label" style="margin-bottom: 0; color: #475569;">MẬT ĐỘ KIẾN THỨC
+                                </div>
+                                <div
+                                    style="font-size: 0.55rem; color: #94a3b8; font-weight: 800; background: #f8fafc; padding: 0.15rem 0.4rem; border-radius: 4px;">
+                                    24 TUẦN GẦN NHẤT</div>
+                            </div>
+                            <div id="activity-heatmap"
+                                style="display: flex; justify-content: center; align-items: center; min-height: 80px;">
+                                <div style="font-size: 0.7rem; color: #94a3b8; font-style: italic;">Đang tải dữ liệu...
+                                </div>
+                            </div>
+                        </div>
+                        <div class="bento-item large"
+                            style="min-height: 220px; background: white; border: 1px solid #e2e8f0; padding: 1.25rem;">
+                            <div
+                                style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                                <div class="bento-label" style="color: #475569;">XU HƯỚNG GHI NHỚ (S)</div>
+                                <div style="font-size: 0.55rem; color: #94a3b8; font-weight: 800;">FSRS LOGS</div>
+                            </div>
+                            <div style="height: 160px; width: 100%;"><canvas id="fsrsHistoryChart"
+                                    height="160"></canvas></div>
+                        </div>
+                        <div class="bento-item large"
+                            style="min-height: 220px; background: white; border: 1px solid #e2e8f0; padding: 1.25rem;">
+                            <div
+                                style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                                <div class="bento-label" style="color: #475569;">DỰ BÁO KHẢ NĂNG NHỚ (R)</div>
+                                <div style="font-size: 0.55rem; color: #94a3b8; font-weight: 800;">30 NGÀY TỚI</div>
+                            </div>
+                            <div style="height: 160px; width: 100%;"><canvas id="forgettingCurveChart"
+                                    height="160"></canvas></div>
+                        </div>
+                        <div class="bento-item large"
+                            style="min-height: 220px; background: white; border: 1px solid #e2e8f0; padding: 1.25rem;">
+                            <div
+                                style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                                <div class="bento-label" style="color: #475569;">TỶ LỆ CHÍNH XÁC THEO THỜI GIAN</div>
+                                <div style="font-size: 0.55rem; color: #94a3b8; font-weight: 800;">ACCURACY TREND</div>
+                            </div>
+                            <div style="height: 160px; width: 100%;"><canvas id="accuracyTrendChart"
+                                    height="160"></canvas></div>
+                        </div>
+                        <div class="bento-item large"
+                            style="min-height: 220px; background: white; border: 1px solid #e2e8f0; padding: 1.25rem;">
+                            <div
+                                style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                                <div class="bento-label" style="color: #475569;">THỜI GIAN MỖI LẦN ÔN</div>
+                                <div style="font-size: 0.55rem; color: #94a3b8; font-weight: 800;">DURATION TREND</div>
+                            </div>
+                            <div style="height: 160px; width: 100%;"><canvas id="reviewDurationChart"
+                                    height="160"></canvas></div>
+                        </div>
+                        <div class="bento-item large"
+                            style="min-height: 220px; background: white; border: 1px solid #e2e8f0; padding: 1.25rem;">
+                            <div
+                                style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                                <div class="bento-label" style="color: #475569;">LỊCH SỬ ÔN TẬP TÍCH LŨY</div>
+                                <div style="font-size: 0.55rem; color: #94a3b8; font-weight: 800;">30 NGÀY QUA</div>
+                            </div>
+                            <div style="height: 160px; width: 100%;"><canvas id="learningTrendChart"
+                                    height="160"></canvas></div>
+                        </div>
+                        <div class="bento-item"
+                            style="min-height: 220px; background: #fff; border: 1px solid #e2e8f0; padding: 1.25rem;">
+                            <div class="bento-label" style="margin-bottom: 1rem; color: #475569;">CƠ CẤU KẾT QUẢ</div>
+                            <div
+                                style="height: 140px; width: 100%; display: flex; justify-content: center; align-items: center;">
+                                <canvas id="resultDistributionChart" height="140"></canvas>
+                            </div>
+                        </div>
+                        <div class="bento-item"
+                            style="min-height: 220px; background: #fff; border: 1px solid #e2e8f0; padding: 1.25rem;">
+                            <div class="bento-label" style="margin-bottom: 1rem; color: #475569;">ĐỘ KHÓ TƯƠNG QUAN
+                            </div>
+                            <div style="text-align: center; margin-top: 1rem;">
+                                <div
+                                    style="font-size: 0.55rem; color: #94a3b8; font-weight: 800; margin-bottom: 0.5rem;">
+                                    CHỈ SỐ COMMUNITY</div>
+                                <div class="bento-value" style="font-size: 2.2rem; color: #ef4444; line-height: 1;">{{
+                                    s.social.community_difficulty }}</div>
+                                <div style="font-size: 0.65rem; font-weight: 700; color: #64748b; margin-top: 0.75rem;">
+                                    MỨC ĐỘ THỬ THÁCH</div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
+
+        </div><!-- end scrollable sub-tab content area -->
     </div>
 </div>
-
-
+</div>
 <style>
     /* Styling for buttons and boxes */
     .tab-btn {

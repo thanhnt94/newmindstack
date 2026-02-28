@@ -1,8 +1,8 @@
 {# Reusable Item Stats Modal #}
 <link rel="stylesheet" href="{{ url_for('aura_mobile.static', filename='vocabulary/css/vocab_hub.css') }}">
-<div id="item-stats-modal" class="aura-modal-overlay">
+<div id="item-stats-modal" class="aura-modal-overlay" style="padding: 0.75rem;">
     <div class="aura-modal-container"
-        style="max-width: 900px; height: 95vh; display: flex; flex-direction: column; background: #ffffff;">
+        style="max-width: 900px; height: 100%; max-height: none !important; display: flex; flex-direction: column; background: #ffffff; border-radius: 1rem;">
         <div id="item-stats-container" class="aura-modal-body" style="padding: 0; flex: 1; overflow-y: auto;">
             <!-- Content loaded here -->
         </div>
@@ -345,11 +345,13 @@
             const tabBtns = container.querySelectorAll('.tab-navigation .tab-btn');
             const tabContents = container.querySelectorAll('.tab-content');
             const subNav = container.querySelector('#header-sub-tabs');
+
             tabBtns.forEach(b => b.classList.toggle('active', b.dataset.tab === targetTabId));
             tabContents.forEach(content => {
                 const id = content.id.replace('tab-', '');
                 if (id === targetTabId) {
-                    content.style.display = '';
+                    // Both tabs use flex layout
+                    content.style.display = 'flex';
                     content.classList.add('active');
                 } else {
                     content.style.display = 'none';
@@ -358,9 +360,29 @@
             });
             if (subNav) subNav.style.display = (targetTabId === 'content') ? 'flex' : 'none';
 
-            // Re-init charts if switching to stats tab
-            if (targetTabId === 'stats' && window.initVocabDetailCharts) {
-                window.initVocabDetailCharts(container);
+            if (targetTabId === 'stats') {
+                // Always auto-select overview sub-tab to prevent blank screen
+                const statsTab = container.querySelector('#tab-stats') || container;
+                const overviewBtn = statsTab.querySelector('.sub-tab-btn[data-subtab="sub-overview"]');
+                if (overviewBtn) {
+                    setTimeout(() => window.switchVocabSubTab('sub-overview', overviewBtn), 50);
+                }
+                if (window.initVocabDetailCharts) {
+                    window.initVocabDetailCharts(container);
+                }
+            } else if (targetTabId === 'content') {
+                // Auto-restore flashcard sub-tab when switching back to Chi tiết
+                const contentTab = container.querySelector('#tab-content');
+                if (contentTab) {
+                    const activeContentSub = contentTab.querySelector('.sub-tab-content.active') || contentTab.querySelector('.sub-tab-content');
+                    if (activeContentSub) {
+                        activeContentSub.style.display = 'block';
+                        activeContentSub.classList.add('active');
+                        // Find and active the corresponding button in header-sub-tabs
+                        const subBtn = container.querySelector(`.sub-tab-btn[data-subtab="${activeContentSub.id}"]`);
+                        if (subBtn) subBtn.classList.add('active');
+                    }
+                }
             }
         };
 
@@ -368,14 +390,57 @@
             if (window.event) window.event.preventDefault();
             const container = btn.closest('.stats-container') || document.getElementById('item-stats-container');
             if (!container) return;
-            const subBtns = document.querySelectorAll('.sub-tab-btn');
-            const subContents = document.querySelectorAll('.sub-tab-content');
-
+            // Smart scope: determine parent tab based on which sub-tab group we're targeting
+            const contentSubIds = ['sub-flashcard', 'sub-ai', 'sub-media'];
+            const isContentSub = contentSubIds.includes(targetSubId);
+            const parentTab = isContentSub
+                ? (container.querySelector('#tab-content') || container)
+                : (container.querySelector('#tab-stats') || btn.closest('.tab-content') || container);
+            const subBtns = parentTab.querySelectorAll('.sub-tab-btn');
+            const subContents = parentTab.querySelectorAll('.sub-tab-content');
+            // Also toggle header-sub-tabs buttons if switching content sub-tabs
+            if (isContentSub) {
+                const headerBtns = container.querySelectorAll('#header-sub-tabs .sub-tab-btn');
+                headerBtns.forEach(b => b.classList.toggle('active', b.dataset.subtab === targetSubId));
+            }
             subBtns.forEach(b => b.classList.toggle('active', b.dataset.subtab === targetSubId));
+
+            // Toggle scrollable wrapper: sub-detail handles its own scroll
+            const scrollWrapper = container.querySelector('#tab-stats > div:last-of-type') || container.querySelector('[style*="overflow-y: auto"]');
+            if (scrollWrapper) {
+                if (targetSubId === 'sub-detail') {
+                    scrollWrapper.style.overflowY = 'hidden';
+                    scrollWrapper.style.display = 'flex';
+                    scrollWrapper.style.flexDirection = 'column';
+                } else {
+                    scrollWrapper.style.overflowY = 'auto';
+                    scrollWrapper.style.display = 'block';
+                }
+            }
+
+
             subContents.forEach(content => {
                 if (content.id === targetSubId) {
-                    content.style.display = 'flex';
+                    content.style.display = (targetSubId === 'sub-detail') ? 'flex' : 'block';
                     content.classList.add('active');
+
+                    // Auto-select first history item if in chi tiết tab
+                    if (targetSubId === 'sub-detail') {
+                        const firstHist = content.querySelector('.js-history-item');
+                        if (firstHist && typeof window.selectHistoryItemV3 === 'function') {
+                            window.selectHistoryItemV3(firstHist, 0);
+                        }
+                    }
+
+                    // Re-init charts if switching to charts sub-tab
+                    if (targetSubId === 'sub-charts' && window.initVocabDetailCharts) {
+                        window.initVocabDetailCharts(container);
+                        // Explicitly trigger activity heatmap
+                        if (window.renderActivityHeatmap) {
+                            const heatmapEl = document.getElementById('activity-heatmap');
+                            if (heatmapEl) window.renderActivityHeatmap(heatmapEl);
+                        }
+                    }
 
                     // Specific Logic for AI and History
                     if (targetSubId === 'sub-ai' && typeof window.loadStatsAiHistory === 'function') {
@@ -388,6 +453,13 @@
                     content.classList.remove('active');
                 }
             });
+        };
+
+        window.toggleSubTabs = function (isContent) {
+            const container = document.querySelector('.stats-container');
+            if (!container) return;
+            const targetBtn = container.querySelector(`.tab-btn[data-tab="${isContent ? 'content' : 'notes'}"]`);
+            if (targetBtn) window.switchVocabMainTab(isContent ? 'content' : 'notes', targetBtn);
         };
 
         window.selectHistoryItemV3 = function (element, index) {
@@ -418,11 +490,8 @@
             const scoreEl = document.getElementById('hist-score');
             const masteryEl = document.getElementById('hist-mastery');
 
-            // New context elements
-            const contextRow = document.getElementById('hist-context-row');
-            const deviceEl = document.getElementById('hist-context-device');
-            const repEl = document.getElementById('hist-context-rep');
-            const fsrsStateEl = document.getElementById('hist-fsrs-state');
+
+
 
             // Result Style
             if (resultEl) {
@@ -508,64 +577,71 @@
                 }
             }
 
-            // Mastery (Stability) & FSRS Context
+            // Mastery (Stability) — now its own box
             if (masteryEl) {
-                let stabilityHtml = '<span style="color: #94a3b8;">-</span>';
                 if (log.fsrs_snapshot && log.fsrs_snapshot.stability !== undefined) {
-                    const diff = log.fsrs_snapshot.difficulty !== undefined ? parseFloat(log.fsrs_snapshot.difficulty).toFixed(1) : '-';
-                    const stab = parseFloat(log.fsrs_snapshot.stability).toFixed(1);
-                    stabilityHtml = `
-                        <div style="display: flex; flex-direction: column; align-items: center; justify-content: flex-start; line-height: 1; width: 100%;">
-                            <span>${stab}</span>
-                            <div style="font-size: 0.55rem; color: #94a3b8; font-weight: 600; margin-top: 4px; border-top: 1px dashed #e2e8f0; padding-top: 4px; width: 100%; text-align: center;">Độ khó: ${diff}</div>
-                        </div>
-                    `;
+                    masteryEl.textContent = parseFloat(log.fsrs_snapshot.stability).toFixed(1);
+                } else {
+                    masteryEl.textContent = '-';
                 }
-                masteryEl.innerHTML = stabilityHtml;
             }
 
-            // Populate Context tags if row exists
-            if (contextRow) {
-                let hasContext = false;
-
-                // Device
-                if (deviceEl) {
-                    const dev = (log.context_snapshot || {}).input_device || 'Unknown';
-                    let icon = 'fa-desktop';
-                    if (dev.toLowerCase().includes('mobile')) icon = 'fa-mobile-alt';
-                    if (dev.toLowerCase().includes('tablet')) icon = 'fa-tablet-alt';
-                    deviceEl.innerHTML = `<i class="fas ${icon}"></i> ${dev}`;
-                    hasContext = true;
-                }
-
-                // Rep Number
-                if (repEl) {
-                    const rep = (log.context_snapshot || {}).reps_global || 1;
-                    repEl.textContent = `#${rep}`;
-                    hasContext = true;
-                }
-
-                // FSRS State
-                if (fsrsStateEl && log.fsrs_snapshot) {
-                    const stateStr = String(log.fsrs_snapshot.card_state || 'NEW');
-                    let bg = '#d1fae5', color = '#059669'; // default new
-                    if (stateStr.toUpperCase() === 'LEARNING') { bg = '#fef3c7'; color = '#d97706'; }
-                    else if (stateStr.toUpperCase() === 'REVIEW') { bg = '#e0e7ff'; color = '#4f46e5'; }
-                    else if (stateStr.toUpperCase() === 'RELEARNING') { bg = '#ffe4e6'; color = '#e11d48'; }
-
-                    fsrsStateEl.style.background = bg;
-                    fsrsStateEl.style.color = color;
-                    fsrsStateEl.innerHTML = `<i class="fas fa-microchip"></i> ${stateStr}`;
-                    hasContext = true;
-                } else if (fsrsStateEl) {
-                    fsrsStateEl.style.display = 'none';
-                }
-
-                if (hasContext) {
-                    contextRow.style.display = 'flex';
+            // Difficulty — separate box
+            const diffEl = document.getElementById('hist-difficulty');
+            if (diffEl) {
+                if (log.fsrs_snapshot && log.fsrs_snapshot.difficulty !== undefined) {
+                    diffEl.textContent = parseFloat(log.fsrs_snapshot.difficulty).toFixed(1);
                 } else {
-                    contextRow.style.display = 'none';
+                    diffEl.textContent = '-';
                 }
+            }
+
+            // Interval (scheduled_days)
+            const intervalEl = document.getElementById('hist-interval');
+            if (intervalEl) {
+                if (log.fsrs_snapshot && log.fsrs_snapshot.scheduled_days !== undefined) {
+                    const days = log.fsrs_snapshot.scheduled_days;
+                    intervalEl.textContent = days > 0 ? days + 'd' : '-';
+                } else {
+                    intervalEl.textContent = '-';
+                }
+            }
+
+            // Retrievability
+            const retrievabilityEl = document.getElementById('hist-retrievability');
+            if (retrievabilityEl) {
+                if (log.fsrs_snapshot && log.fsrs_snapshot.retrievability !== undefined) {
+                    retrievabilityEl.textContent = (parseFloat(log.fsrs_snapshot.retrievability) * 100).toFixed(0) + '%';
+                } else {
+                    retrievabilityEl.textContent = '-';
+                }
+            }
+
+            // FSRS State
+            const fsrsStateEl = document.getElementById('hist-fsrs-state');
+            if (fsrsStateEl && log.fsrs_snapshot) {
+                const stateStr = String(log.fsrs_snapshot.card_state || 'NEW');
+                const stateLabels = {
+                    'NEW': 'Mới', 'LEARNING': 'Đang học',
+                    'REVIEW': 'Ôn tập', 'RELEARNING': 'Học lại'
+                };
+                fsrsStateEl.textContent = stateLabels[stateStr.toUpperCase()] || stateStr;
+            } else if (fsrsStateEl) {
+                fsrsStateEl.textContent = '-';
+            }
+
+            // Device
+            const deviceEl = document.getElementById('hist-context-device');
+            if (deviceEl) {
+                const dev = (log.context_snapshot || {}).input_device || '-';
+                deviceEl.textContent = dev;
+            }
+
+            // Rep Number
+            const repEl = document.getElementById('hist-context-rep');
+            if (repEl) {
+                const rep = (log.context_snapshot || {}).reps_global;
+                repEl.textContent = rep ? '#' + rep : '#' + (index + 1);
             }
         };
 

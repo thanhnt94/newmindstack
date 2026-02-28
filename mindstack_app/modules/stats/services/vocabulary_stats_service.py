@@ -131,12 +131,35 @@ class VocabularyStatsService:
         # 5. Mastered count
         mastered_count = ItemMemoryState.query.filter(ItemMemoryState.item_id == item_id, ItemMemoryState.stability >= 21.0).count()
         
+        # 6. Community avg duration & most popular mode from learning history
+        community_avg_duration = 0
+        most_popular_mode = None
+        try:
+            from mindstack_app.modules.learning_history.models import LearningHistory
+            avg_dur = db.session.query(func.avg(LearningHistory.review_duration)).filter(
+                LearningHistory.item_id == item_id
+            ).scalar()
+            community_avg_duration = round(avg_dur or 0, 0)
+            
+            mode_row = db.session.query(
+                LearningHistory.learning_mode,
+                func.count(LearningHistory.id).label('cnt')
+            ).filter(
+                LearningHistory.item_id == item_id
+            ).group_by(LearningHistory.learning_mode).order_by(func.count(LearningHistory.id).desc()).first()
+            if mode_row:
+                most_popular_mode = mode_row[0]
+        except Exception:
+            pass
+        
         return {
             'learners_count': learners_count,
             'community_difficulty': round(avg_diff, 1),
             'community_accuracy': accuracy,
             'total_reviews': total_reviews,
-            'mastered_count': mastered_count
+            'mastered_count': mastered_count,
+            'community_avg_duration': community_avg_duration,
+            'most_popular_mode': most_popular_mode
         }
 
     @staticmethod
@@ -313,13 +336,8 @@ class VocabularyStatsService:
         logs = LearningHistoryInterface.get_item_history(item_id, limit=500)
         # Note: HistoryQueryService.get_item_history now returns DTO dicts.
         
-        # [NEW] Use absolute counters from ItemMemoryState if available for top-level stats
-        if progress:
-            total_attempts = (progress.times_correct or 0) + (progress.times_incorrect or 0)
-            total_correct = progress.times_correct or 0
-        else:
-            total_attempts = len(logs)
-            total_correct = sum(1 for log in logs if VocabularyStatsService._is_log_dict_correct(log))
+        total_attempts = len(logs)
+        total_correct = sum(1 for log in logs if VocabularyStatsService._is_log_dict_correct(log))
             
         total_duration_ms = sum(log['review_duration'] for log in logs if log.get('review_duration'))
         
