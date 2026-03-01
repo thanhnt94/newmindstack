@@ -158,7 +158,7 @@
                     </h3>
                     <div class="space-y-4">
                         {% for key, val in log.gamification_snapshot.breakdown.items() %}
-                        {% if key != 'total' and val != 0 %}
+                        {% if key not in ['total', 'total_score', 'score_change'] and val != 0 %}
                         <div class="flex justify-between items-center">
                             <span class="text-xs text-slate-500 font-bold uppercase tracking-tight">
                                 {% if key == 'base' %}Điểm cơ bản

@@ -110,3 +110,8 @@ class LearningHistoryInterface:
     def get_first_review_dates(user_id: int, item_ids: List[int]) -> Dict[int, datetime]:
         """Get the earliest study timestamp for each item."""
         return HistoryQueryService.get_first_review_dates(user_id, item_ids)
+
+    @staticmethod
+    def get_item_community_metrics(item_id: int) -> Dict[str, Any]:
+        """Get community-wide metrics from learning history for an item."""
+        return HistoryQueryService.get_item_community_metrics(item_id)

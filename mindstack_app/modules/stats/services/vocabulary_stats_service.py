@@ -52,13 +52,26 @@ class VocabularyStatsService:
 
     @staticmethod
     def get_global_stats(user_id: int) -> dict:
-        total_sets = LearningContainer.query.filter(LearningContainer.creator_user_id == user_id, LearningContainer.container_type == 'FLASHCARD_SET').count()
-        # REFAC: Use FSRS interface for global FSRS stats
+        from mindstack_app.models import LearningContainer, LearningItem
+        from mindstack_app.modules.fsrs.interface import FSRSInterface as FsrsService
+        
+        # 1. Total Learning Sets (Sets containing items the user has started learning)
+        learned_item_ids = FsrsService.get_learned_item_ids(user_id)
+        learning_sets_count = 0
+        if learned_item_ids:
+            learning_sets_count = db.session.query(func.count(func.distinct(LearningItem.container_id))).filter(
+                LearningItem.item_id.in_(learned_item_ids)
+            ).scalar() or 0
+            
+        # 2. Total Explore Sets (Public sets)
+        explore_sets_count = LearningContainer.query.filter(
+            LearningContainer.container_type == 'FLASHCARD_SET',
+            LearningContainer.is_public == True
+        ).count()
+
         fsrs_stats = FsrsService.get_global_stats(user_id)
         
         # [NEW] Enhanced Global Retention Calculation
-        # We estimate overall retention across all learned items
-        learned_item_ids = FsrsService.get_learned_item_ids(user_id)
         avg_retention = 0.0
         if learned_item_ids:
             states = FsrsService.get_memory_states(user_id, learned_item_ids)
@@ -66,9 +79,10 @@ class VocabularyStatsService:
             avg_retention = round((total_r / len(learned_item_ids)) * 100, 1)
 
         return {
-            'total_sets': total_sets, 
+            'total_learning_sets': learning_sets_count,
+            'total_explore_sets': explore_sets_count,
             'total_cards': fsrs_stats.get('total_cards', 0), 
-            'learned_count': fsrs_stats.get('total_cards', 0), # Alias for total cards in this context
+            'learned_count': fsrs_stats.get('total_cards', 0),
             'mastered_count': fsrs_stats.get('mastered_count', 0), 
             'due_count': fsrs_stats.get('due_count', 0),
             'mastery_percentage': round((fsrs_stats.get('mastered_count', 0) / max(fsrs_stats.get('total_cards', 0), 1) * 100), 1),
@@ -107,59 +121,23 @@ class VocabularyStatsService:
     @staticmethod
     def get_item_social_metrics(item_id: int) -> dict:
         """Get aggregated social/community metrics for a specific item (anonymized)."""
-        from mindstack_app.modules.fsrs.models import ItemMemoryState
-        from sqlalchemy import func
+        from mindstack_app.modules.learning_history.interface import LearningHistoryInterface
         
-        # 1. Total learners
-        learners_count = ItemMemoryState.query.filter_by(item_id=item_id).count()
+        # 1. Get memory-related community stats from FSRS
+        fsrs_metrics = FsrsService.get_item_community_aggregates(item_id)
         
-        # 2. Avg community difficulty
-        avg_diff = db.session.query(func.avg(ItemMemoryState.difficulty)).filter_by(item_id=item_id).scalar() or 0.0
+        # 2. Get history-related community metrics from LearningHistory
+        history_metrics = LearningHistoryInterface.get_item_community_metrics(item_id)
         
-        # 3. Community accuracy (based on absolute correct/incorrect counts across all users)
-        stats = db.session.query(
-            func.sum(ItemMemoryState.times_correct).label('total_c'),
-            func.sum(ItemMemoryState.times_incorrect).label('total_i')
-        ).filter_by(item_id=item_id).first()
-        
-        total_attempts = (stats.total_c or 0) + (stats.total_i or 0)
-        accuracy = round((stats.total_c or 0) / total_attempts * 100, 1) if total_attempts > 0 else 0.0
-        
-        # 4. Total reviews
-        total_reviews = db.session.query(func.sum(ItemMemoryState.repetitions)).filter_by(item_id=item_id).scalar() or 0
-        
-        # 5. Mastered count
-        mastered_count = ItemMemoryState.query.filter(ItemMemoryState.item_id == item_id, ItemMemoryState.stability >= 21.0).count()
-        
-        # 6. Community avg duration & most popular mode from learning history
-        community_avg_duration = 0
-        most_popular_mode = None
-        try:
-            from mindstack_app.modules.learning_history.models import LearningHistory
-            avg_dur = db.session.query(func.avg(LearningHistory.review_duration)).filter(
-                LearningHistory.item_id == item_id
-            ).scalar()
-            community_avg_duration = round(avg_dur or 0, 0)
-            
-            mode_row = db.session.query(
-                LearningHistory.learning_mode,
-                func.count(LearningHistory.id).label('cnt')
-            ).filter(
-                LearningHistory.item_id == item_id
-            ).group_by(LearningHistory.learning_mode).order_by(func.count(LearningHistory.id).desc()).first()
-            if mode_row:
-                most_popular_mode = mode_row[0]
-        except Exception:
-            pass
-        
+        # Combine metrics
         return {
-            'learners_count': learners_count,
-            'community_difficulty': round(avg_diff, 1),
-            'community_accuracy': accuracy,
-            'total_reviews': total_reviews,
-            'mastered_count': mastered_count,
-            'community_avg_duration': community_avg_duration,
-            'most_popular_mode': most_popular_mode
+            'learners_count': fsrs_metrics.get('learners_count', 0),
+            'community_difficulty': fsrs_metrics.get('community_difficulty', 0.0),
+            'community_accuracy': fsrs_metrics.get('community_accuracy', 0.0),
+            'total_reviews': fsrs_metrics.get('total_reviews', 0),
+            'mastered_count': fsrs_metrics.get('mastered_count', 0),
+            'community_avg_duration': history_metrics.get('community_avg_duration', 0),
+            'most_popular_mode': history_metrics.get('most_popular_mode')
         }
 
     @staticmethod

@@ -2525,7 +2525,8 @@ render_unified_header with context %}
     {# Mobile View - Step Browser only - Hidden on lg+ #}
     <div id="step-browser" class="vocab-step active">
 
-        {% call render_unified_header(title='Học từ vựng', subtitle='Tổng quan', hide_default_actions=True,
+        {% call render_unified_header(title='Học từ vựng', title_icon='fa-solid fa-book-open',
+        subtitle='Ghi nhớ sâu, ôn tập thông minh', hide_default_actions=True,
         hide_avatar=True) %}
         <a href="/dashboard"
             class="w-10 h-10 flex-shrink-0 rounded-full bg-slate-50 text-slate-500 flex items-center justify-center border border-slate-100 hover:bg-white hover:text-indigo-600 hover:border-indigo-100 hover:shadow-sm active:scale-95 transition-all duration-200"
@@ -2866,12 +2867,7 @@ render_unified_header with context %}
         <script>
             // Filter modes based on container capabilities
             (function () {
-                {% if container_capabilities is defined %}
-                const capabilities = {{ container_capabilities | tojson | safe
-            }};
-            {% else %}
-            const capabilities = [];
-            {% endif %}
+                const capabilities = {% if container_capabilities is defined %}{ { container_capabilities | tojson | safe } } {% else %} []{% endif %};
 
             const modeCards = document.querySelectorAll('.mode-select-card[data-capability]');
             modeCards.forEach(card => {
@@ -3098,8 +3094,7 @@ render_unified_header with context %}
                                 <div class="js-state-edit space-y-6 hidden">
                                     <!-- Button Count -->
                                     <div class="space-y-3">
-                                        <label
-                                            class="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Cấu
+                                        <label class="text-[10px] font-black text-slate-400 tracking-widest pl-1">Cấu
                                             hình số nút</label>
                                         <div class="grid grid-cols-3 gap-2">
                                             <button type="button"
@@ -3711,11 +3706,27 @@ render_unified_header with context %}
 
                         updatePagination(data.page, data.has_prev, data.has_next, data.total);
 
+                        // Update Tab Counts
+                        const activeTab = document.querySelector('.vocab-tab.active');
+                        if (activeTab) {
+                            const label = currentCategory === 'learning' ? 'Đang học' : 'Khám phá';
+                            activeTab.textContent = `${label} (${data.total})`;
+                        }
+
                     } else {
 
                         setsGrids.forEach(grid => {
                             grid.innerHTML = '<div class="vocab-empty" style="grid-column: 1/-1;"><i class="fas fa-folder-open"></i><p>Không có bộ thẻ nào</p></div>';
                         });
+
+                        // Auto-switch to 'explore' if 'learning' is empty on first load
+                        if (currentCategory === 'learning' && !currentSearch && page === 1) {
+                            const exploreTab = document.querySelector('.vocab-tab[data-category="explore"]');
+                            if (exploreTab) {
+                                console.log("No learning sets found, auto-switching to Explore...");
+                                exploreTab.click();
+                            }
+                        }
 
                         hidePagination();
 
@@ -3822,6 +3833,14 @@ render_unified_header with context %}
                 .then(data => {
                     if (data.success) {
                         const stats = data.stats;
+
+                        // Update Tab Labels with Counts
+                        const learningTab = document.querySelector('.vocab-tab[data-category="learning"]');
+                        const exploreTab = document.querySelector('.vocab-tab[data-category="explore"]');
+                        if (learningTab) learningTab.textContent = `Đang học (${stats.total_learning_sets})`;
+                        if (exploreTab) exploreTab.textContent = `Khám phá (${stats.total_explore_sets})`;
+
+                        const masteryValue = document.getElementById('mastery-value');
                         const mappings = {
                             'total-sets': stats.total_sets,
                             'total-cards': stats.total_cards,
@@ -3905,9 +3924,7 @@ render_unified_header with context %}
                 }
 
                 // Add progress badge overlay
-                if (progressPercent > 0) {
-                    html += '<div class="absolute top-2.5 right-2.5 px-2.5 py-1 rounded-full text-[10px] font-extrabold text-white shadow-lg" style="background: linear-gradient(135deg, #6366f1, #8b5cf6);">' + progressPercent + '%</div>';
-                }
+                html += '<div class="absolute top-2.5 right-2.5 px-2.5 py-1 rounded-full text-[10px] font-extrabold text-white shadow-lg border border-white/20" style="background: linear-gradient(135deg, #4f46e5, #6366f1);">' + progressPercent + '%</div>';
 
                 html += '</div>';
 
@@ -3919,7 +3936,7 @@ render_unified_header with context %}
 
                 html += '<div class="flex items-center gap-1.5">';
 
-                html += '<span class="w-5 h-5 rounded-full bg-gradient-to-br from-indigo-500 to-purple-500 text-white flex items-center justify-center text-[8px] font-black shadow-sm">' + authorInitial + '</span>';
+                html += '<span class="w-5 h-5 rounded-full bg-gradient-to-br from-indigo-600 to-indigo-500 text-white flex items-center justify-center text-[8px] font-black shadow-sm">' + authorInitial + '</span>';
 
                 html += '<span class="text-[10px] font-medium text-slate-400 truncate max-w-[70px]">' + authorName + '</span>';
 
@@ -3928,9 +3945,6 @@ render_unified_header with context %}
                 html += '<div class="text-[10px] font-bold text-indigo-500 bg-indigo-50 px-2 py-0.5 rounded-full flex items-center gap-1"><i class="fas fa-clone text-[7px]"></i>' + s.card_count + '</div>';
 
                 html += '</div>';
-
-                // Mini progress bar at bottom
-                html += '<div class="vocab-progress-mini"><div class="vocab-progress-mini-bar" style="width: ' + progressPercent + '%"></div></div>';
 
                 html += '</div></div>';
 

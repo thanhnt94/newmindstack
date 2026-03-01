@@ -209,8 +209,8 @@
 </div>
 
 <!-- Mobile Fixed Bottom Navigation Bar -->
-<div class="fixed bottom-0 left-0 right-0 z-50 md:hidden bg-white/80 backdrop-blur-xl border-t border-slate-100 p-4">
-    <div class="flex gap-3">
+<div class="fixed bottom-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-xl border-t border-slate-100 p-4">
+    <div class="flex gap-3 max-w-4xl mx-auto">
         <!-- Home -->
         <a href="{{ url_for('dashboard.dashboard') }}"
             class="flex-1 flex items-center justify-center gap-2 h-14 bg-slate-100 text-slate-600 font-bold rounded-2xl transition-all active:scale-95">
@@ -236,7 +236,7 @@
 </div>
 
 <!-- Mobile Bottom Padding -->
-<div class="h-16 md:hidden"></div>
+<div class="h-16"></div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>

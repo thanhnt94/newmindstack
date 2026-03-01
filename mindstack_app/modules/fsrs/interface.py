@@ -798,8 +798,47 @@ class FSRSInterface:
              ItemMemoryState.user_id.in_(user_ids), 
              ItemMemoryState.stability >= 21.0
         ).group_by(ItemMemoryState.user_id).all()
+        return {r.user_id: r[1] for r in mastered_data}
+
+    @staticmethod
+    def get_item_community_aggregates(item_id: int) -> Dict[str, Any]:
+        """
+        Get aggregated social/community metrics for a specific item (anonymized).
+        """
+        from sqlalchemy import func
+        from mindstack_app.core.extensions import db
         
-        return {uid: count for uid, count in mastered_data}
+        # 1. Total learners
+        learners_count = ItemMemoryState.query.filter_by(item_id=item_id).count()
+        
+        # 2. Avg community difficulty
+        avg_diff = db.session.query(func.avg(ItemMemoryState.difficulty)).filter_by(item_id=item_id).scalar() or 0.0
+        
+        # 3. Community accuracy
+        stats = db.session.query(
+            func.sum(ItemMemoryState.times_correct).label('total_c'),
+            func.sum(ItemMemoryState.times_incorrect).label('total_i')
+        ).filter_by(item_id=item_id).first()
+        
+        total_attempts = (stats.total_c or 0) + (stats.total_i or 0)
+        accuracy = round((stats.total_c or 0) / total_attempts * 100, 1) if total_attempts > 0 else 0.0
+        
+        # 4. Total reviews
+        total_reviews = db.session.query(func.sum(ItemMemoryState.repetitions)).filter_by(item_id=item_id).scalar() or 0
+        
+        # 5. Mastered count
+        mastered_count = ItemMemoryState.query.filter(
+            ItemMemoryState.item_id == item_id, 
+            ItemMemoryState.stability >= 21.0
+        ).count()
+        
+        return {
+            'learners_count': learners_count,
+            'community_difficulty': round(avg_diff, 1),
+            'community_accuracy': accuracy,
+            'total_reviews': total_reviews,
+            'mastered_count': mastered_count
+        }
 
     @staticmethod
     def apply_ordering(query, user_id: int, order_type: str):

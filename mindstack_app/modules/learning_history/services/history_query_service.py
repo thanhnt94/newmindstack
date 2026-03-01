@@ -286,3 +286,34 @@ class HistoryQueryService:
         ).group_by(StudyLog.item_id).all()
         
         return {row.item_id: row.first_at for row in results}
+
+    @staticmethod
+    def get_item_community_metrics(item_id: int) -> Dict[str, Any]:
+        """
+        Get community-wide metrics from learning history for an item.
+        Summary: average duration, most popular mode.
+        """
+        community_avg_duration = 0
+        most_popular_mode = None
+        
+        # 1. Avg duration
+        avg_dur = db.session.query(func.avg(StudyLog.review_duration)).filter(
+            StudyLog.item_id == item_id
+        ).scalar()
+        community_avg_duration = round(avg_dur or 0, 0)
+        
+        # 2. Most popular mode
+        mode_row = db.session.query(
+            StudyLog.learning_mode,
+            func.count(StudyLog.log_id).label('cnt')
+        ).filter(
+            StudyLog.item_id == item_id
+        ).group_by(StudyLog.learning_mode).order_by(func.count(StudyLog.log_id).desc()).first()
+        
+        if mode_row:
+            most_popular_mode = mode_row[0]
+            
+        return {
+            'community_avg_duration': community_avg_duration,
+            'most_popular_mode': most_popular_mode
+        }

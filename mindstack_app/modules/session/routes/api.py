@@ -430,10 +430,11 @@ def api_get_log_detail(log_id):
 
         # Calculate Score Fallback
         game_snapshot = log.get('gamification_snapshot') or {}
-        score_change = game_snapshot.get('score_change', 0)
+        # Prioritize values from the new flattened breakdown
+        score_change = game_snapshot.get('total_score') or game_snapshot.get('total') or game_snapshot.get('score_change', 0)
         
-        if score_change == 0:
-             # Fallback logic mirroring session_summary
+        if not score_change:
+             # Hard fallback for old logs without snapshots
              rating = log.get('rating')
              if rating == 3: score_change = 10
              elif rating == 4: score_change = 15

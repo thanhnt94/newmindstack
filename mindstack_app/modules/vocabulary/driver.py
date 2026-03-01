@@ -294,24 +294,13 @@ class VocabularyDriver(BaseSessionDriver):
             )
 
             # [Step 2] Scoring (Already done in mode.evaluate_submission)
-            # evaluation.breakdown is available
-            raw_bd = getattr(evaluation, 'breakdown', {})
-            flat_bd = {}
-            if raw_bd:
-                flat_bd['base'] = raw_bd.get('base', 0)
-                mods = raw_bd.get('modifiers', {})
-                if isinstance(mods, dict):
-                    for k, v in mods.items():
-                        flat_bd[k] = v
-                else:
-                    # In case modifiers isn't a dict (shouldn't happen with ScoreCalculator)
-                    pass
-            else:
-                flat_bd['base'] = evaluation.score_change
+            breakdown = getattr(evaluation, 'breakdown', {})
+            if not breakdown:
+                breakdown = {'base': evaluation.score_change}
 
             gamification_snapshot = {
                 'total_score': evaluation.score_change,
-                'breakdown': flat_bd
+                'breakdown': breakdown
             }
             
             # [Step 3] Algorithm Update
