@@ -15,6 +15,23 @@ document.addEventListener('DOMContentLoaded', function () {
     let currentSort = 'default'; // [NEW] Sort state
     let currentFilter = 'all'; // [NEW] Filter state
 
+    // [NEW] URL State Sync Helper
+    function updateUrlState() {
+        if (!selectedSetId) return;
+        const url = new URL(window.location);
+        if (currentFilter && currentFilter !== 'all') {
+            url.searchParams.set('filter', currentFilter);
+        } else {
+            url.searchParams.delete('filter');
+        }
+        if (currentStatsPage > 1) {
+            url.searchParams.set('page', currentStatsPage);
+        } else {
+            url.searchParams.delete('page');
+        }
+        history.replaceState({ setId: selectedSetId }, '', url);
+    }
+
     // Elements
     const stepDetail = document.getElementById('step-detail');
     const stepDetailDesktop = document.getElementById('step-detail-desktop');
@@ -51,12 +68,13 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     // --- Core Data Loading ---
-    function loadSetDetail(setId, pushState = false) {
+    function loadSetDetail(setId, pushState = false, page = 1) {
         selectedSetId = setId;
+        currentStatsPage = page;
 
         // [UPDATED] Pass sort and filter param
         const searchQ = document.getElementById('searchInput')?.value || '';
-        return fetch('/learn/vocabulary/api/set/' + setId + '?page=1&sort=' + currentSort + '&filter=' + currentFilter + '&q=' + encodeURIComponent(searchQ))
+        return fetch('/learn/vocabulary/api/set/' + setId + '?page=' + page + '&sort=' + currentSort + '&filter=' + currentFilter + '&q=' + encodeURIComponent(searchQ))
             .then(r => r.json())
             .then(data => {
                 console.log('API Response for set detail:', data);
@@ -83,7 +101,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     if (pushState) {
                         history.pushState({ setId: setId }, '', '/learn/vocabulary/set/' + setId);
                     }
-
+                    updateUrlState();
                     return data.set;
 
                 } else {
@@ -356,11 +374,13 @@ document.addEventListener('DOMContentLoaded', function () {
     function fetchCourseStatsPage(page) {
 
         if (!selectedSetId) return;
+        currentStatsPage = parseInt(page) || 1;
         // [UPDATED] Pass sort param
         fetch('/learn/vocabulary/api/set/' + selectedSetId + '?page=' + page + '&sort=' + currentSort + '&filter=' + currentFilter)
             .then(r => r.json())
             .then(data => {
                 if (data.success) renderSetDetail(selectedSetData, data.course_stats, false, data.pagination_html);
+                updateUrlState();
             });
     }
 
@@ -408,6 +428,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     listContainer.innerHTML = '<div class="text-center py-10 text-slate-400"><i class="fas fa-spinner fa-spin text-2xl"></i><p class="mt-2 text-sm">Đang tải...</p></div>';
                 }
                 loadSetDetail(selectedSetId);
+                updateUrlState();
             }
         }
     });
@@ -596,7 +617,22 @@ document.addEventListener('DOMContentLoaded', function () {
             };
         });
 
-        if (selectedSetId) loadSetDetail(selectedSetId);
+        // [NEW] Read URL params to restore state on page load
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('filter')) {
+            currentFilter = urlParams.get('filter');
+            // Update filter tab UI to match
+            document.querySelectorAll('.js-filter-tab-btn').forEach(b => {
+                if (b.dataset.filter === currentFilter) {
+                    b.className = 'flex-1 py-2 px-3 rounded-lg text-sm font-bold transition-all duration-200 text-indigo-700 bg-white shadow-sm js-filter-tab-btn';
+                } else {
+                    b.className = 'flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-all duration-200 text-slate-500 hover:text-indigo-600 js-filter-tab-btn';
+                }
+            });
+        }
+        const urlPage = parseInt(urlParams.get('page')) || 1;
+
+        if (selectedSetId) loadSetDetail(selectedSetId, false, urlPage);
         showStep(currentActiveStep);
 
     }

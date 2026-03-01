@@ -28,7 +28,7 @@ current_filter=None, base_url=None) %}
 
     {# Các nút số trang #}
     <div class="flex items-center bg-white rounded-xl border border-slate-200 shadow-sm p-1">
-        {% for page_num in pagination.iter_pages(left_edge=2, right_edge=2, left_current=2, right_current=2) %}
+        {% for page_num in pagination.iter_pages(left_edge=1, right_edge=1, left_current=1, right_current=1) %}
         {% if page_num %}
         {% if page_num == pagination.page %}
         <span
