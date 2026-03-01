@@ -1103,7 +1103,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
                             if (item.status === 'new') {
 
-                                statusBadge = '<span class="px-2 py-1 bg-gradient-to-r from-blue-500 to-blue-600 text-white text-[10px] font-bold uppercase rounded-full tracking-wider shadow-sm">Mới</span>';
+                                statusBadge = '<span class="px-2 py-1 bg-gradient-to-r from-blue-500 to-blue-600 text-white text-[10px] font-bold uppercase rounded-full tracking-wider shadow-sm">New</span>';
 
                             }
 
@@ -1113,7 +1113,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
                             if (item.is_due) {
 
-                                dueBadge = '<span class="px-2 py-1 bg-gradient-to-r from-red-500 to-red-600 text-white text-[10px] font-bold uppercase rounded-full tracking-wider shadow-sm animate-pulse">Ôn tập</span>';
+                                dueBadge = '<span class="px-2 py-1 bg-gradient-to-r from-red-500 to-red-600 text-white text-[10px] font-bold uppercase rounded-full tracking-wider shadow-sm animate-pulse">Review</span>';
 
                             }
 

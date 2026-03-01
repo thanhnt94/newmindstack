@@ -429,8 +429,12 @@
                             style="background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%); color: white; border: none; padding: 1.25rem;">
                             <div style="display: flex; justify-content: space-between; align-items: flex-start;">
                                 <div>
-                                    <div class="bento-label" style="color: rgba(255,255,255,0.7); font-size: 0.6rem;">
-                                        KHẢ NĂNG GHI NHỚ</div>
+                                    <div class="bento-label"
+                                        style="color: rgba(255,255,255,0.7); font-size: 0.6rem; display: flex; align-items: center; gap: 4px;">
+                                        KHẢ NĂNG GHI NHỚ
+                                        <i class="fas fa-question-circle" style="opacity: 0.6; cursor: help;"
+                                            title="Xác suất trung bình bạn có thể nhớ chính xác thẻ này vào thời điểm hiện tại."></i>
+                                    </div>
                                     <div class="bento-value" style="color: white; font-size: 2.2rem; line-height: 1;">{{
                                         p.retrievability }}%</div>
                                 </div>
@@ -458,7 +462,13 @@
                                     style="width: 24px; height: 24px; border-radius: 6px; background: #ffedd5; color: #f59e0b; display: flex; align-items: center; justify-content: center; font-size: 0.7rem;">
                                     <i class="fas fa-calendar-alt"></i>
                                 </div>
-                                <div class="bento-label" style="margin: 0;">SẮP TỚI</div>
+                                <div class="bento-label"
+                                    style="margin: 0; display: flex; align-items: center; gap: 3px;">
+                                    SẮP TỚI
+                                    <i class="fas fa-question-circle text-orange-300"
+                                        style="cursor: help; font-size: 0.6rem;"
+                                        title="Thời điểm dự kiến bạn sẽ bắt đầu quên thẻ này và cần phải ôn tập lại."></i>
+                                </div>
                             </div>
                             <div class="bento-value" style="font-size: 1rem; color: #9a3412;">{{ p.due_relative }}</div>
                         </div>
@@ -470,7 +480,13 @@
                                     style="width: 24px; height: 24px; border-radius: 6px; background: #e0e7ff; color: #4f46e5; display: flex; align-items: center; justify-content: center; font-size: 0.7rem;">
                                     <i class="fas fa-anchor"></i>
                                 </div>
-                                <div class="bento-label" style="margin: 0;">ỔN ĐỊNH (S)</div>
+                                <div class="bento-label"
+                                    style="margin: 0; display: flex; align-items: center; gap: 3px;">
+                                    ỔN ĐỊNH (S)
+                                    <i class="fas fa-question-circle text-indigo-300"
+                                        style="cursor: help; font-size: 0.6rem;"
+                                        title="Khoảng thời gian (ngày) để khả năng ghi nhớ giảm từ 100% xuống 90%. Chỉ số càng cao nghĩa là bạn nhớ càng lâu."></i>
+                                </div>
                             </div>
                             <div class="bento-value" style="font-size: 1rem; color: #3730a3;">{{
                                 p.fsrs_stability|round(1) if p.fsrs_stability else '0' }} ngày</div>
@@ -483,7 +499,13 @@
                                     style="width: 24px; height: 24px; border-radius: 6px; background: #ffe4e6; color: #e11d48; display: flex; align-items: center; justify-content: center; font-size: 0.7rem;">
                                     <i class="fas fa-dumbbell"></i>
                                 </div>
-                                <div class="bento-label" style="margin: 0;">ĐỘ KHÓ (D)</div>
+                                <div class="bento-label"
+                                    style="margin: 0; display: flex; align-items: center; gap: 3px;">
+                                    ĐỘ KHÓ (D)
+                                    <i class="fas fa-question-circle text-rose-300"
+                                        style="cursor: help; font-size: 0.6rem;"
+                                        title="Mức độ phức tạp của thẻ này. Giá trị từ 1 (dễ nhất) đến 10 (khó nhất)."></i>
+                                </div>
                             </div>
                             <div class="bento-value" style="font-size: 1rem; color: #9f1239;">{{
                                 p.fsrs_difficulty|round(1) if p.fsrs_difficulty else '0' }}</div>

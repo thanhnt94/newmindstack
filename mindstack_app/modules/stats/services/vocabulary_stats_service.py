@@ -582,7 +582,7 @@ class VocabularyStatsService:
                     elif diff.seconds > 3600: next_review = f"{diff.seconds // 3600} giờ"
                     else: next_review = f"{diff.seconds // 60} phút"
                 else: next_review = "-"
-                state_labels = {0: 'Mới (New)', 1: 'Đang học (Learning)', 2: 'Ôn tập (Review)', 3: 'Học lại (Relearning)'}
+                state_labels = {0: 'New', 1: 'Learning', 2: 'Review', 3: 'Relearning'}
                 state_label = state_labels.get(state, 'Unknown')
             else:
                 mastery = retrievability = 0
@@ -592,7 +592,7 @@ class VocabularyStatsService:
                 difficulty = stability = repetitions = 0
                 has_note = False
                 next_review = "-"
-                state_label = "Mới (New)"
+                state_label = "New"
             
             has_ai = bool(item.ai_explanation and item.ai_explanation.strip())
             is_hard = False

@@ -622,8 +622,8 @@
             if (fsrsStateEl && log.fsrs_snapshot) {
                 const stateStr = String(log.fsrs_snapshot.card_state || 'NEW');
                 const stateLabels = {
-                    'NEW': 'Mới', 'LEARNING': 'Đang học',
-                    'REVIEW': 'Ôn tập', 'RELEARNING': 'Học lại'
+                    'NEW': 'New', 'LEARNING': 'Learning',
+                    'REVIEW': 'Review', 'RELEARNING': 'Relearning'
                 };
                 fsrsStateEl.textContent = stateLabels[stateStr.toUpperCase()] || stateStr;
             } else if (fsrsStateEl) {

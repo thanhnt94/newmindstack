@@ -320,12 +320,12 @@ render_unified_header with context %}
         }
     }
 
-    @media (min-width: 1024px) {
+    @media (min-width: 992px),
+    (min-width: 768px) and (orientation: landscape) {
         .vocab-grid {
             grid-template-columns: repeat(4, 1fr);
             gap: 1.25rem;
-            max-width: 1400px;
-            /* margin: 0 auto; removed to align left */
+            max-width: 100%;
         }
     }
 
@@ -1357,19 +1357,7 @@ render_unified_header with context %}
 
 
 
-    /* Hide mobile pagination bar on desktop even if 'visible' class is added by JS */
-    @media (min-width: 1024px) {
-        .vocab-pagination-bar.visible {
-            display: none !important;
-        }
-    }
 
-    /* Standard visible style for mobile */
-    @media (max-width: 1023px) {
-        .vocab-pagination-bar.visible {
-            display: flex !important;
-        }
-    }
 
 
 
@@ -2577,19 +2565,7 @@ render_unified_header with context %}
 
             </div>
 
-            <!-- Pagination Desktop for Grid (Closer to content) -->
-            <div class="hidden lg:flex justify-center py-4 js-vocab-pagination-bar-desktop"
-                id="vocab-pagination-bar-desktop">
-                <button class="pagination-nav-btn js-vocab-prev-page" disabled>
-                    <i class="fas fa-chevron-left"></i>
-                </button>
-                <div class="pagination-pages js-vocab-page-numbers">
-                    <span class="page-num active">1</span>
-                </div>
-                <button class="pagination-nav-btn js-vocab-next-page" disabled>
-                    <i class="fas fa-chevron-right"></i>
-                </button>
-            </div>
+            <!-- Rounded Pagination Desktop removed - using unified fixed bottom bar -->
 
         </div>
 
@@ -2687,11 +2663,7 @@ render_unified_header with context %}
                     </div>
                 </div>
 
-                <!-- Pagination Desktop (Closer to content) -->
-                <div class="hidden lg:flex justify-center py-4 js-detail-pagination-bar-desktop"
-                    id="detail-pagination-bar-desktop">
-                    <!-- Pagination rendered by JS here -->
-                </div>
+                <!-- Detail Pagination Desktop removed - using unified fixed bottom bar -->
             </div>
         </div>
 
@@ -4403,7 +4375,7 @@ render_unified_header with context %}
 
                             if (item.status === 'new') {
 
-                                statusBadge = '<span class="px-2 py-1 bg-gradient-to-r from-blue-500 to-blue-600 text-white text-[10px] font-bold uppercase rounded-full tracking-wider shadow-sm">Mới</span>';
+                                statusBadge = '<span class="px-2 py-1 bg-gradient-to-r from-blue-500 to-blue-600 text-white text-[10px] font-bold uppercase rounded-full tracking-wider shadow-sm">New</span>';
 
                             }
 
@@ -4413,7 +4385,7 @@ render_unified_header with context %}
 
                             if (item.is_due) {
 
-                                dueBadge = '<span class="px-2 py-1 bg-gradient-to-r from-red-500 to-red-600 text-white text-[10px] font-bold uppercase rounded-full tracking-wider shadow-sm animate-pulse">Ôn tập</span>';
+                                dueBadge = '<span class="px-2 py-1 bg-gradient-to-r from-red-500 to-red-600 text-white text-[10px] font-bold uppercase rounded-full tracking-wider shadow-sm animate-pulse">Review</span>';
 
                             }
 

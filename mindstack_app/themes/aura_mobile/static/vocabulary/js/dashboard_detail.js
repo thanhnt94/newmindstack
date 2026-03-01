@@ -200,12 +200,12 @@ document.addEventListener('DOMContentLoaded', function () {
                 sortedItems.forEach((item, index) => {
                     let statusBadge = '';
                     if (item.status === 'new') {
-                        statusBadge = '<span class="px-2 py-0.5 bg-blue-50 text-blue-600 text-[10px] font-bold uppercase rounded-md tracking-wider border border-blue-100">Mới</span>';
+                        statusBadge = '<span class="px-2 py-0.5 bg-blue-50 text-blue-600 text-[10px] font-bold uppercase rounded-md tracking-wider border border-blue-100">New</span>';
                     }
 
                     let dueBadge = '';
                     if (item.is_due) {
-                        dueBadge = '<span class="px-2 py-0.5 bg-red-50 text-red-600 text-[10px] font-bold uppercase rounded-md tracking-wider border border-red-100 animate-pulse">Ôn tập</span>';
+                        dueBadge = '<span class="px-2 py-0.5 bg-red-50 text-red-600 text-[10px] font-bold uppercase rounded-md tracking-wider border border-red-100 animate-pulse">Review</span>';
                     }
 
                     const stability = item.fsrs_stability ? parseFloat(item.fsrs_stability).toFixed(1) : '-';
@@ -274,7 +274,7 @@ document.addEventListener('DOMContentLoaded', function () {
                                 <div class="flex items-center justify-between mt-1 pt-2 border-t border-slate-200">
                                     <div class="flex items-center gap-2 text-[10px] text-slate-600">
                                         <i class="fas fa-history text-slate-400"></i>
-                                        <span>Ôn tập: <span class="font-bold text-slate-800">${nextReview}</span></span>
+                                        <span>Review: <span class="font-bold text-slate-800">${nextReview}</span></span>
                                     </div>
 
                                     <div class="flex items-center gap-1.5">
