@@ -51,7 +51,8 @@ back_icon='fa-chevron-left')
 
 {% macro render_unified_header(title, subtitle=None, score_overview=None, back_url=None, back_func=None,
 back_icon='fa-arrow-left',
-hide_default_actions=False, hide_avatar=False, title_icon='fa-layer-group', hide_subtitle=False) %}
+hide_default_actions=False, hide_avatar=False, title_icon='fa-layer-group', hide_subtitle=False,
+hide_header_title=False) %}
 <div
     class="px-3 pt-4 pb-3 flex items-center justify-between sticky top-0 z-[100] bg-white/95 backdrop-blur-md w-full gap-3 shadow-[0_4px_20px_-8px_rgba(0,0,0,0.08)] border-b border-indigo-50/50">
     <div class="flex items-center gap-3 min-w-0">
@@ -92,7 +93,8 @@ hide_default_actions=False, hide_avatar=False, title_icon='fa-layer-group', hide
         {% endif %}
 
         <div class="min-w-0 flex flex-col justify-center">
-            <h1 class="text-lg sm:text-xl font-extrabold leading-tight truncate tracking-tight js-header-title">
+            <h1
+                class="text-lg sm:text-xl font-extrabold leading-tight truncate tracking-tight js-header-title {% if hide_header_title %}opacity-0 transition-opacity duration-300{% else %}opacity-100{% endif %}">
                 <span class="bg-clip-text text-transparent bg-gradient-to-r from-slate-800 to-slate-600 truncate">{{
                     title
                     }}</span>

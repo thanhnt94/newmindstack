@@ -876,5 +876,6 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         }
     });
+
     // })(); REMOVED IIFE WRAPPER
 });

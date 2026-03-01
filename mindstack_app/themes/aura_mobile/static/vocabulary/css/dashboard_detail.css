@@ -141,6 +141,23 @@
     background: #f8fafc;
 }
 
+.vocab-detail-title {
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: #1e293b;
+    line-height: 1.25;
+    margin-top: 0.25rem;
+    padding-bottom: 0.25rem;
+    letter-spacing: -0.025em;
+}
+
+.vocab-detail-desc {
+    font-size: 0.9375rem;
+    color: #475569;
+    line-height: 1.5;
+    margin-bottom: 0.25rem;
+}
+
 /* Desktop Hero Support - can remain but shouldn't be toggled by JS/CSS media queries if we want consistency */
 .vocab-detail-hero.desktop {
     width: 200px;

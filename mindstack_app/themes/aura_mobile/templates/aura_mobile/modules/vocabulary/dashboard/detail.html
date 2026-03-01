@@ -103,9 +103,9 @@ render_unified_header with context %}
         /* Solid White */
         border: none !important;
         box-shadow: none !important;
-        padding: 0.75rem 1rem 0.25rem 1rem !important;
+        padding: 0 1rem 0 !important;
         margin: 0 !important;
-        gap: 0.5rem !important;
+        gap: 0 !important;
     }
 
     .vocab-pagination-bar.visible {
@@ -130,17 +130,23 @@ render_unified_header with context %}
 
     .pagination-pages {
         padding: 0 0.5rem !important;
-        height: 40px !important;
+        height: 34px !important;
         gap: 4px !important;
     }
 
+    .pagination-nav-btn {
+        width: 34px !important;
+        height: 34px !important;
+    }
+
     .vocab-start-btn {
-        margin: 0.5rem 1rem 0.75rem 1rem !important;
+        margin: 0 1rem 0.25rem 1rem !important;
+        padding: 0.5rem 1rem !important;
         width: auto !important;
-        border-radius: 1.25rem !important;
+        border-radius: 1rem !important;
         background: var(--vocab-primary) !important;
         color: white !important;
-        box-shadow: 0 10px 25px rgba(79, 70, 229, 0.2) !important;
+        box-shadow: 0 6px 15px rgba(79, 70, 229, 0.15) !important;
     }
 
 
@@ -204,14 +210,35 @@ render_unified_header with context %}
             {% endcall %}
 
             <div class="vocab-scroll">
-                <div class="vocab-detail-hero js-detail-cover">
-                    <i class="fas fa-book-open"></i>
+                <!-- Redesigned Top Content Area (Side-by-Side Mobile & Desktop) -->
+                <div class="bg-gradient-to-b from-indigo-50/10 to-transparent pt-0 pb-0 px-3 mt-2 mb-0">
+                    <div class="flex flex-row gap-4 items-start">
+                        <!-- 4:3 Cover Image container -->
+                        <div
+                            class="w-32 sm:w-40 md:w-56 shrink-0 aspect-[4/3] rounded-xl shadow-lg border border-indigo-100 overflow-hidden relative bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center js-detail-cover">
+                            <i class="fas fa-book-open text-white/50 text-4xl md:text-5xl"></i>
+                        </div>
+
+                        <!-- Details Content (No Title, just metadata) -->
+                        <div class="flex-1 text-left flex flex-col justify-start">
+                            <div class="vocab-creator-inline justify-start mt-0 mb-1">
+                                <div class="vocab-creator-avatar-small js-creator-avatar shadow-sm ring-2 ring-white">A
+                                </div>
+                                <span
+                                    class="vocab-creator-name-small js-creator-name text-slate-600 font-semibold tracking-wide text-sm">Admin</span>
+                            </div>
+
+                            <p
+                                class="vocab-detail-desc js-detail-desc text-slate-500 text-sm md:text-[15px] leading-relaxed line-clamp-3 md:line-clamp-none mt-1 mb-0">
+                                Mô tả bộ thẻ...</p>
+                        </div>
+                    </div>
                 </div>
 
-                <div class="vocab-detail-content" style="opacity: 0; transition: opacity 0.3s;">
+                <div class="vocab-detail-content px-2 pt-0" style="opacity: 0; transition: opacity 0.3s;">
                     <!-- [MOVED] Active Session Banner -->
                     <div id="active-session-banner-detail" style="display: none;"
-                        class="mb-6 rounded-2xl bg-orange-50/80 backdrop-blur border border-orange-100 p-4 shadow-xl shadow-orange-500/10 animate-fadeIn mx-2">
+                        class="mb-6 rounded-2xl bg-orange-50/80 backdrop-blur border border-orange-100 p-4 shadow-xl shadow-orange-500/10 animate-fadeIn">
                         <div class="flex items-center gap-4">
                             <div
                                 class="flex-shrink-0 w-12 h-12 rounded-xl bg-gradient-to-br from-orange-400 to-amber-500 flex items-center justify-center text-white shadow-lg shadow-orange-500/30">
@@ -234,17 +261,10 @@ render_unified_header with context %}
                         </div>
                     </div>
 
-                    <h1 class="vocab-detail-title js-detail-title-full px-2">Tên bộ thẻ</h1>
-                    <div class="vocab-creator-inline px-2">
-                        <div class="vocab-creator-avatar-small js-creator-avatar">A</div>
-                        <span class="vocab-creator-name-small js-creator-name">Admin</span>
-                    </div>
-                    <p class="vocab-detail-desc js-detail-desc px-2">Mô tả bộ thẻ...</p>
-
 
 
                     <!-- Tab Navigation -->
-                    <div class="px-2 border-b border-slate-100 flex items-center gap-6 mt-6 mb-4">
+                    <div class="px-2 border-b border-slate-100 flex items-center gap-6 mt-1 mb-4">
                         <button
                             class="py-3 text-sm font-semibold text-indigo-600 border-b-2 border-indigo-600 transition-colors"
                             onclick="switchDetailTab('list')" id="tab-btn-list">
