@@ -63,11 +63,21 @@ class VocabularyStatsService:
                 LearningItem.item_id.in_(learned_item_ids)
             ).scalar() or 0
             
-        # 2. Total Explore Sets (Public sets)
-        explore_sets_count = LearningContainer.query.filter(
+        # 2. Total Explore Sets (Public OR owned by user, and NOT in learning list)
+        explore_query = LearningContainer.query.filter(
             LearningContainer.container_type == 'FLASHCARD_SET',
-            LearningContainer.is_public == True
-        ).count()
+            or_(
+                LearningContainer.is_public == True,
+                LearningContainer.creator_user_id == user_id
+            )
+        )
+        if learned_item_ids:
+             learned_container_ids = db.session.query(LearningItem.container_id).filter(
+                LearningItem.item_id.in_(learned_item_ids)
+            ).distinct()
+             explore_query = explore_query.filter(~LearningContainer.container_id.in_(learned_container_ids))
+        
+        explore_sets_count = explore_query.count()
 
         fsrs_stats = FsrsService.get_global_stats(user_id)
         
@@ -201,10 +211,14 @@ class VocabularyStatsService:
         return {'total': 0, 'new': 0, 'learning': 0, 'mastered': 0, 'due': 0, 'hard': 0, 'learned': 0, 'completion_pct': 0, 'retrievability_avg': 0, 'mastery_avg': 0, 'accuracy_pct': 0, 'total_reviews': 0, 'total_correct': 0, 'total_incorrect': 0, 'last_reviewed': None}
 
     @staticmethod
-    def get_chart_data(user_id: int, container_id: int) -> dict:
+    def get_chart_data(user_id: int, container_id: int, user_timezone_str: Optional[str] = None) -> dict:
         items = LearningItem.query.filter(LearningItem.container_id == container_id, LearningItem.item_type.in_(['FLASHCARD', 'VOCABULARY'])).all()
         item_ids = [item.item_id for item in items]
-        if not item_ids: return {'distribution': {'weak': 0, 'medium': 0, 'strong': 0}, 'timeline': {'dates': [], 'values': []}}
+        if not item_ids: return {
+            'distribution': {'weak': 0, 'medium': 0, 'strong': 0}, 
+            'timeline': {'dates': [], 'values': []},
+            'activity': {'new_items': [], 'reviews': []}
+        }
         
         # REFAC: Use FsrsInterface
         progress_map = FsrsService.get_memory_states(user_id, item_ids)

@@ -149,11 +149,19 @@
         {% for s in sessions %}
         <div class="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm flex flex-col gap-4">
             <div class="flex items-start gap-3">
-                <div
-                    class="w-12 h-12 rounded-xl flex-shrink-0 flex items-center justify-center text-xl text-white shadow-sm
-                            {% if s.learning_mode == 'quiz' %}bg-gradient-to-br from-amber-400 to-orange-500{% else %}bg-gradient-to-br from-indigo-500 to-purple-600{% endif %}">
-                    <i
-                        class="fa-solid {% if s.learning_mode == 'quiz' %}fa-bolt{% else %}fa-layer-group{% endif %}"></i>
+                <div class="w-12 h-12 rounded-xl flex-shrink-0 flex items-center justify-center text-xl text-white shadow-sm
+                            {% if s.learning_mode == 'quiz' %}bg-gradient-to-br from-amber-400 to-orange-500
+                            {% elif s.learning_mode == 'mcq' %}bg-gradient-to-br from-orange-400 to-amber-500
+                            {% elif s.learning_mode == 'typing' %}bg-gradient-to-br from-blue-400 to-indigo-500
+                            {% elif s.learning_mode == 'listening' %}bg-gradient-to-br from-purple-400 to-pink-500
+                            {% elif s.learning_mode == 'matching' %}bg-gradient-to-br from-emerald-400 to-teal-500
+                            {% else %}bg-gradient-to-br from-indigo-500 to-purple-600{% endif %}">
+                    <i class="fa-solid {% if s.learning_mode == 'quiz' %}fa-bolt
+                                        {% elif s.learning_mode == 'mcq' %}fa-gamepad
+                                        {% elif s.learning_mode == 'typing' %}fa-keyboard
+                                        {% elif s.learning_mode == 'listening' %}fa-headphones
+                                        {% elif s.learning_mode == 'matching' %}fa-puzzle-piece
+                                        {% else %}fa-layer-group{% endif %}"></i>
                 </div>
                 <div class="flex-1 min-w-0">
                     <div class="flex items-center justify-between gap-2">
@@ -167,7 +175,7 @@
                     <div class="flex items-center gap-2 text-xs text-slate-500 font-medium">
                         <span
                             class="px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 font-bold uppercase text-[10px] tracking-wider">
-                            {{ 'QUIZ' if s.learning_mode == 'quiz' else 'FLASHCARD' }}
+                            {{ s.learning_mode|upper }}
                         </span>
                         <span>{{ s.mode_name }}</span>
                     </div>

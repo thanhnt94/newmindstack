@@ -9,25 +9,50 @@ from .. import blueprint
 from .api import safe_url_for
 
 def get_mode_description(session):
-    """Generate a detailed description for a learning session."""
-    mode_map = {
+    """Generate a detailed human-readable description for a learning session."""
+    # 1. Map Core Strategy/Config
+    strategy_map = {
+        'mixed_srs': 'Lộ trình SRS',
         'new_only': 'Học từ mới',
         'due_only': 'Ôn tập tới hạn',
         'hard_only': 'Các từ khó',
-        'mixed_srs': 'Học theo lộ trình (SRS)',
         'all_review': 'Ôn tập tất cả',
-        'typing': 'Gõ từ',
-        'listening': 'Nghe chép chính tả',
-        'matching': 'Ghép thẻ',
-        'mcq': 'Trắc nghiệm (MCQ Game)',
-        'quiz': 'Trắc nghiệm (Quiz)',
+        'sequential': 'Học theo thứ tự',
+        'srs': 'Lộ trình SRS',
+        # MCQ Specific Configs
+        'front_back': 'Từ -> Nghĩa',
+        'back_front': 'Nghĩa -> Từ',
+        'audio_back': 'Nghe âm thanh',
+        'image_back': 'Nhìn ảnh',
+        'audio_front': 'Nghe chọn từ',
+    }
+    
+    # 2. Map Learning Game/Mode
+    game_map = {
         'flashcard': 'Flashcard',
+        'mcq': 'Trắc nghiệm',
+        'typing': 'Gõ từ',
+        'listening': 'Nghe chép',
+        'matching': 'Ghép thẻ',
+        'quiz': 'Quiz',
         'speed': 'Ôn nhanh'
     }
-    base_name = mode_map.get(session.mode_config_id, session.mode_config_id)
-    if session.learning_mode in ['typing', 'listening', 'mcq', 'quiz']:
-        return f"{base_name} • {session.total_items} câu"
-    return base_name
+    
+    strategy = strategy_map.get(session.mode_config_id, session.mode_config_id)
+    game = game_map.get(session.learning_mode, session.learning_mode.upper())
+    
+    # Structure the description
+    if session.learning_mode == 'flashcard':
+        desc = f"{game} • {strategy}"
+    elif session.learning_mode == 'quiz':
+        desc = f"{game} ({session.total_items} câu)"
+    else:
+        # For MCQ, Typing, etc. Strategy often represents the question direction/type
+        desc = f"{game} • {strategy}"
+        if session.total_items:
+            desc += f" • {session.total_items} câu"
+            
+    return desc
 
 @blueprint.route('/')
 @login_required

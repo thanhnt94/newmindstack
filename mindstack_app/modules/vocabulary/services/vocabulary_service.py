@@ -42,7 +42,19 @@ class VocabularyService:
                 query = query.filter(LearningContainer.container_id.in_(learned_container_ids))
 
             elif category in ['public', 'explore']:
-                query = query.filter(LearningContainer.is_public == True)
+                # 1. Base criteria: Public OR created by user
+                query = query.filter(or_(
+                    LearningContainer.is_public == True,
+                    LearningContainer.creator_user_id == user_id
+                ))
+                
+                # 2. Exclusion: Not already started learning
+                learned_item_ids = FsrsInterface.get_learned_item_ids(user_id)
+                if learned_item_ids:
+                    learned_container_ids = db.session.query(LearningItem.container_id).filter(
+                        LearningItem.item_id.in_(learned_item_ids)
+                    ).distinct()
+                    query = query.filter(~LearningContainer.container_id.in_(learned_container_ids))
             elif category == 'favorite':
                 query = query.join(UserContainerState).filter(
                     UserContainerState.user_id == user_id,

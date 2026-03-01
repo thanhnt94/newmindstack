@@ -367,8 +367,12 @@ render_unified_header with context %}
                         <!-- Summary Cards Grid -->
                         <div class="grid grid-cols-2 gap-3 mb-6">
                             <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm text-center">
-                                <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Khả năng
-                                    ghi nhớ</div>
+                                <div
+                                    class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1 flex items-center justify-center gap-1">
+                                    Khả năng ghi nhớ
+                                    <i class="fas fa-question-circle text-slate-300 cursor-help"
+                                        title="Xác suất trung bình bạn có thể nhớ chính xác các thẻ đã học vào thời điểm hiện tại."></i>
+                                </div>
                                 <div class="text-2xl font-black text-indigo-600" id="personal-mp">--%</div>
                             </div>
                             <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm text-center">
@@ -377,31 +381,27 @@ render_unified_header with context %}
                                 <div class="text-2xl font-black text-emerald-600" id="personal-learned">--</div>
                             </div>
                             <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm text-center">
-                                <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Thành
-                                    thạo</div>
+                                <div
+                                    class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1 flex items-center justify-center gap-1">
+                                    Thành thạo
+                                    <i class="fas fa-question-circle text-slate-300 cursor-help"
+                                        title="Những thẻ đã đạt độ bền trí nhớ trên 21 ngày, được coi là đã nằm trong trí nhớ dài hạn."></i>
+                                </div>
                                 <div class="text-2xl font-black text-blue-600" id="personal-mastered">--</div>
                             </div>
                             <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm text-center">
-                                <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Cần ôn
-                                    tập</div>
+                                <div
+                                    class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1 flex items-center justify-center gap-1">
+                                    Cần ôn tập
+                                    <i class="fas fa-question-circle text-slate-300 cursor-help"
+                                        title="Những thẻ đã đến lúc cần phải ôn lại theo thuật toán giãn cách (SRS) để tránh bị quên."></i>
+                                </div>
                                 <div class="text-2xl font-black text-rose-600" id="personal-due">--</div>
                             </div>
                         </div>
 
                         <!-- Charts Section -->
                         <div class="space-y-6">
-                            <!-- Mastery Timeline -->
-                            <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
-                                <h4 class="text-sm font-bold text-slate-800 mb-4 flex items-center justify-between">
-                                    <span class="flex items-center gap-2">
-                                        <i class="fas fa-chart-line text-indigo-500"></i> Độ bền trí nhớ (Retention)
-                                    </span>
-                                    <span class="text-[10px] font-normal text-slate-400 js-tz-label">--</span>
-                                </h4>
-                                <div class="h-48 w-full relative">
-                                    <canvas id="personalTimelineChart"></canvas>
-                                </div>
-                            </div>
 
                             <!-- Activity Chart (New vs Review) -->
                             <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
