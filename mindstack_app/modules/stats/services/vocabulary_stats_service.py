@@ -611,8 +611,16 @@ class VocabularyStatsService:
         # REFAC: Use FsrsInterface
         container_stats = FsrsService.get_container_stats(user_id, container_id)
         learned_count = container_stats.get('learned', 0)
+        due_count = container_stats.get('due', 0)
+        total_container_count = container_stats.get('total', total_items)
         
-        return {'items': result_items, 'pagination': {'total': total_items, 'page': page, 'per_page': per_page, 'pages': pagination.pages}, 'learned_count': learned_count}
+        return {
+            'items': result_items, 
+            'pagination': {'total': total_items, 'page': page, 'per_page': per_page, 'pages': pagination.pages}, 
+            'learned_count': learned_count,
+            'due_count': due_count,
+            'total_count': total_container_count
+        }
 
     @staticmethod
     def _is_log_correct(log) -> bool:

@@ -873,3 +873,17 @@ window.getDriverSessionId = function () {
     return _driverSessionId;
 };
 
+
+
+// --- Initialization ---
+document.addEventListener('DOMContentLoaded', () => {
+    const headerFeedbackBtns = document.querySelectorAll('.js-header-feedback-btn');
+    headerFeedbackBtns.forEach(btn => btn.addEventListener('click', () => {
+        if (!window.currentFlashcardBatch || window.currentFlashcardBatch.length === 0) return;
+        const currentCard = window.currentFlashcardBatch[window.currentFlashcardIndex];
+        if (currentCard && window.openFeedbackModal) {
+            window.openFeedbackModal(currentCard.item_id, currentCard.content.front);
+        }
+    }));
+});
+

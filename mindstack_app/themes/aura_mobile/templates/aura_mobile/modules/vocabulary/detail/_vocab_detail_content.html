@@ -7,11 +7,21 @@
     data-forgetting-curve='{{ p.forgetting_curve | tojson | safe }}'
     style="display: flex; flex-direction: column; height: 100%; width: 100%; background: white; overflow: hidden; border-radius: 1rem; position: relative;">
 
-    <!-- Absolute Close Button -->
-    <button class="aura-modal-close js-close-stats-modal"
-        style="position: absolute; top: 0.5rem; right: 0.5rem; z-index: 100; background: #f8fafc; color: #94a3b8; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 1px solid #f1f5f9; cursor: pointer;">
-        <i class="fas fa-times" style="font-size: 13px;"></i>
-    </button>
+    <!-- Top Right Actions -->
+    <div style="position: absolute; top: 0.5rem; right: 0.5rem; z-index: 100; display: flex; gap: 0.5rem;">
+        <!-- Report Button -->
+        <button class="marker-btn js-fc-report-btn"
+            onclick='window.openFeedbackModal({{ s.item.id }}, {{ s.item.front | tojson }})'
+            style="background: #f8fafc; color: #94a3b8; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 1px solid #f1f5f9; cursor: pointer; transition: all 0.2s;"
+            title="Báo cáo lỗi">
+            <i class="fas fa-flag" style="font-size: 13px;"></i>
+        </button>
+        <!-- Close Button -->
+        <button class="aura-modal-close js-close-stats-modal"
+            style="background: #f8fafc; color: #94a3b8; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 1px solid #f1f5f9; cursor: pointer;">
+            <i class="fas fa-times" style="font-size: 13px;"></i>
+        </button>
+    </div>
 
     <!-- Set Name (Positioned top-left) -->
     <div
@@ -83,13 +93,6 @@
                         style="font-size: 13px;"></i>
                 </button>
 
-                <!-- [NEW] Report Button -->
-                <button class="marker-btn js-fc-report-btn"
-                    onclick='window.openFeedbackModal({{ s.item.id }}, {{ s.item.front | tojson }})'
-                    style="width: 32px; height: 32px; border-radius: 50%; border: 1px solid #e2e8f0; background: white; color: #94a3b8; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s;"
-                    title="Báo cáo lỗi">
-                    <i class="fas fa-flag" style="font-size: 13px;"></i>
-                </button>
             </div>
         </div>
 

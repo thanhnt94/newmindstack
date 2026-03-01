@@ -936,10 +936,7 @@ function renderCard(data) {
         }
     }
 
-    document.querySelectorAll('.open-feedback-modal-btn').forEach(btn => btn.addEventListener('click', () => {
-        const currentCard = window.currentFlashcardBatch[window.currentFlashcardIndex];
-        openFeedbackModal(currentCard.item_id, currentCard.content.front);
-    }));
+    // Feedback button listener removed from here (now static in header, bound in session_manager/init)
 
     applyMediaVisibility();
 

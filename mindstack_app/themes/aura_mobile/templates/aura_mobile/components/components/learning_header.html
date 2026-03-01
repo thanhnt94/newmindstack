@@ -65,6 +65,15 @@ hide_left_btn=False, hide_right_btns=False, align_left=False, counter_selector=N
             </div>
             {% endif %}
 
+            {# Flag/Feedback Button #}
+            {% if not hide_right_btns and not hide_feedback_btn %}
+            <button
+                class="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition-all backdrop-blur-md text-slate-100 hover:text-white border border-white/5 active:scale-90 js-header-feedback-btn open-feedback-modal-btn"
+                title="Báo cáo lỗi / Góp ý">
+                <i class="fa-solid fa-flag text-base"></i>
+            </button>
+            {% endif %}
+
             {# Exit Button #}
             {% if exit_func and not hide_right_btns %}
             <button onclick="{{ exit_func }}"

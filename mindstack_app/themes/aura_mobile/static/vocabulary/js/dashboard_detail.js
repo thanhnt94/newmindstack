@@ -124,8 +124,11 @@ document.addEventListener('DOMContentLoaded', function () {
 
             if (stats) {
                 try {
-                    const progressText = (stats.learned_count || 0) + '/' + (stats.total_count || s.card_count);
+                    const progressText = (stats.learned_count || 0); // Only show the learned count
                     document.querySelectorAll('.js-progress-count').forEach(el => el.textContent = progressText);
+
+                    // Hide the labels below them
+                    document.querySelectorAll('.vocab-stat-label').forEach(el => el.style.display = 'none');
 
                     // Update Tab Count
                     const tabCountEl = document.getElementById('tab-list-count');
@@ -133,6 +136,23 @@ document.addEventListener('DOMContentLoaded', function () {
                         tabCountEl.textContent = progressText;
                         tabCountEl.classList.remove('hidden');
                     }
+
+                    // Update Filter Tabs Counts
+                    const totalObjCount = s.card_count || stats.total_count || 0;
+                    document.querySelectorAll('.js-filter-count-all').forEach(el => el.textContent = `(${totalObjCount})`);
+
+                    const learnedObjCount = stats.learned_count || 0;
+                    document.querySelectorAll('.js-filter-count-learned').forEach(el => el.textContent = `(${learnedObjCount})`);
+
+                    const dueObjCount = stats.due_count || 0;
+                    document.querySelectorAll('.js-filter-count-due').forEach(el => {
+                        if (dueObjCount > 0) {
+                            el.textContent = `(${dueObjCount})`;
+                            el.style.display = 'inline-block';
+                        } else {
+                            el.style.display = 'none';
+                        }
+                    });
 
                     const progressPercent = stats.total_count ? Math.round((stats.learned_count / stats.total_count) * 100) : 0;
                     document.querySelectorAll('.js-header-progress-percent').forEach(el => el.textContent = progressPercent + '%');
@@ -215,7 +235,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     const nextReview = item.next_review || '-';
 
                     listHtml += `
-                    <div class="group bg-white border border-slate-300 rounded-2xl hover:border-indigo-500 hover:shadow-xl transition-all duration-300 mb-4 relative overflow-hidden js-item-stats-trigger cursor-pointer ring-0 hover:ring-4 hover:ring-indigo-50/50" data-item-id="${item.item_id || item.id}">
+                    <div class="group bg-white border border-slate-300 rounded-2xl hover:border-indigo-500 hover:shadow-xl transition-all duration-300 mb-4 relative overflow-hidden js-item-stats-trigger cursor-pointer ring-0 hover:ring-4 hover:ring-indigo-50/50 flex flex-col h-full" data-item-id="${item.item_id || item.id}">
                         <!-- Compact Top Bar -->
                         <div class="px-3 py-2 bg-slate-50 border-b border-slate-200 flex items-center justify-between gap-2">
                             <div class="flex items-center gap-2">
@@ -243,10 +263,9 @@ document.addEventListener('DOMContentLoaded', function () {
                             </div>
                         </div>
 
-                        <div class="p-3">
-                             <div class="flex flex-col gap-2">
+                        <div class="p-3 flex-1 flex flex-col">
                                 <!-- Main Content Area -->
-                                <div class="grid grid-cols-1 gap-2">
+                                <div class="flex flex-col gap-2 flex-1">
                                     <!-- Front Side -->
                                     <div class="flex flex-col relative">
                                         <div class="absolute top-2 right-2 z-10">
@@ -259,11 +278,11 @@ document.addEventListener('DOMContentLoaded', function () {
                                     </div>
                                     
                                     <!-- Back Side -->
-                                    <div class="flex flex-col relative">
+                                    <div class="flex flex-col relative flex-1">
                                         <div class="absolute top-2 right-2 z-10">
                                             ${dueBadge}
                                         </div>
-                                        <div class="bg-amber-50/40 border border-amber-200 rounded-lg p-3 min-h-[50px] flex items-center shadow-sm relative overflow-hidden group-hover:border-amber-300 transition-colors">
+                                        <div class="bg-amber-50/40 border border-amber-200 rounded-lg p-3 min-h-[50px] flex items-center shadow-sm relative overflow-hidden group-hover:border-amber-300 transition-colors h-full">
                                             <div class="w-1 h-full absolute left-0 top-0 bg-amber-400"></div>
                                             <div class="text-sm font-medium text-slate-800 leading-relaxed pl-2 w-full pr-14 line-clamp-3" title="${item.definition}">${item.definition}</div>
                                         </div>
@@ -271,7 +290,7 @@ document.addEventListener('DOMContentLoaded', function () {
                                 </div>
 
                                 <!-- Compact Footer -->
-                                <div class="flex items-center justify-between mt-1 pt-2 border-t border-slate-200">
+                                <div class="flex items-center justify-between mt-3 pt-2 border-t border-slate-200">
                                     <div class="flex items-center gap-2 text-[10px] text-slate-600">
                                         <i class="fas fa-history text-slate-400"></i>
                                         <span>Review: <span class="font-bold text-slate-800">${nextReview}</span></span>
@@ -283,7 +302,6 @@ document.addEventListener('DOMContentLoaded', function () {
                                         ${item.is_hard ? '<i class="fas fa-fire text-red-600 text-xs bg-red-100 border border-red-200 p-1 rounded"></i>' : ''}
                                     </div>
                                 </div>
-                            </div>
                         </div>
                     </div>`;
                 });
