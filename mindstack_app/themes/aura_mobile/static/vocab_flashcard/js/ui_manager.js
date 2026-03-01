@@ -19,6 +19,9 @@ function initUiSettings() {
     if (visualSettings.show_image !== undefined) {
         isMediaHidden = (visualSettings.show_image === false);
     }
+    if (visualSettings.show_note !== undefined) {
+        isBackNoteHidden = (visualSettings.show_note === false);
+    }
     if (visualSettings.show_stats !== undefined) {
         showStats = (visualSettings.show_stats !== false);
     }

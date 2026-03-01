@@ -513,6 +513,18 @@ def start():
     else:
         container_id = 'all'
     
+    # [NEW] Capture visual settings from setup page
+    visual_settings = session.get('flashcard_visual_settings', {})
+    for key in ['autoplay_front', 'autoplay_back', 'show_image', 'show_note']:
+        if key in data:
+            val = data.get(key)
+            if isinstance(val, str):
+                visual_settings[key] = (val.lower() == 'true')
+            else:
+                visual_settings[key] = bool(val)
+    session['flashcard_visual_settings'] = visual_settings
+    session.modified = True
+
     db_sess, driver_state = SessionInterface.start_driven_session(
         user_id=current_user.user_id,
         container_id=container_id,

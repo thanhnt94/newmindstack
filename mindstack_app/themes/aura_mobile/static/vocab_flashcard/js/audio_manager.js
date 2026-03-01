@@ -28,17 +28,25 @@ Object.defineProperty(window, 'isAudioAutoplayEnabled', {
 
 // --- Init: localStorage ONLY, server setting ignored ---
 function initAudioSettings() {
-    // Front
+    // 0. Base Preferences from Backend (via FlashcardConfig)
+    const visualSettings = window.FlashcardConfig ? window.FlashcardConfig.visualSettings : {};
+
+    // 1. Initial Load: localStorage
     try {
-        const v = localStorage.getItem('flashcardAutoPlayFront');
-        if (v !== null) window.isAudioAutoplayFrontEnabled = (v === 'true');
+        const vFront = localStorage.getItem('flashcardAutoPlayFront');
+        if (vFront !== null) window.isAudioAutoplayFrontEnabled = (vFront === 'true');
+
+        const vBack = localStorage.getItem('flashcardAutoPlayBack');
+        if (vBack !== null) window.isAudioAutoplayBackEnabled = (vBack === 'true');
     } catch (_) { }
 
-    // Back
-    try {
-        const v = localStorage.getItem('flashcardAutoPlayBack');
-        if (v !== null) window.isAudioAutoplayBackEnabled = (v === 'true');
-    } catch (_) { }
+    // 2. High Priority: Backend Override
+    if (visualSettings.autoplay_front !== undefined) {
+        window.isAudioAutoplayFrontEnabled = !!visualSettings.autoplay_front;
+    }
+    if (visualSettings.autoplay_back !== undefined) {
+        window.isAudioAutoplayBackEnabled = !!visualSettings.autoplay_back;
+    }
 
     // Delay
     try {

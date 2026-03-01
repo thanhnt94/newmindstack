@@ -8,17 +8,16 @@
 <style>
     /* Custom polished styling for setup page */
     .setup-container {
-        padding: 1.5rem;
+        padding: 1rem;
         width: 100%;
         margin: 0 auto;
         min-height: 100vh;
-        /* Ensure full height */
         display: flex;
         flex-direction: column;
     }
 
     .setup-header {
-        margin-bottom: 2rem;
+        margin-bottom: 1rem;
         text-align: center;
     }
 
@@ -26,7 +25,7 @@
         background: white;
         border: 2px solid #f1f5f9;
         border-radius: 1.5rem;
-        padding: 1.5rem;
+        padding: 1rem;
         margin-bottom: 1rem;
         cursor: pointer;
         transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
@@ -52,6 +51,7 @@
     .mode-icon-wrapper {
         width: 48px;
         height: 48px;
+        flex-shrink: 0;
         border-radius: 14px;
         background: #f1f5f9;
         color: #64748b;
@@ -59,7 +59,6 @@
         align-items: center;
         justify-content: center;
         font-size: 1.25rem;
-        margin-bottom: 1rem;
         transition: all 0.3s ease;
     }
 
@@ -99,7 +98,7 @@
         left: 0;
         right: 0;
         background: white;
-        padding: 1.5rem;
+        padding: 0.5rem 0.75rem 0.75rem;
         border-top: 1px solid #e2e8f0;
         box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.05);
         z-index: 50;
@@ -107,15 +106,21 @@
 
     .config-toggles {
         display: flex;
-        gap: 0.5rem;
-        margin-bottom: 1.25rem;
+        flex-direction: column;
+        gap: 0.4rem;
+        margin-bottom: 0.75rem;
+    }
+
+    .toggles-row {
+        display: flex;
         justify-content: center;
-        flex-wrap: wrap;
+        gap: 0.4rem;
     }
 
     .toggle-chip {
-        padding: 0.5rem 0.75rem;
-        border-radius: 10px;
+        flex-shrink: 0;
+        padding: 0.4rem 0.75rem;
+        border-radius: 12px;
         background: #f8fafc;
         border: 1px solid #e2e8f0;
         font-size: 0.75rem;
@@ -123,9 +128,10 @@
         color: #64748b;
         display: flex;
         align-items: center;
-        gap: 0.35rem;
+        gap: 0.4rem;
         cursor: pointer;
         transition: all 0.2s;
+        white-space: nowrap;
     }
 
     .toggle-chip.active {
@@ -148,12 +154,12 @@
 
     .btn-start {
         width: 100%;
-        padding: 1rem;
-        border-radius: 1rem;
+        padding: 0.75rem;
+        border-radius: 0.875rem;
         background: #0f172a;
         color: white;
         font-weight: 700;
-        font-size: 1.1rem;
+        font-size: 1rem;
         border: none;
         transition: transform 0.2s;
         display: flex;
@@ -192,14 +198,20 @@
 <div class="setup-container">
 
     <!-- Navbar placeholder for spacing if needed or plain header -->
-    <div class="flex items-center gap-4 mb-4">
+    <div class="flex items-center gap-2 mb-4">
         <a href="{{ url_for('vocabulary.dashboard') }}"
-            class="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200 transition-colors">
+            class="flex-shrink-0 w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200 transition-colors"
+            title="Trở lại">
             <i class="fa-solid fa-arrow-left"></i>
         </a>
-        <div class="flex-1">
-            <h1 class="font-bold text-slate-800">{{ container_title }}</h1>
+        <div class="flex-1 min-w-0 mx-2">
+            <h1 class="font-bold text-slate-800 truncate text-base">{{ container_title }}</h1>
         </div>
+        <a href="{{ url_for('dashboard.dashboard') }}"
+            class="flex-shrink-0 w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200 transition-colors"
+            title="Trang chủ">
+            <i class="fa-solid fa-house"></i>
+        </a>
     </div>
 
     <!-- Main Title -->
@@ -252,7 +264,7 @@
     </div>
 
     <!-- Spacer for fixed footer -->
-    <div class="h-32"></div>
+    <div class="h-24"></div>
 
 </div>
 
@@ -260,19 +272,29 @@
 <div class="bottom-panel fade-in-up" style="animation-delay: 0.3s;">
     <!-- Settings Toggles -->
     <div class="config-toggles">
-        <button class="toggle-chip active" id="toggle-image" onclick="toggleSetting('image')">
-            <i class="fas fa-image"></i> Hiện ảnh
-        </button>
-        <button class="toggle-chip" id="toggle-audio-front" onclick="toggleSetting('audio_front')">
-            <i class="fas fa-volume-up"></i> Phát mặt trước
-        </button>
-        <button class="toggle-chip" id="toggle-audio-back" onclick="toggleSetting('audio_back')">
-            <i class="fas fa-volume-up"></i> Phát mặt sau
-        </button>
+        <!-- Row 1: Audio -->
+        <div class="toggles-row">
+            <button class="toggle-chip active" id="toggle-audio-front" onclick="toggleSetting('audio_front')">
+                <i class="fas fa-volume-up"></i> Phát mặt trước
+            </button>
+            <button class="toggle-chip active" id="toggle-audio-back" onclick="toggleSetting('audio_back')">
+                <i class="fas fa-volume-up"></i> Phát mặt sau
+            </button>
+        </div>
+        <!-- Row 2: Image & Note -->
+        <div class="toggles-row">
+            <button class="toggle-chip active" id="toggle-image" onclick="toggleSetting('image')">
+                <i class="fas fa-image"></i> Hiện ảnh
+            </button>
+            <button class="toggle-chip active" id="toggle-note" onclick="toggleSetting('note')">
+                <i class="fas fa-sticky-note"></i> Hiện ghi chú
+            </button>
+        </div>
     </div>
 
     <button id="start-btn" class="btn-start" onclick="startSession()" disabled>
-        Bắt đầu ngay
+        <i class="fa-solid fa-play"></i>
+        <span>Bắt đầu ngay</span>
     </button>
 </div>
 {% endblock %}
@@ -285,8 +307,9 @@
     let selectedModeId = null;
     let settings = {
         show_image: true,
-        autoplay_front: true, // [NEW] Default to true
-        autoplay_back: true   // [NEW] Default to true
+        autoplay_front: true,
+        autoplay_back: true,
+        show_note: true
     };
 
     // Load saved settings if any (simple)
@@ -295,6 +318,7 @@
         const saved = {{ saved_settings | tojson
     }};
     if (saved.show_image !== undefined) settings.show_image = saved.show_image;
+    if (saved.show_note !== undefined) settings.show_note = saved.show_note;
 
     // Handle legacy 'autoplay' or new granular ones
     if (saved.autoplay !== undefined) {
@@ -310,11 +334,16 @@
     try {
         const storedFront = localStorage.getItem('flashcardAutoPlayFront');
         const storedBack = localStorage.getItem('flashcardAutoPlayBack');
+        const storedNote = localStorage.getItem('flashcardShowNote');
+
         if (storedFront === 'false') settings.autoplay_front = false;
         else if (storedFront === 'true') settings.autoplay_front = true;
 
         if (storedBack === 'false') settings.autoplay_back = false;
         else if (storedBack === 'true') settings.autoplay_back = true;
+
+        if (storedNote === 'false') settings.show_note = false;
+        else if (storedNote === 'true') settings.show_note = true;
     } catch (e) { }
 
     // Init UI from State
@@ -331,6 +360,10 @@
 
         if (settings.autoplay_back) audioBackBtn.classList.add('active');
         else audioBackBtn.classList.remove('active');
+
+        const noteBtn = document.getElementById('toggle-note');
+        if (settings.show_note) noteBtn.classList.add('active');
+        else noteBtn.classList.remove('active');
 
         // Auto-select first available mode
         const firstCard = document.querySelector('.mode-card:not(.disabled)');
@@ -354,6 +387,10 @@
             settings.autoplay_back = !settings.autoplay_back;
             document.getElementById('toggle-audio-back').classList.toggle('active');
             localStorage.setItem('flashcardAutoPlayBack', settings.autoplay_back);
+        } else if (type === 'note') {
+            settings.show_note = !settings.show_note;
+            document.getElementById('toggle-note').classList.toggle('active');
+            localStorage.setItem('flashcardShowNote', settings.show_note);
         }
     }
 
@@ -399,7 +436,7 @@
                 .replace('MODE', selectedModeId);
 
             // Append explicit params
-            url += `?autoplay_front=${settings.autoplay_front}&autoplay_back=${settings.autoplay_back}&show_image=${settings.show_image}`;
+            url += `?autoplay_front=${settings.autoplay_front}&autoplay_back=${settings.autoplay_back}&show_image=${settings.show_image}&show_note=${settings.show_note}`;
 
             window.location.href = url;
         });
