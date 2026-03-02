@@ -9,18 +9,17 @@ from ..logics.calculator import ScoreCalculator
 class RecalculationService:
     """
     Service to handle massive score recalculations when configs change.
-    Updates BOTH score_logs AND gamification_snapshot in study_logs.
+    Updates BOTH study_logs.gamification_snapshot AND score_logs.score_change.
     """
 
     @staticmethod
     def recalculate_scores(days: int = 0) -> dict:
         """
-        Full recalculation: updates score_logs + study_logs snapshot + user totals.
-        If days > 0, only recalculate last N days. Otherwise, recalculate all.
+        Full recalculation: updates study_logs snapshot + score_logs + user totals.
         """
         print(f"[Recalculation] Started. days={days}")
         
-        # ── Step 1: Fetch all study_logs (the source of truth for interactions) ──
+        # ── Step 1: Update study_logs (source of truth for receipt UI) ──
         query = StudyLog.query
         if days > 0:
             start_date = datetime.now(timezone.utc) - timedelta(days=days)
@@ -35,7 +34,6 @@ class RecalculationService:
         
         for slog in study_logs:
             try:
-                # Determine the quality/event_key from the study log
                 rating = slog.rating
                 if not rating or rating < 1 or rating > 4:
                     skipped_count += 1
@@ -44,7 +42,6 @@ class RecalculationService:
                 config_keys = {1: 'SCORE_FSRS_AGAIN', 2: 'SCORE_FSRS_HARD', 3: 'SCORE_FSRS_GOOD', 4: 'SCORE_FSRS_EASY'}
                 event_key = config_keys.get(rating, 'SCORE_FSRS_GOOD')
                 
-                # Build context from the study log's snapshots
                 context = {
                     'difficulty': (slog.fsrs_snapshot or {}).get('difficulty', 0.0),
                     'stability': (slog.fsrs_snapshot or {}).get('stability', 0.0),
@@ -55,10 +52,8 @@ class RecalculationService:
                 if not context.get('streak') and slog.gamification_snapshot:
                     context['streak'] = (slog.gamification_snapshot or {}).get('streak', 0)
                 
-                # Calculate new score with current config
                 new_score, breakdown = ScoreCalculator.calculate(event_key, context)
                 
-                # Update gamification_snapshot in study_log
                 old_snapshot = slog.gamification_snapshot or {}
                 old_score = old_snapshot.get('score_earned', old_snapshot.get('total_score', -1))
                 
@@ -80,85 +75,73 @@ class RecalculationService:
         
         print(f"[Recalculation] Study logs: updated={updated_count}, unchanged={skipped_count}, errors={error_count}")
         
-        # ── Step 2: Also update score_logs to match ──
-        score_query = ScoreLog.query
-        if days > 0:
-            start_date = datetime.now(timezone.utc) - timedelta(days=days)
-            score_query = score_query.filter(ScoreLog.timestamp >= start_date)
-        
-        score_logs = score_query.all()
-        score_updated = 0
-        
-        system_reasons = {
-            'SCORE_FSRS_AGAIN', 'SCORE_FSRS_HARD', 'SCORE_FSRS_GOOD', 'SCORE_FSRS_EASY',
-            'VOCAB_MCQ_CORRECT_BONUS', 'VOCAB_TYPING_CORRECT_BONUS',
-            'VOCAB_MATCHING_CORRECT_BONUS', 'VOCAB_LISTENING_CORRECT_BONUS', 'VOCAB_SPEED_CORRECT_BONUS',
-            'QUIZ_CORRECT_BONUS'
-        }
-        
-        for log in score_logs:
-            try:
-                event_key = log.reason
-                is_flashcard = (
-                    event_key.startswith('Flashcard Answer') or 
-                    event_key == "Vocab Flashcard Practice" or
-                    event_key == "Flashcard Practice" or
-                    log.item_type == 'FLASHCARD'
-                )
-                is_system = event_key in system_reasons
-                
-                if not is_system and not is_flashcard:
-                    continue
-                
-                # Find matching study_log
-                if log.item_id:
-                    study_log = StudyLog.query.filter(
-                        StudyLog.user_id == log.user_id,
-                        StudyLog.item_id == log.item_id,
-                        StudyLog.timestamp >= log.timestamp - timedelta(minutes=15),
-                        StudyLog.timestamp <= log.timestamp + timedelta(minutes=15)
-                    ).first()
-                    
-                    if study_log:
-                        rating = study_log.rating or 3
-                        event_key = {1: 'SCORE_FSRS_AGAIN', 2: 'SCORE_FSRS_HARD', 3: 'SCORE_FSRS_GOOD', 4: 'SCORE_FSRS_EASY'}.get(rating, 'SCORE_FSRS_GOOD')
-                        context = {
-                            'difficulty': (study_log.fsrs_snapshot or {}).get('difficulty', 0.0),
-                            'stability': (study_log.fsrs_snapshot or {}).get('stability', 0.0),
-                            'streak': (study_log.fsrs_snapshot or {}).get('streak', 0),
-                            'is_correct': study_log.is_correct,
-                            'duration_ms': study_log.review_duration or 0
-                        }
-                    else:
-                        # Fallback: parse from reason string
-                        if is_flashcard and 'Quality' in event_key:
-                            import re
-                            match = re.search(r'Quality: (\d)', event_key)
-                            if match:
-                                q = int(match.group(1))
-                                event_key = {1: 'SCORE_FSRS_AGAIN', 2: 'SCORE_FSRS_HARD', 3: 'SCORE_FSRS_GOOD', 4: 'SCORE_FSRS_EASY'}.get(q)
-                                context = {'is_correct': (q >= 2)}
-                            else:
-                                continue
-                        elif is_system:
-                            context = {'is_correct': (event_key != 'SCORE_FSRS_AGAIN')}
-                        else:
-                            continue
-                else:
-                    continue
-                
-                new_score, _ = ScoreCalculator.calculate(event_key, context)
-                if log.score_change != new_score:
-                    log.score_change = new_score
-                    log.meta = context
-                    score_updated += 1
-                    
-            except Exception:
-                continue
-        
-        print(f"[Recalculation] Score logs: updated={score_updated}")
-        
+        # Commit study_log changes FIRST (critical for UI receipts)
         db.session.commit()
+        print("[Recalculation] Study logs committed.")
+        
+        # ── Step 2: Update score_logs (best-effort, may fail if meta column missing) ──
+        score_updated = 0
+        try:
+            score_query = ScoreLog.query
+            if days > 0:
+                start_date = datetime.now(timezone.utc) - timedelta(days=days)
+                score_query = score_query.filter(ScoreLog.timestamp >= start_date)
+            
+            score_logs = score_query.all()
+            
+            for log in score_logs:
+                try:
+                    event_key = log.reason
+                    is_flashcard = (
+                        event_key.startswith('Flashcard Answer') or 
+                        event_key == "Vocab Flashcard Practice" or
+                        event_key == "Flashcard Practice" or
+                        log.item_type == 'FLASHCARD'
+                    )
+                    is_system = event_key in {
+                        'SCORE_FSRS_AGAIN', 'SCORE_FSRS_HARD', 'SCORE_FSRS_GOOD', 'SCORE_FSRS_EASY',
+                        'VOCAB_MCQ_CORRECT_BONUS', 'VOCAB_TYPING_CORRECT_BONUS',
+                        'VOCAB_MATCHING_CORRECT_BONUS', 'VOCAB_LISTENING_CORRECT_BONUS', 'VOCAB_SPEED_CORRECT_BONUS',
+                        'QUIZ_CORRECT_BONUS'
+                    }
+                    
+                    if not is_system and not is_flashcard:
+                        continue
+                    
+                    if log.item_id:
+                        study_log = StudyLog.query.filter(
+                            StudyLog.user_id == log.user_id,
+                            StudyLog.item_id == log.item_id,
+                            StudyLog.timestamp >= log.timestamp - timedelta(minutes=15),
+                            StudyLog.timestamp <= log.timestamp + timedelta(minutes=15)
+                        ).first()
+                        
+                        if study_log:
+                            rating = study_log.rating or 3
+                            event_key = {1: 'SCORE_FSRS_AGAIN', 2: 'SCORE_FSRS_HARD', 3: 'SCORE_FSRS_GOOD', 4: 'SCORE_FSRS_EASY'}.get(rating, 'SCORE_FSRS_GOOD')
+                            context = {
+                                'difficulty': (study_log.fsrs_snapshot or {}).get('difficulty', 0.0),
+                                'stability': (study_log.fsrs_snapshot or {}).get('stability', 0.0),
+                                'is_correct': study_log.is_correct,
+                            }
+                        else:
+                            context = {'is_correct': (event_key != 'SCORE_FSRS_AGAIN')}
+                    else:
+                        continue
+                    
+                    new_score, _ = ScoreCalculator.calculate(event_key, context)
+                    if log.score_change != new_score:
+                        log.score_change = new_score
+                        score_updated += 1
+                        
+                except Exception:
+                    continue
+            
+            db.session.commit()
+            print(f"[Recalculation] Score logs: updated={score_updated}")
+        except Exception as e:
+            print(f"[Recalculation] Score logs step skipped (non-critical): {e}")
+            db.session.rollback()
         
         # ── Step 3: Sync User total_scores ──
         try:
