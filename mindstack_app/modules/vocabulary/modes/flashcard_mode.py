@@ -26,14 +26,6 @@ class FlashcardMode(BaseVocabMode):
     ``evaluate_submission`` trusts the learner's quality rating.
     """
 
-    # Score mapping: quality → gamification points
-    _SCORE_MAP: Dict[int, int] = {
-        1: 0,    # Again  → no points
-        2: 5,    # Hard   → partial
-        3: 10,   # Good   → standard
-        4: 15,   # Easy   → bonus
-    }
-
     def get_mode_id(self) -> str:
         return 'flashcard'
 
@@ -195,6 +187,7 @@ class FlashcardMode(BaseVocabMode):
                 pass
                 
         difficulty = 0.0
+        stability = 0.0
         streak = 0
         
         if user_id:
@@ -202,6 +195,7 @@ class FlashcardMode(BaseVocabMode):
             pre_state = FSRSInterface.get_item_state(user_id, item_id=item.get('item_id'))
             if pre_state:
                 difficulty = pre_state.difficulty
+                stability = pre_state.stability
                 
             # Fetch Streak via Interface
             try:
@@ -213,7 +207,9 @@ class FlashcardMode(BaseVocabMode):
 
         context = {
             'difficulty': difficulty,
+            'stability': stability,
             'streak': streak,
+            'is_correct': is_correct,
             'duration_ms': user_input.get('duration_ms', 0)
         }
 

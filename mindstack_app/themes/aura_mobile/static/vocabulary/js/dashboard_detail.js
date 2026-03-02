@@ -255,27 +255,27 @@ document.addEventListener('DOMContentLoaded', function () {
                     listHtml += `
                     <div class="group bg-white border border-slate-300 rounded-2xl hover:border-indigo-500 hover:shadow-xl transition-all duration-300 mb-4 relative overflow-hidden js-item-stats-trigger cursor-pointer ring-0 hover:ring-4 hover:ring-indigo-50/50 flex flex-col h-full" data-item-id="${item.item_id || item.id}">
                         <!-- Compact Top Bar -->
-                        <div class="px-3 py-2 bg-slate-50 border-b border-slate-200 flex items-center justify-between gap-2">
-                            <div class="flex items-center gap-2">
+                        <div class="px-1.5 py-2 bg-slate-50 border-b border-slate-200 flex items-center justify-between gap-1">
+                            <div class="flex items-center gap-1">
                                 <span class="font-mono font-bold text-xs text-slate-500 w-6">#${index + 1}</span>
-                                <span class="px-1.5 py-0.5 bg-white border border-slate-300 rounded text-[10px] text-slate-600 font-mono shadow-sm">ID:${item.item_id || item.id}</span>
-                                <span class="text-[10px] font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-full border border-indigo-200">${fsrsState}</span>
+                                <span class="px-1 py-0.5 bg-white border border-slate-300 rounded text-[10px] text-slate-600 font-mono shadow-sm">ID:${item.item_id || item.id}</span>
+                                <span class="text-[10px] font-bold text-indigo-700 bg-indigo-50 px-1 py-0.5 rounded-full border border-indigo-200">${fsrsState}</span>
                             </div>
                             
                             <!-- Stats Compact Row -->
-                            <div class="flex items-center gap-3 text-[10px] font-bold text-slate-600">
-                                <div class="flex items-center gap-1" title="Khả năng nhớ (R)">
-                                    <span class="text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">${retrievability}</span>
+                            <div class="flex items-center gap-1.5 text-[10px] font-bold text-slate-600">
+                                <div class="flex items-center gap-0.5" title="Khả năng nhớ (R)">
+                                    <span class="text-emerald-700 bg-emerald-50 px-1 py-0.5 rounded border border-emerald-200">${retrievability}</span>
                                 </div>
-                                <div class="w-px h-3 bg-slate-300"></div>
-                                <div class="flex items-center gap-1" title="Độ bền nhớ (S)">
+                                <div class="w-px h-3 bg-slate-200"></div>
+                                <div class="flex items-center gap-0.5" title="Độ bền nhớ (S)">
                                     <span class="text-indigo-700">S:${stability}</span>
                                 </div>
-                                <div class="flex items-center gap-1" title="Độ khó (D)">
+                                <div class="flex items-center gap-0.5" title="Độ khó (D)">
                                     <span class="text-orange-700">D:${difficulty}</span>
                                 </div>
-                                <div class="w-px h-3 bg-slate-300"></div>
-                                <div class="flex items-center gap-1" title="Số lần học">
+                                <div class="w-px h-3 bg-slate-200"></div>
+                                <div class="flex items-center gap-0.5" title="Số lần học">
                                     <span class="text-slate-700">Reps:${item.repetitions || 0}</span>
                                 </div>
                             </div>

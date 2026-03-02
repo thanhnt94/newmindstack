@@ -1,18 +1,12 @@
 """
 Scoring Engine - Gamification Points Calculation
-[DEPRECATED]
-This module is deprecated. Logic for XP, Points, and Badges should be moved
-to the `gamification` module. The `learning` module now focuses solely on
-Academic Evaluation (Grading) and Progress Tracking.
+=================================================
+Thin adapter layer. All per-answer scoring is delegated to the centralized
+`scoring.logics.calculator.ScoreCalculator`.  Session-level bonuses and daily
+streak bonuses are handled locally using AppSettings.
 
-Pure logic for calculating points from learning activities.
-No database access - only calculations based on inputs.
-
-Points are awarded for:
-- First-time learning
-- Correct answers (scaled by difficulty/mode)
-- Streak bonuses
-- Daily goals achievement
+This module is kept for backward compatibility with callers that go through
+`LearningInterface.calculate_answer_points`.
 """
 
 from __future__ import annotations
@@ -62,84 +56,38 @@ class ScoringEngine:
         difficulty: float = 5.0
     ) -> ScoreResult:
         """
-        Calculate points for answering a learning item using FSRS Scaling.
-        
-        Args:
-            mode: Learning mode
-            quality: FSRS Rating (1=Again, 2=Hard, 3=Good, 4=Easy)
-            is_correct: Whether the answer was correct (rating >= 2)
-            is_first_time: Whether this is the first time seeing this item
-            correct_streak: Current consecutive correct answers
-            stability: Memory stability (to calculate retention bonus)
-            difficulty: Item difficulty (to calculate challenge bonus)
+        Calculate points for answering a learning item.
+        Delegates to the centralized ScoreCalculator for consistency.
         """
-        from mindstack_app.models import AppSettings
+        from mindstack_app.modules.scoring.logics.calculator import ScoreCalculator
         
-        # 1. Map Reality to Config Keys with safe fallbacks
-        score_map = {
-            1: AppSettings.get('SCORE_FSRS_AGAIN', 1),
-            2: AppSettings.get('SCORE_FSRS_HARD', 5),
-            3: AppSettings.get('SCORE_FSRS_GOOD', 10),
-            4: AppSettings.get('SCORE_FSRS_EASY', 15)
+        # Map quality to config event key
+        config_keys = {
+            1: 'SCORE_FSRS_AGAIN',
+            2: 'SCORE_FSRS_HARD',
+            3: 'SCORE_FSRS_GOOD',
+            4: 'SCORE_FSRS_EASY'
+        }
+        event_key = config_keys.get(quality, 'SCORE_FSRS_GOOD')
+        
+        context = {
+            'difficulty': difficulty,
+            'stability': stability,
+            'streak': correct_streak,
+            'is_correct': is_correct,
+            'duration_ms': int(response_time_seconds * 1000) if response_time_seconds else 0
         }
         
-        base = score_map.get(quality, 0)
-        if base is None:
-            base = {1: 1, 2: 5, 3: 10, 4: 15}.get(quality, 0)
-            
-        breakdown: dict[str, int] = {}
-        breakdown['base'] = base
-        total = base
+        total_score, breakdown = ScoreCalculator.calculate(event_key, context)
         
-        reasons: list[str] = [f"Rating {quality}"]
+        base = breakdown.get('base', 0)
         
-        # 2. First-time Bonus (Standard practice: reward initial learning more)
-        if is_first_time and is_correct:
-            first_time_bonus = AppSettings.get('SCORE_FSRS_FIRST_TIME_BONUS', 10)
-            breakdown['first_time'] = first_time_bonus
-            total += first_time_bonus
-            reasons.append("New card")
-
-        # 3. Challenge Bonus (Difficulty-based)
-        # Give up to 50% extra points for very difficult cards (D=10)
-        if is_correct and difficulty > 5.0:
-            difficulty_bonus = int(base * (difficulty - 5.0) / 10.0)
-            if difficulty_bonus > 0:
-                breakdown['difficulty_bonus'] = difficulty_bonus
-                total += difficulty_bonus
-                reasons.append(f"Difficulty {difficulty:.1f}")
-
-        # 4. Retention Bonus (Stability-based)
-        # Reward maintaining long-term items (bonus scales with stability days)
-        if is_correct and stability > 7.0: # Only for cards remembered for > 1 week
-            stability_bonus = min(15, int(stability / 7.0)) # Max 15 pts bonus
-            if stability_bonus > 0:
-                breakdown['stability_bonus'] = stability_bonus
-                total += stability_bonus
-                reasons.append(f"Stability {stability:.1f}d")
-
-        # 5. Streak Bonus
-        bonus_modulo = AppSettings.get('SCORING_STREAK_BONUS_MODULO', 10)
-        if bonus_modulo and bonus_modulo > 0:
-            if is_correct and correct_streak > 0 and correct_streak % bonus_modulo == 0:
-                streak_bonus = AppSettings.get('SCORING_STREAK_BONUS_VALUE', 5)
-                breakdown['streak_bonus'] = streak_bonus
-                total += streak_bonus
-                reasons.append(f"Streak {correct_streak}")
-            
-        reason = " + ".join(reasons)
-
-        # 6. Final Safety: Never return 0 for a GOOD or EASY rating
-        if is_correct and total <= 0:
-            total = 10
-            breakdown['recovery'] = 10
-
         return ScoreResult(
             base_points=base,
-            bonus_points=total - base,
-            total_points=total,
+            bonus_points=total_score - base,
+            total_points=total_score,
             breakdown=breakdown,
-            reason=reason
+            reason=f"Rating {quality}"
         )
 
     @staticmethod
@@ -248,44 +196,15 @@ class ScoringEngine:
     # === UTILITY METHODS ===
 
     @staticmethod
-    def quality_to_score(quality: int) -> int:
-        """
-        Pure function: Convert FSRS rating (1-4) to score points.
-        
-        Args:
-            quality: FSRS rating (1-4)
-                1 = Again
-                2 = Hard
-                3 = Good
-                4 = Easy
-        
-        Returns:
-            Score points
-        """
-        score_map = {
-            1: 5,    # Again (Failed) - 5 pts
-            2: 10,   # Hard - 10 pts
-            3: 15,   # Good - 15 pts
-            4: 20    # Easy - 20 pts
-        }
-        return score_map.get(quality, 10)  # Default to 10 if unknown
-
-    @staticmethod
     def quiz_answer_to_quality(is_correct: bool) -> int:
         """Convert quiz correct/incorrect to quality score."""
         return 4 if is_correct else 1
 
     @staticmethod
-    def get_mode_from_string(mode_string: str) -> LearningMode:
-        """Convert string to LearningMode enum."""
-        try:
-            return LearningMode(mode_string.lower())
-        except ValueError:
-            return LearningMode.FLASHCARD
+    def quality_to_score(quality: int) -> int:
+        """Convert FSRS quality (1-4) to score points using centralized config."""
+        from mindstack_app.modules.scoring.services.scoring_config_service import ScoringConfigService
+        config_keys = {1: 'SCORE_FSRS_AGAIN', 2: 'SCORE_FSRS_HARD', 3: 'SCORE_FSRS_GOOD', 4: 'SCORE_FSRS_EASY'}
+        key = config_keys.get(quality, 'SCORE_FSRS_GOOD')
+        return int(ScoringConfigService.get_config(key) or 0)
 
-    @staticmethod
-    def get_point_value_for_mode(mode: LearningMode | str) -> int:
-        """Get base point value for a learning mode."""
-        if isinstance(mode, str):
-            mode = ScoringEngine.get_mode_from_string(mode)
-        return ScoringEngine.MODE_BASE_POINTS.get(mode, 10)

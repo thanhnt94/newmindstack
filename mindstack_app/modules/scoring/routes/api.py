@@ -35,3 +35,20 @@ def sync_scores():
     except Exception as e:
         current_app.logger.error(f"Error syncing scores: {e}", exc_info=True)
         return jsonify({'success': False, 'message': str(e)}), 500
+
+@blueprint.route('/recalculate', methods=['POST'])
+@login_required
+def recalculate_scores():
+    if current_user.user_role != User.ROLE_ADMIN:
+        return jsonify({'success': False, 'message': 'Permission denied'}), 403
+    
+    data = request.get_json() or {}
+    days = data.get('days', 30)
+    
+    try:
+        from ..services.recalculation_service import RecalculationService
+        result = RecalculationService.recalculate_scores(days=days)
+        return jsonify(result)
+    except Exception as e:
+        current_app.logger.error(f"Error recalculating scores: {e}", exc_info=True)
+        return jsonify({'success': False, 'message': str(e)}), 500

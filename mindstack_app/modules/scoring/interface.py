@@ -21,7 +21,7 @@ class ScoringInterface:
         return ScoringConfigService.get_config(key)
 
     @staticmethod
-    def award_points(user_id: int, activity_type: str, amount: int = None, item_id: int = None, item_type: str = None):
+    def award_points(user_id: int, activity_type: str, amount: int = None, item_id: int = None, item_type: str = None, meta: dict = None):
         """
         Hàm Public để module khác yêu cầu cộng điểm.
         Cập nhật User.total_score, tạo ScoreLog và phát tín hiệu score_awarded.
@@ -33,7 +33,7 @@ class ScoringInterface:
         if amount is None:
             amount = ScoringConfigService.get_config(activity_type)
             
-        if not amount or amount <= 0:
+        if amount is None or amount < 0:
             return False
             
         try:
@@ -52,7 +52,8 @@ class ScoringInterface:
                 score_change=amount,
                 reason=activity_type,
                 item_id=item_id,
-                item_type=item_type
+                item_type=item_type,
+                meta=meta
             )
             db.session.add(log)
             
