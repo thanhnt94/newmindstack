@@ -62,7 +62,6 @@ class ScoreLog(db.Model):
     reason = db.Column(db.String(100))
     timestamp = db.Column(db.DateTime(timezone=True), server_default=func.now())
     item_type = db.Column(db.String(50), nullable=True)
-    meta = db.Column(db.JSON, nullable=True) # Stores calculation context (difficulty, streak, etc.)
 
     __table_args__ = (
         db.Index('ix_score_logs_user_timestamp', 'user_id', 'timestamp'),
