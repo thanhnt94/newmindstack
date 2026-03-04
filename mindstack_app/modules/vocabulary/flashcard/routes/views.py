@@ -389,11 +389,14 @@ def flashcard_session(session_id):
             batch_size=batch_limit,
             current_db_item_id=session_data.get('current_item_id')
         )
-        if initial_batch_data and 'items' in initial_batch_data:
-            initial_batch = initial_batch_data['items']
-            # Update session total items if returned
-            if 'total_items_in_session' in initial_batch_data:
-                 session_data['total_items_in_session'] = initial_batch_data['total_items_in_session']
+        if initial_batch_data:
+            if isinstance(initial_batch_data, list):
+                initial_batch = initial_batch_data
+            elif isinstance(initial_batch_data, dict) and 'items' in initial_batch_data:
+                initial_batch = initial_batch_data['items']
+                # Update session total items if returned
+                if 'total_items_in_session' in initial_batch_data:
+                     session_data['total_items_in_session'] = initial_batch_data['total_items_in_session']
     except Exception as e:
         current_app.logger.error(f"Error fetching initial batch: {e}")
 

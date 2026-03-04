@@ -2,6 +2,7 @@
 # FlashcardEngine - Core logic for flashcard learning
 
 from datetime import datetime, timezone
+from sqlalchemy import func
 from typing import Dict, Any, List, Optional, Tuple, Union
 
 from mindstack_app.models import db, User, LearningItem, StudyLog
@@ -134,6 +135,16 @@ class FlashcardEngine:
                 'buttons_html': item_content.get('buttons_html', '')
             }
 
+            # [NEW] Calculate ordinal position in set
+            item_position_in_set = 1
+            try:
+                item_position_in_set = db.session.query(func.count(LearningItem.item_id)).filter(
+                    LearningItem.container_id == item.container_id,
+                    LearningItem.order_in_container < item.order_in_container
+                ).scalar() + 1
+            except Exception as e:
+                current_app.logger.warning(f"Error calculating item position: {e}")
+
             html_payload = FlashcardRenderer.render_item(item_for_renderer, initial_stats, display_settings=display_settings)
 
             item_dict = {
@@ -148,7 +159,8 @@ class FlashcardEngine:
                 'edit_url': edit_url,
                 'initial_stats': initial_stats,
                 'initial_streak': initial_stats.get('current_streak', 0),
-                'is_first_time_card': is_first_time_card
+                'is_first_time_card': is_first_time_card,
+                'item_position_in_set': item_position_in_set
             }
             items_data.append(item_dict)
 

@@ -45,6 +45,7 @@ function _mapDriverItemToLegacy(driverPayload) {
         initial_stats: d.initial_stats || {},
         can_edit: d.can_edit || false,
         container_title: d.container_title || '',
+        item_position_in_set: d.item_position_in_set,
         // Backend pre-rendered HTML
         html_front: d.html_front,
         html_back: d.html_back,

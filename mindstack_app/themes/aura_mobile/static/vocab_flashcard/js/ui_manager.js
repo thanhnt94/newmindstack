@@ -943,10 +943,10 @@ function renderCard(data) {
 
     applyMediaVisibility();
 
-    // [NEW] Update Item ID Overlay
+    // [NEW] Update Item ID Overlay - Now using ordinal position in set
     const overlayIdEl = document.querySelector('.js-card-overlay-item-id');
     if (overlayIdEl) {
-        overlayIdEl.textContent = '#' + itemId;
+        overlayIdEl.textContent = '#' + (data.item_position_in_set || data.item_id);
         overlayIdEl.style.opacity = '1';
     }
 

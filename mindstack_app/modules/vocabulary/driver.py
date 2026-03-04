@@ -503,11 +503,22 @@ class VocabularyDriver(BaseSessionDriver):
     @staticmethod
     def _load_item_data(item_id: int) -> Optional[Dict[str, Any]]:
         """Load a single LearningItem as a plain dict."""
-        from mindstack_app.models import LearningItem
+        from mindstack_app.models import LearningItem, db
+        from sqlalchemy import func
 
         item = LearningItem.query.get(item_id)
         if item is None:
             return None
+
+        # [NEW] Calculate ordinal position in set
+        item_position_in_set = 1
+        try:
+            item_position_in_set = db.session.query(func.count(LearningItem.item_id)).filter(
+                LearningItem.container_id == item.container_id,
+                LearningItem.order_in_container < item.order_in_container
+            ).scalar() + 1
+        except Exception:
+            pass
 
         content = item.content or {}
         return {
@@ -518,6 +529,8 @@ class VocabularyDriver(BaseSessionDriver):
             'item_type': item.item_type,
             'container_id': item.container_id,
             'order_in_container': item.order_in_container,
+            'item_position_in_set': item_position_in_set,
+            'ai_explanation': item.ai_explanation,
         }
 
     @staticmethod

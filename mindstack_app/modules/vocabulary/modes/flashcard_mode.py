@@ -147,6 +147,7 @@ class FlashcardMode(BaseVocabMode):
             # Helpers for frontend logic
             'can_edit': display_settings['can_edit'],
             'edit_url': display_settings['edit_url'],
+            'item_position_in_set': item.get('item_position_in_set'),
         }
 
     # ── evaluate ─────────────────────────────────────────────────────
