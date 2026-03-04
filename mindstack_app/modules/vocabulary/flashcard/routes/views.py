@@ -398,7 +398,9 @@ def flashcard_session(session_id):
         current_app.logger.error(f"Error fetching initial batch: {e}")
 
     # [NEW] Calculate initial SRS counts for HUD
-    initial_new_learned = session_data.get('new_learned_count', 0)  # Persisted across reloads
+    # Read persisted new_learned_count from DB session_data (cross-device)
+    db_extra = (active_db_session.session_data or {}) if active_db_session else {}
+    initial_new_learned = db_extra.get('new_learned_count', 0)
     initial_due_remaining = 0
     try:
         from ..engine.algorithms import get_session_srs_counts

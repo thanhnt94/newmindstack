@@ -414,9 +414,13 @@ def api_submit_flashcard_answer():
         session_data.get('set_id'),
         processed_ids=list(db_sess.processed_item_ids or [])
     )
-    # Persist new_learned_count so it survives page reload
-    session_data['new_learned_count'] = srs_counts['new_learned']
-    session.modified = True
+    # Persist new_learned_count in DB session_data (survives across devices)
+    extra = db_sess.session_data or {}
+    extra['new_learned_count'] = srs_counts['new_learned']
+    db_sess.session_data = extra
+    flag_modified(db_sess, 'session_data')
+    from mindstack_app.models import db
+    db.session.commit()
 
     return jsonify({
         'success': True,
