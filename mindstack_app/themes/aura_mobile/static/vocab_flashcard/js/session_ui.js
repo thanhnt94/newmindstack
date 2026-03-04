@@ -765,6 +765,14 @@
             liveWrong.textContent = stats.incorrect || 0;
         }
 
+        // [NEW] SRS HUD: New Learned + Due Remaining
+        if (stats.new_learned !== undefined) {
+            document.querySelectorAll('.js-fc-session-new').forEach(el => el.textContent = stats.new_learned);
+        }
+        if (stats.due_remaining !== undefined) {
+            document.querySelectorAll('.js-fc-session-due').forEach(el => el.textContent = stats.due_remaining);
+        }
+
         // 3. Session Points (Diamond)
         document.querySelectorAll('.js-fc-session-points, #live-session-score').forEach(el => {
             const val = stats.session_score || 0;

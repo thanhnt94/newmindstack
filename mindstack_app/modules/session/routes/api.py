@@ -189,6 +189,18 @@ def api_submit_answer(session_id):
             return jsonify({'error': 'Session not found'}), 404
 
         result = LearningSessionService.submit_answer(session_id, user_input)
+        
+        # [NEW] Append SRS HUD counts for flashcard sessions
+        if hasattr(session, 'learning_mode') and session.learning_mode == 'flashcard':
+            from mindstack_app.modules.vocabulary.flashcard.engine.algorithms import get_session_srs_counts
+            srs_counts = get_session_srs_counts(
+                current_user.user_id,
+                session.set_id_data,
+                processed_ids=list(session.processed_item_ids or [])
+            )
+            result['new_learned'] = srs_counts['new_learned']
+            result['due_remaining'] = srs_counts['due_remaining']
+
         return jsonify(result)
 
     except ValueError as e:

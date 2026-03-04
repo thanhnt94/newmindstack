@@ -397,6 +397,23 @@ def flashcard_session(session_id):
     except Exception as e:
         current_app.logger.error(f"Error fetching initial batch: {e}")
 
+    # [NEW] Calculate initial SRS counts for HUD
+    initial_new_learned = session_data.get('new_learned_count', 0)  # Persisted across reloads
+    initial_due_remaining = 0
+    try:
+        from ..engine.algorithms import get_session_srs_counts
+        srs_counts = get_session_srs_counts(
+            current_user.user_id,
+            session_data.get('set_id'),
+            processed_ids=session_data.get('processed_item_ids', [])
+        )
+        initial_due_remaining = srs_counts['due_remaining']
+        # Only use computed new_learned if no persisted value (first load)
+        if initial_new_learned == 0 and srs_counts['new_learned'] > 0:
+            initial_new_learned = srs_counts['new_learned']
+    except Exception as e:
+        current_app.logger.warning(f"Error calculating SRS counts: {e}")
+
     return render_dynamic_template(
         'modules/vocab_flashcard/session.html',
         user_button_count=user_button_count,
@@ -414,6 +431,8 @@ def flashcard_session(session_id):
         initial_incorrect_count=session_data.get('incorrect_answers', 0),
         initial_vague_count=session_data.get('vague_answers', 0),
         initial_session_points=session_data.get('session_points', 0),
+        initial_new_learned=initial_new_learned,
+        initial_due_remaining=initial_due_remaining,
     )
 
 

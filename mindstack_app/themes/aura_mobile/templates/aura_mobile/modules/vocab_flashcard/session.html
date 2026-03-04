@@ -104,6 +104,22 @@
                                 <span class="text-amber-600 font-bold" id="live-session-score">{{ initial_session_points
                                     | default(0) }}</span>
                             </div>
+
+                            {# [NEW] New Learned Pill #}
+                            <div class="stat-pill flex-shrink-0 flex items-center gap-1 px-2 py-1 bg-blue-50 rounded-lg"
+                                title="Thẻ mới trong phiên">
+                                <i class="fas fa-seedling text-blue-500 text-[9px]"></i>
+                                <span class="text-blue-600 font-bold js-fc-session-new">{{ initial_new_learned |
+                                    default(0) }}</span>
+                            </div>
+
+                            {# [NEW] Due Remaining Pill #}
+                            <div class="stat-pill flex-shrink-0 flex items-center gap-1 px-2 py-1 bg-orange-50 rounded-lg"
+                                title="Cần ôn tập">
+                                <i class="fa-solid fa-clock-rotate-left text-orange-500 text-[9px]"></i>
+                                <span class="text-orange-600 font-bold js-fc-session-due">{{ initial_due_remaining |
+                                    default(0) }}</span>
+                            </div>
                         </div>
 
                         {# Action Buttons #}
@@ -328,6 +344,8 @@
     const _initialCorrectCount = {{ initial_correct_count|default (0) }};
     const _initialIncorrectCount = {{ initial_incorrect_count|default (0) }};
     const _initialVagueCount = {{ initial_vague_count|default (0) }};
+    const _initialNewLearned = {{ initial_new_learned|default (0) }};
+    const _initialDueRemaining = {{ initial_due_remaining|default (0) }};
 
     // [SSR] Initial Data
     window.initialFlashcardBatch = {{ (initial_batch or[]) | tojson }};
@@ -357,7 +375,9 @@
             initialCorrectCount: _initialCorrectCount,
                 initialIncorrectCount: _initialIncorrectCount,
                     initialVagueCount: _initialVagueCount,
-                        scores: {
+                        initialNewLearned: _initialNewLearned,
+                            initialDueRemaining: _initialDueRemaining,
+                                scores: {
         again: _scoreAgain,
             hard: _scoreHard,
                 good: _scoreGood,

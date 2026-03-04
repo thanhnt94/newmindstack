@@ -63,7 +63,9 @@ let sessionStatsLocal = {
     total: 0,
     correct: (window.FlashcardConfig && window.FlashcardConfig.initialCorrectCount) ? window.FlashcardConfig.initialCorrectCount : 0,
     incorrect: (window.FlashcardConfig && window.FlashcardConfig.initialIncorrectCount) ? window.FlashcardConfig.initialIncorrectCount : 0,
-    vague: (window.FlashcardConfig && window.FlashcardConfig.initialVagueCount) ? window.FlashcardConfig.initialVagueCount : 0
+    vague: (window.FlashcardConfig && window.FlashcardConfig.initialVagueCount) ? window.FlashcardConfig.initialVagueCount : 0,
+    new_learned: (window.FlashcardConfig && window.FlashcardConfig.initialNewLearned) ? window.FlashcardConfig.initialNewLearned : 0,
+    due_remaining: (window.FlashcardConfig && window.FlashcardConfig.initialDueRemaining) ? window.FlashcardConfig.initialDueRemaining : 0
 };
 
 // --- Settings Sync ---
@@ -578,7 +580,9 @@ async function submitFlashcardAnswer(itemId, answer) {
                 statistics: driverResult.srs_update || {},
                 srs_data: driverResult.srs_update || {},
                 answer_result: answer,
-                gamification: driverResult.gamification || null
+                gamification: driverResult.gamification || null,
+                new_learned: driverResult.new_learned,
+                due_remaining: driverResult.due_remaining
             };
         } else {
             // ── Legacy fallback ─────────────────────────────────
@@ -599,6 +603,10 @@ async function submitFlashcardAnswer(itemId, answer) {
 
         sessionScore += data.score_change;
         currentUserTotalScore = data.updated_total_score;
+
+        // [NEW] Update SRS HUD counters from server response
+        if (data.new_learned !== undefined) sessionStatsLocal.new_learned = data.new_learned;
+        if (data.due_remaining !== undefined) sessionStatsLocal.due_remaining = data.due_remaining;
 
         // [UX-IMMEDIATE] 3. Update Current Card Stats Immediately
         if (window.updateFlashcardStats) {
@@ -683,6 +691,8 @@ async function submitFlashcardAnswer(itemId, answer) {
             vague: sessionStatsLocal.vague,
             accuracy: accuracy,
             session_score: sessionScore,
+            new_learned: sessionStatsLocal.new_learned,
+            due_remaining: sessionStatsLocal.due_remaining,
             // Include card-specific stats (Box B)
             current_card_history_right: data.statistics ? data.statistics.correct_count : 0,
             current_card_history_wrong: data.statistics ? (data.statistics.incorrect_count + data.statistics.vague_count) : 0,

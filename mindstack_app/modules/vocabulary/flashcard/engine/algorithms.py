@@ -178,3 +178,40 @@ def get_srs_items(user_id, set_id, limit=None):
     query = qb.get_query()
     if limit: query = query.limit(limit)
     return query
+
+
+def get_session_srs_counts(user_id, set_id, processed_ids=None):
+    """
+    Calculate SRS stats for the flashcard session HUD.
+    Uses the SAME FSRSInterface filters as the vocabulary dashboard.
+    
+    Returns: { 'new_learned': int, 'due_remaining': int }
+    """
+    from mindstack_app.models import ItemMemoryState
+
+    # 1. New Learned = items in processed_ids that have repetitions <= 1 (first time reviewed)
+    new_learned = 0
+    if processed_ids:
+        states = ItemMemoryState.query.filter(
+            ItemMemoryState.user_id == user_id,
+            ItemMemoryState.item_id.in_(processed_ids)
+        ).all()
+        for st in states:
+            if st.repetitions <= 1:
+                new_learned += 1
+
+    # 2. Due Remaining = exact same query as dashboard "Cần ôn" tab
+    def _base_q(s_id):
+        q = LearningItem.query.filter(LearningItem.item_type.in_(['FLASHCARD', 'VOCABULARY']))
+        if s_id != 'all':
+            if isinstance(s_id, list):
+                q = q.filter(LearningItem.container_id.in_(s_id))
+            else:
+                q = q.filter(LearningItem.container_id == int(s_id))
+        return q
+
+    q_due = _base_q(set_id)
+    q_due = FsrsInterface.apply_memory_filter(q_due, user_id, 'due')
+    due_remaining = q_due.count()
+
+    return {'new_learned': new_learned, 'due_remaining': due_remaining}

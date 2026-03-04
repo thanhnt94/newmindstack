@@ -407,6 +407,17 @@ def api_submit_flashcard_answer():
     session_data['vague_answers'] = db_sess.vague_count
     session.modified = True
 
+    # [NEW] SRS HUD Counts (same logic as dashboard "Cần ôn")
+    from ..engine.algorithms import get_session_srs_counts
+    srs_counts = get_session_srs_counts(
+        current_user.user_id,
+        session_data.get('set_id'),
+        processed_ids=list(db_sess.processed_item_ids or [])
+    )
+    # Persist new_learned_count so it survives page reload
+    session_data['new_learned_count'] = srs_counts['new_learned']
+    session.modified = True
+
     return jsonify({
         'success': True,
         'score_change': score_change,
@@ -419,7 +430,9 @@ def api_submit_flashcard_answer():
         'session_incorrect_answers': db_sess.incorrect_count,
         'session_vague_answers': db_sess.vague_count,
         'session_total_answered': db_sess.correct_count + db_sess.incorrect_count + db_sess.vague_count,
-        'session_points': score_change # Providing 'delta' here, generic 'session_points' is total
+        'session_points': score_change,
+        'new_learned': srs_counts['new_learned'],
+        'due_remaining': srs_counts['due_remaining']
     })
 
 @blueprint.route('/end_session_flashcard', methods=['POST'])
