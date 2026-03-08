@@ -76,17 +76,39 @@ class SmartDistractorSelector:
 
     @classmethod
     def _is_not_exact_match(cls, correct_item: Dict, cand: Dict) -> bool:
-        """Helper for basic exclusion."""
-        c_front = correct_item.get('front', '').strip().lower()
-        c_back = correct_item.get('back', '').strip().lower()
-        c_text = correct_item.get('text', '').strip().lower()
-        c_q_text = correct_item.get('q_text', '').strip().lower()
+        """
+        Helper for basic exclusion.
+        Returns True if the candidate is a valid distractor (not identical to correct answer).
+        """
+        def clean(t):
+            return strip_bbcode(str(t or '')).strip().lower()
+
+        c_front = clean(correct_item.get('front'))
+        c_back = clean(correct_item.get('back'))
+        c_text = clean(correct_item.get('text'))
+        c_q_text = clean(correct_item.get('q_text'))
         
-        d_front = cand.get('front', '').strip().lower()
-        d_back = cand.get('back', '').strip().lower()
-        d_text = cand.get('text', '').strip().lower()
+        d_front = clean(cand.get('front'))
+        d_back = clean(cand.get('back'))
+        d_text = clean(cand.get('text'))
         
-        return not (d_front == c_front or d_back == c_back or d_text == c_text or (c_q_text and d_text == c_q_text))
+        # 1. Prevent if any identical content exists (Morphological Identity)
+        if d_front == c_front: return False
+        if d_back == c_back: return False
+        if d_text == c_text: return False
+        
+        # 2. Semantic/Functional Overlap Prevention
+        # Distractor label matches question text (e.g. choice is "X" and question is "X")
+        if c_q_text and d_text == c_q_text: return False
+        
+        # Distractor meaning matches question text (e.g. distractor means "Y" and question asks for "Y")
+        # This is CRITICAL to avoid multiple correct answers.
+        if c_q_text and d_back == c_q_text: return False
+        
+        # Distractor meaning matches correct answer label (Cyclic match)
+        if d_back == c_text: return False
+        
+        return True
 
     @classmethod
     def _get_jp_pattern(cls, text: str) -> str:
