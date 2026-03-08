@@ -558,8 +558,18 @@
     /* ── Components ── */
     .kp-comps {
         display: flex;
+        flex-direction: column;
+        /* Changed to column for better stacking of decomposition sections */
+        gap: 16px;
+        /* Space between decomposition sections */
+    }
+
+    .kp-comps-group {
+        display: flex;
         flex-wrap: wrap;
         gap: 8px;
+        margin-top: 8px;
+        /* Add some space between title and items */
     }
 
     .kp-comp-item {
@@ -693,10 +703,21 @@
         // ── Core ────────────────────────────────────────────────────
         async function triggerSearch() {
             const raw = input.value.trim();
-            if (!raw) return;
+            if (!raw) {
+                mainEl.classList.add('hidden');
+                emptyEl.classList.remove('hidden');
+                emptyEl.querySelector('p').textContent = 'Nhập một chữ Kanji để bắt đầu tra cứu';
+                return;
+            }
 
             const kanjis = extractKanji(raw);
-            if (kanjis.length === 0) return;
+            if (kanjis.length === 0) {
+                mainEl.classList.add('hidden');
+                emptyEl.classList.remove('hidden');
+                emptyEl.querySelector('p').textContent = 'Không tìm thấy Kanji nào trong văn bản nhập.';
+                tabsWrap.classList.add('hidden');
+                return;
+            }
 
             // Fetch all kanji in parallel
             const results = await Promise.all(kanjis.map(async ch => {
@@ -709,12 +730,23 @@
                     const simJson = await simRes.json();
                     return { char: ch, details: detJson.details || null, similar: simJson.results || [] };
                 } catch (e) {
+                    console.error(`Error fetching data for ${ch}:`, e);
                     return { char: ch, details: null, similar: [] };
                 }
             }));
 
+            // Filter out kanjis that failed to fetch details
+            session = results.filter(entry => entry.details !== null);
+
+            if (session.length === 0) {
+                mainEl.classList.add('hidden');
+                emptyEl.classList.remove('hidden');
+                emptyEl.querySelector('p').textContent = 'Không tìm thấy dữ liệu cho Kanji đã nhập.';
+                tabsWrap.classList.add('hidden');
+                return;
+            }
+
             // Replace current session (no persistent history)
-            session = results;
             renderTabs();
             activate(session[0].char);
         }
@@ -722,19 +754,18 @@
         function activate(char) {
             activeChar = char;
 
-
-
             const entry = session.find(s => s.char === char);
             if (!entry || !entry.details) {
                 mainEl.classList.add('hidden');
                 emptyEl.classList.remove('hidden');
+                emptyEl.querySelector('p').textContent = 'Không tìm thấy dữ liệu cho Kanji này.';
                 return;
             }
 
             renderTabs();
             renderHero(char, entry.details);
             renderReadings(entry.details);
-            renderComps(char);
+            renderComps(entry.details); // <--- Pass details object here
             renderSimilar(entry.similar);
             renderMnemonics(entry.details);
             drawKanjiVG(char);
@@ -775,6 +806,7 @@
                         mainEl.classList.add('hidden');
                         emptyEl.classList.remove('hidden');
                         activeChar = null;
+                        emptyEl.querySelector('p').textContent = 'Nhập một chữ Kanji để bắt đầu tra cứu';
                     } else {
                         if (activeChar === entry.char) activate(session[0].char);
                         else renderTabs();
@@ -885,27 +917,62 @@
             }
         }
 
-        async function renderComps(char) {
+        // Modified renderComps to use data from details
+        function renderComps(d) {
             const container = document.getElementById('kp-comps');
-            container.innerHTML = '<span style="color:rgba(255,255,255,0.3);font-size:0.9rem">Đang tải...</span>';
-            try {
-                const res = await fetch(`/api/kanji/${encodeURIComponent(char)}/components`);
-                const data = await res.json();
-                container.innerHTML = '';
-                (data.components || []).forEach(c => {
-                    const el = document.createElement('div');
-                    el.className = 'kp-comp-item';
-                    el.textContent = c;
-                    el.addEventListener('click', () => { addToSession(c); });
-                    container.appendChild(el);
+            let content = '';
+
+            // Render existing components (from kanji_data.py)
+            const components = d.components || [];
+            if (components.length > 0) {
+                content += `<div class="kp-card-title">Cấu tạo gốc:</div>`;
+                content += `<div class="kp-comps-group">`;
+                components.forEach(c => {
+                    content += `<div class="kp-comp-item" onclick="addToSession('${c}')">${c}</div>`;
                 });
-                if (!data.components || data.components.length === 0) {
-                    container.innerHTML = '<span style="color:rgba(255,255,255,0.3);font-size:0.9rem">Không có dữ liệu</span>';
-                }
-            } catch (e) {
-                container.innerHTML = '<span style="color:rgba(255,100,100,0.6);font-size:0.9rem">Lỗi tải dữ liệu</span>';
+                content += `</div>`;
+            }
+
+            // Render level 1 immediate (from hanzipy)
+            const level1 = d.decompositions?.level1_immediate?.components || [];
+            if (level1.length > 0) {
+                content += `<div class="kp-card-title mt-4" style="margin-top: 16px;">Phân tách cấp 1 (Level 1):</div>`;
+                content += `<div class="kp-comps-group">`;
+                level1.forEach(r => {
+                    content += `<div class="kp-comp-item" onclick="addToSession('${r}')">${r}</div>`;
+                });
+                content += `</div>`;
+            }
+
+            // Render level 2 radicals (from hanzipy)
+            const level2 = d.decompositions?.level2_radicals?.components || [];
+            if (level2.length > 0) {
+                content += `<div class="kp-card-title mt-4" style="margin-top: 16px;">Bộ thủ HanziPy (level 2):</div>`;
+                content += `<div class="kp-comps-group">`;
+                level2.forEach(r => {
+                    content += `<div class="kp-comp-item" onclick="addToSession('${r}')">${r}</div>`;
+                });
+                content += `</div>`;
+            }
+
+            // Render level 3 strokes (from hanzipy)
+            const level3 = d.decompositions?.level3_strokes?.components || [];
+            if (level3.length > 0) {
+                content += `<div class="kp-card-title mt-4" style="margin-top: 16px;">Nét cơ bản HanziPy (level 3):</div>`;
+                content += `<div class="kp-comps-group">`;
+                level3.forEach(s => {
+                    content += `<div class="kp-comp-item" onclick="addToSession('${s}')">${s}</div>`;
+                });
+                content += `</div>`;
+            }
+
+            if (content === '') {
+                container.innerHTML = '<span style="color:rgba(255,255,255,0.3);font-size:0.9rem">Không có dữ liệu phân rã</span>';
+            } else {
+                container.innerHTML = content;
             }
         }
+
 
         function renderSimilar(list) {
             const container = document.getElementById('kp-similar');

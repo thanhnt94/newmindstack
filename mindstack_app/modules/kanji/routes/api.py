@@ -12,6 +12,9 @@ def api_get_similar(char):
 def api_get_details(char):
     from ..interface import KanjiInterface
     details = KanjiInterface.get_details(char)
+    if details:
+        decompositions = KanjiInterface.get_decompositions(char)
+        details['decompositions'] = decompositions
     return {"details": details}
 
 @kanji_api_bp.route('/<char>/components')

@@ -2,16 +2,18 @@ from flask import Blueprint
 from .routes.api import kanji_api_bp
 
 # Define views blueprint here to ensure static_folder is correct
-kanji_views_bp = Blueprint('kanji_views', __name__, static_folder='static')
+blueprint = Blueprint('kanji_views', __name__, static_folder='static')
 
 def setup_module(app):
     """
     Register the Kanji module blueprints.
     """
-    from .routes import views  # Import to register routes on the blueprint
+    # Import to register routes on the blueprint
+    from .routes import views  
     
+    # We manually register the API blueprint. 
+    # The main 'blueprint' (views) will be automatically registered by bootstrap.py
     app.register_blueprint(kanji_api_bp)
-    app.register_blueprint(kanji_views_bp)
 
 module_metadata = {
     "name": "Kanji",

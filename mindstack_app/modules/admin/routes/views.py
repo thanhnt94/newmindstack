@@ -249,6 +249,24 @@ def list_content(container_type):
                            container_type=container_type,
                            active_page='content')
 
+@blueprint.route('/kanji-management', methods=['GET'])
+def admin_kanji_management():
+    """
+    Admin page to manage Kanji related data, e.g., trigger decomposition updates.
+    """
+    return render_template('admin/modules/kanji_management.html', active_page='kanji_management')
+
+@blueprint.route('/kanji/update-decompositions', methods=['POST'])
+def admin_trigger_kanji_decomposition_update():
+    """
+    Admin endpoint to trigger update of kanji_db.json with hanzipy decomposition data.
+    """
+    from mindstack_app.modules.kanji.interface import KanjiInterface
+    message = KanjiInterface.update_decomposition_data()
+    
+    flash(message, 'success')
+    return redirect(url_for('admin.admin_kanji_management')) # Redirect back to kanji management page
+
 def _get_form_for_type(container_type):
     return ContentInterface.get_form_class(container_type)
 

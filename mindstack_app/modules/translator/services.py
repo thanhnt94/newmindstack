@@ -44,6 +44,9 @@ class TranslatorService:
                     details = KanjiInterface.get_details(k)
                     if details:
                         details['kanji'] = k  # Ensure the kanji character is included
+                        # Add decomposition information
+                        decompositions = KanjiInterface.get_decompositions(k)
+                        details['decompositions'] = decompositions
                         kanji_details.append(details)
             except Exception as e_kanji:
                 logger.error(f"Failed to fetch kanji details: {e_kanji}")

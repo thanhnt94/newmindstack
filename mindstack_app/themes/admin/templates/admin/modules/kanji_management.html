@@ -1,0 +1,37 @@
+{% extends "admin/modules/admin/admin_layout.html" %}
+
+{% block title %}Quản lý Kanji{% endblock %}
+
+{% block content %}
+<div class="container mx-auto p-4">
+    <h1 class="text-2xl font-bold mb-4">Quản lý Kanji Data</h1>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    <div class="mb-4">
+        {% for category, message in messages %}
+        <div
+            class="p-3 rounded-md {% if category == 'success' %}bg-green-100 text-green-800{% elif category == 'danger' %}bg-red-100 text-red-800{% else %}bg-blue-100 text-blue-800{% endif %}">
+            {{ message }}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+    {% endwith %}
+
+    <div class="bg-gray-800 p-6 rounded-lg shadow-md">
+        <h2 class="text-xl font-semibold mb-3">Cập nhật dữ liệu phân rã Kanji</h2>
+        <p class="text-gray-400 mb-4">
+            Sử dụng chức năng này để cập nhật file `kanji_db.json` với dữ liệu phân rã chi tiết (bộ thủ level 2 và nét
+            level 3) từ thư viện `hanzipy`.
+            Quá trình này có thể mất một chút thời gian tùy thuộc vào số lượng Kanji.
+        </p>
+        <form action="{{ url_for('admin.admin_trigger_kanji_decomposition_update') }}" method="POST">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded">
+                Cập nhật Kanji Data ngay
+            </button>
+        </form>
+    </div>
+</div>
+{% endblock %}

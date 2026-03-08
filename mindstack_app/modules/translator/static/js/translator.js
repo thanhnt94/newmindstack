@@ -262,7 +262,7 @@ const MsTranslator = {
                     <div class="text-xs text-slate-700 mb-2 leading-tight">
                         <span class="font-bold text-indigo-500">Nghĩa:</span> ${meanings}
                     </div>
-                    <div class="space-y-1 text-[10px]">
+                    <div class="space-y-1 text-[10px] mb-2">
                         <div class="flex gap-1 items-start">
                             <span class="text-slate-400 font-bold min-w-[30px]">ON:</span>
                             <span class="text-slate-600">${onReadings}</span>
@@ -272,6 +272,15 @@ const MsTranslator = {
                             <span class="text-slate-600">${kunReadings}</span>
                         </div>
                     </div>
+                    ${k.decompositions ? `
+                    <div class="space-y-1 text-[10px] text-slate-700 bg-slate-50 p-1 rounded">
+                        <div class="font-bold text-slate-500">Phân rã:</div>
+                        ${k.decompositions.level2_radicals && k.decompositions.level2_radicals.length > 0 ? `
+                        <div>Bộ thủ (level 2): <span class="font-bold">${k.decompositions.level2_radicals.join(', ')}</span></div>` : ''}
+                        ${k.decompositions.level3_strokes && k.decompositions.level3_strokes.length > 0 ? `
+                        <div>Nét (level 3): <span class="font-bold">${k.decompositions.level3_strokes.join(', ')}</span></div>` : ''}
+                    </div>
+                    ` : ''}
                 </div>
             `;
         }).join('');

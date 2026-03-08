@@ -34,3 +34,17 @@ class KanjiInterface:
         Returns full details of a Kanji (meanings, readings, hanviet, etc.)
         """
         return KanjiService.get_details(kanji)
+
+    @staticmethod
+    def get_decompositions(kanji: str) -> Dict:
+        """
+        Returns all levels of decomposition for a Kanji.
+        """
+        return KanjiService.get_decompositions(kanji)
+
+    @staticmethod
+    def update_decomposition_data() -> str:
+        """
+        Triggers the update of kanji_db.json with hanzipy decomposition data.
+        """
+        return KanjiService.update_decomposition_data()
