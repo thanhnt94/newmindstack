@@ -1,0 +1,948 @@
+{% extends template_version ~ "/layouts/base.html" %}
+
+{% block title %}Tra cứu Kanji - MindStack{% endblock %}
+
+{% block content %}
+<div class="kp">
+
+    <!-- Search Header -->
+    <div class="kp-header">
+        <h1 class="kp-title">漢字 <span>Lookup</span></h1>
+        <div class="kp-search-wrap">
+            <div class="kp-search-box">
+                <span class="kp-search-icon">🔍</span>
+                <input id="kanji-input" type="text" placeholder="Nhập Kanji hoặc từ (ví dụ: 位置, 勉強)" autocomplete="off">
+                <button id="kp-search-btn">Tra cứu</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- History Tabs -->
+    <div id="kp-tabs-wrap" class="kp-tabs-wrap hidden">
+        <div id="kp-tabs" class="kp-tabs"></div>
+    </div>
+
+    <!-- Main Content -->
+    <div id="kp-main" class="kp-main hidden">
+
+        <!-- Hero Card -->
+        <div class="kp-hero">
+            <div class="kp-hero-char-wrap">
+                <div class="kp-char-bg" id="kp-char-bg"></div>
+                <div class="kp-hero-char" id="kp-char"></div>
+            </div>
+            <div class="kp-hero-info">
+                <div class="kp-badge" id="kp-hv"></div>
+                <div class="kp-meta-row">
+                    <span class="kp-chip" id="kp-strokes"></span>
+                    <span class="kp-chip" id="kp-jlpt"></span>
+                </div>
+                <div class="kp-meaning" id="kp-meaning"></div>
+            </div>
+        </div>
+
+        <!-- Mnemonics -->
+        <div id="kp-mnemonic-box" class="kp-mnemonic-box hidden">
+            <div class="kp-card-title" style="margin-bottom:8px;">💡 Mẹo Ghi Nhớ (WaniKani)</div>
+            <div id="kp-mnemonic-text" class="kp-mnemonic-text"></div>
+        </div>
+
+        <!-- Readings -->
+        <div class="kp-readings-row">
+            <div class="kp-reading-card kp-on">
+                <div class="kp-reading-label">音読み · On'yomi</div>
+                <div class="kp-reading-val" id="kp-on"></div>
+            </div>
+            <div class="kp-reading-card kp-kun">
+                <div class="kp-reading-label">訓読み · Kun'yomi</div>
+                <div class="kp-reading-val" id="kp-kun"></div>
+            </div>
+        </div>
+
+        <!-- Decomposition & Similar -->
+        <div class="kp-bottom-row">
+            <div class="kp-card">
+                <div class="kp-card-head" style="flex-direction: row; justify-content: space-between;">
+                    <div class="kp-card-title">🧩 Cấu tạo bộ thủ (Nguyên tố)</div>
+                </div>
+                <div id="kp-comps" class="kp-comps"></div>
+            </div>
+
+            <div class="kp-card">
+                <div class="kp-card-head">
+                    <div class="kp-card-title">👀 Dễ nhầm với</div>
+                </div>
+                <div id="kp-similar" class="kp-similar"></div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Empty state -->
+    <div id="kp-empty" class="kp-empty">
+        <div class="kp-empty-icon">漢</div>
+        <p>Nhập một chữ Kanji để bắt đầu tra cứu</p>
+    </div>
+
+</div>
+
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;700&family=Inter:wght@400;500;600;700;800&display=swap');
+
+    *,
+    *::before,
+    *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0
+    }
+
+    .kp {
+        --c-bg: #0d0d1a;
+        --c-surface: #13131f;
+        --c-surface2: #1c1c2e;
+        --c-border: rgba(255, 255, 255, 0.08);
+        --c-text: #f0f0f8;
+        --c-muted: rgba(255, 255, 255, 0.4);
+        --c-accent: #7c6bff;
+        --c-accent2: #ff6bb5;
+        --c-on: #00e5a0;
+        --c-kun: #5ab4ff;
+        --c-badge: #ffe066;
+        --radius: 18px;
+        --radius-sm: 10px;
+        font-family: 'Inter', 'Noto Sans JP', sans-serif;
+        min-height: 100vh;
+        background: var(--c-bg);
+        color: var(--c-text);
+        padding-bottom: 60px;
+    }
+
+    /* ── Header ── */
+    .kp-header {
+        padding: 28px 20px 0;
+        text-align: center;
+    }
+
+    .kp-title {
+        font-size: 2rem;
+        font-weight: 800;
+        letter-spacing: -0.5px;
+        margin-bottom: 20px;
+    }
+
+    .kp-title span {
+        background: linear-gradient(135deg, var(--c-accent), var(--c-accent2));
+        -webkit-background-clip: text;
+        background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+
+    /* ── Search ── */
+    .kp-search-wrap {
+        max-width: 500px;
+        margin: 0 auto;
+    }
+
+    .kp-search-box {
+        display: flex;
+        align-items: center;
+        background: var(--c-surface2);
+        border: 1.5px solid var(--c-border);
+        border-radius: 14px;
+        overflow: hidden;
+        transition: border-color 0.2s;
+    }
+
+    .kp-search-box:focus-within {
+        border-color: var(--c-accent);
+        box-shadow: 0 0 0 3px rgba(124, 107, 255, 0.15);
+    }
+
+    .kp-search-icon {
+        padding: 0 14px;
+        font-size: 1.1rem;
+        opacity: 0.5;
+    }
+
+    #kanji-input {
+        flex: 1;
+        background: transparent;
+        border: none;
+        outline: none;
+        color: var(--c-text);
+        font-size: 1.3rem;
+        padding: 14px 0;
+        font-family: 'Noto Sans JP', sans-serif;
+    }
+
+    #kanji-input::placeholder {
+        color: var(--c-muted);
+        font-size: 1rem;
+    }
+
+    #kp-search-btn {
+        background: var(--c-accent);
+        color: #fff;
+        border: none;
+        padding: 0 24px;
+        height: 56px;
+        font-size: 0.9rem;
+        font-weight: 700;
+        cursor: pointer;
+        transition: background 0.2s;
+    }
+
+    #kp-search-btn:hover {
+        background: #6a5ae0;
+    }
+
+    /* ── History Tabs ── */
+    .kp-tabs-wrap {
+        padding: 16px 20px 0;
+        max-width: 700px;
+        margin: 0 auto;
+        overflow-x: auto;
+        scrollbar-width: none;
+    }
+
+    .kp-tabs-wrap::-webkit-scrollbar {
+        display: none;
+    }
+
+    .kp-tabs {
+        display: flex;
+        gap: 8px;
+    }
+
+    .kp-tab {
+        flex-shrink: 0;
+        background: var(--c-surface2);
+        border: 1.5px solid var(--c-border);
+        border-radius: 12px;
+        padding: 6px 10px 6px 14px;
+        font-size: 1.4rem;
+        cursor: pointer;
+        transition: all 0.2s;
+        position: relative;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .kp-tab.active {
+        border-color: var(--c-accent);
+        background: rgba(124, 107, 255, 0.15);
+        box-shadow: 0 0 0 2px rgba(124, 107, 255, 0.2);
+    }
+
+    .kp-tab:hover:not(.active) {
+        border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    .kp-tab .kp-tab-hv {
+        position: absolute;
+        bottom: -8px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: var(--c-accent);
+        color: #fff;
+        font-size: 0.6rem;
+        font-weight: 700;
+        padding: 1px 6px;
+        border-radius: 4px;
+        white-space: nowrap;
+        font-family: 'Inter', sans-serif;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        pointer-events: none;
+    }
+
+    .kp-tab-close {
+        font-size: 0.85rem;
+        line-height: 1;
+        color: var(--c-muted);
+        border-radius: 50%;
+        width: 18px;
+        height: 18px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        transition: all 0.15s;
+        background: transparent;
+    }
+
+    .kp-tab-close:hover {
+        background: rgba(255, 80, 80, 0.25);
+        color: #ff6464;
+    }
+
+    /* ── Main Content ── */
+    .kp-main {
+        max-width: 700px;
+        margin: 24px auto 0;
+        padding: 0 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+    }
+
+    /* ── Hero ── */
+    .kp-hero {
+        background: var(--c-surface2);
+        border: 1px solid var(--c-border);
+        border-radius: var(--radius);
+        padding: 28px;
+        display: flex;
+        gap: 28px;
+        align-items: center;
+        animation: kp-in 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    @keyframes kp-in {
+        from {
+            opacity: 0;
+            transform: translateY(12px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .kp-hero-char-wrap {
+        position: relative;
+        width: 140px;
+        height: 140px;
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .kp-char-bg {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1;
+    }
+
+    .kp-char-bg svg {
+        width: 100%;
+        height: 100%;
+    }
+
+    .kp-hero-char {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 2;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: 'Noto Sans JP', serif;
+        font-size: 7rem;
+        line-height: 1;
+        background: linear-gradient(135deg, #fff 0%, rgba(255, 255, 255, 0.6) 100%);
+        -webkit-background-clip: text;
+        background-clip: text;
+        -webkit-text-fill-color: transparent;
+        pointer-events: none;
+    }
+
+    .kp-char-bg svg path {
+        fill: none;
+        stroke: var(--c-accent);
+        stroke-width: 3;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        stroke-dasharray: 1000;
+        stroke-dashoffset: 1000;
+        animation: kanji-draw 2s ease-out forwards;
+    }
+
+    @keyframes kanji-draw {
+        to {
+            stroke-dashoffset: 0;
+        }
+    }
+
+    .kp-hero-info {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+    }
+
+    .kp-badge {
+        display: inline-block;
+        background: var(--c-badge);
+        color: #1a1200;
+        font-size: 0.85rem;
+        font-weight: 800;
+        padding: 4px 14px;
+        border-radius: 8px;
+        text-transform: uppercase;
+        letter-spacing: 1.5px;
+        align-self: flex-start;
+    }
+
+    .kp-meta-row {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+
+    .kp-chip {
+        background: rgba(255, 255, 255, 0.07);
+        border: 1px solid var(--c-border);
+        color: var(--c-muted);
+        font-size: 0.82rem;
+        padding: 4px 12px;
+        border-radius: 8px;
+    }
+
+    .kp-meaning {
+        font-size: 1.05rem;
+        color: rgba(255, 255, 255, 0.75);
+        line-height: 1.5;
+    }
+
+    /* ── Mnemonics ── */
+    .kp-mnemonic-box {
+        background: rgba(124, 107, 255, 0.1);
+        border: 1px solid rgba(124, 107, 255, 0.2);
+        border-radius: var(--radius);
+        padding: 20px;
+    }
+
+    .kp-mnemonic-text {
+        font-size: 0.95rem;
+        color: rgba(255, 255, 255, 0.9);
+        line-height: 1.6;
+    }
+
+    /* ── Readings Row ── */
+    .kp-readings-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+    }
+
+    .kp-reading-card {
+        background: var(--c-surface2);
+        border: 1px solid var(--c-border);
+        border-radius: var(--radius);
+        padding: 20px;
+        border-top: 3px solid transparent;
+    }
+
+    .kp-on {
+        border-top-color: var(--c-on);
+    }
+
+    .kp-kun {
+        border-top-color: var(--c-kun);
+    }
+
+    .kp-reading-label {
+        font-size: 0.72rem;
+        color: var(--c-muted);
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        margin-bottom: 10px;
+    }
+
+    .kp-reading-val {
+        font-family: 'Noto Sans JP', sans-serif;
+        font-size: 1.5rem;
+        font-weight: 700;
+        line-height: 1.4;
+        word-break: break-all;
+    }
+
+    .kp-on .kp-reading-val {
+        color: var(--c-on);
+    }
+
+    .kp-kun .kp-reading-val {
+        color: var(--c-kun);
+    }
+
+    .kp-reading-val.empty {
+        color: var(--c-muted);
+        font-size: 1rem;
+        font-family: 'Inter', sans-serif;
+    }
+
+    /* ── Bottom Row ── */
+    .kp-bottom-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+    }
+
+    .kp-card {
+        background: var(--c-surface2);
+        border: 1px solid var(--c-border);
+        border-radius: var(--radius);
+        padding: 20px;
+    }
+
+    .kp-card-head {
+        margin-bottom: 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .kp-card-title {
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: var(--c-muted);
+        letter-spacing: 0.3px;
+    }
+
+    /* ── Segment Control ── */
+    .kp-seg-ctrl {
+        display: flex;
+        background: rgba(0, 0, 0, 0.3);
+        border-radius: 8px;
+        padding: 3px;
+    }
+
+    .kp-seg-ctrl button {
+        flex: 1;
+        background: transparent;
+        border: none;
+        color: var(--c-muted);
+        padding: 6px 8px;
+        border-radius: 6px;
+        font-size: 0.78rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .kp-seg-ctrl button.active {
+        background: var(--c-accent);
+        color: #fff;
+    }
+
+    .kp-m-item {
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 6px;
+        padding: 4px 10px;
+        font-size: 0.95rem;
+        display: inline-block;
+        margin: 2px;
+        color: var(--c-text);
+        transition: all 0.2s;
+    }
+
+    .kp-m-item:hover {
+        background: rgba(124, 107, 255, 0.1);
+        border-color: var(--c-accent);
+    }
+
+    /* ── Components ── */
+    .kp-comps {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .kp-comp-item {
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid var(--c-border);
+        border-radius: 10px;
+        padding: 8px 14px;
+        font-size: 1.4rem;
+        font-family: 'Noto Sans JP', serif;
+        cursor: pointer;
+        transition: all 0.18s;
+        user-select: none;
+    }
+
+    .kp-comp-item:hover {
+        background: rgba(124, 107, 255, 0.2);
+        border-color: var(--c-accent);
+        transform: translateY(-2px);
+    }
+
+    /* ── Similar ── */
+    .kp-similar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .kp-sim-item {
+        width: 52px;
+        height: 52px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid var(--c-border);
+        border-radius: 12px;
+        font-size: 1.5rem;
+        font-family: 'Noto Sans JP', serif;
+        cursor: pointer;
+        transition: all 0.18s;
+        user-select: none;
+    }
+
+    .kp-sim-item:hover {
+        background: rgba(255, 107, 181, 0.2);
+        border-color: var(--c-accent2);
+        transform: scale(1.1);
+    }
+
+    /* ── Empty State ── */
+    .kp-empty {
+        text-align: center;
+        padding: 80px 20px;
+        color: var(--c-muted);
+    }
+
+    .kp-empty-icon {
+        font-size: 5rem;
+        font-family: 'Noto Sans JP', serif;
+        opacity: 0.12;
+        margin-bottom: 16px;
+    }
+
+    .kp-empty p {
+        font-size: 1rem;
+    }
+
+    /* ── Utilities ── */
+    .hidden {
+        display: none !important;
+    }
+
+    /* ── Mobile ── */
+    @media (max-width: 600px) {
+        .kp-title {
+            font-size: 1.5rem;
+        }
+
+        .kp-hero {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 16px;
+            padding: 20px;
+        }
+
+        .kp-hero-char {
+            font-size: 5.5rem;
+        }
+
+        .kp-readings-row {
+            grid-template-columns: 1fr;
+        }
+
+        .kp-bottom-row {
+            grid-template-columns: 1fr;
+        }
+
+        .kp-reading-val {
+            font-size: 1.3rem;
+        }
+    }
+</style>
+
+<style id="dynamic-kanji-styles"></style>
+
+<script>
+    (function () {
+        const input = document.getElementById('kanji-input');
+        const searchBtn = document.getElementById('kp-search-btn');
+        const tabsWrap = document.getElementById('kp-tabs-wrap');
+        const tabsEl = document.getElementById('kp-tabs');
+        const mainEl = document.getElementById('kp-main');
+        const emptyEl = document.getElementById('kp-empty');
+
+        // Current word session: array of { char, details, similar }
+        let session = [];
+        let activeChar = null;
+
+        // Extract all Kanji characters from a string
+        function extractKanji(str) {
+            // CJK Unified Ideographs range
+            return [...str].filter(ch => /[\u4E00-\u9FFF\u3400-\u4DBF\uF900-\uFAFF]/.test(ch));
+        }
+
+        // ── Event listeners ────────────────────────────────────────
+        searchBtn.addEventListener('click', () => triggerSearch());
+        input.addEventListener('keypress', e => { if (e.key === 'Enter') triggerSearch(); });
+
+
+
+        // ── Core ────────────────────────────────────────────────────
+        async function triggerSearch() {
+            const raw = input.value.trim();
+            if (!raw) return;
+
+            const kanjis = extractKanji(raw);
+            if (kanjis.length === 0) return;
+
+            // Fetch all kanji in parallel
+            const results = await Promise.all(kanjis.map(async ch => {
+                try {
+                    const [detRes, simRes] = await Promise.all([
+                        fetch(`/api/kanji/${encodeURIComponent(ch)}/details`),
+                        fetch(`/api/kanji/${encodeURIComponent(ch)}/similar`)
+                    ]);
+                    const detJson = await detRes.json();
+                    const simJson = await simRes.json();
+                    return { char: ch, details: detJson.details || null, similar: simJson.results || [] };
+                } catch (e) {
+                    return { char: ch, details: null, similar: [] };
+                }
+            }));
+
+            // Replace current session (no persistent history)
+            session = results;
+            renderTabs();
+            activate(session[0].char);
+        }
+
+        function activate(char) {
+            activeChar = char;
+
+
+
+            const entry = session.find(s => s.char === char);
+            if (!entry || !entry.details) {
+                mainEl.classList.add('hidden');
+                emptyEl.classList.remove('hidden');
+                return;
+            }
+
+            renderTabs();
+            renderHero(char, entry.details);
+            renderReadings(entry.details);
+            renderComps(char);
+            renderSimilar(entry.similar);
+            renderMnemonics(entry.details);
+            drawKanjiVG(char);
+
+            mainEl.classList.remove('hidden');
+            emptyEl.classList.add('hidden');
+        }
+
+        // ── Renderers ───────────────────────────────────────────────
+        function renderTabs() {
+            if (session.length <= 1) { tabsWrap.classList.add('hidden'); return; }
+            tabsWrap.classList.remove('hidden');
+            tabsEl.innerHTML = '';
+            session.forEach(entry => {
+                const tab = document.createElement('div');
+                tab.className = 'kp-tab' + (entry.char === activeChar ? ' active' : '');
+
+                const charSpan = document.createElement('span');
+                charSpan.textContent = entry.char;
+                tab.appendChild(charSpan);
+
+                if (entry.details && entry.details.hanviet) {
+                    const sub = document.createElement('div');
+                    sub.className = 'kp-tab-hv';
+                    sub.textContent = entry.details.hanviet;
+                    tab.appendChild(sub);
+                }
+
+                const closeBtn = document.createElement('span');
+                closeBtn.className = 'kp-tab-close';
+                closeBtn.textContent = '×';
+                closeBtn.title = 'Xóa';
+                closeBtn.addEventListener('click', e => {
+                    e.stopPropagation();
+                    session = session.filter(s => s.char !== entry.char);
+                    if (session.length === 0) {
+                        tabsWrap.classList.add('hidden');
+                        mainEl.classList.add('hidden');
+                        emptyEl.classList.remove('hidden');
+                        activeChar = null;
+                    } else {
+                        if (activeChar === entry.char) activate(session[0].char);
+                        else renderTabs();
+                    }
+                });
+                tab.appendChild(closeBtn);
+
+                tab.addEventListener('click', () => activate(entry.char));
+                tabsEl.appendChild(tab);
+            });
+        }
+
+        function renderHero(char, d) {
+            document.getElementById('kp-char').textContent = char;
+            document.getElementById('kp-hv').textContent = d.hanviet || '—';
+            document.getElementById('kp-strokes').textContent = `✏️ ${d.strokes || '?'} nét`;
+            document.getElementById('kp-jlpt').textContent = d.jlpt ? `JLPT N${d.jlpt}` : 'Ngoài JLPT';
+
+            const meaningEl = document.getElementById('kp-meaning');
+            const meanings = d.meanings || [];
+            if (meanings.length > 0) {
+                meaningEl.innerHTML = meanings.map(m => `<span class="kp-m-item">${m}</span>`).join('');
+            } else {
+                meaningEl.textContent = 'N/A';
+            }
+        }
+
+        function renderMnemonics(d) {
+            const mbox = document.getElementById('kp-mnemonic-box');
+            const mtext = document.getElementById('kp-mnemonic-text');
+            if (d.mnemonic_hint) {
+                mtext.textContent = d.mnemonic_hint;
+                mbox.classList.remove('hidden');
+            } else {
+                mbox.classList.add('hidden');
+            }
+        }
+
+        async function drawKanjiVG(char) {
+            const bgEl = document.getElementById('kp-char-bg');
+            const mainChar = document.getElementById('kp-char');
+            bgEl.innerHTML = '';
+            mainChar.style.opacity = '0';
+
+            const hex = char.charCodeAt(0).toString(16).toLowerCase().padStart(5, '0');
+            const url = `https://raw.githubusercontent.com/KanjiVG/kanjivg/master/kanji/${hex}.svg`;
+
+            try {
+                const res = await fetch(url);
+                if (res.ok) {
+                    const text = await res.text();
+                    bgEl.innerHTML = text;
+                    // Force re-flow to trigger animation and apply sequential delays
+                    const svg = bgEl.querySelector('svg');
+                    if (svg) {
+                        svg.style.width = '100%';
+                        svg.style.height = '100%';
+
+                        const paths = svg.querySelectorAll('path');
+                        let totalDuration = 0;
+                        paths.forEach((p, i) => {
+                            // Calculate approximate length for speed tuning (fallback to 100 if unsupported)
+                            const len = p.getTotalLength ? p.getTotalLength() : 100;
+                            const duration = Math.max(0.3, len / 150);
+
+                            p.style.strokeDasharray = len + 10;
+                            p.style.strokeDashoffset = len + 10;
+                            p.style.animation = `kanji-draw ${duration}s ease-out forwards`;
+                            p.style.animationDelay = `${totalDuration}s`;
+
+                            totalDuration += duration;
+                        });
+
+                        // Fade in the big beautiful text AFTER drawing completes
+                        setTimeout(() => {
+                            mainChar.style.transition = 'opacity 0.5s';
+                            mainChar.style.opacity = '1';
+                        }, totalDuration * 1000);
+                    }
+                } else {
+                    mainChar.style.opacity = '1';
+                }
+            } catch (e) {
+                mainChar.style.opacity = '1';
+            }
+        }
+
+        function renderReadings(d) {
+            const onEl = document.getElementById('kp-on');
+            const kunEl = document.getElementById('kp-kun');
+
+            const onVals = (d.readings_on || []);
+            const kunVals = (d.readings_kun || []);
+
+            if (onVals.length) {
+                onEl.textContent = onVals.join('  ·  ');
+                onEl.classList.remove('empty');
+            } else {
+                onEl.textContent = '—';
+                onEl.classList.add('empty');
+            }
+            if (kunVals.length) {
+                kunEl.textContent = kunVals.join('  ·  ');
+                kunEl.classList.remove('empty');
+            } else {
+                kunEl.textContent = '—';
+                kunEl.classList.add('empty');
+            }
+        }
+
+        async function renderComps(char) {
+            const container = document.getElementById('kp-comps');
+            container.innerHTML = '<span style="color:rgba(255,255,255,0.3);font-size:0.9rem">Đang tải...</span>';
+            try {
+                const res = await fetch(`/api/kanji/${encodeURIComponent(char)}/components`);
+                const data = await res.json();
+                container.innerHTML = '';
+                (data.components || []).forEach(c => {
+                    const el = document.createElement('div');
+                    el.className = 'kp-comp-item';
+                    el.textContent = c;
+                    el.addEventListener('click', () => { addToSession(c); });
+                    container.appendChild(el);
+                });
+                if (!data.components || data.components.length === 0) {
+                    container.innerHTML = '<span style="color:rgba(255,255,255,0.3);font-size:0.9rem">Không có dữ liệu</span>';
+                }
+            } catch (e) {
+                container.innerHTML = '<span style="color:rgba(255,100,100,0.6);font-size:0.9rem">Lỗi tải dữ liệu</span>';
+            }
+        }
+
+        function renderSimilar(list) {
+            const container = document.getElementById('kp-similar');
+            container.innerHTML = '';
+            (list || []).forEach(item => {
+                const el = document.createElement('div');
+                el.className = 'kp-sim-item';
+                el.textContent = item.kanji;
+                el.title = item.kanji;
+                el.addEventListener('click', () => { addToSession(item.kanji); });
+                container.appendChild(el);
+            });
+            if (!list || list.length === 0) {
+                container.innerHTML = '<span style="color:rgba(255,255,255,0.3);font-size:0.9rem">Không có dữ liệu</span>';
+            }
+        }
+        async function addToSession(char) {
+            // If already in session, just switch to it
+            if (session.find(s => s.char === char)) {
+                activate(char);
+                return;
+            }
+            try {
+                const [detRes, simRes] = await Promise.all([
+                    fetch(`/api/kanji/${encodeURIComponent(char)}/details`),
+                    fetch(`/api/kanji/${encodeURIComponent(char)}/similar`)
+                ]);
+                const detJson = await detRes.json();
+                const simJson = await simRes.json();
+                session.push({ char, details: detJson.details || null, similar: simJson.results || [] });
+                renderTabs();
+                activate(char);
+            } catch (e) {
+                console.error('addToSession failed', e);
+            }
+        }
+    })();
+</script>
+
+{% endblock %}

@@ -22,10 +22,15 @@ def translate():
     target = data.get('target', 'vi')
     user_id = current_user.user_id
     
-    result = TranslatorService.translate_text(text, source, target, user_id=user_id)
+    result_data = TranslatorService.translate_text(text, source, target, user_id=user_id)
     
-    if result:
-        return success_response(data={'translated': result, 'source': source, 'original': text})
+    if result_data:
+        return success_response(data={
+            'translated': result_data.get('translated'),
+            'kanji_details': result_data.get('kanji_details'),
+            'source': source,
+            'original': text
+        })
     else:
         return error_response('Translation failed', 'SERVER_ERROR', 500)
 

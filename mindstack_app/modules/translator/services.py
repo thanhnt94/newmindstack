@@ -11,8 +11,10 @@ class TranslatorService:
         """
         Translate text using Google Translate (free).
         If user_id is provided, save the result to TranslationHistory.
+        Returns a dictionary with 'translated' and 'kanji_details'.
         """
         try:
+            # 1. Translate logic
             translator = GoogleTranslator(source=source, target=target)
             result = translator.translate(text)
             
@@ -31,7 +33,25 @@ class TranslatorService:
                     logger.error(f"Failed to save translation history: {e_db}")
                     db.session.rollback()
             
-            return result
+            # 2. Extract Kanji and get details
+            kanji_details = []
+            try:
+                from .logics.kanji_helper import extract_kanji
+                from mindstack_app.modules.kanji.interface import KanjiInterface
+                
+                kanjis = extract_kanji(text)
+                for k in kanjis:
+                    details = KanjiInterface.get_details(k)
+                    if details:
+                        details['kanji'] = k  # Ensure the kanji character is included
+                        kanji_details.append(details)
+            except Exception as e_kanji:
+                logger.error(f"Failed to fetch kanji details: {e_kanji}")
+
+            return {
+                'translated': result,
+                'kanji_details': kanji_details
+            }
         except Exception as e:
             # Log error properly
             logger.error(f"Translation Error: {e}", exc_info=True)

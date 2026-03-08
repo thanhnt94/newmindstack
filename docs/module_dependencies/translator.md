@@ -3,7 +3,7 @@
 This document outlines the dependencies and relationships of the `translator` module based on Hexagonal Architecture.
 
 ## 🔗 Dependencies (Consumes)
-- None (Independent Module)
+- `kanji` (For Kanji character details)
 
 ## 🚪 Public Interface (Exports)
 *These are the endpoints exposed via `interface.py` for other modules to use.*

@@ -6,15 +6,16 @@ def translate_text(text: str, source: str = 'auto', target: str = 'vi', user_id:
     """
     Public API to translate text.
     """
-    result = TranslatorService.translate_text(text, source, target, user_id)
+    result_data = TranslatorService.translate_text(text, source, target, user_id)
     
-    if result:
+    if result_data:
         return TranslationResponseDTO(
             original=text,
-            translated=result,
+            translated=result_data.get('translated', ""),
             source=source,
             target=target,
-            success=True
+            success=True,
+            kanji_details=result_data.get('kanji_details', [])
         )
     return TranslationResponseDTO(
         original=text,

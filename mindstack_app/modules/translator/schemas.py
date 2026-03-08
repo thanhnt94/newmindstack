@@ -15,3 +15,4 @@ class TranslationResponseDTO:
     target: str
     success: bool
     error: Optional[str] = None
+    kanji_details: Optional[list] = None
