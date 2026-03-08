@@ -51,8 +51,9 @@ pywebpush>=1.14.0 # Hỗ trợ Web Push Notification
 pytz>=2023.3 # Xử lý Timezone fallback
 python-dotenv>=1.0.0 # Load biến môi trường .env
 
-# --- Translator ---
+# --- Translator & Ngôn ngữ ---
 deep_translator>=1.8.0 # Dùng để dịch thuật (Google Translate free)
 edge-tts>=6.1.9 # Microsoft Edge TTS engine (High quality free neural voices)
 fsrs-rs-python>=0.8.2 # FSRS Algorithm implementation (Rust bindings)
+hanzipy>=2.1.0 # Dùng phân tách Kanji/Hanzi, lấy bộ thủ và cấp độ
 marshmallow>=3.13.0
