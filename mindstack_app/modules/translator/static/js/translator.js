@@ -127,11 +127,11 @@ const MsTranslator = {
         // Temporarily make it visible but outside flow to measure
         popup.style.visibility = 'hidden';
         popup.style.display = 'block';
-        
+
         // Reset max-width to ensure accurate measurement before setting
         popup.style.maxWidth = '320px'; // Set a reasonable max width for measurement
         const popupRect = popup.getBoundingClientRect();
-        
+
         // Restore
         popup.style.visibility = '';
         popup.style.display = '';
@@ -223,8 +223,8 @@ const MsTranslator = {
 
         popup.innerHTML = `
             <div class="bg-white text-sm w-full">
-                <div class="flex justify-between items-center p-2 border-b border-slate-100 text-[10px] text-slate-400 uppercase font-bold">
-                    <span>${source || 'Auto'} <i class="fa-solid fa-arrow-right mx-1"></i> VI</span>
+                <div id="ms-translator-header" class="flex justify-between items-center p-2 border-b border-slate-100 text-[10px] text-slate-400 uppercase font-bold cursor-move select-none hover:bg-slate-50 transition-colors" title="Kéo thả để di chuyển">
+                    <span class="pointer-events-none">${source || 'Auto'} <i class="fa-solid fa-arrow-right mx-1"></i> VI</span>
                     <div class="flex gap-2">
                         <a href="/translator/history" target="_blank" title="Xem lịch sử đầy đủ" class="hover:text-indigo-600 px-1"><i class="fa-solid fa-history"></i></a>
                         <button onclick="MsTranslator.hide()" class="hover:text-red-500 px-1"><i class="fa-solid fa-xmark"></i></button>
@@ -239,48 +239,110 @@ const MsTranslator = {
                 </div>
             </div>
         `;
+
+        this.makeDraggable(popup);
+    },
+
+    makeDraggable(el) {
+        const header = el.querySelector('#ms-translator-header');
+        if (!header) return;
+
+        let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+
+        header.onmousedown = dragMouseDown;
+        header.ontouchstart = dragTouchStart;
+
+        function dragMouseDown(e) {
+            e.preventDefault();
+            pos3 = e.clientX;
+            pos4 = e.clientY;
+            document.onmouseup = closeDragElement;
+            document.onmousemove = elementDrag;
+        }
+
+        function dragTouchStart(e) {
+            if (e.target.tagName.toLowerCase() === 'button' || e.target.tagName.toLowerCase() === 'a') return;
+            // Get the touch coordinate
+            pos3 = e.touches[0].clientX;
+            pos4 = e.touches[0].clientY;
+            document.ontouchend = closeDragElement;
+            document.ontouchmove = elementDragTouch;
+        }
+
+        function elementDrag(e) {
+            e.preventDefault();
+            // Calculate the new cursor position:
+            pos1 = pos3 - e.clientX;
+            pos2 = pos4 - e.clientY;
+            pos3 = e.clientX;
+            pos4 = e.clientY;
+            // Set the element's new position:
+            el.style.top = (el.offsetTop - pos2) + "px";
+            el.style.left = (el.offsetLeft - pos1) + "px";
+        }
+
+        function elementDragTouch(e) {
+            pos1 = pos3 - e.touches[0].clientX;
+            pos2 = pos4 - e.touches[0].clientY;
+            pos3 = e.touches[0].clientX;
+            pos4 = e.touches[0].clientY;
+            el.style.top = (el.offsetTop - pos2) + "px";
+            el.style.left = (el.offsetLeft - pos1) + "px";
+        }
+
+        function closeDragElement() {
+            // Stop moving when mouse button is released:
+            document.onmouseup = null;
+            document.onmousemove = null;
+            document.ontouchend = null;
+            document.ontouchmove = null;
+        }
     },
 
     renderKanjiList(original, kanjis) {
         if (!kanjis || kanjis.length === 0) return '';
-        
-        // Match details back to specific characters found in original text
+
         return kanjis.map(k => {
             const meanings = Array.isArray(k.meanings) ? k.meanings.join(', ') : (k.meanings || 'N/A');
-            const onReadings = Array.isArray(k.readings_on) ? k.readings_on.join(', ') : (k.readings_on || '-');
-            const kunReadings = Array.isArray(k.readings_kun) ? k.readings_kun.join(', ') : (k.readings_kun || '-');
-            const kanjiChar = k.kanji || ''; // If get_details doesn't return the char itself, we might need to fix it. 
-            // Wait, looking at get_kanji_details in kanji_data.py, it DOES NOT return the kanji character itself in the dict!
-            // I should fix that in services.py or here.
+            const char = k.kanji || '?';
+            const hanviet = k.hanviet && k.hanviet !== '—' ? k.hanviet.split(/[,\s]+/).filter(Boolean).join(' / ') : '---';
 
             return `
-                <div class="mb-4 last:mb-0 pb-3 border-b border-slate-50 last:border-0">
-                    <div class="flex items-center gap-3 mb-1">
-                        <span class="text-2xl font-bold text-indigo-600">${k.kanji || '?'}</span>
-                        <span class="text-xs text-slate-400 font-bold">[${k.hanviet || ''}]</span>
-                    </div>
-                    <div class="text-xs text-slate-700 mb-2 leading-tight">
-                        <span class="font-bold text-indigo-500">Nghĩa:</span> ${meanings}
-                    </div>
-                    <div class="space-y-1 text-[10px] mb-2">
-                        <div class="flex gap-1 items-start">
-                            <span class="text-slate-400 font-bold min-w-[30px]">ON:</span>
-                            <span class="text-slate-600">${onReadings}</span>
+                <div class="mb-4 last:mb-0 bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden flex flex-col">
+                    <div class="p-4 flex gap-4 bg-slate-50/50">
+                        <div class="flex flex-col items-center space-y-2">
+                            <div class="text-4xl font-bold text-slate-800 font-jp leading-none tracking-tighter">${char}</div>
+                            <div class="px-2 py-1 bg-indigo-600 text-white text-[9px] font-black rounded-lg uppercase tracking-wider shadow-md shadow-indigo-100">${hanviet}</div>
                         </div>
-                        <div class="flex gap-1 items-start">
-                            <span class="text-slate-400 font-bold min-w-[30px]">KUN:</span>
-                            <span class="text-slate-600">${kunReadings}</span>
+                        
+                        <div class="flex-1 flex flex-col justify-center min-w-0">
+                            <div class="text-[10px] font-bold text-indigo-500/60 uppercase tracking-widest mb-1.5">Nghĩa Tiếng Việt</div>
+                            <div class="text-sm font-bold text-slate-800 leading-tight">
+                                ${meanings}
+                            </div>
                         </div>
                     </div>
-                    ${k.decompositions ? `
-                    <div class="space-y-1 text-[10px] text-slate-700 bg-slate-50 p-1 rounded">
-                        <div class="font-bold text-slate-500">Phân rã:</div>
-                        ${k.decompositions.level2_radicals && k.decompositions.level2_radicals.length > 0 ? `
-                        <div>Bộ thủ (level 2): <span class="font-bold">${k.decompositions.level2_radicals.join(', ')}</span></div>` : ''}
-                        ${k.decompositions.level3_strokes && k.decompositions.level3_strokes.length > 0 ? `
-                        <div>Nét (level 3): <span class="font-bold">${k.decompositions.level3_strokes.join(', ')}</span></div>` : ''}
+
+                    <div class="px-4 py-3 bg-white border-t border-slate-100 flex items-center justify-between gap-2 overflow-x-auto">
+                        <div class="flex gap-4 shrink-0">
+                            <div class="flex flex-col">
+                                <span class="text-[9px] text-slate-400 font-bold uppercase tracking-tighter">Số nét</span>
+                                <span class="text-xs font-black text-slate-700">${k.strokes || '--'}</span>
+                            </div>
+                            <div class="flex flex-col">
+                                <span class="text-[9px] text-slate-400 font-bold uppercase tracking-tighter">Cấp độ</span>
+                                <span class="text-xs font-black text-slate-700">${k.jlpt ? 'N' + k.jlpt : 'Nhỏ'}</span>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-1.5 shrink-0 ml-auto">
+                            <a href="https://mazii.net/vi-VN/search/kanji/javi/${encodeURIComponent(char)}" target="_blank" class="h-8 px-2.5 bg-blue-500 text-white text-[10px] font-black rounded-lg hover:bg-blue-600 transition-all flex items-center shadow-sm whitespace-nowrap">
+                                <i class="fas fa-external-link-alt mr-1"></i> MAZII
+                            </a>
+                            <a href="/kanji/${encodeURIComponent(char)}" target="_blank" class="h-8 px-2.5 bg-indigo-50 text-indigo-600 text-[10px] font-black rounded-lg hover:bg-indigo-100 transition-all flex items-center shadow-sm whitespace-nowrap">
+                                CHI TIẾT <i class="fa-solid fa-arrow-right-long ml-1 opacity-60"></i>
+                            </a>
+                        </div>
                     </div>
-                    ` : ''}
                 </div>
             `;
         }).join('');
