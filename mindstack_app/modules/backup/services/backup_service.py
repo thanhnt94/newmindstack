@@ -242,7 +242,9 @@ def infer_dataset_key_from_zip(zipf):
         available = {
             table_name
             for table_name in table_names
-            if f'{dataset_key}/{table_name}.json' in members or f'{table_name}.json' in members
+            if f'datasets/{dataset_key}/{table_name}.json' in members 
+            or f'{dataset_key}/{table_name}.json' in members 
+            or f'{table_name}.json' in members
         }
         if not available:
             continue
@@ -328,44 +330,37 @@ def restore_from_uploaded_bytes(raw_bytes, dataset_hint=None) -> Dict[str, objec
                 manifest_data, _ = read_backup_manifest(zipf)
                 manifest_type = manifest_data.get('type') if isinstance(manifest_data, dict) else None
                 
-                # Case 1: Full system restore requested (no dataset hint)
-                if manifest_type == 'full' and not dataset_hint:
+                # Determine if we have an explicit dataset key from the user
+                # We only treat it as an explicit request if it is a valid key in the catalog
+                explicit_dataset_key = dataset_hint if dataset_hint in DATASET_CATALOG else None
+
+                # Case 1: Full system restore 
+                # (Only if manifest is 'full' and user didn't explicitly pick a specific dataset)
+                if manifest_type == 'full' and not explicit_dataset_key:
                     includes_uploads = bool(manifest_data.get('includes_uploads', False))
                     restore_backup_from_zip(zipf, restore_database=True, restore_uploads=includes_uploads)
                     return {'success': True, 'message': 'Đã khôi phục toàn bộ hệ thống (Full Backup).'}
                 
                 # Case 2: Database only restore
-                if manifest_type == 'database' and not dataset_hint:
+                if manifest_type == 'database' and not explicit_dataset_key:
                     restore_backup_from_zip(zipf, restore_database=True, restore_uploads=False)
                     return {'success': True, 'message': 'Đã khôi phục cơ sở dữ liệu.'}
                 
-                # Case 3: Selective dataset restore (either from a standalone dataset backup or a full backup)
-                dataset_key = None
+                # Case 3: Selective dataset restore 
+                dataset_key = explicit_dataset_key
                 
-                # Priority 1: User explicitly chose a dataset to restore
-                if dataset_hint and dataset_hint in DATASET_CATALOG:
-                    dataset_key = dataset_hint
-                
-                # Priority 2: Manifest says it's a standalone dataset
-                elif manifest_type == 'dataset':
-                    manifest_dataset = manifest_data.get('dataset')
-                    if isinstance(manifest_dataset, str) and manifest_dataset in DATASET_CATALOG:
-                        dataset_key = manifest_dataset
-                
-                # Priority 3: Fallback - infer from contents
+                # If no explicit key, check manifest or infer
                 if not dataset_key:
-                    dataset_key = infer_dataset_key_from_zip(zipf)
+                    if manifest_type == 'dataset':
+                        manifest_dataset = manifest_data.get('dataset')
+                        if isinstance(manifest_dataset, str) and manifest_dataset in DATASET_CATALOG:
+                            dataset_key = manifest_dataset
+                    
+                    if not dataset_key:
+                        dataset_key = infer_dataset_key_from_zip(zipf)
                 
                 if dataset_key:
-                    # Check if it's a Universal Full Backup (contents in 'datasets/' folder)
-                    is_universal = manifest_data.get('is_universal', False) if isinstance(manifest_data, dict) else False
-                    
-                    # We try both: datasets/key/TABLE.json and key/TABLE.json
                     payload = extract_dataset_payload_from_zip(zipf, dataset_key)
-                    
-                    # Fallback for universal: extract_dataset_payload_from_zip currently doesn't check 'datasets/'
-                    # I'll update extract_dataset_payload_from_zip to be smarter, but let's handle it here if needed
-                    # Actually, let's update extract_dataset_payload_from_zip instead to keep it clean.
                     
                     if not payload:
                         return {'success': False, 'error': f'Không tìm thấy dữ liệu cho dataset {dataset_key} trong gói sao lưu.'}

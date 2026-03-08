@@ -100,8 +100,8 @@ const MsTranslator = {
         if (!el) {
             el = document.createElement('div');
             el.id = 'ms-translator-popup';
-            el.className = 'fixed z-[10000] bg-white shadow-xl rounded-xl border border-slate-200 transition-all duration-200 flex flex-col'; // Removed overflow-hidden here
-            el.style.maxWidth = 'none'; // Allow positionPopup to calculate natural width
+            el.className = 'fixed z-[10000] bg-white shadow-xl rounded-xl border border-slate-200 flex flex-col'; // Removed duration-200 and overflow-hidden
+            el.style.maxWidth = 'none';
             document.body.appendChild(el);
         }
         return el;
@@ -166,9 +166,9 @@ const MsTranslator = {
             if (finalLeft < margin) finalLeft = margin; // Ensure it doesn't go off left if very narrow
         }
 
-        popup.style.top = `${finalTop + window.scrollY}px`;
-        popup.style.left = `${finalLeft + window.scrollX}px`;
-        popup.style.transform = 'none'; // Remove transform as we are setting exact left
+        popup.style.top = `${finalTop}px`; // Fixed position doesn't need window.scrollY
+        popup.style.left = `${finalLeft}px`;
+        popup.style.transform = 'none';
     },
 
     async translate() {
@@ -247,56 +247,79 @@ const MsTranslator = {
         const header = el.querySelector('#ms-translator-header');
         if (!header) return;
 
-        let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+        let isDragging = false;
+        let startX, startY;
+        let initialX, initialY;
+        let rafId = null;
 
-        header.onmousedown = dragMouseDown;
-        header.ontouchstart = dragTouchStart;
+        const onStart = (e) => {
+            if (e.target.closest('button') || e.target.closest('a')) return;
 
-        function dragMouseDown(e) {
-            e.preventDefault();
-            pos3 = e.clientX;
-            pos4 = e.clientY;
-            document.onmouseup = closeDragElement;
-            document.onmousemove = elementDrag;
-        }
+            isDragging = true;
+            el.classList.add('dragging');
+            el.style.transition = 'none'; // Force disable any transitions
 
-        function dragTouchStart(e) {
-            if (e.target.tagName.toLowerCase() === 'button' || e.target.tagName.toLowerCase() === 'a') return;
-            // Get the touch coordinate
-            pos3 = e.touches[0].clientX;
-            pos4 = e.touches[0].clientY;
-            document.ontouchend = closeDragElement;
-            document.ontouchmove = elementDragTouch;
-        }
+            const clientX = e.type === 'mousedown' ? e.clientX : e.touches[0].clientX;
+            const clientY = e.type === 'mousedown' ? e.clientY : e.touches[0].clientY;
 
-        function elementDrag(e) {
-            e.preventDefault();
-            // Calculate the new cursor position:
-            pos1 = pos3 - e.clientX;
-            pos2 = pos4 - e.clientY;
-            pos3 = e.clientX;
-            pos4 = e.clientY;
-            // Set the element's new position:
-            el.style.top = (el.offsetTop - pos2) + "px";
-            el.style.left = (el.offsetLeft - pos1) + "px";
-        }
+            startX = clientX;
+            startY = clientY;
 
-        function elementDragTouch(e) {
-            pos1 = pos3 - e.touches[0].clientX;
-            pos2 = pos4 - e.touches[0].clientY;
-            pos3 = e.touches[0].clientX;
-            pos4 = e.touches[0].clientY;
-            el.style.top = (el.offsetTop - pos2) + "px";
-            el.style.left = (el.offsetLeft - pos1) + "px";
-        }
+            const rect = el.getBoundingClientRect();
+            initialX = rect.left;
+            initialY = rect.top;
 
-        function closeDragElement() {
-            // Stop moving when mouse button is released:
-            document.onmouseup = null;
-            document.onmousemove = null;
-            document.ontouchend = null;
-            document.ontouchmove = null;
-        }
+            document.addEventListener('mousemove', onMove, { passive: false });
+            document.addEventListener('mouseup', onEnd);
+            document.addEventListener('touchmove', onMove, { passive: false });
+            document.addEventListener('touchend', onEnd);
+
+            if (e.type === 'mousedown') e.preventDefault();
+        };
+
+        const onMove = (e) => {
+            if (!isDragging) return;
+            if (e.cancelable) e.preventDefault();
+
+            const clientX = e.type === 'mousemove' ? e.clientX : e.touches[0].clientX;
+            const clientY = e.type === 'mousemove' ? e.clientY : e.touches[0].clientY;
+
+            const dx = clientX - startX;
+            const dy = clientY - startY;
+
+            if (rafId) cancelAnimationFrame(rafId);
+
+            rafId = requestAnimationFrame(() => {
+                let newX = initialX + dx;
+                let newY = initialY + dy;
+
+                // Boundary check
+                const margin = 10;
+                const rect = el.getBoundingClientRect();
+
+                newX = Math.max(margin, Math.min(newX, window.innerWidth - rect.width - margin));
+                newY = Math.max(margin, Math.min(newY, window.innerHeight - rect.height - margin));
+
+                el.style.left = `${newX}px`;
+                el.style.top = `${newY}px`;
+            });
+        };
+
+        const onEnd = () => {
+            isDragging = false;
+            el.classList.remove('dragging');
+            el.style.transition = ''; // Restore transitions
+
+            document.removeEventListener('mousemove', onMove);
+            document.removeEventListener('mouseup', onEnd);
+            document.removeEventListener('touchmove', onMove);
+            document.removeEventListener('touchend', onEnd);
+
+            if (rafId) cancelAnimationFrame(rafId);
+        };
+
+        header.addEventListener('mousedown', onStart);
+        header.addEventListener('touchstart', onStart, { passive: false });
     },
 
     renderKanjiList(original, kanjis) {
