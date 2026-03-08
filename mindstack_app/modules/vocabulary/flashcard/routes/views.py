@@ -397,6 +397,17 @@ def flashcard_session(session_id):
                 # Update session total items if returned
                 if 'total_items_in_session' in initial_batch_data:
                      session_data['total_items_in_session'] = initial_batch_data['total_items_in_session']
+
+            # [FIX] Persist the fetched card as current_item_id so reloads show the same card
+            if initial_batch and len(initial_batch) > 0:
+                first_item = initial_batch[0]
+                fetched_item_id = first_item.get('item_id') if isinstance(first_item, dict) else getattr(first_item, 'item_id', None)
+                if fetched_item_id and fetched_item_id != active_db_session.current_item_id:
+                    try:
+                        SessionInterface.set_current_item(session_id, fetched_item_id)
+                        current_app.logger.info(f"[FLASHCARD] Persisted current_item_id={fetched_item_id} for session {session_id}")
+                    except Exception as persist_err:
+                        current_app.logger.warning(f"[FLASHCARD] Failed to persist current_item_id: {persist_err}")
     except Exception as e:
         current_app.logger.error(f"Error fetching initial batch: {e}")
 
