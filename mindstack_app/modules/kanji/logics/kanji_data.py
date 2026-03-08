@@ -71,7 +71,7 @@ def get_kanji_details(kanji: str) -> dict:
         "mnemonic_hint": data.get("mnemonic_hint", ""),
         "mnemonic_radicals": data.get("mnemonic_radicals", []),
         "components": data.get("components", []),
-        "hanzipy_level1_immediate": data.get("hanzipy_level1_immediate", {"components": []}),
-        "hanzipy_level2_radicals": data.get("hanzipy_level2_radicals", {"components": []}),
-        "hanzipy_level3_strokes": data.get("hanzipy_level3_strokes", {"components": []})
+        "hanzipy_level1_immediate": data.get("hanzipy_level1_immediate", []),
+        "hanzipy_level2_radicals": data.get("hanzipy_level2_radicals", []),
+        "hanzipy_level3_strokes": data.get("hanzipy_level3_strokes", [])
     }

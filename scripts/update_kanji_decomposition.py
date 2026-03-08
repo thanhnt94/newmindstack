@@ -47,18 +47,9 @@ def update_kanji_db_with_hanzipy(kanji_db_path: str, overwrite_components: bool 
             level3_strokes = decomposer.decompose(kanji, 3)
 
             # Store in new dedicated fields
-            kanji_db[kanji]['hanzipy_level1_immediate'] = {
-                "character": kanji,
-                "components": level1_immediate
-            }
-            kanji_db[kanji]['hanzipy_level2_radicals'] = {
-                "character": kanji,
-                "components": level2_radicals
-            }
-            kanji_db[kanji]['hanzipy_level3_strokes'] = {
-                "character": kanji,
-                "components": level3_strokes
-            }
+            kanji_db[kanji]['hanzipy_level1_immediate'] = level1_immediate
+            kanji_db[kanji]['hanzipy_level2_radicals'] = level2_radicals
+            kanji_db[kanji]['hanzipy_level3_strokes'] = level3_strokes
 
             # Optionally overwrite existing 'components' if empty
             if overwrite_components and not data.get('components'):
