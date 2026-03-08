@@ -1,18 +1,25 @@
-{% extends template_version ~ "/layouts/base.html" %}
+{% set _v = template_version or 'aura_mobile' %}
+{% extends _v ~ "/layouts/base.html" %}
+
+{% from _v ~ '/components/components/dashboard_header.html' import render_dashboard_header with context %}
 
 {% block title %}Tra cứu Kanji - MindStack{% endblock %}
 
 {% block content %}
 <div class="kp">
 
-    <!-- Search Header -->
-    <div class="kp-header">
-        <h1 class="kp-title">漢字 <span>Lookup</span></h1>
-        <div class="kp-search-wrap">
-            <div class="kp-search-box">
-                <span class="kp-search-icon">🔍</span>
+
+    {{ render_dashboard_header(title='Tra cứu Kanji', subtitle='BỘ TỪ ĐIỂN THÔNG MINH') }}
+
+    <!-- Premium Search Pill Area -->
+    <div class="kp-search-section">
+        <div class="kp-search-container">
+            <div class="kp-search-pill">
+                <i class="fa-solid fa-magnifying-glass kp-search-icon"></i>
                 <input id="kanji-input" type="text" placeholder="Nhập Kanji hoặc từ (ví dụ: 位置, 勉強)" autocomplete="off">
-                <button id="kp-search-btn">Tra cứu</button>
+                <button id="kp-search-btn">
+                    <i class="fa-solid fa-arrow-right"></i>
+                </button>
             </div>
         </div>
     </div>
@@ -36,6 +43,8 @@
                 <div class="kp-meta-row">
                     <span class="kp-chip" id="kp-strokes"></span>
                     <span class="kp-chip" id="kp-jlpt"></span>
+                    <span class="kp-chip kp-chip-stats hidden" id="kp-search-count"></span>
+                    <span class="kp-chip kp-chip-stats hidden" id="kp-last-searched"></span>
                 </div>
                 <div class="kp-meaning" id="kp-meaning"></div>
             </div>
@@ -45,6 +54,16 @@
         <div id="kp-mnemonic-box" class="kp-mnemonic-box hidden">
             <div class="kp-card-title" style="margin-bottom:8px;">💡 Mẹo Ghi Nhớ (WaniKani)</div>
             <div id="kp-mnemonic-text" class="kp-mnemonic-text"></div>
+        </div>
+
+        <!-- Personal Notes -->
+        <div class="kp-card kp-note-card">
+            <div class="kp-card-head" style="flex-direction: row; justify-content: space-between; align-items: center;">
+                <div class="kp-card-title" style="margin-bottom:0;">📝 Ghi chú cá nhân</div>
+                <span id="kp-note-status" class="kp-note-status"></span>
+            </div>
+            <textarea id="kp-note-input" class="kp-note-input"
+                placeholder="Viết cách nhớ, mẹo, hoặc ghi chú bất kỳ cho chữ Kanji này..."></textarea>
         </div>
 
         <!-- Readings -->
@@ -78,10 +97,25 @@
 
     </div>
 
-    <!-- Empty state -->
-    <div id="kp-empty" class="kp-empty">
-        <div class="kp-empty-icon">漢</div>
-        <p>Nhập một chữ Kanji để bắt đầu tra cứu</p>
+    <!-- Directory State -->
+    <div id="kp-directory-wrapper" class="kp-directory-wrapper">
+        <!-- Optional smaller empty search text -->
+        <div id="kp-empty" class="kp-empty hidden">
+            <p>Không tìm thấy Kanji nào</p>
+        </div>
+
+        <!-- The actual directory -->
+        <div id="kp-directory" class="kp-directory">
+            <h2 class="kp-dir-title">Khám Phá Kanji</h2>
+            <div class="kp-dir-tabs">
+                <button class="kp-dir-tab active" data-dir-tab="jlpt">Theo JLPT</button>
+                <button class="kp-dir-tab" data-dir-tab="strokes">Theo Số Nét</button>
+            </div>
+            <div id="kp-dir-content" class="kp-dir-content">
+                <div class="kp-loading-spinner" style="text-align:center; padding: 40px; color: var(--c-muted);">Đang
+                    tải dữ liệu...</div>
+            </div>
+        </div>
     </div>
 
 </div>
@@ -98,71 +132,65 @@
     }
 
     .kp {
-        --c-bg: #0d0d1a;
-        --c-surface: #13131f;
-        --c-surface2: #1c1c2e;
-        --c-border: rgba(255, 255, 255, 0.08);
-        --c-text: #f0f0f8;
-        --c-muted: rgba(255, 255, 255, 0.4);
-        --c-accent: #7c6bff;
-        --c-accent2: #ff6bb5;
-        --c-on: #00e5a0;
-        --c-kun: #5ab4ff;
-        --c-badge: #ffe066;
-        --radius: 18px;
-        --radius-sm: 10px;
+        --c-bg: #f8fafc;
+        --c-surface: #ffffff;
+        --c-surface2: #ffffff;
+        --c-border: #f1f5f9;
+        --c-text: #1e293b;
+        --c-muted: #64748b;
+        --c-accent: #4f46e5;
+        --c-accent2: #818cf8;
+        --c-on: #10b981;
+        --c-kun: #3b82f6;
+        --c-badge: #fbbf24;
+        --radius: 24px;
+        --radius-sm: 12px;
         font-family: 'Inter', 'Noto Sans JP', sans-serif;
         min-height: 100vh;
         background: var(--c-bg);
         color: var(--c-text);
-        padding-bottom: 60px;
+        padding-bottom: 90px;
     }
 
-    /* ── Header ── */
-    .kp-header {
-        padding: 28px 20px 0;
-        text-align: center;
+    /* ── Search Section (Premium Pill) ── */
+    .kp-search-section {
+        padding: 16px 20px;
+        background: transparent;
+        position: relative;
+        z-index: 40;
     }
 
-    .kp-title {
-        font-size: 2rem;
-        font-weight: 800;
-        letter-spacing: -0.5px;
-        margin-bottom: 20px;
-    }
-
-    .kp-title span {
-        background: linear-gradient(135deg, var(--c-accent), var(--c-accent2));
-        -webkit-background-clip: text;
-        background-clip: text;
-        -webkit-text-fill-color: transparent;
-    }
-
-    /* ── Search ── */
-    .kp-search-wrap {
-        max-width: 500px;
+    .kp-search-container {
+        max-width: 600px;
         margin: 0 auto;
     }
 
-    .kp-search-box {
+    .kp-search-pill {
         display: flex;
         align-items: center;
-        background: var(--c-surface2);
-        border: 1.5px solid var(--c-border);
-        border-radius: 14px;
-        overflow: hidden;
-        transition: border-color 0.2s;
+        background: white;
+        border: 1px solid #e2e8f0;
+        border-radius: 100px;
+        padding: 6px 8px 6px 18px;
+        gap: 12px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
-    .kp-search-box:focus-within {
+    .kp-search-pill:focus-within {
         border-color: var(--c-accent);
-        box-shadow: 0 0 0 3px rgba(124, 107, 255, 0.15);
+        box-shadow: 0 8px 20px rgba(79, 70, 229, 0.12);
+        transform: translateY(-1px);
     }
 
     .kp-search-icon {
-        padding: 0 14px;
-        font-size: 1.1rem;
-        opacity: 0.5;
+        font-size: 0.9rem;
+        color: #94a3b8;
+        transition: color 0.2s;
+    }
+
+    .kp-search-pill:focus-within .kp-search-icon {
+        color: var(--c-accent);
     }
 
     #kanji-input {
@@ -171,35 +199,45 @@
         border: none;
         outline: none;
         color: var(--c-text);
-        font-size: 1.3rem;
-        padding: 14px 0;
+        font-size: 0.95rem;
+        font-weight: 500;
+        padding: 10px 0;
         font-family: 'Noto Sans JP', sans-serif;
     }
 
     #kanji-input::placeholder {
-        color: var(--c-muted);
-        font-size: 1rem;
+        color: #94a3b8;
+        font-weight: 400;
     }
 
     #kp-search-btn {
+        width: 44px;
+        height: 44px;
         background: var(--c-accent);
         color: #fff;
         border: none;
-        padding: 0 24px;
-        height: 56px;
-        font-size: 0.9rem;
-        font-weight: 700;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1rem;
         cursor: pointer;
-        transition: background 0.2s;
+        transition: all 0.2s;
+        box-shadow: 0 4px 10px rgba(79, 70, 229, 0.3);
     }
 
     #kp-search-btn:hover {
-        background: #6a5ae0;
+        background: #4338ca;
+        transform: scale(1.05);
+    }
+
+    #kp-search-btn:active {
+        transform: scale(0.95);
     }
 
     /* ── History Tabs ── */
     .kp-tabs-wrap {
-        padding: 16px 20px 0;
+        padding: 24px 20px 0;
         max-width: 700px;
         margin: 0 auto;
         overflow-x: auto;
@@ -212,54 +250,53 @@
 
     .kp-tabs {
         display: flex;
-        gap: 8px;
+        gap: 10px;
+        padding-bottom: 4px;
     }
 
     .kp-tab {
         flex-shrink: 0;
-        background: var(--c-surface2);
-        border: 1.5px solid var(--c-border);
-        border-radius: 12px;
-        padding: 6px 10px 6px 14px;
-        font-size: 1.4rem;
+        background: white;
+        border: 1px solid var(--c-border);
+        border-radius: 14px;
+        padding: 8px 12px 8px 16px;
+        font-size: 1.35rem;
         cursor: pointer;
         transition: all 0.2s;
-        position: relative;
         display: flex;
         align-items: center;
-        gap: 6px;
+        gap: 8px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
     }
 
     .kp-tab.active {
         border-color: var(--c-accent);
-        background: rgba(124, 107, 255, 0.15);
-        box-shadow: 0 0 0 2px rgba(124, 107, 255, 0.2);
+        background: white;
+        border-width: 2px;
+        box-shadow: 0 10px 15px -3px rgba(79, 70, 229, 0.1);
     }
 
     .kp-tab:hover:not(.active) {
-        border-color: rgba(255, 255, 255, 0.2);
+        border-color: #cbd5e1;
+        background: #f8fafc;
     }
 
-
-
     .kp-tab-close {
-        font-size: 0.85rem;
+        font-size: 1rem;
         line-height: 1;
-        color: var(--c-muted);
-        border-radius: 50%;
-        width: 18px;
-        height: 18px;
+        color: #94a3b8;
+        border-radius: 6px;
+        width: 20px;
+        height: 20px;
         display: flex;
         align-items: center;
         justify-content: center;
-        flex-shrink: 0;
-        transition: all 0.15s;
-        background: transparent;
+        transition: all 0.2s;
     }
 
     .kp-tab-close:hover {
-        background: rgba(255, 80, 80, 0.25);
-        color: #ff6464;
+        background: #fee2e2;
+        color: #ef4444;
     }
 
     /* ── Main Content ── */
@@ -269,25 +306,26 @@
         padding: 0 16px;
         display: flex;
         flex-direction: column;
-        gap: 16px;
+        gap: 20px;
     }
 
     /* ── Hero ── */
     .kp-hero {
-        background: var(--c-surface2);
+        background: white;
         border: 1px solid var(--c-border);
         border-radius: var(--radius);
-        padding: 28px;
+        padding: 32px;
         display: flex;
-        gap: 28px;
+        gap: 32px;
         align-items: center;
-        animation: kp-in 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+        animation: kp-in 0.5s cubic-bezier(0.16, 1, 0.3, 1);
     }
 
     @keyframes kp-in {
         from {
             opacity: 0;
-            transform: translateY(12px);
+            transform: translateY(16px);
         }
 
         to {
@@ -298,12 +336,14 @@
 
     .kp-hero-char-wrap {
         position: relative;
-        width: 140px;
-        height: 140px;
+        width: 150px;
+        height: 150px;
         flex-shrink: 0;
         display: flex;
         align-items: center;
         justify-content: center;
+        background: #f8fafc;
+        border-radius: 20px;
     }
 
     .kp-char-bg {
@@ -324,34 +364,23 @@
     }
 
     .kp-hero-char {
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
+        position: relative;
         z-index: 2;
-        display: flex;
-        align-items: center;
-        justify-content: center;
         font-family: 'Noto Sans JP', serif;
-        font-size: 7rem;
+        font-size: 7.5rem;
         line-height: 1;
-        background: linear-gradient(135deg, #fff 0%, rgba(255, 255, 255, 0.6) 100%);
-        -webkit-background-clip: text;
-        background-clip: text;
-        -webkit-text-fill-color: transparent;
+        color: #1e293b;
         pointer-events: none;
     }
 
     .kp-char-bg svg path {
         fill: none;
         stroke: var(--c-accent);
-        stroke-width: 3;
+        stroke-width: 2.5;
         stroke-linecap: round;
         stroke-linejoin: round;
         stroke-dasharray: 1000;
         stroke-dashoffset: 1000;
-        animation: kanji-draw 2s ease-out forwards;
     }
 
     @keyframes kanji-draw {
@@ -369,14 +398,14 @@
 
     .kp-badge {
         display: inline-block;
-        background: var(--c-badge);
-        color: #1a1200;
-        font-size: 0.85rem;
-        font-weight: 800;
-        padding: 4px 14px;
+        background: #fef3c7;
+        color: #92400e;
+        font-size: 0.875rem;
+        font-weight: 700;
+        padding: 4px 12px;
         border-radius: 8px;
         text-transform: uppercase;
-        letter-spacing: 1.5px;
+        letter-spacing: 1px;
         align-self: flex-start;
     }
 
@@ -387,32 +416,34 @@
     }
 
     .kp-chip {
-        background: rgba(255, 255, 255, 0.07);
-        border: 1px solid var(--c-border);
-        color: var(--c-muted);
-        font-size: 0.82rem;
-        padding: 4px 12px;
-        border-radius: 8px;
+        background: #f1f5f9;
+        color: #64748b;
+        font-size: 0.875rem;
+        font-weight: 500;
+        padding: 6px 14px;
+        border-radius: 10px;
     }
 
     .kp-meaning {
-        font-size: 1.05rem;
-        color: rgba(255, 255, 255, 0.75);
-        line-height: 1.5;
+        font-size: 1.125rem;
+        color: #334155;
+        line-height: 1.6;
+        font-weight: 500;
     }
 
     /* ── Mnemonics ── */
     .kp-mnemonic-box {
-        background: rgba(124, 107, 255, 0.1);
-        border: 1px solid rgba(124, 107, 255, 0.2);
+        background: #f5f3ff;
+        border: 1px solid #ddd6fe;
         border-radius: var(--radius);
-        padding: 20px;
+        padding: 24px;
     }
 
     .kp-mnemonic-text {
-        font-size: 0.95rem;
-        color: rgba(255, 255, 255, 0.9);
-        line-height: 1.6;
+        font-size: 1rem;
+        color: #4c1d95;
+        line-height: 1.65;
+        opacity: 0.9;
     }
 
     /* ── Readings Row ── */
@@ -423,11 +454,11 @@
     }
 
     .kp-reading-card {
-        background: var(--c-surface2);
+        background: white;
         border: 1px solid var(--c-border);
         border-radius: var(--radius);
-        padding: 20px;
-        border-top: 3px solid transparent;
+        padding: 24px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
     }
 
     .kp-on {
@@ -439,19 +470,19 @@
     }
 
     .kp-reading-label {
-        font-size: 0.72rem;
-        color: var(--c-muted);
+        font-size: 0.75rem;
+        color: #94a3b8;
         text-transform: uppercase;
         letter-spacing: 1px;
-        margin-bottom: 10px;
+        margin-bottom: 12px;
+        font-weight: 600;
     }
 
     .kp-reading-val {
         font-family: 'Noto Sans JP', sans-serif;
-        font-size: 1.5rem;
+        font-size: 1.75rem;
         font-weight: 700;
         line-height: 1.4;
-        word-break: break-all;
     }
 
     .kp-on .kp-reading-val {
@@ -463,7 +494,7 @@
     }
 
     .kp-reading-val.empty {
-        color: var(--c-muted);
+        color: #cbd5e1;
         font-size: 1rem;
         font-family: 'Inter', sans-serif;
     }
@@ -476,10 +507,11 @@
     }
 
     .kp-card {
-        background: var(--c-surface2);
+        background: white;
         border: 1px solid var(--c-border);
         border-radius: var(--radius);
-        padding: 20px;
+        padding: 24px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
     }
 
     .kp-card-head {
@@ -490,10 +522,10 @@
     }
 
     .kp-card-title {
-        font-size: 0.85rem;
-        font-weight: 600;
-        color: var(--c-muted);
-        letter-spacing: 0.3px;
+        font-size: 0.875rem;
+        font-weight: 700;
+        color: #475569;
+        margin-bottom: 16px;
     }
 
     /* ── Segment Control ── */
@@ -523,15 +555,15 @@
     }
 
     .kp-m-item {
-        background: rgba(255, 255, 255, 0.05);
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        border-radius: 6px;
-        padding: 4px 10px;
-        font-size: 0.95rem;
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        padding: 6px 14px;
+        font-size: 0.9375rem;
         display: inline-block;
-        margin: 2px;
-        color: var(--c-text);
-        transition: all 0.2s;
+        margin: 4px;
+        color: #475569;
+        font-weight: 500;
     }
 
     .kp-m-item:hover {
@@ -557,15 +589,15 @@
     }
 
     .kp-comp-item {
-        background: rgba(255, 255, 255, 0.05);
-        border: 1px solid var(--c-border);
-        border-radius: 10px;
-        padding: 8px 14px;
-        font-size: 1.4rem;
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 10px 16px;
+        font-size: 1.5rem;
         font-family: 'Noto Sans JP', serif;
         cursor: pointer;
-        transition: all 0.18s;
-        user-select: none;
+        transition: all 0.2s;
+        color: #1e293b;
     }
 
     .kp-comp-item:hover:not(.kp-comp-missing) {
@@ -576,8 +608,7 @@
 
     .kp-comp-missing {
         border-style: dashed;
-        border-color: rgba(255, 255, 255, 0.2);
-        color: rgba(255, 255, 255, 0.3);
+        color: #94a3b8;
         background: transparent;
         cursor: help;
         font-family: 'Inter', sans-serif;
@@ -591,19 +622,19 @@
     }
 
     .kp-sim-item {
-        width: 52px;
-        height: 52px;
+        width: 56px;
+        height: 56px;
         display: flex;
         align-items: center;
         justify-content: center;
-        background: rgba(255, 255, 255, 0.04);
-        border: 1px solid var(--c-border);
-        border-radius: 12px;
-        font-size: 1.5rem;
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 14px;
+        font-size: 1.75rem;
         font-family: 'Noto Sans JP', serif;
         cursor: pointer;
-        transition: all 0.18s;
-        user-select: none;
+        transition: all 0.2s;
+        color: #1e293b;
     }
 
     .kp-sim-item:hover {
@@ -612,22 +643,166 @@
         transform: scale(1.1);
     }
 
-    /* ── Empty State ── */
-    .kp-empty {
-        text-align: center;
-        padding: 80px 20px;
-        color: var(--c-muted);
+    /* ── Directory ── */
+    .kp-directory-wrapper {
+        max-width: 800px;
+        margin: 20px auto;
+        padding: 0 20px;
+        animation: kp-in 0.4s ease-out;
     }
 
-    .kp-empty-icon {
-        font-size: 5rem;
-        font-family: 'Noto Sans JP', serif;
-        opacity: 0.12;
+    .kp-dir-title {
+        font-size: 1.5rem;
+        color: var(--c-text);
+        margin-bottom: 20px;
+        font-weight: 700;
+        text-align: center;
+    }
+
+    .kp-dir-tabs {
+        display: flex;
+        gap: 12px;
+        justify-content: center;
+        margin-bottom: 24px;
+    }
+
+    .kp-dir-tab {
+        background: #f1f5f9;
+        border: none;
+        color: #64748b;
+        padding: 10px 20px;
+        border-radius: 100px;
+        font-size: 0.95rem;
+        font-weight: 600;
+        font-family: 'Inter', sans-serif;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .kp-dir-tab:hover {
+        background: #e2e8f0;
+        color: #334155;
+    }
+
+    .kp-dir-tab.active {
+        background: var(--c-accent);
+        color: white;
+        box-shadow: 0 4px 10px rgba(79, 70, 229, 0.25);
+    }
+
+    .kp-dir-group {
+        margin-bottom: 32px;
+        background: white;
+        border: 1px solid var(--c-border);
+        border-radius: var(--radius);
+        padding: 24px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+    }
+
+    .kp-dir-group-title {
+        font-size: 1.25rem;
+        color: var(--c-text);
         margin-bottom: 16px;
+        font-weight: 600;
+        border-bottom: 2px solid #f1f5f9;
+        padding-bottom: 10px;
+    }
+
+    .kp-dir-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
+        gap: 12px;
+    }
+
+    .kp-dir-item {
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        aspect-ratio: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.75rem;
+        font-family: 'Noto Sans JP', serif;
+        cursor: pointer;
+        transition: all 0.2s;
+        color: #1e293b;
+        text-decoration: none;
+    }
+
+    .kp-dir-item:hover {
+        background: rgba(124, 107, 255, 0.1);
+        border-color: var(--c-accent);
+        transform: translateY(-2px);
+        color: var(--c-accent);
+    }
+
+    /* ── Empty State Fallback ── */
+    .kp-empty {
+        text-align: center;
+        padding: 40px 20px;
+        color: var(--c-muted);
     }
 
     .kp-empty p {
         font-size: 1rem;
+    }
+
+    /* ── Stats Chips ── */
+    .kp-chip-stats {
+        background: #eef2ff;
+        color: #4f46e5;
+        font-weight: 600;
+        font-size: 0.75rem;
+    }
+
+    /* ── Personal Notes ── */
+    .kp-note-card {
+        margin-bottom: 0;
+    }
+
+    .kp-note-input {
+        width: 100%;
+        min-height: 80px;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 14px;
+        font-family: 'Inter', sans-serif;
+        font-size: 0.9375rem;
+        color: #1e293b;
+        background: #f8fafc;
+        resize: vertical;
+        outline: none;
+        transition: all 0.2s;
+        line-height: 1.6;
+    }
+
+    .kp-note-input:focus {
+        border-color: #818cf8;
+        background: white;
+        box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+    }
+
+    .kp-note-input::placeholder {
+        color: #94a3b8;
+    }
+
+    .kp-note-status {
+        font-size: 0.7rem;
+        font-weight: 600;
+        padding: 2px 8px;
+        border-radius: 6px;
+        transition: all 0.3s;
+    }
+
+    .kp-note-status.saving {
+        color: #d97706;
+        background: #fffbeb;
+    }
+
+    .kp-note-status.saved {
+        color: #059669;
+        background: #ecfdf5;
     }
 
     /* ── Utilities ── */
@@ -676,10 +851,21 @@
         const tabsEl = document.getElementById('kp-tabs');
         const mainEl = document.getElementById('kp-main');
         const emptyEl = document.getElementById('kp-empty');
+        const dirWrapperEl = document.getElementById('kp-directory-wrapper');
+        const dirEl = document.getElementById('kp-directory');
+        const dirContentEl = document.getElementById('kp-dir-content');
+        const dirTabs = document.querySelectorAll('.kp-dir-tab');
 
         // Current word session: array of { char, details, similar }
         let session = [];
         let activeChar = null;
+        let directoryData = null;
+        let activeDirTab = 'jlpt';
+        let noteTimer = null;
+        const noteInput = document.getElementById('kp-note-input');
+        const noteStatus = document.getElementById('kp-note-status');
+        const searchCountEl = document.getElementById('kp-search-count');
+        const lastSearchedEl = document.getElementById('kp-last-searched');
 
         // Extract all Kanji characters from a string
         function extractKanji(str) {
@@ -691,24 +877,111 @@
         searchBtn.addEventListener('click', () => triggerSearch());
         input.addEventListener('keypress', e => { if (e.key === 'Enter') triggerSearch(); });
 
+        // Note auto-save with debounce
+        noteInput.addEventListener('input', () => {
+            if (!activeChar) return;
+            clearTimeout(noteTimer);
+            noteStatus.textContent = 'Đang lưu...';
+            noteStatus.className = 'kp-note-status saving';
+            noteTimer = setTimeout(() => saveNote(activeChar, noteInput.value), 800);
+        });
 
+        // Load persistent history on page load
+        loadPersistentHistory();
+
+        // ── Directory Logic ─────────────────────────────────────────
+        async function loadDirectory() {
+            if (directoryData) {
+                renderDirectory();
+                return;
+            }
+            try {
+                const res = await fetch('/api/kanji/directory');
+                directoryData = await res.json();
+                renderDirectory();
+            } catch (e) {
+                console.error('Failed to load directory:', e);
+                dirContentEl.innerHTML = '<div style="text-align:center; padding: 40px; color: #ef4444;">Lỗi tải dữ liệu danh mục.</div>';
+            }
+        }
+
+        function renderDirectory() {
+            if (!directoryData) return;
+            dirContentEl.innerHTML = '';
+
+            const data = directoryData[activeDirTab];
+            if (!data) return;
+
+            for (const [groupName, kanjis] of Object.entries(data)) {
+                if (!kanjis || kanjis.length === 0) continue;
+
+                const groupEl = document.createElement('div');
+                groupEl.className = 'kp-dir-group';
+
+                const titleEl = document.createElement('div');
+                titleEl.className = 'kp-dir-group-title';
+                titleEl.textContent = groupName;
+                groupEl.appendChild(titleEl);
+
+                const gridEl = document.createElement('div');
+                gridEl.className = 'kp-dir-grid';
+
+                kanjis.forEach(k => {
+                    const item = document.createElement('a');
+                    item.className = 'kp-dir-item';
+                    item.textContent = k;
+                    item.href = '#';
+                    item.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        input.value = k;
+                        triggerSearch();
+                    });
+                    gridEl.appendChild(item);
+                });
+
+                groupEl.appendChild(gridEl);
+                dirContentEl.appendChild(groupEl);
+            }
+        }
+
+        dirTabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                dirTabs.forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                activeDirTab = tab.dataset.dirTab;
+                renderDirectory();
+            });
+        });
+
+        // Fetch directory initially if no active character
+        loadDirectory();
 
         // ── Core ────────────────────────────────────────────────────
+        function showEmptySearch(msg, showDirectory = false) {
+            mainEl.classList.add('hidden');
+            tabsWrap.classList.add('hidden');
+            dirWrapperEl.classList.remove('hidden');
+
+            if (showDirectory) {
+                emptyEl.classList.add('hidden');
+                dirEl.classList.remove('hidden');
+                loadDirectory();
+            } else {
+                emptyEl.classList.remove('hidden');
+                dirEl.classList.add('hidden');
+                emptyEl.querySelector('p').textContent = msg;
+            }
+        }
         async function triggerSearch() {
             const raw = input.value.trim();
             if (!raw) {
-                mainEl.classList.add('hidden');
-                emptyEl.classList.remove('hidden');
-                emptyEl.querySelector('p').textContent = 'Nhập một chữ Kanji để bắt đầu tra cứu';
+                showEmptySearch('Nhập một chữ Kanji để bắt đầu tra cứu', true);
                 return;
             }
 
             const kanjis = extractKanji(raw);
             if (kanjis.length === 0) {
-                mainEl.classList.add('hidden');
-                emptyEl.classList.remove('hidden');
-                emptyEl.querySelector('p').textContent = 'Không tìm thấy Kanji nào trong văn bản nhập.';
-                tabsWrap.classList.add('hidden');
+                showEmptySearch('Không tìm thấy Kanji nào trong văn bản nhập.', false);
                 return;
             }
 
@@ -732,10 +1005,7 @@
             session = results.filter(entry => entry.details !== null);
 
             if (session.length === 0) {
-                mainEl.classList.add('hidden');
-                emptyEl.classList.remove('hidden');
-                emptyEl.querySelector('p').textContent = 'Không tìm thấy dữ liệu cho Kanji đã nhập.';
-                tabsWrap.classList.add('hidden');
+                showEmptySearch('Không tìm thấy dữ liệu cho Kanji đã nhập.', false);
                 return;
             }
 
@@ -749,27 +1019,31 @@
 
             const entry = session.find(s => s.char === char);
             if (!entry || !entry.details) {
-                mainEl.classList.add('hidden');
-                emptyEl.classList.remove('hidden');
-                emptyEl.querySelector('p').textContent = 'Không tìm thấy dữ liệu cho Kanji này.';
+                showEmptySearch('Không tìm thấy dữ liệu cho Kanji này.', false);
                 return;
             }
 
             renderTabs();
             renderHero(char, entry.details);
             renderReadings(entry.details);
-            renderComps(entry.details); // <--- Pass details object here
+            renderComps(entry.details);
             renderSimilar(entry.similar);
             renderMnemonics(entry.details);
+            renderUserStats(entry.details);
+            renderNote(entry.details);
             drawKanjiVG(char);
 
             mainEl.classList.remove('hidden');
             emptyEl.classList.add('hidden');
+            dirWrapperEl.classList.add('hidden');
         }
 
         // ── Renderers ───────────────────────────────────────────────
         function renderTabs() {
-            if (session.length <= 1) { tabsWrap.classList.add('hidden'); return; }
+            if (session.length <= 1) {
+                tabsWrap.classList.add('hidden');
+                return;
+            }
             tabsWrap.classList.remove('hidden');
             tabsEl.innerHTML = '';
             session.forEach(entry => {
@@ -790,11 +1064,8 @@
                     e.stopPropagation();
                     session = session.filter(s => s.char !== entry.char);
                     if (session.length === 0) {
-                        tabsWrap.classList.add('hidden');
-                        mainEl.classList.add('hidden');
-                        emptyEl.classList.remove('hidden');
                         activeChar = null;
-                        emptyEl.querySelector('p').textContent = 'Nhập một chữ Kanji để bắt đầu tra cứu';
+                        showEmptySearch('Không tìm thấy Kanji nào', true);
                     } else {
                         if (activeChar === entry.char) activate(session[0].char);
                         else renderTabs();
@@ -826,7 +1097,11 @@
             const mbox = document.getElementById('kp-mnemonic-box');
             const mtext = document.getElementById('kp-mnemonic-text');
             if (d.mnemonic_hint) {
-                mtext.textContent = d.mnemonic_hint;
+                let html = `<p>${d.mnemonic_hint}</p>`;
+                if (d.mnemonic_hint_vi) {
+                    html += `<p class="kp-mnemonic-vi" style="margin-top: 12px; padding-top: 12px; border-top: 1px dashed var(--c-border); color: #475569; font-style: italic;">💡 <i>Dịch: ${d.mnemonic_hint_vi}</i></p>`;
+                }
+                mtext.innerHTML = html;
                 mbox.classList.remove('hidden');
             } else {
                 mbox.classList.add('hidden');
@@ -845,7 +1120,9 @@
             try {
                 const res = await fetch(url);
                 if (res.ok) {
-                    const text = await res.text();
+                    let text = await res.text();
+                    const svgStart = text.indexOf('<svg');
+                    if (svgStart !== -1) text = text.substring(svgStart);
                     bgEl.innerHTML = text;
                     // Force re-flow to trigger animation and apply sequential delays
                     const svg = bgEl.querySelector('svg');
@@ -910,17 +1187,6 @@
             const container = document.getElementById('kp-comps');
             let content = '';
 
-            // Render existing components (from kanji_data.py)
-            const components = d.components || [];
-            if (components.length > 0) {
-                content += `<div class="kp-card-title">Cấu tạo gốc:</div>`;
-                content += `<div class="kp-comps-group">`;
-                components.forEach(c => {
-                    content += `<div class="kp-comp-item" onclick="addToSession('${c}')">${c}</div>`;
-                });
-                content += `</div>`;
-            }
-
             // Helper to render a component or a placeholder
             function renderComponentItem(c) {
                 if (c === "No glyph available") {
@@ -930,9 +1196,9 @@
             }
 
             // Render level 1 immediate (from hanzipy)
-            const level1 = d.decompositions?.level1_immediate?.components || [];
+            const level1 = Array.from(new Set(d.decompositions?.level1_immediate?.components || []));
             if (level1.length > 0) {
-                content += `<div class="kp-card-title mt-4" style="margin-top: 16px;">Phân tách cấp 1 (Level 1):</div>`;
+                content += `<div class="kp-card-title">Phân tách cấp 1:</div>`;
                 content += `<div class="kp-comps-group">`;
                 level1.forEach(r => {
                     content += renderComponentItem(r);
@@ -940,10 +1206,14 @@
                 content += `</div>`;
             }
 
-            // Render level 2 radicals (from hanzipy)
-            const level2 = d.decompositions?.level2_radicals?.components || [];
+            // Render level 2 (Use original components from KANJIDIC which includes 五, fallback to hanzipy level2)
+            const fallbackLevel2 = d.decompositions?.level2_radicals?.components || [];
+            const level2Raw = (d.components && d.components.length > 0) ? d.components : fallbackLevel2;
+            const level2 = Array.from(new Set(level2Raw));
+
             if (level2.length > 0) {
-                content += `<div class="kp-card-title mt-4" style="margin-top: 16px;">Bộ thủ HanziPy (level 2):</div>`;
+                const mt = content ? 'mt-4" style="margin-top: 16px;"' : '"';
+                content += `<div class="kp-card-title ${mt}>Phân tách cấp 2:</div>`;
                 content += `<div class="kp-comps-group">`;
                 level2.forEach(r => {
                     content += renderComponentItem(r);
@@ -952,9 +1222,10 @@
             }
 
             // Render level 3 strokes (from hanzipy)
-            const level3 = d.decompositions?.level3_strokes?.components || [];
+            const level3 = Array.from(new Set(d.decompositions?.level3_strokes?.components || []));
             if (level3.length > 0) {
-                content += `<div class="kp-card-title mt-4" style="margin-top: 16px;">Nét cơ bản HanziPy (level 3):</div>`;
+                const mt = content ? 'mt-4" style="margin-top: 16px;"' : '"';
+                content += `<div class="kp-card-title ${mt}>Phân tách cấp 3:</div>`;
                 content += `<div class="kp-comps-group">`;
                 level3.forEach(s => {
                     content += renderComponentItem(s);
@@ -1003,6 +1274,114 @@
                 activate(char);
             } catch (e) {
                 console.error('addToSession failed', e);
+            }
+        }
+
+        // ── Persistent History ─────────────────────────────────────
+        async function loadPersistentHistory() {
+            try {
+                const res = await fetch('/api/kanji/history?limit=20');
+                if (!res.ok) return;
+                const history = await res.json();
+                if (history && history.length > 0) {
+                    // Show the most recent Kanji as quick-start tabs
+                    renderHistoryPreview(history);
+                }
+            } catch (e) {
+                console.log('Could not load history', e);
+            }
+        }
+
+        function renderHistoryPreview(history) {
+            if (!history || history.length === 0) return;
+            tabsWrap.classList.remove('hidden');
+            tabsEl.innerHTML = '';
+            history.slice(0, 10).forEach(entry => {
+                const tab = document.createElement('div');
+                tab.className = 'kp-tab';
+                tab.style.cursor = 'pointer';
+
+                const charSpan = document.createElement('span');
+                charSpan.textContent = entry.kanji;
+                tab.appendChild(charSpan);
+
+                if (entry.search_count > 1) {
+                    const countSpan = document.createElement('span');
+                    countSpan.style.cssText = 'font-size:0.65rem;color:#94a3b8;margin-left:2px;';
+                    countSpan.textContent = `×${entry.search_count}`;
+                    tab.appendChild(countSpan);
+                }
+
+                tab.addEventListener('click', () => {
+                    input.value = entry.kanji;
+                    triggerSearch();
+                });
+                tabsEl.appendChild(tab);
+            });
+        }
+
+        // ── User Stats ─────────────────────────────────────────────
+        function renderUserStats(d) {
+            const stats = d && d.user_stats;
+            if (stats && stats.search_count) {
+                searchCountEl.textContent = `🔍 ×${stats.search_count}`;
+                searchCountEl.classList.remove('hidden');
+            } else {
+                searchCountEl.classList.add('hidden');
+            }
+
+            if (stats && stats.last_searched_at) {
+                const date = new Date(stats.last_searched_at);
+                const now = new Date();
+                const diffMs = now - date;
+                const diffMins = Math.floor(diffMs / 60000);
+                let timeLabel;
+                if (diffMins < 1) timeLabel = 'Vừa xong';
+                else if (diffMins < 60) timeLabel = `${diffMins} phút trước`;
+                else if (diffMins < 1440) timeLabel = `${Math.floor(diffMins / 60)} giờ trước`;
+                else timeLabel = `${Math.floor(diffMins / 1440)} ngày trước`;
+                lastSearchedEl.textContent = `🕐 ${timeLabel}`;
+                lastSearchedEl.classList.remove('hidden');
+            } else {
+                lastSearchedEl.classList.add('hidden');
+            }
+        }
+
+        // ── Notes ──────────────────────────────────────────────────
+        function renderNote(d) {
+            const stats = d && d.user_stats;
+            noteInput.value = (stats && stats.note) || '';
+            noteStatus.textContent = '';
+            noteStatus.className = 'kp-note-status';
+        }
+
+        async function saveNote(char, noteText) {
+            try {
+                const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
+                const res = await fetch(`/api/kanji/${encodeURIComponent(char)}/note`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken || ''
+                    },
+                    body: JSON.stringify({ note: noteText })
+                });
+                if (res.ok) {
+                    noteStatus.textContent = '✓ Đã lưu';
+                    noteStatus.className = 'kp-note-status saved';
+                    // Also update session entry
+                    const entry = session.find(s => s.char === char);
+                    if (entry && entry.details && entry.details.user_stats) {
+                        entry.details.user_stats.note = noteText;
+                    }
+                    setTimeout(() => {
+                        noteStatus.textContent = '';
+                        noteStatus.className = 'kp-note-status';
+                    }, 2000);
+                }
+            } catch (e) {
+                noteStatus.textContent = 'Lỗi!';
+                noteStatus.className = 'kp-note-status saving';
             }
         }
     })();

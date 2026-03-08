@@ -48,3 +48,10 @@ class KanjiInterface:
         Triggers the update of kanji_db.json with hanzipy decomposition data.
         """
         return KanjiService.update_decomposition_data()
+    @staticmethod
+    def get_directory() -> dict:
+        """
+        Retrieves all Kanji grouped for the directory landing page.
+        """
+        from .services.kanji_service import KanjiService
+        return KanjiService.get_directory()

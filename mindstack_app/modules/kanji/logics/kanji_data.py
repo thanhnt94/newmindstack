@@ -54,6 +54,47 @@ def get_all_supported_kanji() -> list:
 def get_manual_similarity_groups() -> list:
     return MANUAL_SIMILAR_GROUPS
 
+_DIRECTORY_CACHE = None
+
+def get_kanji_directory_data() -> dict:
+    """
+    Returns all Kanji grouped by JLPT level and stroke count.
+    Used for the Kanji Directory homepage.
+    """
+    global _DIRECTORY_CACHE
+    if _DIRECTORY_CACHE:
+        return _DIRECTORY_CACHE
+        
+    db = _get_kanji_db()
+    
+    directory = {
+        "jlpt": {"N5": [], "N4": [], "N3": [], "N2": [], "N1": [], "Other": []},
+        "strokes": {}
+    }
+    
+    for kanji, data in db.items():
+        # Group by JLPT
+        jlpt = data.get("jlpt")
+        if jlpt in [1, 2, 3, 4, 5]:
+            directory["jlpt"][f"N{jlpt}"].append(kanji)
+        else:
+            directory["jlpt"]["Other"].append(kanji)
+            
+        # Group by Strokes
+        strokes = data.get("strokes")
+        if strokes:
+            s_key = f"{strokes} nét"
+            if s_key not in directory["strokes"]:
+                directory["strokes"][s_key] = []
+            directory["strokes"][s_key].append(kanji)
+            
+    # Sort strokes keys numerically
+    sorted_strokes = {k: v for k, v in sorted(directory["strokes"].items(), key=lambda x: int(x[0].split()[0]))}
+    directory["strokes"] = sorted_strokes
+    
+    _DIRECTORY_CACHE = directory
+    return directory
+
 def get_kanji_details(kanji: str) -> dict:
     """
     Returns unified details for a Kanji from the consolidated kanji_db.json.

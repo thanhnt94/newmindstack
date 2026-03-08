@@ -56,3 +56,10 @@ class KanjiService:
         # Run the update script. Set overwrite_components=False as requested by user.
         update_kanji_module.update_kanji_db_with_hanzipy(kanji_db_file, overwrite_components=False)
         return "Kanji decomposition data update initiated."
+    @classmethod
+    def get_directory(cls) -> dict:
+        """
+        Retrieves the Kanji directory grouped by JLPT and stroke count.
+        """
+        from ..logics.kanji_data import get_kanji_directory_data
+        return get_kanji_directory_data()
