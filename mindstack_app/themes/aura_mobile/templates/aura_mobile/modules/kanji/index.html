@@ -37,23 +37,24 @@
             <div class="kp-hero-char-wrap">
                 <div class="kp-char-bg" id="kp-char-bg"></div>
                 <div class="kp-hero-char" id="kp-char"></div>
+                <button id="kp-kanji-replay" class="kp-kanji-replay" title="Phát lại nét vẽ">
+                    <i class="fas fa-redo"></i>
+                </button>
             </div>
             <div class="kp-hero-info">
                 <div class="kp-badge" id="kp-hv"></div>
-                <div class="kp-meta-row">
+                <div class="kp-meta-row" style="align-items: center; flex-wrap: wrap;">
                     <span class="kp-chip" id="kp-strokes"></span>
                     <span class="kp-chip" id="kp-jlpt"></span>
+                    <a href="#" target="_blank" id="kp-mazii-link" class="kp-chip"
+                        style="background: #3b82f6; color: white; border-color: #2563eb; text-decoration: none;">
+                        <i class="fas fa-external-link-alt" style="margin-right: 4px;"></i> Mazii
+                    </a>
                     <span class="kp-chip kp-chip-stats hidden" id="kp-search-count"></span>
                     <span class="kp-chip kp-chip-stats hidden" id="kp-last-searched"></span>
                 </div>
                 <div class="kp-meaning" id="kp-meaning"></div>
             </div>
-        </div>
-
-        <!-- Mnemonics -->
-        <div id="kp-mnemonic-box" class="kp-mnemonic-box hidden">
-            <div class="kp-card-title" style="margin-bottom:8px;">💡 Mẹo Ghi Nhớ (WaniKani)</div>
-            <div id="kp-mnemonic-text" class="kp-mnemonic-text"></div>
         </div>
 
         <!-- Personal Notes -->
@@ -107,13 +108,22 @@
         <!-- The actual directory -->
         <div id="kp-directory" class="kp-directory">
             <h2 class="kp-dir-title">Khám Phá Kanji</h2>
-            <div class="kp-dir-tabs">
-                <button class="kp-dir-tab active" data-dir-tab="jlpt">Theo JLPT</button>
-                <button class="kp-dir-tab" data-dir-tab="strokes">Theo Số Nét</button>
-            </div>
-            <div id="kp-dir-content" class="kp-dir-content">
+
+            <!-- Category Menu View -->
+            <div id="kp-dir-menu" class="kp-dir-menu">
                 <div class="kp-loading-spinner" style="text-align:center; padding: 40px; color: var(--c-muted);">Đang
                     tải dữ liệu...</div>
+            </div>
+
+            <!-- Specific Category Grid View (Hidden by default) -->
+            <div id="kp-dir-grid-view" class="kp-dir-grid-view hidden">
+                <div class="kp-dir-grid-header">
+                    <button id="kp-dir-back-btn" class="kp-dir-back-btn">
+                        <i class="fas fa-arrow-left"></i> Trở về
+                    </button>
+                    <h3 id="kp-dir-grid-title" class="kp-dir-grid-title">JLPT N1</h3>
+                </div>
+                <div id="kp-dir-content" class="kp-dir-content"></div>
             </div>
         </div>
     </div>
@@ -431,19 +441,30 @@
         font-weight: 500;
     }
 
-    /* ── Mnemonics ── */
-    .kp-mnemonic-box {
-        background: #f5f3ff;
-        border: 1px solid #ddd6fe;
-        border-radius: var(--radius);
-        padding: 24px;
+    /* ── Replay Button ── */
+    .kp-kanji-replay {
+        position: absolute;
+        bottom: 12px;
+        right: 12px;
+        background: white;
+        color: var(--c-accent);
+        border: 1px solid #e2e8f0;
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        z-index: 10;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        transition: all 0.2s;
     }
 
-    .kp-mnemonic-text {
-        font-size: 1rem;
-        color: #4c1d95;
-        line-height: 1.65;
-        opacity: 0.9;
+    .kp-kanji-replay:hover {
+        background: #f8fafc;
+        transform: scale(1.1);
+        color: #4338ca;
     }
 
     /* ── Readings Row ── */
@@ -659,24 +680,87 @@
         text-align: center;
     }
 
-    .kp-dir-tabs {
+    /* ── Directory Menu ── */
+    .kp-dir-menu {
         display: flex;
-        gap: 12px;
-        justify-content: center;
-        margin-bottom: 24px;
+        flex-direction: column;
+        gap: 32px;
     }
 
-    .kp-dir-tab {
-        background: #f1f5f9;
-        border: none;
-        color: #64748b;
-        padding: 10px 20px;
-        border-radius: 100px;
-        font-size: 0.95rem;
+    .kp-dir-menu-title {
+        font-size: 1.1rem;
+        color: #475569;
+        margin-bottom: 16px;
+        font-weight: 600;
+        text-align: left;
+    }
+
+    .kp-dir-menu-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+        gap: 12px;
+    }
+
+    .kp-dir-menu-btn {
+        background: white;
+        border: 1px solid var(--c-border);
+        color: #334155;
+        padding: 14px 10px;
+        border-radius: 14px;
+        font-size: 1rem;
         font-weight: 600;
         font-family: 'Inter', sans-serif;
         cursor: pointer;
         transition: all 0.2s;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+    }
+
+    .kp-dir-menu-btn:hover {
+        background: #f8fafc;
+        border-color: #cbd5e1;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        color: var(--c-accent);
+    }
+
+    /* ── Directory Grid View ── */
+    .kp-dir-grid-header {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        margin-bottom: 24px;
+        background: white;
+        padding: 12px 20px;
+        border-radius: 16px;
+        border: 1px solid var(--c-border);
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+    }
+
+    .kp-dir-back-btn {
+        background: #f1f5f9;
+        border: none;
+        color: #475569;
+        padding: 8px 16px;
+        border-radius: 100px;
+        font-size: 0.9rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .kp-dir-back-btn:hover {
+        background: #e2e8f0;
+        color: #1e293b;
+    }
+
+    .kp-dir-grid-title {
+        font-size: 1.25rem;
+        color: var(--c-text);
+        font-weight: 700;
+        margin: 0;
     }
 
     .kp-dir-tab:hover {
@@ -877,6 +961,12 @@
         searchBtn.addEventListener('click', () => triggerSearch());
         input.addEventListener('keypress', e => { if (e.key === 'Enter') triggerSearch(); });
 
+        document.getElementById('kp-kanji-replay').addEventListener('click', () => {
+            if (activeChar) {
+                drawKanjiVG(activeChar);
+            }
+        });
+
         // Note auto-save with debounce
         noteInput.addEventListener('input', () => {
             if (!activeChar) return;
@@ -889,75 +979,206 @@
         // Load persistent history on page load
         loadPersistentHistory();
 
-        // ── Directory Logic ─────────────────────────────────────────
-        async function loadDirectory() {
-            if (directoryData) {
-                renderDirectory();
+        // ── SPA Routing & Directory Logic ───────────────────────────
+        const dirMenuEl = document.getElementById('kp-dir-menu');
+        const dirGridViewEl = document.getElementById('kp-dir-grid-view');
+        const dirGridTitleEl = document.getElementById('kp-dir-grid-title');
+        const dirBackBtn = document.getElementById('kp-dir-back-btn');
+
+        // Initialize Router
+        window.addEventListener('popstate', handleRoute);
+
+        async function handleRoute() {
+            const path = window.location.pathname; // e.g. /kanji, /kanji/n1, /kanji/strokes-5, /kanji/漢
+
+            // 1. Base Directory Menu
+            if (path === '/kanji' || path === '/kanji/') {
+                showEmptySearch(true);
+                dirGridViewEl.classList.add('hidden');
+                dirMenuEl.classList.remove('hidden');
+                if (!directoryData) {
+                    await fetchDirectoryData();
+                }
+                renderDirectoryMenu();
                 return;
             }
+
+            // 2. JLPT, Strokes or Radicals Grid View
+            if (path.startsWith('/kanji/n') || path.startsWith('/kanji/strokes-') || path.startsWith('/kanji/radicals-')) {
+                showEmptySearch(true);
+                dirMenuEl.classList.add('hidden');
+                dirGridViewEl.classList.remove('hidden');
+                if (!directoryData) {
+                    await fetchDirectoryData();
+                }
+
+                let tab, groupKey, displayTitle;
+                if (path.startsWith('/kanji/n')) {
+                    tab = 'jlpt';
+                    groupKey = path.split('/kanji/')[1].toUpperCase(); // "N1"
+                    displayTitle = `JLPT ${groupKey}`;
+                } else if (path.startsWith('/kanji/strokes-')) {
+                    tab = 'strokes';
+                    let num = path.split('/kanji/strokes-')[1]; // "5"
+                    groupKey = `${num} nét`;
+                    displayTitle = groupKey;
+                } else if (path.startsWith('/kanji/radicals-')) {
+                    tab = 'radicals';
+                    let num = path.split('/kanji/radicals-')[1]; // "5"
+                    groupKey = `${num} nét`;
+                    displayTitle = `Bộ thủ ${num} nét`;
+                }
+
+                renderDirectoryGrid(tab, groupKey, displayTitle);
+                return;
+            }
+
+            // 3. Kanji Details View
+            const parts = path.split('/').filter(p => p);
+            if (parts.length >= 2 && parts[0] === 'kanji') {
+                const charQuery = decodeURIComponent(parts[1]);
+                const kanjis = extractKanji(charQuery);
+
+                if (kanjis.length > 0) {
+                    const firstChar = kanjis[0];
+                    if (session.find(s => s.char === firstChar)) {
+                        activate(firstChar, false);
+                        return;
+                    }
+
+                    input.value = charQuery;
+                    triggerSearch(false); // don't push state again
+                    return;
+                }
+            }
+
+            // Fallback
+            showEmptySearch(true);
+            dirGridViewEl.classList.add('hidden');
+            dirMenuEl.classList.remove('hidden');
+            if (!directoryData) fetchDirectoryData().then(renderDirectoryMenu);
+        }
+
+        async function fetchDirectoryData() {
             try {
                 const res = await fetch('/api/kanji/directory');
                 directoryData = await res.json();
-                renderDirectory();
             } catch (e) {
                 console.error('Failed to load directory:', e);
-                dirContentEl.innerHTML = '<div style="text-align:center; padding: 40px; color: #ef4444;">Lỗi tải dữ liệu danh mục.</div>';
+                dirMenuEl.innerHTML = '<div style="text-align:center; padding: 40px; color: #ef4444;">Lỗi tải dữ liệu danh mục.</div>';
             }
         }
 
-        function renderDirectory() {
+        function renderDirectoryMenu() {
             if (!directoryData) return;
+            dirMenuEl.innerHTML = '';
+
+            // JLPT Section
+            const jlptSec = document.createElement('div');
+            jlptSec.className = 'kp-dir-menu-section';
+            jlptSec.innerHTML = '<div class="kp-dir-menu-title">Theo JLPT</div>';
+            const jlptGrid = document.createElement('div');
+            jlptGrid.className = 'kp-dir-menu-grid';
+
+            ['N5', 'N4', 'N3', 'N2', 'N1'].forEach(level => {
+                if (directoryData.jlpt[level]) {
+                    const btn = document.createElement('button');
+                    btn.className = 'kp-dir-menu-btn';
+                    btn.textContent = level;
+                    btn.onclick = () => {
+                        history.pushState({}, '', `/kanji/${level.toLowerCase()}`);
+                        handleRoute();
+                    };
+                    jlptGrid.appendChild(btn);
+                }
+            });
+            jlptSec.appendChild(jlptGrid);
+            dirMenuEl.appendChild(jlptSec);
+
+            // Strokes Section
+            const strokeSec = document.createElement('div');
+            strokeSec.className = 'kp-dir-menu-section';
+            strokeSec.innerHTML = '<div class="kp-dir-menu-title">Theo Số Nét</div>';
+            const strokeGrid = document.createElement('div');
+            strokeGrid.className = 'kp-dir-menu-grid';
+
+            Object.keys(directoryData.strokes).forEach(strokeKey => {
+                const num = strokeKey.split(' ')[0]; // "1"
+                const btn = document.createElement('button');
+                btn.className = 'kp-dir-menu-btn';
+                btn.textContent = strokeKey;
+                btn.onclick = () => {
+                    history.pushState({}, '', `/kanji/strokes-${num}`);
+                    handleRoute();
+                };
+                strokeGrid.appendChild(btn);
+            });
+            strokeSec.appendChild(strokeGrid);
+            dirMenuEl.appendChild(strokeSec);
+
+            // Radicals Section
+            if (directoryData.radicals) {
+                const radicalSec = document.createElement('div');
+                radicalSec.className = 'kp-dir-menu-section';
+                radicalSec.innerHTML = '<div class="kp-dir-menu-title">214 Bộ Thủ</div>';
+                const radicalGrid = document.createElement('div');
+                radicalGrid.className = 'kp-dir-menu-grid';
+
+                Object.keys(directoryData.radicals).forEach(strokeKey => {
+                    const num = strokeKey.split(' ')[0]; // "1"
+                    const btn = document.createElement('button');
+                    btn.className = 'kp-dir-menu-btn';
+                    btn.textContent = strokeKey;
+                    btn.onclick = () => {
+                        history.pushState({}, '', `/kanji/radicals-${num}`);
+                        handleRoute();
+                    };
+                    radicalGrid.appendChild(btn);
+                });
+                radicalSec.appendChild(radicalGrid);
+                dirMenuEl.appendChild(radicalSec);
+            }
+        }
+
+        function renderDirectoryGrid(tab, groupKey, displayTitle) {
+            dirGridTitleEl.textContent = displayTitle;
             dirContentEl.innerHTML = '';
 
-            const data = directoryData[activeDirTab];
-            if (!data) return;
-
-            for (const [groupName, kanjis] of Object.entries(data)) {
-                if (!kanjis || kanjis.length === 0) continue;
-
-                const groupEl = document.createElement('div');
-                groupEl.className = 'kp-dir-group';
-
-                const titleEl = document.createElement('div');
-                titleEl.className = 'kp-dir-group-title';
-                titleEl.textContent = groupName;
-                groupEl.appendChild(titleEl);
-
-                const gridEl = document.createElement('div');
-                gridEl.className = 'kp-dir-grid';
-
-                kanjis.forEach(k => {
-                    const item = document.createElement('a');
-                    item.className = 'kp-dir-item';
-                    item.textContent = k;
-                    item.href = '#';
-                    item.addEventListener('click', (e) => {
-                        e.preventDefault();
-                        input.value = k;
-                        triggerSearch();
-                    });
-                    gridEl.appendChild(item);
-                });
-
-                groupEl.appendChild(gridEl);
-                dirContentEl.appendChild(groupEl);
+            const kanjis = directoryData[tab]?.[groupKey];
+            if (!kanjis || kanjis.length === 0) {
+                dirContentEl.innerHTML = '<div style="padding: 20px; color: var(--c-muted);">Không có dữ liệu.</div>';
+                return;
             }
+
+            const gridEl = document.createElement('div');
+            gridEl.className = 'kp-dir-grid';
+
+            kanjis.forEach(k => {
+                const item = document.createElement('a');
+                item.className = 'kp-dir-item';
+                item.textContent = k;
+                item.href = `/kanji/${encodeURIComponent(k)}`;
+                item.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    history.pushState({}, '', `/kanji/${encodeURIComponent(k)}`);
+                    handleRoute();
+                });
+                gridEl.appendChild(item);
+            });
+
+            dirContentEl.appendChild(gridEl);
         }
 
-        dirTabs.forEach(tab => {
-            tab.addEventListener('click', () => {
-                dirTabs.forEach(t => t.classList.remove('active'));
-                tab.classList.add('active');
-                activeDirTab = tab.dataset.dirTab;
-                renderDirectory();
-            });
+        dirBackBtn.addEventListener('click', () => {
+            history.pushState({}, '', '/kanji');
+            handleRoute();
         });
 
-        // Fetch directory initially if no active character
-        loadDirectory();
+        // Fetch directory initially 
+        handleRoute();
 
         // ── Core ────────────────────────────────────────────────────
-        function showEmptySearch(msg, showDirectory = false) {
+        function showEmptySearch(showDirectory = false) {
             mainEl.classList.add('hidden');
             tabsWrap.classList.add('hidden');
             dirWrapperEl.classList.remove('hidden');
@@ -965,23 +1186,23 @@
             if (showDirectory) {
                 emptyEl.classList.add('hidden');
                 dirEl.classList.remove('hidden');
-                loadDirectory();
             } else {
                 emptyEl.classList.remove('hidden');
                 dirEl.classList.add('hidden');
-                emptyEl.querySelector('p').textContent = msg;
             }
         }
-        async function triggerSearch() {
+
+        async function triggerSearch(updateHistory = true) {
             const raw = input.value.trim();
             if (!raw) {
-                showEmptySearch('Nhập một chữ Kanji để bắt đầu tra cứu', true);
+                showEmptySearch(true);
                 return;
             }
 
             const kanjis = extractKanji(raw);
             if (kanjis.length === 0) {
-                showEmptySearch('Không tìm thấy Kanji nào trong văn bản nhập.', false);
+                showEmptySearch(false); // Can't resolve characters
+                emptyEl.querySelector('p').textContent = 'Không tìm thấy Kanji nào trong văn bản nhập.';
                 return;
             }
 
@@ -1005,22 +1226,28 @@
             session = results.filter(entry => entry.details !== null);
 
             if (session.length === 0) {
-                showEmptySearch('Không tìm thấy dữ liệu cho Kanji đã nhập.', false);
+                showEmptySearch(false);
+                emptyEl.querySelector('p').textContent = 'Không tìm thấy dữ liệu cho Kanji đã nhập.';
                 return;
             }
 
             // Replace current session (no persistent history)
             renderTabs();
-            activate(session[0].char);
+            activate(session[0].char, updateHistory);
         }
 
-        function activate(char) {
+        function activate(char, updateHistory = true) {
             activeChar = char;
 
             const entry = session.find(s => s.char === char);
             if (!entry || !entry.details) {
-                showEmptySearch('Không tìm thấy dữ liệu cho Kanji này.', false);
+                showEmptySearch(false);
+                emptyEl.querySelector('p').textContent = 'Không tìm thấy dữ liệu cho Kanji này.';
                 return;
+            }
+
+            if (updateHistory) {
+                history.pushState({}, '', `/kanji/${encodeURIComponent(char)}`);
             }
 
             renderTabs();
@@ -1028,7 +1255,6 @@
             renderReadings(entry.details);
             renderComps(entry.details);
             renderSimilar(entry.similar);
-            renderMnemonics(entry.details);
             renderUserStats(entry.details);
             renderNote(entry.details);
             drawKanjiVG(char);
@@ -1036,6 +1262,33 @@
             mainEl.classList.remove('hidden');
             emptyEl.classList.add('hidden');
             dirWrapperEl.classList.add('hidden');
+        }
+
+        window.addToSession = async function (char) {
+            if (session.find(s => s.char === char)) {
+                activate(char, true);
+                return;
+            }
+
+            try {
+                const [detRes, simRes] = await Promise.all([
+                    fetch(`/api/kanji/${encodeURIComponent(char)}/details`),
+                    fetch(`/api/kanji/${encodeURIComponent(char)}/similar`)
+                ]);
+                const detJson = await detRes.json();
+                const simJson = await simRes.json();
+
+                if (detJson.details) {
+                    session.push({ char: char, details: detJson.details, similar: simJson.results || [] });
+                    renderTabs();
+                    activate(char, true);
+                } else {
+                    alert('Không tìm thấy dữ liệu cho chữ này.');
+                }
+            } catch (e) {
+                console.error("Lỗi thêm session:", e);
+                alert('Có lỗi mạng xảy ra.');
+            }
         }
 
         // ── Renderers ───────────────────────────────────────────────
@@ -1065,7 +1318,8 @@
                     session = session.filter(s => s.char !== entry.char);
                     if (session.length === 0) {
                         activeChar = null;
-                        showEmptySearch('Không tìm thấy Kanji nào', true);
+                        history.pushState({}, '', '/kanji');
+                        handleRoute();
                     } else {
                         if (activeChar === entry.char) activate(session[0].char);
                         else renderTabs();
@@ -1080,9 +1334,16 @@
 
         function renderHero(char, d) {
             document.getElementById('kp-char').textContent = char;
-            document.getElementById('kp-hv').textContent = d.hanviet || '—';
+
+            let hv = d.hanviet || '—';
+            if (hv !== '—') {
+                hv = hv.split(/[,\s]+/).filter(Boolean).join(' / ');
+            }
+            document.getElementById('kp-hv').textContent = hv.toUpperCase();
+
             document.getElementById('kp-strokes').textContent = `✏️ ${d.strokes || '?'} nét`;
             document.getElementById('kp-jlpt').textContent = d.jlpt ? `JLPT N${d.jlpt}` : 'Ngoài JLPT';
+            document.getElementById('kp-mazii-link').href = `https://mazii.net/vi-VN/search/kanji/javi/${encodeURIComponent(char)}`;
 
             const meaningEl = document.getElementById('kp-meaning');
             const meanings = d.meanings || [];
@@ -1090,21 +1351,6 @@
                 meaningEl.innerHTML = meanings.map(m => `<span class="kp-m-item">${m}</span>`).join('');
             } else {
                 meaningEl.textContent = 'N/A';
-            }
-        }
-
-        function renderMnemonics(d) {
-            const mbox = document.getElementById('kp-mnemonic-box');
-            const mtext = document.getElementById('kp-mnemonic-text');
-            if (d.mnemonic_hint) {
-                let html = `<p>${d.mnemonic_hint}</p>`;
-                if (d.mnemonic_hint_vi) {
-                    html += `<p class="kp-mnemonic-vi" style="margin-top: 12px; padding-top: 12px; border-top: 1px dashed var(--c-border); color: #475569; font-style: italic;">💡 <i>Dịch: ${d.mnemonic_hint_vi}</i></p>`;
-                }
-                mtext.innerHTML = html;
-                mbox.classList.remove('hidden');
-            } else {
-                mbox.classList.add('hidden');
             }
         }
 

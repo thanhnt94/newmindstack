@@ -4,7 +4,8 @@ from flask_login import login_required, current_user
 from .. import blueprint
 
 @blueprint.route('/')
+@blueprint.route('/<path:catch_all>')
 @login_required
-def index():
-    """Kanji lookup and learning page."""
+def index(catch_all=None):
+    """Kanji lookup and learning page, handling SPA routes."""
     return render_dynamic_template('modules/kanji/index.html')
