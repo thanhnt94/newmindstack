@@ -63,7 +63,7 @@ class MCQEngine:
         # Shuffle a copy to ensure predictability is gone for tie-breaking
         shuffled_items = list(all_items_data)
         random.shuffle(shuffled_items)
-        
+        reveal_key = question_key
         for other in shuffled_items:
             if len(distractor_pool) >= 2000:
                 break
@@ -74,9 +74,11 @@ class MCQEngine:
                 d_back = get_content_value(c, 'back')
                 d_val = get_content_value(c, answer_key)
                 
+                d_reveal = get_content_value(c, reveal_key)
                 if d_val:
                     distractor_pool.append({
                         'text': d_val, # The text to show in the choice
+                        'reveal': d_reveal, # [NEW] Pre-calculated reveal text
                         'front': d_front,
                         'back': d_back,
                         'item_id': other['item_id'],
@@ -86,6 +88,7 @@ class MCQEngine:
         # 6. Select distractors using algorithms (pass dynamic num_choices)
         correct_item_data = {
             'text': correct_answer,
+            'reveal': question_text, # [NEW] Reveal matches the question side
             'q_text': question_text, # [NEW] Pass question text for filtering
             'front': item_front,
             'back': item_back,
@@ -97,6 +100,11 @@ class MCQEngine:
         
         choices = [c['text'] for c in choices_data]
         choice_item_ids = [c.get('item_id') for c in choices_data]
+        
+        # [NEW] Determine reveal text for each choice (the "question side")
+        # Use the pre-calculated 'reveal' key from the choices
+        choice_reveals = [c.get('reveal', '') for c in choices_data]
+        
         correct_index = choices.index(correct_answer) if correct_answer in choices else 0
         
         # 7. Map Audio - Prioritize BACK/ANSWER audio for the question as requested
@@ -111,6 +119,7 @@ class MCQEngine:
             'item_id': item_data['item_id'],
             'question': bbcode_to_html(question_text, image_folder=image_folder, audio_folder=audio_folder),
             'choices': [bbcode_to_html(c, image_folder=image_folder, audio_folder=audio_folder) for c in choices],
+            'choice_reveals': [bbcode_to_html(r, image_folder=image_folder, audio_folder=audio_folder) for r in choice_reveals],
             'choice_item_ids': choice_item_ids,
             'correct_index': correct_index,
             'correct_answer': bbcode_to_html(correct_answer, image_folder=image_folder, audio_folder=audio_folder),

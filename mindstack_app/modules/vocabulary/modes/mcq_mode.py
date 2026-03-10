@@ -69,6 +69,7 @@ class MCQMode(BaseVocabMode):
             'type': 'mcq',
             'question': question_data.get('question', ''),
             'choices': question_data.get('choices', []),
+            'choice_reveals': question_data.get('choice_reveals', []),
             'choice_item_ids': question_data.get('choice_item_ids', []),
             'correct_index': question_data.get('correct_index', 0),
             'correct_answer': question_data.get('correct_answer', ''),

@@ -269,7 +269,6 @@
         border: 2px solid #f1f5f9;
         border-radius: 18px;
         padding: 1.25rem 1.5rem;
-        /* Increased padding */
         font-size: 1.05rem;
         font-weight: 600;
         color: #334155;
@@ -279,10 +278,10 @@
         box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02);
         display: flex;
         align-items: center;
-        gap: 1.5rem;
-        /* Increased gap as requested */
+        gap: 1.25rem;
         width: 100%;
         position: relative;
+        overflow: hidden;
     }
 
     .choice-index {
@@ -301,9 +300,62 @@
         border: 1px solid #e2e8f0;
     }
 
+    .choice-content-wrapper {
+        flex: 1;
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        gap: 1rem;
+        min-width: 0;
+    }
+
     .choice-text {
         flex: 1;
         line-height: 1.4;
+        transition: all 0.3s ease;
+    }
+
+    .choice-reveal {
+        flex: 1;
+        font-size: 0.95rem;
+        font-weight: 500;
+        color: var(--text-sub);
+        opacity: 0;
+        transform: translateX(10px);
+        transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        border-left: 2px solid #e2e8f0;
+        padding-left: 1rem;
+        max-height: 0;
+        overflow: hidden;
+        display: none;
+    }
+
+    .choice-btn.revealed .choice-reveal {
+        display: block;
+        max-height: 200px;
+        opacity: 1;
+        transform: translateX(0);
+    }
+
+    .choice-btn.revealed .choice-content-wrapper {
+        gap: 0.75rem;
+    }
+
+    /* Support for long text split */
+    @media (max-width: 640px) {
+        .choice-btn.revealed .choice-content-wrapper {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 0.25rem;
+        }
+
+        .choice-btn.revealed .choice-reveal {
+            border-left: none;
+            padding-left: 0;
+            border-top: 1px dashed #e2e8f0;
+            padding-top: 0.25rem;
+            width: 100%;
+        }
     }
 
     .choice-btn:hover:not(:disabled) {
@@ -595,29 +647,20 @@
 
     /* Result Modal Override */
     .result-card {
-        transform: none;
-        /* Managed by .active and animation */
-        transition: none;
-    }
-
-    background: white;
-    padding: 0;
-    /* Remove padding for header/content split */
-    border-radius: 24px;
-    text-align: center;
-    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-    border: 1px solid var(--border);
-    max-width: 800px;
-    /* Wider */
-    width: 95%;
-    max-height: 90vh;
-    /* Prevent overflow on small screens */
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-    /* For border radius */
-    transform: scale(0.9);
-    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        background: white;
+        padding: 0;
+        border-radius: 24px;
+        text-align: center;
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+        border: 1px solid var(--border);
+        max-width: 800px;
+        width: 95%;
+        max-height: 90vh;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        transform: scale(0.9);
+        transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
     }
 
     .report-header {
@@ -1562,14 +1605,21 @@
 
         // Render Choices
         els.cGrid.innerHTML = '';
+        const reveals = q.choice_reveals || [];
+
         q.choices.forEach((choiceText, idx) => {
             const btn = document.createElement('button');
             btn.className = 'choice-btn';
 
-            // Add Index and Text structure
+            const revealText = reveals[idx] || '';
+
+            // Add Index and Text structure with Reveal container
             btn.innerHTML = `
                 <div class="choice-index">${idx + 1}</div>
-                <div class="choice-text">${choiceText}</div>
+                <div class="choice-content-wrapper">
+                    <div class="choice-text">${choiceText}</div>
+                    <div class="choice-reveal">${revealText}</div>
+                </div>
             `;
 
             btn.onclick = () => {
@@ -1610,7 +1660,7 @@
         const buttons = els.cGrid.children;
         for (let i = 0; i < buttons.length; i++) {
             const btn = buttons[i];
-            btn.classList.add('answered-state');
+            btn.classList.add('answered-state', 'revealed');
             if (i === q.correct_index) {
                 btn.classList.add('correct');
             } else if (i === selectedIndex && !isCorrect) {
@@ -1678,7 +1728,7 @@
         const buttons = els.cGrid.children;
         for (let i = 0; i < buttons.length; i++) {
             const btn = buttons[i];
-            btn.classList.add('answered-state');
+            btn.classList.add('answered-state', 'revealed');
             if (i === q.correct_index) {
                 btn.classList.add('correct');
             } else if (i === selectedIndex && !isCorrect) {
