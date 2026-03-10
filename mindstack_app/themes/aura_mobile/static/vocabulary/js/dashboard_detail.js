@@ -140,6 +140,9 @@ document.addEventListener('DOMContentLoaded', function () {
             document.querySelectorAll('.js-header-title').forEach(el => el.textContent = s.title);
             document.querySelectorAll('.js-header-card-count').forEach(el => el.textContent = s.card_count);
 
+            document.querySelectorAll('.js-creator-name').forEach(el => el.textContent = s.creator_name || 'Admin');
+            document.querySelectorAll('.js-creator-avatar').forEach(el => el.textContent = (s.creator_name || 'A').charAt(0).toUpperCase());
+
             if (stats) {
                 try {
                     const progressText = (stats.learned_count || 0); // Only show the learned count

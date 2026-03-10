@@ -221,10 +221,10 @@ render_unified_header with context %}
                         <!-- Details Content (No Title, just metadata) -->
                         <div class="flex-1 text-left flex flex-col justify-start">
                             <div class="vocab-creator-inline justify-start mt-0 mb-1">
-                                <div class="vocab-creator-avatar-small js-creator-avatar shadow-sm ring-2 ring-white">A
+                                <div class="vocab-creator-avatar-small js-creator-avatar shadow-sm ring-2 ring-white">{% if set_info and set_info.creator_name %}{{ set_info.creator_name[0] | upper }}{% else %}A{% endif %}
                                 </div>
                                 <span
-                                    class="vocab-creator-name-small js-creator-name text-slate-600 font-semibold tracking-wide text-sm">Admin</span>
+                                    class="vocab-creator-name-small js-creator-name text-slate-600 font-semibold tracking-wide text-sm">{% if set_info and set_info.creator_name %}{{ set_info.creator_name }}{% else %}Admin{% endif %}</span>
                             </div>
 
                             <p
