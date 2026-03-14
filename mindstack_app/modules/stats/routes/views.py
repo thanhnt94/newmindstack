@@ -22,9 +22,13 @@ def dashboard():
     # Lấy tổng quan học tập từ LearningMetricsService -> LearningInterface
     summary = LearningInterface.get_user_learning_summary(current_user.user_id)
     
+    # NEW: Get daily summary for "Today" stats
+    daily_summary = LearningInterface.get_daily_summary(current_user.user_id)
+    
     # Map dữ liệu cho UI (Giữ nguyên cấu trúc cũ để tránh break UI)
     dashboard_data = {
         'total_score_all_time': summary['total_score'],
+        'total_use_time_ms': summary.get('total_use_time_ms', 0),
         'current_learning_streak': summary['current_streak'],
         'longest_learning_streak': summary['longest_streak'],
         'total_score_last_30_days': 0, # Sẽ bổ sung sau
@@ -60,6 +64,7 @@ def dashboard():
     return render_dynamic_template('modules/analytics/dashboard.html',
         leaderboard_data=leaderboard_data,
         dashboard_data=dashboard_data,
+        daily_summary=daily_summary,
         recent_activity=recent_activity,
         current_timeframe=timeframe
     )

@@ -147,11 +147,32 @@ class LearningSessionService:
 
     @staticmethod
     def update_progress(session_id, item_id, result_type, points=0):
-        """Update session progress and stats."""
+        """
+        Update session progress and stats.
+        Includes Backend Delta AFK Detection logic.
+        """
         try:
             session = db.session.get(LearningSession, session_id)
             if not session or session.status != 'active':
-                return False
+                return 0 # Return 0 duration if failed
+
+            # [AFK DETECTION - BACKEND DELTA]
+            # Calculate time since last interaction
+            now = datetime.now(timezone.utc)
+            last = session.last_activity
+            if last.tzinfo is None:
+                last = last.replace(tzinfo=timezone.utc)
+            
+            delta = now - last
+            delta_ms = int(delta.total_seconds() * 1000)
+            
+            # AFK Threshold: 20 seconds
+            # If idle > 20s, we cap at 20s active time.
+            MAX_ACTIVE_MS = 20000
+            effective_duration_ms = min(delta_ms, MAX_ACTIVE_MS) if delta_ms > 0 else 0
+            
+            # Update last_activity to NOW for the next calculation
+            session.last_activity = now
 
             processed_ids = list(session.processed_item_ids or [])
             if item_id not in processed_ids:
@@ -168,19 +189,22 @@ class LearningSessionService:
                 if points > 0:
                     session.points_earned += points
 
-                # [NEW] Clear current_item_id if it matched the finished item
+                # Clear current_item_id if it matched the finished item
                 if session.current_item_id == item_id:
                     session.current_item_id = None
 
                 flag_modified(session, 'processed_item_ids')
                 db.session.add(session)
                 safe_commit(db.session)
-                return True
-            return False
+                
+                return effective_duration_ms
+            
+            safe_commit(db.session)
+            return effective_duration_ms
         except Exception as e:
             db.session.rollback()
             current_app.logger.error(f"Error updating session progress: {e}", exc_info=True)
-            return False
+            return 0
 
     @staticmethod
     def complete_session(session_id):

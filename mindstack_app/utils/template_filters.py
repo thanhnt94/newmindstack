@@ -38,8 +38,31 @@ def media_url_filter(path):
         # Fallback to /media/ prefix if url_for fails (e.g. during initialization)
         return f"/media/{path}"
 
+def format_duration_ms_filter(ms: int) -> str:
+    """
+    Format duration in milliseconds to human-readable format.
+    Example: 3661000 -> "1h 1m 1s"
+    """
+    if not ms:
+        return "0s"
+    
+    seconds = int(ms / 1000)
+    minutes, seconds = divmod(seconds, 60)
+    hours, minutes = divmod(minutes, 60)
+    
+    parts = []
+    if hours > 0:
+        parts.append(f"{hours}h")
+    if minutes > 0:
+        parts.append(f"{minutes}m")
+    if seconds > 0 or (not hours and not minutes):
+        parts.append(f"{seconds}s")
+    
+    return " ".join(parts)
+
 def register_filters(app):
     """Register custom filters with the Flask app."""
     app.jinja_env.filters['user_timezone'] = user_timezone_filter
     app.jinja_env.filters['media_url'] = media_url_filter
     app.jinja_env.filters['bbcode'] = bbcode_to_html
+    app.jinja_env.filters['duration_ms'] = format_duration_ms_filter

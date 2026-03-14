@@ -203,6 +203,11 @@ class FlashcardEngine:
         srs_data = None
         fsrs_snapshot = None
 
+        # [AFK PREVENTION] Limit response time to 20 seconds maximum.
+        # If user is idle longer than 20s, we only count 20s to keep stats clean.
+        MAX_ACTIVE_TIME_MS = 20000 
+        effective_duration_ms = min(duration_ms, MAX_ACTIVE_TIME_MS) if duration_ms else 0
+
         if update_srs:
             # Update SRS via Interface (Pure FSRS)
             state_record, srs_result = FSRSInterface.process_review(
@@ -210,7 +215,7 @@ class FlashcardEngine:
                 item_id=item_id,
                 quality=quality,
                 mode='flashcard',
-                duration_ms=duration_ms,
+                duration_ms=effective_duration_ms,
                 container_id=container_id or (item.container_id if item else None),
                 is_cram=is_all_review,
                 learning_mode=learning_mode or mode
@@ -226,7 +231,7 @@ class FlashcardEngine:
                 is_correct=is_correct,
                 is_first_time=is_first_time,
                 correct_streak=current_streak,
-                response_time_seconds=duration_ms/1000 if duration_ms else None,
+                response_time_seconds=effective_duration_ms/1000 if effective_duration_ms else None,
                 stability=srs_result.stability if srs_result else 0,
                 difficulty=srs_result.difficulty if srs_result else 0
             )

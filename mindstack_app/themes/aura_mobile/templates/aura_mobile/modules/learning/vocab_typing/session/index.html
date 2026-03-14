@@ -843,6 +843,11 @@
         els.submit.classList.remove('next-mode');
 
         startTime = Date.now();
+        
+        // [AFK DETECTION] Start the interaction-aware timer
+        if (window.learningTimer) {
+            window.learningTimer.start();
+        }
     }
 
     async function check() {
@@ -851,7 +856,12 @@
 
         const q = questions[currentIndex];
         els.submit.disabled = true;
-        const duration = Date.now() - startTime;
+        
+        let duration = Date.now() - startTime;
+        if (window.learningTimer) {
+            duration = window.learningTimer.getDuration();
+            window.learningTimer.stop();
+        }
 
         try {
             const res = await fetch('/learn/vocab-typing/typing/api/check', {

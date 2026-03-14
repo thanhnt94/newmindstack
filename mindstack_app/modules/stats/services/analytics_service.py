@@ -198,6 +198,7 @@ class AnalyticsService:
             
             # Overall metrics
             'total_score_all_time': total_score,
+            'total_use_time_ms': summary.get('total_use_time_ms', 0),
             'total_activity_entries': summary.get('total_entries', 0),
             'active_days': active_days,
             'average_daily_score': round(total_score / active_days, 1) if active_days else 0,

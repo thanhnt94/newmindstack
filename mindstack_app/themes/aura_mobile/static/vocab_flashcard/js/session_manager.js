@@ -498,6 +498,12 @@ async function displayCurrentCard(force = false) {
     if (mobileBottomBar) mobileBottomBar.style.display = '';
 
     currentCardStartTime = Date.now();
+    
+    // [AFK DETECTION] Start the interaction-aware timer
+    if (window.learningTimer) {
+        window.learningTimer.start();
+    }
+    
     window.updateSessionSummary();
 
     // Trigger audio prefetch for upcoming cards to stay ahead
@@ -552,8 +558,13 @@ async function submitFlashcardAnswer(itemId, answer) {
 
     window.stopAllFlashcardAudio();
 
-    // [NEW] Calculate duration
-    const durationMs = currentCardStartTime > 0 ? (Date.now() - currentCardStartTime) : 0;
+    // [AFK DETECTION] Get active duration instead of raw time
+    let durationMs = currentCardStartTime > 0 ? (Date.now() - currentCardStartTime) : 0;
+    if (window.learningTimer) {
+        durationMs = window.learningTimer.getDuration();
+        window.learningTimer.stop();
+    }
+
     try {
         let data;
 

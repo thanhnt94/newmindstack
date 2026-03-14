@@ -27,7 +27,7 @@ class LearningMetricsService:
     @classmethod
     def get_user_learning_summary(cls, user_id: int) -> Dict[str, Any]:
         """
-        Get high-level summary of user's learning activity (scores, streaks, counts).
+        Get high-level summary of user's learning activity (scores, streaks, counts, time).
         Used for the main dashboard and analytics header.
         """
         # 1. Score & Activity Stats (Using Core Models - Allowed)
@@ -40,6 +40,13 @@ class LearningMetricsService:
             )
             .filter(ScoreLog.user_id == user_id)
             .one()
+        )
+        
+        # NEW: Total Use Time (from StudyLog)
+        total_use_time_ms = (
+            db.session.query(func.sum(StudyLog.review_duration))
+            .filter(StudyLog.user_id == user_id)
+            .scalar() or 0
         )
         
         # 2. Detailed Breakdown by Mode (Delegated via Interface)
@@ -58,6 +65,7 @@ class LearningMetricsService:
         return {
             'user_id': user_id,
             'total_score': int(score_summary.total_score or 0),
+            'total_use_time_ms': int(total_use_time_ms),
             'active_days': int(score_summary.active_days or 0),
             'total_entries': int(score_summary.entry_count or 0),
             'last_activity': score_summary.last_activity,
@@ -571,17 +579,35 @@ class LearningMetricsService:
                     ts = pytz.UTC.localize(ts)
                 local_date = ts.astimezone(user_tz).date().isoformat()
                 score_map[local_date] += int(sc or 0)
+
+        # NEW: Daily Use Time (from StudyLog)
+        study_logs = db.session.query(StudyLog.timestamp, StudyLog.review_duration).filter(
+            StudyLog.user_id == user_id,
+            StudyLog.timestamp >= start_dt_utc
+        ).all()
+        
+        use_time_map = defaultdict(int)
+        for ts, dur in study_logs:
+            if ts:
+                if ts.tzinfo is None:
+                    ts = pytz.UTC.localize(ts)
+                local_date = ts.astimezone(user_tz).date().isoformat()
+                use_time_map[local_date] += int(dur or 0)
         
         # B. Daily Reviews & New Items (FSRS)
         reviews_map = FsrsInterface.get_daily_reviews_map(user_id, start_date_local, end_date_local, user_timezone=user_timezone)
         new_items_map = FsrsInterface.get_daily_new_items_map(user_id, start_date_local, end_date_local, user_timezone=user_timezone)
         
+        use_time_data = [] # in milliseconds
         for d in date_range:
             d_str = d.isoformat()
             labels.append(d.strftime('%d/%m'))
             
             score = score_map.get(d_str, 0)
             score_data.append(score)
+            
+            use_time = use_time_map.get(d_str, 0)
+            use_time_data.append(use_time)
             
             new_items = new_items_map.get(d_str, 0)
             new_items_data.append(new_items)
@@ -595,6 +621,9 @@ class LearningMetricsService:
         # Averages (Global)
         avg_reviews_per_day = round(total_items_reviewed_30d / 30, 1)
         avg_new_items_per_day = round(total_new_items_30d / 30, 1)
+        
+        total_use_time_30d_ms = sum(use_time_data)
+        avg_use_time_per_day_ms = round(total_use_time_30d_ms / 30, 1)
 
         # Averages (Split by Type)
         reviews_map_fc = FsrsInterface.get_daily_reviews_map(user_id, start_date_local, end_date_local, item_types=['FLASHCARD'], user_timezone=user_timezone)
@@ -638,6 +667,7 @@ class LearningMetricsService:
             'averages': {
                 'avg_reviews_per_day': avg_reviews_per_day,
                 'avg_new_items_per_day': avg_new_items_per_day,
+                'avg_use_time_per_day_ms': avg_use_time_per_day_ms,
                 'vocab': {
                     'avg_reviews_per_day': avg_reviews_fc,
                     'avg_new_items_per_day': avg_new_fc
@@ -647,14 +677,16 @@ class LearningMetricsService:
                     'avg_new_items_per_day': avg_new_quiz
                 },
                 'total_reviews_30d': total_items_reviewed_30d,
-                'total_new_items_30d': total_new_items_30d
+                'total_new_items_30d': total_new_items_30d,
+                'total_use_time_30d_ms': total_use_time_30d_ms
             },
             'charts': {
                 'labels': labels,
                 'datasets': {
                     'reviews': reviews_data,
                     'new_items': new_items_data,
-                    'scores': score_data
+                    'scores': score_data,
+                    'use_time': use_time_data
                 },
                 'hourly_activity': hourly_activity,
                 'accuracy_trend': accuracy_trend,

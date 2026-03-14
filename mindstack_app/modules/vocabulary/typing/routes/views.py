@@ -268,8 +268,13 @@ def typing_api_check_answer():
     point_value = ScoringInterface.get_score_value('VOCAB_TYPING_CORRECT_BONUS')
     
     duration_ms = data.get('duration_ms', 0)
+    
+    # [AFK PREVENTION] Limit response time to 20 seconds maximum.
+    MAX_ACTIVE_TIME_MS = 20000 
+    effective_duration_ms = min(duration_ms, MAX_ACTIVE_TIME_MS) if duration_ms else 0
+    
     result['user_answer'] = user_input
-    result['duration_ms'] = duration_ms
+    result['duration_ms'] = effective_duration_ms
     result['quality'] = 5 if result['is_correct'] else 0
     result['score_change'] = point_value if result['is_correct'] else 0
     result['updated_total_score'] = current_user.total_score
@@ -288,6 +293,7 @@ def typing_api_check_answer():
                     item_id=item_id,
                     quality=fsrs_quality,
                     mode='typing',
+                    duration_ms=effective_duration_ms,
                     only_count=True
                 )
                 # Merge FSRS result into the main response
@@ -310,7 +316,8 @@ def typing_api_check_answer():
                     learning_mode='typing',
                     score_points=result['score_change'],
                     item_type=item_type,
-                    reason=f"Vocab Typing Practice {'Correct' if result['is_correct'] else 'Incorrect'}"
+                    reason=f"Vocab Typing Practice {'Correct' if result['is_correct'] else 'Incorrect'}",
+                    duration_ms=effective_duration_ms
                 )
             except Exception as e_signal:
                  current_app.logger.error(f"[VOCAB_TYPING] Signal emit error: {e_signal}")
@@ -327,7 +334,7 @@ def typing_api_check_answer():
                         'rating': fsrs_quality,
                         'user_answer': result.get('user_answer'),
                         'is_correct': result['is_correct'],
-                        'review_duration': result.get('duration_ms', 0)
+                        'review_duration': effective_duration_ms
                     },
                     context_data={
                         'session_id': manager.db_session_id,

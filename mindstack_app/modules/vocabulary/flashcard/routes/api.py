@@ -375,9 +375,17 @@ def api_submit_flashcard_answer():
     normalized_answer = str(user_answer).lower()
     quality_map = {'again': 1, 'hard': 2, 'good': 3, 'easy': 4}
     user_answer_quality = quality_map.get(normalized_answer, 3)
-    duration_ms = data.get('duration_ms', 0)
     
-    # 3. Call Stateless Engine
+    # [AFK DETECTION - BACKEND] 
+    # Use SessionInterface to get duration based on server-side activity delta
+    # This automatically caps idle time at 20s and updates last_activity.
+    effective_duration_ms = SessionInterface.update_progress(
+        db_id, item_id, 
+        'correct' if user_answer_quality >= 2 else 'incorrect', 
+        0 # Points will be updated by the engine below
+    )
+    
+    # 3. Call Stateless Engine with "Clean" duration
     score_change, new_total, result_type, new_status, item_stats, srs_data = FlashcardEngine.process_answer(
         user_id=current_user.user_id,
         item_id=item_id,
@@ -385,19 +393,22 @@ def api_submit_flashcard_answer():
         current_user_total_score=current_user.total_score,
         mode=session_data.get('mode'),
         update_srs=True,
-        duration_ms=duration_ms,
+        duration_ms=effective_duration_ms, # Use server-calculated duration
         user_answer_text=user_answer,
         session_id=db_id,
         container_id=None,
         learning_mode='flashcard'
     )
 
-    # 4. Update DB Session
-    SessionInterface.update_progress(db_id, item_id, result_type, score_change)
+    # 4. Sync final points back to session record
+    if score_change > 0:
+        db_sess = SessionInterface.get_session_by_id(db_id)
+        if db_sess:
+            db_sess.points_earned += score_change
+            db.session.add(db_sess)
+            db.session.commit()
     
     # 5. Fetch updated session stats for response
-    # (Since SessionInterface commits, we can query or just increment local vars if we trust logic)
-    # Let's query db_sess again for accuracy or maintain local if perf critical. Query is safer for stateless.
     db_sess = SessionInterface.get_session_by_id(db_id)
     
     # 6. Update Cookie Stats (Optional but good for fallback reading)

@@ -45,6 +45,18 @@ class DailyStatsService:
         total_vague = sum(s.vague_count or 0 for s in sessions)
         total_points = sum(s.points_earned or 0 for s in sessions)
         
+        # NEW: Usage time from StudyLog
+        from mindstack_app.models import StudyLog
+        total_use_time_ms = (
+            db.session.query(func.sum(StudyLog.review_duration))
+            .filter(
+                StudyLog.user_id == user_id,
+                StudyLog.timestamp >= day_start,
+                StudyLog.timestamp <= day_end
+            )
+            .scalar() or 0
+        )
+        
         # Get unique items processed
         all_processed_ids = set()
         for s in sessions:
@@ -92,6 +104,7 @@ class DailyStatsService:
             'vague': total_vague,
             'total_answers': total_answers,
             'accuracy': round(accuracy, 1),
+            'use_time_ms': int(total_use_time_ms),
             
             # Gamification
             'points': total_points,

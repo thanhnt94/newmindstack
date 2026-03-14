@@ -92,6 +92,18 @@
                             </div>
                         </div>
 
+                        {# Card: Thời gian học #}
+                        <div
+                            class="snap-start flex-shrink-0 w-40 bg-gradient-to-br from-indigo-500 to-indigo-600 text-white rounded-3xl p-5 shadow-lg flex flex-col justify-between h-32 relative overflow-hidden active:scale-95 transition-transform">
+                            <div class="absolute right-0 top-0 p-3 opacity-20"><i class="fas fa-clock text-6xl"></i>
+                            </div>
+                            <span class="text-xs uppercase font-bold tracking-wide opacity-90">Thời gian học</span>
+                            <div>
+                                <p class="text-2xl font-black leading-none">{{ dashboard_data.total_use_time_ms | duration_ms }}</p>
+                                <p class="text-[10px] opacity-80 mt-1">Hôm nay: {{ (daily_summary.today.use_time_ms | default(0)) | duration_ms }}</p>
+                            </div>
+                        </div>
+
                         {# Card 2: Chuỗi #}
                         <div
                             class="snap-start flex-shrink-0 w-40 bg-gradient-to-br from-orange-400 to-orange-500 text-white rounded-3xl p-5 shadow-lg flex flex-col justify-between h-32 relative overflow-hidden active:scale-95 transition-transform">
@@ -167,10 +179,11 @@
                 {# === UNIFIED ANALYTICS CAROUSEL === #}
                 <div class="px-5 mt-6" x-data="{ 
                     activeChart: 0, 
-                    chartCount: 5,
+                    chartCount: 6,
                     charts: [],
                     titles: [
                         'Hoạt động 30 ngày qua',
+                        'Thời gian học (30 ngày)',
                         'Khung giờ học tập',
                         'Xu hướng chính xác (30 ngày)',
                         'Dự báo ôn tập (7 ngày tới)',
@@ -244,7 +257,36 @@
                                 options: { ...commonOptions, plugins: { legend: { display: false } }, scales: { x: { grid: { display: false }, ticks: { font: { size: 10 }, maxTicksLimit: 7 } }, y: { display: false } } }
                             });
 
-                            // 1. Hourly
+                            // 1. Use Time Chart
+                            if (chartData.datasets.use_time) {
+                                const useTimeMinutes = chartData.datasets.use_time.map(ms => Math.round(ms / 60000));
+                                createChart('useTimeChart', {
+                                    type: 'line',
+                                    data: {
+                                        labels: chartData.labels,
+                                        datasets: [{ 
+                                            label: 'Phút', 
+                                            data: useTimeMinutes, 
+                                            borderColor: '#6366f1', 
+                                            backgroundColor: 'rgba(99, 102, 241, 0.1)', 
+                                            tension: 0.4, 
+                                            fill: true, 
+                                            pointRadius: 2,
+                                            borderWidth: 3
+                                        }]
+                                    },
+                                    options: { 
+                                        ...commonOptions, 
+                                        plugins: { legend: { display: false } }, 
+                                        scales: { 
+                                            x: { grid: { display: false }, ticks: { font: { size: 10 }, maxTicksLimit: 7 } }, 
+                                            y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.05)' }, ticks: { font: { size: 10 } } } 
+                                        } 
+                                    }
+                                });
+                            } else this.charts.push(null);
+
+                            // 2. Hourly
                             if (chartData.hourly_activity) {
                                 createChart('hourlyChart', {
                                     type: 'bar',
@@ -256,7 +298,7 @@
                                 });
                             } else this.charts.push(null);
 
-                            // 2. Accuracy
+                            // 3. Accuracy
                             if (chartData.accuracy_trend) {
                                 createChart('accuracyChart', {
                                     type: 'line',
@@ -268,7 +310,7 @@
                                 });
                             } else this.charts.push(null);
 
-                            // 3. Upcoming
+                            // 4. Upcoming
                             if (chartData.upcoming_reviews) {
                                 createChart('upcomingChart', {
                                     type: 'bar',
@@ -280,7 +322,7 @@
                                 });
                             } else this.charts.push(null);
 
-                            // 4. Memory State
+                            // 5. Memory State
                             if (chartData.memory_state) {
                                 createChart('memoryStateChart', {
                                     type: 'doughnut',
@@ -337,38 +379,45 @@
 
                         {# Charts Wrapper #}
                         <div class="flex-grow relative overflow-hidden">
-                            <!-- 1. Activity Chart -->
+                            <!-- 0. Activity Chart -->
                             <div x-show="activeChart === 0"
                                 class="h-56 w-full absolute inset-0 transition-opacity duration-300"
                                 :class="activeChart === 0 ? 'opacity-100 z-10' : 'opacity-0 z-0 pointer-events-none'">
                                 <canvas x-ref="activityChart"></canvas>
                             </div>
 
-                            <!-- 2. Hourly Activity Chart -->
+                            <!-- 1. Use Time Chart -->
                             <div x-show="activeChart === 1"
                                 class="h-56 w-full absolute inset-0 transition-opacity duration-300"
                                 :class="activeChart === 1 ? 'opacity-100 z-10' : 'opacity-0 z-0 pointer-events-none'">
+                                <canvas x-ref="useTimeChart"></canvas>
+                            </div>
+
+                            <!-- 2. Hourly Activity Chart -->
+                            <div x-show="activeChart === 2"
+                                class="h-56 w-full absolute inset-0 transition-opacity duration-300"
+                                :class="activeChart === 2 ? 'opacity-100 z-10' : 'opacity-0 z-0 pointer-events-none'">
                                 <canvas x-ref="hourlyChart"></canvas>
                             </div>
 
                             <!-- 3. Accuracy Trend Chart -->
-                            <div x-show="activeChart === 2"
+                            <div x-show="activeChart === 3"
                                 class="h-56 w-full absolute inset-0 transition-opacity duration-300"
-                                :class="activeChart === 2 ? 'opacity-100 z-10' : 'opacity-0 z-0 pointer-events-none'">
+                                :class="activeChart === 3 ? 'opacity-100 z-10' : 'opacity-0 z-0 pointer-events-none'">
                                 <canvas x-ref="accuracyChart"></canvas>
                             </div>
 
                             <!-- 4. Upcoming Reviews Chart -->
-                            <div x-show="activeChart === 3"
+                            <div x-show="activeChart === 4"
                                 class="h-56 w-full absolute inset-0 transition-opacity duration-300"
-                                :class="activeChart === 3 ? 'opacity-100 z-10' : 'opacity-0 z-0 pointer-events-none'">
+                                :class="activeChart === 4 ? 'opacity-100 z-10' : 'opacity-0 z-0 pointer-events-none'">
                                 <canvas x-ref="upcomingChart"></canvas>
                             </div>
 
                             <!-- 5. Memory State Chart -->
-                            <div x-show="activeChart === 4"
+                            <div x-show="activeChart === 5"
                                 class="h-64 w-full absolute inset-0 flex items-center justify-center transition-opacity duration-300"
-                                :class="activeChart === 4 ? 'opacity-100 z-10' : 'opacity-0 z-0 pointer-events-none'">
+                                :class="activeChart === 5 ? 'opacity-100 z-10' : 'opacity-0 z-0 pointer-events-none'">
                                 <canvas x-ref="memoryStateChart"></canvas>
                             </div>
                         </div>

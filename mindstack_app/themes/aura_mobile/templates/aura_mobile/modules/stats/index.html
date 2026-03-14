@@ -64,6 +64,16 @@
                         <p class="text-xs opacity-80 mt-1">All time</p>
                     </div>
                 </div>
+                {# Card: Thời gian sử dụng #}
+                <div
+                    class="snap-start flex-shrink-0 w-40 bg-gradient-to-br from-indigo-500 to-indigo-600 text-white rounded-3xl p-5 shadow-lg flex flex-col justify-between h-32 relative overflow-hidden">
+                    <div class="absolute right-0 top-0 p-3 opacity-20"><i class="fas fa-clock text-6xl"></i></div>
+                    <span class="text-xs uppercase font-bold tracking-wide opacity-90">Thời gian</span>
+                    <div>
+                        <p class="text-2xl font-black leading-none">{{ dashboard_data.total_use_time_ms | duration_ms }}</p>
+                        <p class="text-xs opacity-80 mt-1">Hôm nay: {{ daily_summary.today.use_time_ms | duration_ms }}</p>
+                    </div>
+                </div>
                 {# Card 2: Streak #}
                 <div
                     class="snap-start flex-shrink-0 w-40 bg-gradient-to-br from-orange-400 to-orange-500 text-white rounded-3xl p-5 shadow-lg flex flex-col justify-between h-32 relative overflow-hidden">
@@ -86,6 +96,17 @@
                             "{:,.1f}".format(dashboard_data.average_daily_score_recent) }}/ngày</p>
                     </div>
                 </div>
+            </div>
+        </div>
+
+        {# Usage Chart Section #}
+        <div class="px-5 mt-4">
+            <h3 class="text-base font-bold text-slate-800 mb-4 flex items-center gap-2">
+                <i class="fas fa-hourglass-half text-indigo-500"></i>
+                <span>Xu hướng sử dụng (30 ngày)</span>
+            </h3>
+            <div class="bg-white border border-slate-200 p-4 rounded-3xl shadow-sm">
+                <canvas id="useTimeChart" height="180"></canvas>
             </div>
         </div>
 
@@ -236,4 +257,78 @@
 {% block scripts %}
 {{ super() }}
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js" crossorigin="anonymous"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const ctx = document.getElementById('useTimeChart').getContext('2d');
+        
+        // Data from Backend
+        const labels = {{ dashboard_data.charts.labels | tojson | safe if dashboard_data.charts and dashboard_data.charts.labels else '[]' }};
+        const useTimeMs = {{ dashboard_data.charts.datasets.use_time | tojson | safe if dashboard_data.charts and dashboard_data.charts.datasets and dashboard_data.charts.datasets.use_time else '[]' }};
+        
+        // Convert MS to Minutes
+        const useTimeMinutes = useTimeMs.map(ms => Math.round(ms / 60000));
+
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Phút học',
+                    data: useTimeMinutes,
+                    borderColor: '#6366f1',
+                    backgroundColor: 'rgba(99, 102, 241, 0.1)',
+                    fill: true,
+                    tension: 0.4,
+                    pointRadius: 2,
+                    pointBackgroundColor: '#6366f1',
+                    borderWidth: 3
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false,
+                        callbacks: {
+                            label: function(context) {
+                                return context.parsed.y + ' phút';
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: {
+                            display: false
+                        },
+                        ticks: {
+                            maxRotation: 0,
+                            autoSkip: true,
+                            maxTicksLimit: 7,
+                            font: {
+                                size: 10
+                            }
+                        }
+                    },
+                    y: {
+                        beginAtZero: true,
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.05)'
+                        },
+                        ticks: {
+                            font: {
+                                size: 10
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    });
+</script>
 {% endblock %}

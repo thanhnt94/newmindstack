@@ -348,11 +348,18 @@ def mcq_api_check_answer():
     from mindstack_app.modules.scoring.interface import ScoringInterface
     point_value = ScoringInterface.get_score_value('VOCAB_MCQ_CORRECT_BONUS')
     
-    user_answer_text = data.get('user_answer_text')
-    duration_ms = data.get('duration_ms', 0)
+    # [AFK DETECTION - BACKEND]
+    # Use server-side delta to get clean duration (caps at 20s)
+    effective_duration_ms = SessionInterface.update_progress(
+        session_id=manager.db_session_id,
+        item_id=item_id,
+        result_type='correct' if result['is_correct'] else 'incorrect',
+        points=point_value if result['is_correct'] else 0
+    )
     
+    user_answer_text = data.get('user_answer_text')
     result['user_answer'] = user_answer_text
-    result['duration_ms'] = duration_ms
+    result['duration_ms'] = effective_duration_ms
     result['quality'] = 5 if result['is_correct'] else 0
     result['score_change'] = point_value if result['is_correct'] else 0
     result['updated_total_score'] = current_user.total_score
@@ -371,6 +378,7 @@ def mcq_api_check_answer():
                     item_id=item_id,
                     quality=fsrs_quality,
                     mode='mcq',
+                    duration_ms=effective_duration_ms,
                     only_count=True
                 )
                 # Merge FSRS result into the main response
@@ -393,7 +401,8 @@ def mcq_api_check_answer():
                     learning_mode='mcq',
                     score_points=result['score_change'],
                     item_type=item_type,
-                    reason=f"Vocab MCQ Practice {'Correct' if result['is_correct'] else 'Incorrect'}"
+                    reason=f"Vocab MCQ Practice {'Correct' if result['is_correct'] else 'Incorrect'}",
+                    duration_ms=effective_duration_ms
                 )
             except Exception as e_signal:
                  current_app.logger.error(f"[VOCAB_MCQ] Signal emit error: {e_signal}")
@@ -410,7 +419,7 @@ def mcq_api_check_answer():
                         'rating': fsrs_quality,
                         'user_answer': result.get('user_answer'),
                         'is_correct': result['is_correct'],
-                        'review_duration': result.get('duration_ms', 0)
+                        'review_duration': effective_duration_ms
                     },
                     context_data={
                         'session_id': manager.db_session_id,

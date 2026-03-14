@@ -1638,6 +1638,11 @@
         });
 
         startTime = Date.now();
+        
+        // [AFK DETECTION] Start the interaction-aware timer
+        if (window.learningTimer) {
+            window.learningTimer.start();
+        }
 
         // [REMOVED] Auto Play Question Audio - User wants audio ONLY after answering
         /*
@@ -1741,7 +1746,11 @@
         els.nextBtn.disabled = false;
         els.nextBtn.focus();
 
-        const duration_ms = Date.now() - startTime;
+        let duration_ms = Date.now() - startTime;
+        if (window.learningTimer) {
+            duration_ms = window.learningTimer.getDuration();
+            window.learningTimer.stop();
+        }
 
         // Push to history for charts
         sessionHistory.push({
