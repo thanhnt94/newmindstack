@@ -208,6 +208,7 @@ body.flashcard-session-active>main {
     --card-accent-rgb: 249, 115, 22;
 }
 
+
 .flashcard-card[data-card-category="hard"] {
     --card-accent-bg: linear-gradient(135deg, #fb7185, #ef4444);
     --card-accent-hover-bg: linear-gradient(135deg, #f43f5e, #dc2626);
