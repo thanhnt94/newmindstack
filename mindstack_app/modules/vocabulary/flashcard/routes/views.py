@@ -416,6 +416,7 @@ def flashcard_session(session_id):
     db_extra = (active_db_session.session_data or {}) if active_db_session else {}
     initial_new_learned = db_extra.get('new_learned_count', 0)
     initial_due_remaining = 0
+    initial_next_due_timestamp = None
     try:
         from ..engine.algorithms import get_session_srs_counts
         srs_counts = get_session_srs_counts(
@@ -424,6 +425,7 @@ def flashcard_session(session_id):
             processed_ids=session_data.get('processed_item_ids', [])
         )
         initial_due_remaining = srs_counts['due_remaining']
+        initial_next_due_timestamp = srs_counts.get('next_due_timestamp')
         # Only use computed new_learned if no persisted value (first load)
         if initial_new_learned == 0 and srs_counts['new_learned'] > 0:
             initial_new_learned = srs_counts['new_learned']
@@ -449,6 +451,7 @@ def flashcard_session(session_id):
         initial_session_points=session_data.get('session_points', 0),
         initial_new_learned=initial_new_learned,
         initial_due_remaining=initial_due_remaining,
+        initial_next_due_timestamp=initial_next_due_timestamp,
     )
 
 

@@ -66,7 +66,8 @@ let sessionStatsLocal = {
     incorrect: (window.FlashcardConfig && window.FlashcardConfig.initialIncorrectCount) ? window.FlashcardConfig.initialIncorrectCount : 0,
     vague: (window.FlashcardConfig && window.FlashcardConfig.initialVagueCount) ? window.FlashcardConfig.initialVagueCount : 0,
     new_learned: (window.FlashcardConfig && window.FlashcardConfig.initialNewLearned) ? window.FlashcardConfig.initialNewLearned : 0,
-    due_remaining: (window.FlashcardConfig && window.FlashcardConfig.initialDueRemaining) ? window.FlashcardConfig.initialDueRemaining : 0
+    due_remaining: (window.FlashcardConfig && window.FlashcardConfig.initialDueRemaining) ? window.FlashcardConfig.initialDueRemaining : 0,
+    next_due_timestamp: (window.FlashcardConfig && window.FlashcardConfig.initialNextDueTimestamp) ? window.FlashcardConfig.initialNextDueTimestamp : null
 };
 
 // --- Settings Sync ---
@@ -519,6 +520,9 @@ async function displayCurrentCard(force = false) {
         incorrect: sessionStatsLocal.incorrect,
         vague: sessionStatsLocal.vague,
         session_score: sessionScore,
+        new_learned: sessionStatsLocal.new_learned,
+        due_remaining: sessionStatsLocal.due_remaining,
+        next_due_timestamp: sessionStatsLocal.next_due_timestamp,
 
         // [FIX] Add FSRS stats to prevent overwrite with 0s
         difficulty: currentCardData.initial_stats ? currentCardData.initial_stats.difficulty : 0,
@@ -608,6 +612,7 @@ async function submitFlashcardAnswer(itemId, answer) {
         // [NEW] Update SRS HUD counters from server response
         if (data.new_learned !== undefined) sessionStatsLocal.new_learned = data.new_learned;
         if (data.due_remaining !== undefined) sessionStatsLocal.due_remaining = data.due_remaining;
+        if (data.next_due_timestamp !== undefined) sessionStatsLocal.next_due_timestamp = data.next_due_timestamp;
 
         // [UX-IMMEDIATE] 3. Update Current Card Stats Immediately
         if (window.updateFlashcardStats) {
@@ -694,6 +699,7 @@ async function submitFlashcardAnswer(itemId, answer) {
             session_score: sessionScore,
             new_learned: sessionStatsLocal.new_learned,
             due_remaining: sessionStatsLocal.due_remaining,
+            next_due_timestamp: sessionStatsLocal.next_due_timestamp,
             // Include card-specific stats (Box B)
             current_card_history_right: data.statistics ? data.statistics.correct_count : 0,
             current_card_history_wrong: data.statistics ? (data.statistics.incorrect_count + data.statistics.vague_count) : 0,

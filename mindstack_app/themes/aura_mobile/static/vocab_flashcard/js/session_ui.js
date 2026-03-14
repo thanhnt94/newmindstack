@@ -771,6 +771,13 @@
         }
         if (stats.due_remaining !== undefined) {
             document.querySelectorAll('.js-fc-session-due').forEach(el => el.textContent = stats.due_remaining);
+            
+            // [NEW] Countdown Timer Logic
+            if (stats.due_remaining === 0 && stats.next_due_timestamp) {
+                renderNextDueTimer(stats.next_due_timestamp);
+            } else {
+                renderNextDueTimer(null); // Clear timer
+            }
         }
 
         // 3. Session Points (Diamond)
@@ -849,6 +856,65 @@
             window.updateStateBadge(stats.status);
         }
     }
+
+    // [TIMER LOGIC]
+    let _nextDueInterval = null;
+    function renderNextDueTimer(targetTimeStr) {
+        clearInterval(_nextDueInterval);
+        const dueTextEl = document.getElementById('fc-due-remaining-text');
+        const timerEl = document.getElementById('fc-next-due-timer');
+        
+        if (!dueTextEl || !timerEl) return;
+        
+        if (!targetTimeStr) {
+            // Show due count
+            dueTextEl.style.display = '';
+            timerEl.classList.add('hidden');
+            return;
+        }
+        
+        // Hide due text, show timer
+        dueTextEl.style.display = 'none';
+        timerEl.classList.remove('hidden');
+        
+        // Use naive UTC appended with Z to ensure proper browser parsing as UTC
+        const formattedTarget = targetTimeStr.endsWith('Z') ? targetTimeStr : targetTimeStr + 'Z';
+        const targetDate = new Date(formattedTarget).getTime();
+        
+        function updateTimer() {
+            const now = new Date().getTime();
+            const diff = targetDate - now;
+
+            if (diff <= 0) {
+                clearInterval(_nextDueInterval);
+                timerEl.textContent = 'Đã đến giờ!';
+                return;
+            }
+
+            const d = Math.floor(diff / (1000 * 60 * 60 * 24));
+            const h = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+            const s = Math.floor((diff % (1000 * 60)) / 1000);
+
+            let str = '';
+            if (d > 0) str += d + 'd ';
+            if (h > 0 || d > 0) str += String(h).padStart(2, '0') + ':';
+            str += String(m).padStart(2, '0') + ':';
+            str += String(s).padStart(2, '0');
+
+            timerEl.textContent = str;
+        }
+        
+        updateTimer();
+        _nextDueInterval = setInterval(updateTimer, 1000);
+    }
+    
+    // Initial check for timer
+    window.addEventListener('load', () => {
+        if (window.FlashcardConfig && window.FlashcardConfig.initialDueRemaining === 0 && window.FlashcardConfig.initialNextDueTimestamp) {
+            renderNextDueTimer(window.FlashcardConfig.initialNextDueTimestamp);
+        }
+    });
 
     // --- Smart Transition Helpers ---
 

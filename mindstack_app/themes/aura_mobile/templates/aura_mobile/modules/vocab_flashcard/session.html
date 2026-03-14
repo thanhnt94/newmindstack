@@ -79,46 +79,47 @@
                     <div class="flex items-center justify-between px-3 py-2">
                         {# Stats Pills #}
                         <div id="fc-mobile-stats-pills"
-                            class="flex items-center gap-1.5 text-xs overflow-x-auto no-scrollbar transition-all duration-300">
+                            class="flex items-center gap-0.5 text-xs overflow-x-auto no-scrollbar transition-all duration-300">
 
 
 
                             {# Correct Pill #}
                             <div
-                                class="stat-pill flex-shrink-0 flex items-center gap-1 px-2 py-1 bg-emerald-50 rounded-lg">
+                                class="stat-pill flex-shrink-0 flex items-center gap-0.5 px-1 py-0.5 bg-emerald-50 rounded-lg">
                                 <i class="fa-solid fa-check text-emerald-500 text-[9px]"></i>
-                                <span class="text-emerald-600 font-bold" id="live-correct">0</span>
+                                <span class="text-emerald-600 font-bold font-mono text-[11px]" id="live-correct">0</span>
                             </div>
 
                             {# Wrong Pill #}
                             <div
-                                class="stat-pill flex-shrink-0 flex items-center gap-1 px-2 py-1 bg-rose-50 rounded-lg">
+                                class="stat-pill flex-shrink-0 flex items-center gap-0.5 px-1 py-0.5 bg-rose-50 rounded-lg">
                                 <i class="fa-solid fa-times text-rose-500 text-[9px]"></i>
-                                <span class="text-rose-600 font-bold" id="live-wrong">0</span>
+                                <span class="text-rose-600 font-bold font-mono text-[11px]" id="live-wrong">0</span>
                             </div>
 
                             {# Session Points Pill #}
                             <div
-                                class="stat-pill flex-shrink-0 flex items-center gap-1 px-2 py-1 bg-amber-50 rounded-lg">
+                                class="stat-pill flex-shrink-0 flex items-center gap-0.5 px-1 py-0.5 bg-amber-50 rounded-lg">
                                 <i class="fa-solid fa-gem text-amber-500 text-[9px]"></i>
-                                <span class="text-amber-600 font-bold" id="live-session-score">{{ initial_session_points
+                                <span class="text-amber-600 font-bold font-mono text-[11px]" id="live-session-score">{{ initial_session_points
                                     | default(0) }}</span>
                             </div>
 
                             {# [NEW] New Learned Pill #}
-                            <div class="stat-pill flex-shrink-0 flex items-center gap-1 px-2 py-1 bg-blue-50 rounded-lg"
+                            <div class="stat-pill flex-shrink-0 flex items-center gap-0.5 px-1 py-0.5 bg-blue-50 rounded-lg"
                                 title="Thẻ mới trong phiên">
                                 <i class="fas fa-seedling text-blue-500 text-[9px]"></i>
-                                <span class="text-blue-600 font-bold js-fc-session-new">{{ initial_new_learned |
+                                <span class="text-blue-600 font-bold font-mono text-[11px] js-fc-session-new">{{ initial_new_learned |
                                     default(0) }}</span>
                             </div>
 
                             {# [NEW] Due Remaining Pill #}
-                            <div class="stat-pill flex-shrink-0 flex items-center gap-1 px-2 py-1 bg-orange-50 rounded-lg"
+                            <div class="stat-pill flex-shrink-0 flex items-center gap-0.5 px-1 py-0.5 bg-orange-50 rounded-lg w-auto min-w-0"
                                 title="Cần ôn tập">
                                 <i class="fa-solid fa-clock-rotate-left text-orange-500 text-[9px]"></i>
-                                <span class="text-orange-600 font-bold js-fc-session-due">{{ initial_due_remaining |
+                                <span id="fc-due-remaining-text" class="text-orange-600 font-bold font-mono text-[11px] whitespace-nowrap js-fc-session-due">{{ initial_due_remaining |
                                     default(0) }}</span>
+                                <span id="fc-next-due-timer" class="text-orange-600 font-bold font-mono text-[11px] whitespace-nowrap hidden"></span>
                             </div>
                         </div>
 
@@ -346,6 +347,7 @@
     const _initialVagueCount = {{ initial_vague_count|default (0) }};
     const _initialNewLearned = {{ initial_new_learned|default (0) }};
     const _initialDueRemaining = {{ initial_due_remaining|default (0) }};
+    const _initialNextDueTimestamp = {{ initial_next_due_timestamp|tojson|default ('null') }};
 
     // [SSR] Initial Data
     window.initialFlashcardBatch = {{ (initial_batch or[]) | tojson }};
@@ -377,6 +379,7 @@
                     initialVagueCount: _initialVagueCount,
                         initialNewLearned: _initialNewLearned,
                             initialDueRemaining: _initialDueRemaining,
+                                initialNextDueTimestamp: _initialNextDueTimestamp,
                                 scores: {
         again: _scoreAgain,
             hard: _scoreHard,

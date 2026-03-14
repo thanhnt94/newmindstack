@@ -214,4 +214,18 @@ def get_session_srs_counts(user_id, set_id, processed_ids=None):
     q_due = FsrsInterface.apply_memory_filter(q_due, user_id, 'due')
     due_remaining = q_due.count()
 
-    return {'new_learned': new_learned, 'due_remaining': due_remaining}
+    next_due_timestamp = None
+    if due_remaining == 0:
+        from mindstack_app.modules.fsrs.models import ItemMemoryState
+        q_next = _base_q(set_id)
+        q_next = q_next.join(ItemMemoryState, ItemMemoryState.item_id == LearningItem.item_id).filter(
+            ItemMemoryState.user_id == user_id,
+            ItemMemoryState.state != 0
+        ).order_by(ItemMemoryState.due_date.asc()).limit(1)
+        next_item = q_next.first()
+        if next_item:
+            state = ItemMemoryState.query.filter_by(item_id=next_item.item_id, user_id=user_id).first()
+            if state and state.due_date:
+                next_due_timestamp = state.due_date.isoformat()
+
+    return {'new_learned': new_learned, 'due_remaining': due_remaining, 'next_due_timestamp': next_due_timestamp}

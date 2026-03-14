@@ -436,7 +436,8 @@ def api_submit_flashcard_answer():
         'session_total_answered': db_sess.correct_count + db_sess.incorrect_count + db_sess.vague_count,
         'session_points': score_change,
         'new_learned': srs_counts['new_learned'],
-        'due_remaining': srs_counts['due_remaining']
+        'due_remaining': srs_counts['due_remaining'],
+        'next_due_timestamp': srs_counts.get('next_due_timestamp')
     })
 
 @blueprint.route('/end_session_flashcard', methods=['POST'])
