@@ -14,44 +14,44 @@
                     {# Top-Left Unified Header: Status Badge + Statistics #}
                     <div class="absolute top-2.5 left-2.5 pointer-events-auto">
                         <div
-                            class="flex items-center bg-white/95 backdrop-blur-sm rounded-full shadow-lg border border-slate-200 overflow-hidden h-8">
+                            class="flex items-center badge-galaxy-glass-light rounded-full shadow-lg overflow-hidden h-8">
                             {# Status Part #}
                             <div
-                                class="js-card-overlay-status-badge flex items-center gap-1 px-2 bg-blue-500 text-white font-bold text-[9px] uppercase tracking-wider h-full cursor-pointer hover:brightness-110 active:scale-95 transition-all">
-                                <i class="fas fa-layer-group text-[10px]"></i>
+                                class="js-card-overlay-status-badge flex items-center gap-0.5 px-1.5 bg-blue-500/90 text-white font-bold text-[9px] uppercase tracking-wider h-full cursor-pointer hover:brightness-110 active:scale-95 transition-all">
+                                <i class="fas fa-layer-group text-[9px]"></i>
                                 <span class="js-card-overlay-status-text">MỚI</span>
                             </div>
 
                             {# Stats Part #}
                             <div
-                                class="js-card-overlay-stats flex items-center gap-2 px-2.5 h-full transition-all duration-300">
+                                class="js-card-overlay-stats flex items-center gap-2 px-2 h-full transition-all duration-300">
 
                                 <div class="flex items-center gap-1" title="Số lần ôn">
-                                    <i class="fas fa-redo text-slate-400 text-[9px]"></i>
+                                    <i class="fas fa-redo text-slate-400 text-[8px]"></i>
                                     <span
-                                        class="text-[11px] font-bold text-slate-700 js-card-overlay-times-reviewed">0</span>
+                                        class="text-[10px] font-bold text-slate-700 js-card-overlay-times-reviewed">0</span>
                                 </div>
 
 
                                 <div class="flex items-center gap-1" title="Độ khó">
-                                    <i class="fas fa-mask text-rose-500 text-[9px]"></i>
+                                    <i class="fas fa-mask text-rose-500 text-[8px]"></i>
                                     <span
-                                        class="text-[11px] font-bold text-rose-700 js-card-overlay-difficulty">0.0</span>
+                                        class="text-[10px] font-bold text-rose-700 js-card-overlay-difficulty">0.0</span>
                                 </div>
 
 
                                 <div class="flex items-center gap-1" title="Độ ổn định">
-                                    <i class="fas fa-shield-alt text-emerald-500 text-[9px]"></i>
+                                    <i class="fas fa-shield-alt text-emerald-500 text-[8px]"></i>
                                     <span
-                                        class="text-[11px] font-bold text-emerald-700 js-card-overlay-stability">0.0</span>
+                                        class="text-[10px] font-bold text-emerald-700 js-card-overlay-stability">0.0</span>
                                 </div>
 
 
                                 <div class="flex items-center gap-1" title="Khả năng nhớ">
-                                    <i class="fas fa-brain text-purple-500 text-[9px]"></i>
+                                    <i class="fas fa-brain text-purple-500 text-[8px]"></i>
                                     <span
-                                        class="text-[11px] font-bold text-purple-700 js-card-overlay-retrievability">0</span>
-                                    <span class="text-[8px] text-purple-500 opacity-60">%</span>
+                                        class="text-[10px] font-bold text-purple-700 js-card-overlay-retrievability">0</span>
+                                    <span class="text-[7px] text-purple-500 opacity-60">%</span>
                                 </div>
                             </div>
                         </div>
@@ -60,15 +60,15 @@
                     {# Top-Right: Unified Block (Item ID + Stats Detail Button) #}
                     <div class="absolute top-2.5 right-2.5 pointer-events-auto z-30">
                         <div
-                            class="flex items-stretch bg-slate-900/55 backdrop-blur-md rounded-full border border-white/10 shadow-2xl overflow-hidden group h-8">
-                            <div class="flex items-center pl-2 pr-1.5 bg-white/5">
+                            class="flex items-stretch badge-galaxy-glass-light rounded-full overflow-hidden group h-8 border border-indigo-600/30">
+                            <div class="flex items-center pl-2 pr-1.5 badge-galaxy-label-outline h-full">
                                 <span
-                                    class="js-card-overlay-item-id text-white/90 text-[12px] font-mono font-bold tracking-tight opacity-0 transition-opacity duration-300">#0</span>
+                                    class="js-card-overlay-item-id text-indigo-600/90 text-[11px] font-mono font-bold tracking-tight opacity-0 transition-opacity duration-300">#0</span>
                             </div>
                             <button
-                                class="js-fc-stats-detail-overlay w-8 h-8 bg-indigo-500/90 text-white flex items-center justify-center hover:bg-indigo-600 transition-colors active:opacity-75"
+                                class="js-fc-stats-detail-overlay w-8 h-8 bg-violet-600 text-white flex items-center justify-center hover:bg-violet-700 transition-colors active:opacity-75 leading-none"
                                 title="Chi tiết thống kê">
-                                <i class="fas fa-chart-pie text-[11px]"></i>
+                                <i class="fas fa-chart-pie text-[11px] transform -translate-y-[0.5px]"></i>
                             </button>
                         </div>
                     </div>
@@ -80,9 +80,9 @@
                         <div class="pointer-events-auto">
                             <div class="relative group/audio">
                                 <button
-                                    class="js-fc-audio-btn-overlay w-8 h-8 rounded-full bg-blue-500/90 backdrop-blur-sm text-white flex items-center justify-center hover:bg-blue-600 transition-all shadow-lg hover:scale-110"
+                                    class="js-fc-audio-btn-overlay w-8 h-8 rounded-full badge-galaxy-label-indigo text-white flex items-center justify-center hover:scale-110 active:scale-95 transition-all shadow-lg ring-1 ring-white/30"
                                     data-has-audio="false">
-                                    <i class="fa-solid fa-volume-xmark text-xs js-fc-audio-icon-overlay"></i>
+                                    <i class="fa-solid fa-volume-xmark text-xs js-fc-audio-icon-overlay text-white"></i>
                                 </button>
                                 {# Autoplay Indicator Badge #}
                                 <div
@@ -95,18 +95,18 @@
                         {# Center: Note Toggle Button (pill with icon + text) #}
                         <div class="absolute left-1/2 -translate-x-1/2 pointer-events-auto">
                             <button
-                                class="js-fc-note-toggle-overlay h-8 px-3 rounded-full bg-amber-500/90 backdrop-blur-sm text-white flex items-center justify-center gap-1.5 hover:bg-amber-600 transition-all shadow-lg hover:scale-105 hidden text-[10px] font-bold uppercase tracking-wider"
+                                class="js-fc-note-toggle-overlay h-8 px-3 rounded-full badge-galaxy-glass-light text-white flex items-center justify-center gap-1.5 hover:scale-105 transition-all shadow-lg hidden text-[10px] font-bold uppercase tracking-wider !border-amber-500/30"
                                 title="Hiện ghi chú">
-                                <i class="fas fa-sticky-note text-[10px]"></i>
-                                <span>Hiện ghi chú</span>
+                                <i class="fas fa-sticky-note text-amber-500 text-[10px]"></i>
+                                <span class="text-amber-700">Hiện ghi chú</span>
                             </button>
                         </div>
 
                         {# Right: Image Toggle Button #}
                         <div class="pointer-events-auto">
                             <button
-                                class="js-fc-image-toggle-overlay w-8 h-8 rounded-full bg-slate-700/90 backdrop-blur-sm text-white flex items-center justify-center hover:bg-slate-800 transition-all shadow-lg hover:scale-110">
-                                <i class="fas fa-image text-xs js-fc-image-icon-overlay"></i>
+                                class="js-fc-image-toggle-overlay w-8 h-8 rounded-full badge-galaxy-glass-dark text-white flex items-center justify-center hover:scale-110 active:scale-95 transition-all shadow-lg">
+                                <i class="fas fa-image text-xs js-fc-image-icon-overlay text-slate-200"></i>
                             </button>
                         </div>
                     </div>

@@ -256,30 +256,37 @@
     }
 
     let _lastHeaderScore = null;
+    let _lastSessionScore = null;
 
     /**
-     * Animate numeric value count-up
+     * Animate numeric value count-up with easing and focus pulse
      */
     function animateValue(el, start, end, duration) {
         if (start === end) return;
+        if (!el) return;
         
-        // Add focus effect
+        // Add focus effect (pulse)
         el.classList.remove('animate-score-focus');
-        void el.offsetWidth; // Trigger reflow
+        void el.offsetWidth; // Force reflow
         el.classList.add('animate-score-focus');
         
         let startTimestamp = null;
         const step = (timestamp) => {
             if (!startTimestamp) startTimestamp = timestamp;
             const progress = Math.min((timestamp - startTimestamp) / duration, 1);
-            const current = Math.floor(progress * (end - start) + start);
+            
+            // Ease out cubic
+            const easeOutCubic = 1 - Math.pow(1 - progress, 3);
+            const current = Math.floor(easeOutCubic * (end - start) + start);
+            
             el.textContent = current.toLocaleString('en-US');
+            
             if (progress < 1) {
                 window.requestAnimationFrame(step);
             } else {
                 el.textContent = end.toLocaleString('en-US');
-                // Remove class after animation finishes (or slightly before/after)
-                setTimeout(() => el.classList.remove('animate-score-focus'), 500);
+                // Pulse usually finishes by now, but we clear it to be safe
+                setTimeout(() => el.classList.remove('animate-score-focus'), 100);
             }
         };
         window.requestAnimationFrame(step);
@@ -811,11 +818,15 @@
         }
 
         // 3. Session Points (Diamond)
+        const sessionScore = stats.session_score || 0;
         document.querySelectorAll('.js-fc-session-points, #live-session-score').forEach(el => {
-            const val = stats.session_score || 0;
-            // Removed sign for pill display to match MCQ style
-            el.textContent = val;
+            if (_lastSessionScore !== null && _lastSessionScore !== sessionScore) {
+                animateValue(el, _lastSessionScore, sessionScore, 600);
+            } else {
+                el.textContent = sessionScore;
+            }
         });
+        _lastSessionScore = sessionScore;
 
         // [FIX] Update Global Score Header
         if (typeof window.currentUserTotalScore !== 'undefined') {
@@ -1124,17 +1135,18 @@
             // Update badge color based on status
             const overlayBadge = document.querySelector('.js-card-overlay-status-badge');
             if (overlayBadge) {
-                // Remove old status classes
+                // Remove old status classes (both standard Tailwind and Galaxy labels)
                 overlayBadge.className = overlayBadge.className.replace(/bg-\w+-\d+\/\d+/g, '');
-
+                overlayBadge.className = overlayBadge.className.replace(/badge-galaxy-label-\w+/g, '');
+ 
                 // Apply new color based on status
                 const statusColors = {
-                    'new': 'bg-blue-500/90',
-                    'learning': 'bg-amber-500/90',
-                    'review': 'bg-emerald-500/90',
-                    'relearning': 'bg-rose-500/90'
+                    'new': 'badge-galaxy-label-blue',
+                    'learning': 'badge-galaxy-label-amber',
+                    'review': 'badge-galaxy-label-emerald',
+                    'relearning': 'badge-galaxy-label-rose'
                 };
-                const colorClass = statusColors[data.new_progress_status.toLowerCase()] || 'bg-slate-500/90';
+                const colorClass = statusColors[data.new_progress_status.toLowerCase()] || 'badge-galaxy-label-dark';
                 overlayBadge.classList.add(colorClass);
             }
 

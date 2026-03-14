@@ -144,24 +144,14 @@ window.flipToBack = function () {
     const mobileStatsBtn = document.querySelector('.js-fc-card-details-btn');
     if (mobileStatsBtn) mobileStatsBtn.classList.remove('hidden');
 
-    // Update overlay audio button for back side
+    // Update overlay audio button visibility for back side
     const currentCard = window.currentFlashcardBatch && window.currentFlashcardBatch[window.currentFlashcardIndex];
-    const hasBackAudio = currentCard && (currentCard.content.back_audio_url || currentCard.content.back_audio_content);
+    const hasBackAudio = currentCard && currentCard.content && (currentCard.content.back_audio_url || currentCard.content.back_audio_content);
 
     const overlayAudioBtn = document.querySelector('.js-fc-audio-btn-overlay');
-    const overlayAudioIcon = document.querySelector('.js-fc-audio-icon-overlay');
-    if (overlayAudioBtn && overlayAudioIcon) {
-        if (hasBackAudio) {
-            overlayAudioBtn.classList.remove('opacity-50', 'cursor-not-allowed', 'bg-slate-500/90');
-            overlayAudioBtn.classList.add('bg-blue-500/90', 'hover:bg-blue-600');
-            overlayAudioIcon.className = 'fa-solid fa-volume-high text-sm js-fc-audio-icon-overlay';
-            overlayAudioBtn.dataset.hasAudio = 'true';
-        } else {
-            overlayAudioBtn.classList.add('opacity-50', 'cursor-not-allowed', 'bg-slate-500/90');
-            overlayAudioBtn.classList.remove('bg-blue-500/90', 'hover:bg-blue-600');
-            overlayAudioIcon.className = 'fa-solid fa-volume-xmark text-sm js-fc-audio-icon-overlay';
-            overlayAudioBtn.dataset.hasAudio = 'false';
-        }
+    if (overlayAudioBtn) {
+        overlayAudioBtn.classList.toggle('hidden', !hasBackAudio);
+        overlayAudioBtn.dataset.hasAudio = hasBackAudio ? 'true' : 'false';
     }
 
     setTimeout(() => { if (window.adjustCardLayout) window.adjustCardLayout(); }, 0);
@@ -195,24 +185,14 @@ window.flipToFront = function () {
     const mobileStatsBtn = document.querySelector('.js-fc-card-details-btn');
     if (mobileStatsBtn) mobileStatsBtn.classList.add('hidden');
 
-    // Update overlay audio - front side
+    // Update overlay audio visibility for front side
     const currentCard = window.currentFlashcardBatch && window.currentFlashcardBatch[window.currentFlashcardIndex];
-    const hasFrontAudio = currentCard && (currentCard.content.front_audio_url || currentCard.content.front_audio_content);
+    const hasFrontAudio = currentCard && currentCard.content && (currentCard.content.front_audio_url || currentCard.content.front_audio_content);
 
     const overlayAudioBtn = document.querySelector('.js-fc-audio-btn-overlay');
-    const overlayAudioIcon = document.querySelector('.js-fc-audio-icon-overlay');
-    if (overlayAudioBtn && overlayAudioIcon) {
-        if (hasFrontAudio) {
-            overlayAudioBtn.classList.remove('opacity-50', 'cursor-not-allowed', 'bg-slate-500/90');
-            overlayAudioBtn.classList.add('bg-blue-500/90', 'hover:bg-blue-600');
-            overlayAudioIcon.className = 'fa-solid fa-volume-high text-sm js-fc-audio-icon-overlay';
-            overlayAudioBtn.dataset.hasAudio = 'true';
-        } else {
-            overlayAudioBtn.classList.add('opacity-50', 'cursor-not-allowed', 'bg-slate-500/90');
-            overlayAudioBtn.classList.remove('bg-blue-500/90', 'hover:bg-blue-600');
-            overlayAudioIcon.className = 'fa-solid fa-volume-xmark text-sm js-fc-audio-icon-overlay';
-            overlayAudioBtn.dataset.hasAudio = 'false';
-        }
+    if (overlayAudioBtn) {
+        overlayAudioBtn.classList.toggle('hidden', !hasFrontAudio);
+        overlayAudioBtn.dataset.hasAudio = hasFrontAudio ? 'true' : 'false';
     }
 
     setTimeout(() => { if (window.adjustCardLayout) window.adjustCardLayout(); }, 0);
@@ -675,6 +655,13 @@ function renderCard(data) {
     const visibleContainer = getVisibleFlashcardContentDiv();
     const card = visibleContainer ? visibleContainer.querySelector('.js-flashcard-card') : document.querySelector('.js-flashcard-card');
 
+    // [NEW] Conditional visibility for Audio Overlay button
+    const overlayAudioBtn = document.querySelector('.js-fc-audio-btn-overlay');
+    if (overlayAudioBtn) {
+        overlayAudioBtn.classList.toggle('hidden', !hasFrontAudio);
+        overlayAudioBtn.dataset.hasAudio = hasFrontAudio ? 'true' : 'false';
+    }
+
     // [NEW] Conditional visibility for Image Toggle button
     const imageToggleOverlay = document.querySelector('.js-fc-image-toggle-overlay');
     if (imageToggleOverlay) {
@@ -985,28 +972,6 @@ function renderCard(data) {
     // [NEW] Update FSRS estimates on rating buttons
     if (window.updateRatingButtonEstimates) {
         window.updateRatingButtonEstimates(data);
-    }
-
-    // [NEW] Update overlay audio button state based on audio availability
-    const overlayAudioBtn = document.querySelector('.js-fc-audio-btn-overlay');
-    const overlayAudioIcon = document.querySelector('.js-fc-audio-icon-overlay');
-    if (overlayAudioBtn && overlayAudioIcon) {
-        // Check if front side has audio (card starts on front)
-        const hasAudio = hasFrontAudio;
-
-        if (hasAudio) {
-            overlayAudioBtn.classList.remove('opacity-50', 'cursor-not-allowed');
-            overlayAudioBtn.classList.add('bg-blue-500/90', 'hover:bg-blue-600');
-            overlayAudioBtn.classList.remove('bg-slate-500/90');
-            overlayAudioIcon.className = 'fa-solid fa-volume-high text-sm js-fc-audio-icon-overlay';
-            overlayAudioBtn.dataset.hasAudio = 'true';
-        } else {
-            overlayAudioBtn.classList.add('opacity-50', 'cursor-not-allowed');
-            overlayAudioBtn.classList.remove('bg-blue-500/90', 'hover:bg-blue-600');
-            overlayAudioBtn.classList.add('bg-slate-500/90');
-            overlayAudioIcon.className = 'fa-solid fa-volume-xmark text-sm js-fc-audio-icon-overlay';
-            overlayAudioBtn.dataset.hasAudio = 'false';
-        }
     }
 }
 

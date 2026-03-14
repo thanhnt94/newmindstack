@@ -43,6 +43,200 @@
         animation: score-pulse 0.4s ease-out;
         display: inline-block; /* Ensure transform works */
     }
+
+    /* Premium Header Styling - Deep Galaxy Theme */
+    .session-header-premium {
+        position: relative;
+        background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 50%, #db2777 100%);
+        overflow: hidden;
+    }
+    
+    .session-header-premium::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background-image: radial-gradient(#ffffff 0.5px, transparent 0.5px);
+        background-size: 10px 10px;
+        opacity: 0.12;
+        pointer-events: none;
+    }
+
+    .session-header-premium::after {
+        content: "";
+        position: absolute;
+        top: -50%;
+        left: -20%;
+        width: 140%;
+        height: 200%;
+        background: radial-gradient(circle at center, rgba(255,255,255,0.18) 0%, transparent 70%);
+        pointer-events: none;
+        animation: mesh-float 15s infinite alternate ease-in-out;
+    }
+
+    @keyframes mesh-float {
+        0% { transform: translateY(0) rotate(0deg); }
+        100% { transform: translateY(10%) rotate(5deg); }
+    }
+
+    .header-badge-glass {
+        background: rgba(255, 255, 255, 0.15);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+    }
+
+    /* === FULL UI SYNCHRONIZATION: DEEP GALAXY THEME === */
+
+    /* Overall Background & Page Shell */
+    .flashcard-mobile-view {
+        background: #f8fafc !important; /* Light Slate Base */
+        position: relative;
+    }
+
+    .page-shell {
+        background: radial-gradient(circle at 50% 0%, rgba(79, 70, 229, 0.05) 0%, transparent 70%),
+                    radial-gradient(circle at 100% 100%, rgba(219, 39, 119, 0.05) 0%, transparent 70%) !important;
+        position: relative;
+    }
+
+    .page-shell::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background-image: radial-gradient(rgba(0, 0, 0, 0.02) 1px, transparent 1px);
+        background-size: 24px 24px;
+        pointer-events: none;
+        z-index: 0;
+    }
+
+    /* Glassmorphic Row 2 (Stats Bar) */
+    .stats-bar-galaxy {
+        background: rgba(255, 255, 255, 0.8) !important;
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border-bottom: 1px solid rgba(0, 0, 0, 0.05) !important;
+    }
+
+    .stat-pill-galaxy {
+        background: rgba(0, 0, 0, 0.03) !important;
+        border: 1px solid rgba(0, 0, 0, 0.05) !important;
+        padding: 3px 5px !important; /* More compact */
+        border-radius: 8px !important;
+    }
+
+    .stat-pill-galaxy span {
+        color: #334155 !important; /* Slate 700 */
+    }
+
+    /* Glassmorphic Bottom Bar */
+    .flashcard-mobile-view .fc-bottom-bar {
+        background: rgba(255, 255, 255, 0.9) !important;
+        backdrop-filter: blur(20px) !important;
+        -webkit-backdrop-filter: blur(20px) !important;
+        border-top: 1px solid rgba(0, 0, 0, 0.05) !important;
+        box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.08) !important;
+    }
+
+    /* Vibrant Rating Buttons */
+    .flashcard-mobile-view .fc-rating-btn.again {
+        background: linear-gradient(135deg, #e11d48 0%, #9f1239 100%) !important;
+        box-shadow: 0 4px 12px rgba(225, 29, 72, 0.25) !important;
+    }
+    .flashcard-mobile-view .fc-rating-btn.hard {
+        background: linear-gradient(135deg, #f59e0b 0%, #b45309 100%) !important;
+        box-shadow: 0 4px 12px rgba(245, 158, 11, 0.25) !important;
+    }
+    .flashcard-mobile-view .fc-rating-btn.good {
+        background: linear-gradient(135deg, #0d9488 0%, #0f766e 100%) !important;
+        box-shadow: 0 4px 12px rgba(13, 148, 136, 0.25) !important;
+    }
+    .flashcard-mobile-view .fc-rating-btn.easy {
+        background: linear-gradient(135deg, #4f46e5 0%, #3730a3 100%) !important;
+        box-shadow: 0 4px 12px rgba(79, 70, 229, 0.25) !important;
+    }
+
+    /* Flip Button */
+    .flashcard-mobile-view .fc-flip-btn {
+        background: linear-gradient(135deg, #7c3aed 0%, #db2777 100%) !important;
+        box-shadow: 0 4px 20px rgba(124, 58, 237, 0.3) !important;
+        border: 1px solid rgba(255, 255, 255, 0.1) !important;
+        color: white !important;
+    }
+
+    /* Premium Modal Styling */
+    .premium-modal-glass {
+        background: rgba(255, 255, 255, 0.8) !important;
+        backdrop-filter: blur(20px) !important;
+        -webkit-backdrop-filter: blur(20px) !important;
+        border: 1px solid rgba(255, 255, 255, 0.4) !important;
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25) !important;
+    }
+
+    /* Floating Badge Synchronization - Deep Galaxy Theme */
+    .badge-galaxy-glass-light {
+        background: rgba(255, 255, 255, 0.75) !important;
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid rgba(99, 102, 241, 0.15) !important;
+        box-shadow: 0 8px 32px rgba(31, 38, 135, 0.1) !important;
+    }
+
+    .badge-galaxy-glass-dark {
+        background: rgba(30, 41, 59, 0.4) !important;
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid rgba(255, 255, 255, 0.1) !important;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2) !important;
+    }
+
+    .badge-galaxy-glass-indigo {
+        background: rgba(79, 70, 229, 0.15) !important;
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid rgba(79, 70, 229, 0.2) !important;
+        box-shadow: 0 8px 32px rgba(79, 70, 229, 0.1) !important;
+    }
+
+    .badge-galaxy-label-indigo {
+        background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%) !important;
+        color: white !important;
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+    }
+
+    .badge-galaxy-label-blue {
+        background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%) !important;
+        color: white !important;
+    }
+
+    .badge-galaxy-label-amber {
+        background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%) !important;
+        color: white !important;
+    }
+
+    .badge-galaxy-label-emerald {
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+        color: white !important;
+    }
+
+    .badge-galaxy-label-rose {
+        background: linear-gradient(135deg, #f43f5e 0%, #e11d48 100%) !important;
+        color: white !important;
+    }
+
+    .badge-galaxy-label-dark {
+        background: linear-gradient(135deg, #64748b 0%, #334155 100%) !important;
+        color: white !important;
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+    }
+
+    .badge-galaxy-label-outline {
+        background: rgba(255, 255, 255, 0.4) !important;
+        color: #4f46e5 !important;
+        backdrop-filter: blur(4px);
+    }
+
 </style>
 
 {% include _v ~ '/components/_markdown_assets.html' %}
@@ -63,84 +257,73 @@
         <!-- Header - Quiz Style Structure -->
         <header class="session-header">
             <div class="fc-header flex-col items-stretch !p-0">
-                {# --- Row 1: Badge + Title + Score --- #}
-                <div class="flex items-center justify-between px-3 py-2 bg-gradient-to-r from-emerald-500 to-green-600">
+                {# --- Row 1: Badge + Title + Score (Premium) --- #}
+                <div class="session-header-premium flex items-center justify-between px-2 py-2">
                     {# Badge + Title #}
-                    <div class="flex items-center gap-2.5 overflow-hidden flex-1 mr-2">
+                    <div class="flex items-center gap-1.5 overflow-hidden flex-1 mr-2 relative z-10">
                         <span
-                            class="flex-shrink-0 flex items-center gap-1 px-2.5 py-1 bg-white/20 rounded-lg shadow-sm">
+                            class="header-badge-glass flex-shrink-0 flex items-center gap-1 px-1.5 py-1 rounded-lg">
                             <i class="fas fa-clone text-white text-[10px]"></i>
-                            <span class="text-[10px] font-bold text-white uppercase tracking-wide">FLASHCARD</span>
+                            <span class="text-[9px] font-black text-white uppercase tracking-wider">FLASHCARD</span>
                         </span>
                         <span class="text-sm font-bold text-white truncate js-fc-title"
-                            style="text-shadow: 0 1px 3px rgba(0,0,0,0.3);">{{ container_name }}</span>
+                            style="text-shadow: 0 1px 4px rgba(0,0,0,0.4);">{{ container_name }}</span>
                     </div>
 
                     {# Score Badge #}
-                    <div class="flex-shrink-0 flex items-center gap-1 h-7 px-2.5 bg-white/20 rounded-full">
-                        <i class="fa-solid fa-gem text-white text-[10px]"></i>
+                    <div class="header-badge-glass flex-shrink-0 flex items-center gap-1 h-8 px-2 rounded-full relative z-10">
+                        <i class="fa-solid fa-gem text-amber-300 text-[10px] drop-shadow-sm"></i>
                         <span class="text-xs font-black text-white font-mono js-fc-score">
                             {{ "{:,}".format(current_user.total_score if current_user.total_score is not none else 0) }}
                         </span>
                     </div>
                 </div>
 
-                {# --- Row 2: Stats (White) --- #}
-                <div class="bg-white border-b border-slate-200">
-                    <div class="flex items-center justify-between px-3 py-2">
+                {# --- Row 2: Stats (Mixed Glass) --- #}
+                <div class="stats-bar-galaxy">
+                    <div class="flex items-center justify-between px-2 py-1.5">
                         {# Stats Pills #}
                         <div id="fc-mobile-stats-pills"
-                            class="flex items-center gap-0.5 text-xs overflow-x-auto no-scrollbar transition-all duration-300">
-
-
-
+                            class="flex items-center gap-1 text-xs overflow-x-auto no-scrollbar transition-all duration-300">
                             {# Correct Pill #}
-                            <div
-                                class="stat-pill flex-shrink-0 flex items-center gap-0.5 px-1 py-0.5 bg-emerald-50 rounded-lg">
-                                <i class="fa-solid fa-check text-emerald-500 text-[9px]"></i>
-                                <span class="text-emerald-600 font-bold font-mono text-xs" id="live-correct">0</span>
+                            <div class="stat-pill-galaxy flex-shrink-0 flex items-center gap-1">
+                                <i class="fa-solid fa-check text-emerald-400 text-[10px]"></i>
+                                <span class="font-bold font-mono text-xs" id="live-correct">0</span>
                             </div>
 
                             {# Wrong Pill #}
-                            <div
-                                class="stat-pill flex-shrink-0 flex items-center gap-0.5 px-1 py-0.5 bg-rose-50 rounded-lg">
-                                <i class="fa-solid fa-times text-rose-500 text-[9px]"></i>
-                                <span class="text-rose-600 font-bold font-mono text-xs" id="live-wrong">0</span>
+                            <div class="stat-pill-galaxy flex-shrink-0 flex items-center gap-1">
+                                <i class="fa-solid fa-times text-rose-400 text-[10px]"></i>
+                                <span class="font-bold font-mono text-xs" id="live-wrong">0</span>
                             </div>
 
                             {# Session Points Pill #}
-                            <div
-                                class="stat-pill flex-shrink-0 flex items-center gap-0.5 px-1 py-0.5 bg-amber-50 rounded-lg">
-                                <i class="fa-solid fa-gem text-amber-500 text-[9px]"></i>
-                                <span class="text-amber-600 font-bold font-mono text-xs" id="live-session-score">{{ initial_session_points
-                                    | default(0) }}</span>
+                            <div class="stat-pill-galaxy flex-shrink-0 flex items-center gap-1">
+                                <i class="fa-solid fa-gem text-amber-400 text-[10px]"></i>
+                                <span class="font-bold font-mono text-xs" id="live-session-score">{{ initial_session_points | default(0) }}</span>
                             </div>
 
                             {# [NEW] New Learned Pill #}
-                            <div class="stat-pill flex-shrink-0 flex items-center gap-0.5 px-1 py-0.5 bg-blue-50 rounded-lg"
-                                title="Thẻ mới trong phiên">
-                                <i class="fas fa-seedling text-blue-500 text-[9px]"></i>
-                                <span class="text-blue-600 font-bold font-mono text-xs js-fc-session-new">{{ initial_new_learned |
-                                    default(0) }}</span>
+                            <div class="stat-pill-galaxy flex-shrink-0 flex items-center gap-1" title="Thẻ mới trong phiên">
+                                <i class="fas fa-seedling text-cyan-400 text-[10px]"></i>
+                                <span class="font-bold font-mono text-xs js-fc-session-new">{{ initial_new_learned | default(0) }}</span>
                             </div>
 
                             {# [NEW] Due Remaining Pill #}
-                            <div class="stat-pill flex-shrink-0 flex items-center gap-0.5 px-1 py-0.5 bg-orange-50 rounded-lg w-auto min-w-0"
-                                title="Cần ôn tập">
-                                <i class="fa-solid fa-clock-rotate-left text-orange-500 text-[9px]"></i>
-                                <span id="fc-due-remaining-text" class="text-orange-600 font-bold font-mono text-xs whitespace-nowrap js-fc-session-due">{{ initial_due_remaining |
-                                    default(0) }}</span>
-                                <span id="fc-next-due-timer" class="text-orange-600 font-bold font-mono text-xs whitespace-nowrap hidden"></span>
+                            <div class="stat-pill-galaxy flex-shrink-0 flex items-center gap-1 w-auto min-w-0" title="Cần ôn tập">
+                                <i class="fa-solid fa-clock-rotate-left text-orange-400 text-[10px]"></i>
+                                <span id="fc-due-remaining-text" class="font-bold font-mono text-xs whitespace-nowrap js-fc-session-due">{{ initial_due_remaining | default(0) }}</span>
+                                <span id="fc-next-due-timer" class="font-bold font-mono text-xs whitespace-nowrap hidden"></span>
                             </div>
                         </div>
 
                         {# Action Buttons #}
-                        <div class="flex items-center gap-1.5 flex-shrink-0 relative">
+                        <div class="flex items-center gap-0.5 flex-shrink-0 relative">
                             {# ===== Session Settings Modal (Centered, Self-Contained) ===== #}
                             <div id="session-settings-modal"
                                 class="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 backdrop-blur-sm transition-opacity duration-200 opacity-0 pointer-events-none"
                                 onclick="if(event.target===this) closeSettingsModal()">
-                                <div class="bg-white rounded-2xl shadow-2xl w-80 p-5 transform transition-transform duration-200 scale-95"
+                                 <div class="premium-modal-glass rounded-2xl shadow-2xl w-80 p-5 transform transition-transform duration-200 scale-95"
                                     id="session-settings-modal-content">
                                     <div class="flex items-center justify-between mb-4">
                                         <span class="text-xs font-black text-slate-700 uppercase tracking-widest">⚙️ Cài
@@ -269,7 +452,7 @@
     <div id="exit-confirm-modal"
         class="fixed inset-0 bg-slate-900/40 z-[100] hidden items-center justify-center p-4 backdrop-blur-sm opacity-0 transition-opacity duration-300"
         style="display: none;">
-        <div class="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6 transform scale-95 transition-transform duration-300"
+        <div class="premium-modal-glass rounded-2xl shadow-2xl max-w-sm w-full p-6 transform scale-95 transition-transform duration-300"
             id="exit-modal-panel">
             <div class="text-center">
                 <div
@@ -385,12 +568,12 @@
         displaySettings: {{ (display_settings or { }) | tojson }},
     dbSessionId: _dbSessionId,
         initialProcessedCount: _initialProcessedCount,
-            initialCorrectCount: _initialCorrectCount,
-                initialIncorrectCount: _initialIncorrectCount,
-                    initialVagueCount: _initialVagueCount,
-                        initialNewLearned: _initialNewLearned,
-                            initialDueRemaining: _initialDueRemaining,
-                                initialNextDueTimestamp: _initialNextDueTimestamp,
+        initialCorrectCount: _initialCorrectCount,
+        initialIncorrectCount: _initialIncorrectCount,
+        initialVagueCount: _initialVagueCount,
+        initialNewLearned: _initialNewLearned,
+        initialDueRemaining: _initialDueRemaining,
+        initialNextDueTimestamp: _initialNextDueTimestamp,
                                 scores: {
         again: _scoreAgain,
             hard: _scoreHard,
@@ -450,29 +633,29 @@
     };
 
     window.confirmExit = function () {
-        const config = window.FlashcardConfig;
-        const endSessionUrl = config?.endSessionUrl;
+        const sessionConfig = window.FlashcardConfig;
+        const endSessionUrl = sessionConfig?.endSessionUrl;
         if (!endSessionUrl) {
             console.error('FlashcardConfig.endSessionUrl is missing.');
-            window.location.href = config?.vocabDashboardUrl || '/';
+            window.location.href = sessionConfig?.vocabDashboardUrl || '/';
             return;
         }
 
         fetch(endSessionUrl, {
             method: 'POST',
-            headers: config.csrfHeaders
+            headers: sessionConfig.csrfHeaders
         })
             .then(response => response.json())
             .then(data => {
                 if (data.session_id) {
                     window.location.href = "{{ url_for('vocab_flashcard.session_summary', session_id=0) }}".replace('0', data.session_id);
                 } else {
-                    window.location.href = config.vocabDashboardUrl;
+                    window.location.href = sessionConfig.vocabDashboardUrl;
                 }
             })
             .catch(err => {
                 console.error('Error ending session:', err);
-                window.location.href = config.vocabDashboardUrl;
+                window.location.href = sessionConfig.vocabDashboardUrl;
             });
     };
 </script>
