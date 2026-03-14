@@ -255,6 +255,36 @@
         });
     }
 
+    let _lastHeaderScore = null;
+
+    /**
+     * Animate numeric value count-up
+     */
+    function animateValue(el, start, end, duration) {
+        if (start === end) return;
+        
+        // Add focus effect
+        el.classList.remove('animate-score-focus');
+        void el.offsetWidth; // Trigger reflow
+        el.classList.add('animate-score-focus');
+        
+        let startTimestamp = null;
+        const step = (timestamp) => {
+            if (!startTimestamp) startTimestamp = timestamp;
+            const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+            const current = Math.floor(progress * (end - start) + start);
+            el.textContent = current.toLocaleString('en-US');
+            if (progress < 1) {
+                window.requestAnimationFrame(step);
+            } else {
+                el.textContent = end.toLocaleString('en-US');
+                // Remove class after animation finishes (or slightly before/after)
+                setTimeout(() => el.classList.remove('animate-score-focus'), 500);
+            }
+        };
+        window.requestAnimationFrame(step);
+    }
+
     // Settings dropdown toggle
     const settingsToggle = document.querySelector('.js-fc-settings-toggle');
     const settingsMenu = document.querySelector('.js-fc-settings-menu');
@@ -789,11 +819,16 @@
 
         // [FIX] Update Global Score Header
         if (typeof window.currentUserTotalScore !== 'undefined') {
+            const newScore = window.currentUserTotalScore;
+            
             document.querySelectorAll('.js-fc-score').forEach(el => {
-                // Determine animation or direct set
-                // For now, direct set formatted with commas
-                el.textContent = window.currentUserTotalScore.toLocaleString('en-US');
+                if (_lastHeaderScore !== null && _lastHeaderScore !== newScore) {
+                    animateValue(el, _lastHeaderScore, newScore, 800);
+                } else {
+                    el.textContent = newScore.toLocaleString('en-US');
+                }
             });
+            _lastHeaderScore = newScore;
         }
 
         // 4. Secondary Row Stats (Current Card Context)
