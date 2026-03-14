@@ -87,21 +87,21 @@
                             <div
                                 class="stat-pill flex-shrink-0 flex items-center gap-0.5 px-1 py-0.5 bg-emerald-50 rounded-lg">
                                 <i class="fa-solid fa-check text-emerald-500 text-[9px]"></i>
-                                <span class="text-emerald-600 font-bold font-mono text-[11px]" id="live-correct">0</span>
+                                <span class="text-emerald-600 font-bold font-mono text-xs" id="live-correct">0</span>
                             </div>
 
                             {# Wrong Pill #}
                             <div
                                 class="stat-pill flex-shrink-0 flex items-center gap-0.5 px-1 py-0.5 bg-rose-50 rounded-lg">
                                 <i class="fa-solid fa-times text-rose-500 text-[9px]"></i>
-                                <span class="text-rose-600 font-bold font-mono text-[11px]" id="live-wrong">0</span>
+                                <span class="text-rose-600 font-bold font-mono text-xs" id="live-wrong">0</span>
                             </div>
 
                             {# Session Points Pill #}
                             <div
                                 class="stat-pill flex-shrink-0 flex items-center gap-0.5 px-1 py-0.5 bg-amber-50 rounded-lg">
                                 <i class="fa-solid fa-gem text-amber-500 text-[9px]"></i>
-                                <span class="text-amber-600 font-bold font-mono text-[11px]" id="live-session-score">{{ initial_session_points
+                                <span class="text-amber-600 font-bold font-mono text-xs" id="live-session-score">{{ initial_session_points
                                     | default(0) }}</span>
                             </div>
 
@@ -109,7 +109,7 @@
                             <div class="stat-pill flex-shrink-0 flex items-center gap-0.5 px-1 py-0.5 bg-blue-50 rounded-lg"
                                 title="Thẻ mới trong phiên">
                                 <i class="fas fa-seedling text-blue-500 text-[9px]"></i>
-                                <span class="text-blue-600 font-bold font-mono text-[11px] js-fc-session-new">{{ initial_new_learned |
+                                <span class="text-blue-600 font-bold font-mono text-xs js-fc-session-new">{{ initial_new_learned |
                                     default(0) }}</span>
                             </div>
 
@@ -117,9 +117,9 @@
                             <div class="stat-pill flex-shrink-0 flex items-center gap-0.5 px-1 py-0.5 bg-orange-50 rounded-lg w-auto min-w-0"
                                 title="Cần ôn tập">
                                 <i class="fa-solid fa-clock-rotate-left text-orange-500 text-[9px]"></i>
-                                <span id="fc-due-remaining-text" class="text-orange-600 font-bold font-mono text-[11px] whitespace-nowrap js-fc-session-due">{{ initial_due_remaining |
+                                <span id="fc-due-remaining-text" class="text-orange-600 font-bold font-mono text-xs whitespace-nowrap js-fc-session-due">{{ initial_due_remaining |
                                     default(0) }}</span>
-                                <span id="fc-next-due-timer" class="text-orange-600 font-bold font-mono text-[11px] whitespace-nowrap hidden"></span>
+                                <span id="fc-next-due-timer" class="text-orange-600 font-bold font-mono text-xs whitespace-nowrap hidden"></span>
                             </div>
                         </div>
 
