@@ -10,6 +10,10 @@ def get_due_counts(user_id: int) -> Dict[str, int]:
     """Get count of due items per type for a user."""
     return FSRSInterface.get_due_counts(user_id)
 
+def get_daily_new_items_count(user_id: int, start_date, end_date) -> int:
+    """Get count of daily new items."""
+    return FSRSInterface.get_daily_new_items_count(user_id, start_date, end_date)
+
 from .schemas import Rating, CardStateDTO
 
 class FSRSInterface:
@@ -585,13 +589,25 @@ class FSRSInterface:
         """
         Get items classified as 'hard'.
         """
+        from .services.optimizer_service import FSRSOptimizerService # Internal use ok
         from mindstack_app.models import LearningItem, db
         from mindstack_app.modules.fsrs.models import ItemMemoryState
         
-        return LearningItem.query.join(ItemMemoryState).filter(
+        items_with_state = db.session.query(LearningItem, ItemMemoryState).join(
+            ItemMemoryState, LearningItem.item_id == ItemMemoryState.item_id
+        ).filter(
             ItemMemoryState.user_id == user_id,
             ItemMemoryState.difficulty >= 7.5
         ).limit(limit).all()
+        
+        results = []
+        for item, state in items_with_state:
+            results.append({
+                'item_id': item.item_id,
+                'difficulty': state.difficulty,
+                'retrievability': FSRSInterface.get_retrievability(state)
+            })
+        return results
 
     @staticmethod
     def get_review_aggregated_stats(user_id: int, start_date=None, end_date=None) -> Dict[str, int]:

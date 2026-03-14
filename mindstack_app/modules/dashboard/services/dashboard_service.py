@@ -4,6 +4,9 @@ from mindstack_app.modules.gamification import interface as gamification_interfa
 from mindstack_app.modules.fsrs import interface as fsrs_interface
 from mindstack_app.modules.stats import interface as stats_interface
 from mindstack_app.modules.goals import interface as goals_interface
+from mindstack_app.modules.session.interface import SessionInterface
+from mindstack_app.modules.learning.interface import LearningInterface
+import math
 
 class DashboardService:
     @staticmethod
@@ -29,19 +32,80 @@ class DashboardService:
         
         # 3. Fetch Gamification Status
         user_progress = gamification_interface.get_user_progress(user_id)
-        # We might want to inject this into context if view uses it, 
-        # but the current dict keys don't seem to have a dedicated slot for it.
-        # Let's add it or just ensure 'score_overview' works.
+        # Standardize User Level (sqrt(XP/100))
+        user_xp = user_progress.get('total_xp', 0)
+        user_progress['level'] = int(math.sqrt(user_xp / 100)) if user_xp > 0 else 1
+        
+        # 3b. [NEW] Fetch Active Sessions for "Phiên học đang diễn ra"
+        active_sessions_raw = SessionInterface.get_active_sessions(user_id)
+        active_sessions = []
+        for sess in active_sessions_raw:
+            # Resolve container title
+            container_id = sess.set_id_data
+            title = "Khối kiến thức"
+            if isinstance(container_id, int):
+                container = LearningInterface.get_container_by_id(container_id)
+                if container:
+                    title = container.title
+            
+            # Mode and Icon mapping
+            mode = sess.learning_mode
+            mode_meta = {
+                'flashcard': {'label': 'Flashcard', 'icon': 'bolt'},
+                'mcq': {'label': 'Trắc nghiệm', 'icon': 'list-check'},
+                'typing': {'label': 'Luyện viết', 'icon': 'keyboard'},
+                'listening': {'label': 'Luyện nghe', 'icon': 'headphones'},
+                'matching': {'label': 'Nối từ', 'icon': 'puzzle-piece'},
+                'speed': {'label': 'Ôn nhanh', 'icon': 'gauge-high'}
+            }
+            meta = mode_meta.get(mode, {'label': mode.capitalize(), 'icon': 'layer-group'})
+            
+            # Correct URL generation based on mode
+            if mode == 'flashcard':
+                resume_url = url_for('vocab_flashcard.flashcard_session', session_id=sess.session_id)
+            elif mode == 'mcq':
+                resume_url = url_for('vocab_mcq.mcq_session', set_id=sess.set_id_data)
+            elif mode == 'typing':
+                resume_url = url_for('vocab_typing.typing_session', set_id=sess.set_id_data)
+            elif mode == 'listening':
+                resume_url = url_for('vocab_listening.listening_session_page', set_id=sess.set_id_data)
+            elif mode == 'matching':
+                resume_url = url_for('vocab_matching.matching_session_page', set_id=sess.set_id_data)
+            elif mode == 'speed':
+                resume_url = url_for('vocab_speed.speed_session_page', set_id=sess.set_id_data)
+            else:
+                resume_url = "#"
+
+            active_sessions.append({
+                'session_id': sess.session_id,
+                'title': title,
+                'mode_display': meta['label'],
+                'icon': meta['icon'],
+                'processed_count': len(sess.processed_item_ids or []),
+                'total_items': sess.total_items,
+                'resume_url': resume_url
+            })
         
         # 4. Score Overview
         score_data = stats_data.get('score_data', {})
         weekly_active_days = stats_data.get('active_days', 0)
+        todays_counts = stats_data.get('todays_counts', {})
+        
+        total_reps_today = todays_counts.get('flashcard', 0) + todays_counts.get('quiz', 0)
+        
+        # [NEW] Calculate additional metrics for header
+        from datetime import datetime, time, timezone
+        now = datetime.now(timezone.utc)
+        today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+        new_items_today = fsrs_interface.get_daily_new_items_count(user_id, today_start, now)
         
         score_overview = {
             'today': score_data.get('today', 0),
             'week': score_data.get('week', 0),
             'total': score_data.get('total', 0),
-            'active_days': weekly_active_days
+            'active_days': weekly_active_days,
+            'total_reps_today': total_reps_today,
+            'new_items_today': new_items_today
         }
 
         # 5. Motivation message
@@ -64,6 +128,23 @@ class DashboardService:
 
         # 7. Goals
         goal_progress = goals_interface.get_goal_progress(user_id)
+        
+        # 8. [NEW] Activity Heatmap (Last 12 weeks)
+        activity_heatmap = stats_interface.get_user_activity_heatmap(user_id, weeks=12)
+        
+        # 9. [NEW] Mastery Distribution
+        mastery_distribution = stats_interface.get_mastery_distribution(user_id)
+        
+        # 10. [NEW] Leaderboard Snippet
+        leaderboard_raw = gamification_interface.get_leaderboard(limit=5)
+        leaderboard = []
+        for entry in leaderboard_raw:
+            xp = entry.get('score', 0)
+            entry['level'] = int(math.sqrt(xp / 100)) if xp > 0 else 1
+            leaderboard.append(entry)
+        
+        # 11. [NEW] Difficult Items Carousel
+        difficult_items = stats_interface.get_difficult_items_overview(user_id, limit=10)
 
         return {
             'flashcard_summary': flashcard_summary,
@@ -73,7 +154,12 @@ class DashboardService:
             'motivation_message': motivation_message,
             'shortcut_actions': shortcut_actions,
             'goal_progress': goal_progress,
-            'gamification': user_progress # Add this in case template uses it
+            'gamification': user_progress, # Add this in case template uses it
+            'activity_heatmap': activity_heatmap,
+            'mastery_distribution': mastery_distribution,
+            'leaderboard': leaderboard,
+            'difficult_items': difficult_items,
+            'active_sessions': active_sessions
         }
 
     @staticmethod

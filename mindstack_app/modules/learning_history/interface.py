@@ -115,3 +115,7 @@ class LearningHistoryInterface:
     def get_item_community_metrics(item_id: int) -> Dict[str, Any]:
         """Get community-wide metrics from learning history for an item."""
         return HistoryQueryService.get_item_community_metrics(item_id)
+    @staticmethod
+    def get_daily_activity_counts(user_id: int, start_date: datetime) -> List[Dict[str, Any]]:
+        """Get daily activity counts for a user since start_date."""
+        return HistoryQueryService.get_daily_activity_counts(user_id, start_date)

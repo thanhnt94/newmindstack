@@ -58,7 +58,7 @@ def get_leaderboard(limit: int = 10, period: str = 'all_time') -> List[Dict[str,
     Get leaderboard data.
     Delegates to ScoreService.
     """
-    return ScoreService.get_leaderboard(limit, period)
+    return ScoreService.get_leaderboard(period, limit)
 
 
 def get_user_score(user_id: int) -> int:

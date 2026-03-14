@@ -232,6 +232,25 @@ class HistoryQueryService:
         return query.all()
 
     @staticmethod
+    def get_daily_activity_counts(user_id: int, start_date: datetime) -> List[Dict[str, Any]]:
+        """
+        Get daily activity counts for a user since start_date.
+        Returns list of {'date': 'YYYY-MM-DD', 'count': int}.
+        """
+        # SQLite: strftime('%Y-%m-%d', timestamp)
+        date_func = func.strftime('%Y-%m-%d', StudyLog.timestamp)
+        
+        results = db.session.query(
+            date_func.label('date'),
+            func.count(StudyLog.log_id).label('count')
+        ).filter(
+            StudyLog.user_id == user_id,
+            StudyLog.timestamp >= start_date
+        ).group_by(date_func).all()
+        
+        return [{'date': r.date, 'count': r.count} for r in results]
+
+    @staticmethod
     def delete_items_history(item_ids: List[int]) -> int:
         """Delete history for specific items (Admin/Reset)."""
         if not item_ids: return 0

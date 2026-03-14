@@ -158,6 +158,17 @@ class VocabularyStatsService:
         return LearningHistoryInterface.get_daily_activity_counts(user_id, start_date)
 
     @staticmethod
+    def get_mastery_distribution(user_id: int) -> dict:
+        """Get count of items by mastery level."""
+        # Use FSRS interface to get aggregated stats for flashcards
+        stats = FsrsService.get_memory_stats_by_type(user_id, 'FLASHCARD')
+        return {
+            'mastered': stats.get('mastered', 0),
+            'learning': stats.get('learning', 0),
+            'new': stats.get('new', 0)
+        }
+
+    @staticmethod
     def get_full_stats(user_id: int, container_id: int) -> dict:
         items = LearningItem.query.filter(LearningItem.container_id == container_id, LearningItem.item_type.in_(['FLASHCARD', 'VOCABULARY'])).all()
         item_ids = [item.item_id for item in items]
