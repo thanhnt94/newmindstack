@@ -38,21 +38,10 @@ class StreakService:
     @staticmethod
     def update_streak(user_id: int) -> dict:
         """
-        Update user streak based on their activity dates in their local timezone.
+        Update user streak based on their activity dates in UTC.
         """
-        from mindstack_app.modules.auth.interface import AuthInterface
-        import pytz
-        
         try:
-            user_dto = AuthInterface.get_user_by_id(user_id)
-            user_tz_str = user_dto.timezone if user_dto and user_dto.timezone else 'UTC'
-            user_tz = pytz.timezone(user_tz_str)
-            
-            # 1. Query activity dates from ScoreLog
-            # We must convert timestamps to user local time before grouping by date
-            # However, func.date() works on the raw DB timestamp (UTC)
-            # For accurate local day grouping, we'd need DB-specific timezone conversion 
-            # Or fetch all timestamps and group in Python. Grouping in Python is safer for multi-DB.
+            # 1. Query activity dates from ScoreLog (Raw UTC dates)
             logs = (
                 db.session.query(ScoreLog.timestamp)
                 .filter(ScoreLog.user_id == user_id)
@@ -60,22 +49,19 @@ class StreakService:
                 .all()
             )
             
-            # Convert timestamps to local dates and get unique dates
+            # Extract unique UTC dates
             activity_dates_set = set()
             for (ts,) in logs:
                 if ts:
-                    if ts.tzinfo is None:
-                        ts = pytz.UTC.localize(ts)
-                    local_ts = ts.astimezone(user_tz)
-                    activity_dates_set.add(local_ts.date())
+                    # In MindStack, all timestamps are stored as UTC
+                    activity_dates_set.add(ts.date())
             
             activity_dates = sorted(list(activity_dates_set), reverse=True)
             
-            # 2. Calculate current streak using local today
-            now_utc = datetime.now(timezone.utc)
-            today_local = now_utc.astimezone(user_tz).date()
+            # 2. Calculate current streak using UTC today
+            today_utc = datetime.now(timezone.utc).date()
             
-            current_streak = calculate_streak_from_dates(activity_dates, today_local)
+            current_streak = calculate_streak_from_dates(activity_dates, today_utc)
             
             # 3. Get or create streak record
             streak = StreakService.get_or_create_streak(user_id)
@@ -83,7 +69,7 @@ class StreakService:
             # 4. Update values
             streak.current_streak = current_streak
             streak.longest_streak = max(streak.longest_streak or 0, current_streak)
-            streak.last_activity_date = today_local
+            streak.last_activity_date = today_utc
             
             db.session.commit()
             
@@ -100,15 +86,9 @@ class StreakService:
     @staticmethod
     def get_streak_info(user_id: int) -> dict:
         """
-        Get formatted streak information for UI display (timezone-aware).
+        Get streak information strictly in UTC.
         """
-        from mindstack_app.modules.auth.interface import AuthInterface
-        import pytz
-        
         streak = StreakService.get_user_streak(user_id)
-        user_dto = AuthInterface.get_user_by_id(user_id)
-        user_tz_str = user_dto.timezone if user_dto and user_dto.timezone else 'UTC'
-        user_tz = pytz.timezone(user_tz_str)
         
         if not streak:
             return {
@@ -116,17 +96,16 @@ class StreakService:
                 'longest_streak': 0,
                 'last_activity_date': None,
                 'is_active_today': False,
-                'timezone': user_tz_str
+                'timezone': 'UTC'
             }
         
-        now_utc = datetime.now(timezone.utc)
-        today_local = now_utc.astimezone(user_tz).date()
-        is_active_today = (streak.last_activity_date == today_local) if streak.last_activity_date else False
+        today_utc = datetime.now(timezone.utc).date()
+        is_active_today = (streak.last_activity_date == today_utc) if streak.last_activity_date else False
         
         return {
             'current_streak': streak.current_streak or 0,
             'longest_streak': streak.longest_streak or 0,
             'last_activity_date': streak.last_activity_date.isoformat() if streak.last_activity_date else None,
             'is_active_today': is_active_today,
-            'timezone': user_tz_str
+            'timezone': 'UTC'
         }
