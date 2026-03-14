@@ -88,7 +88,7 @@
                             <div>
                                 <p class="text-3xl font-black leading-none">{{
                                     "{:,}".format(dashboard_data.total_score_all_time) }}</p>
-                                <p class="text-xs opacity-80 mt-1">Tất cả thời gian</p>
+                                <p class="text-[10px] opacity-80 mt-1">Hôm nay: +{{ "{:,}".format(daily_summary.today.points | default(0)) }} XP</p>
                             </div>
                         </div>
 

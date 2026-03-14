@@ -41,7 +41,10 @@ def media_url_filter(path):
 def format_duration_ms_filter(ms: int) -> str:
     """
     Format duration in milliseconds to human-readable format.
-    Example: 3661000 -> "1h 1m 1s"
+    Smart "Top 2 Non-zero Units" Logic:
+    - Collects all non-zero parts (d, h, m, s).
+    - Returns the 2 most significant non-zero parts.
+    Example: 1d 0h 5m -> "1d 5m"
     """
     if not ms:
         return "0s"
@@ -49,16 +52,19 @@ def format_duration_ms_filter(ms: int) -> str:
     seconds = int(ms / 1000)
     minutes, seconds = divmod(seconds, 60)
     hours, minutes = divmod(minutes, 60)
+    days, hours = divmod(hours, 24)
     
-    parts = []
-    if hours > 0:
-        parts.append(f"{hours}h")
-    if minutes > 0:
-        parts.append(f"{minutes}m")
-    if seconds > 0 or (not hours and not minutes):
-        parts.append(f"{seconds}s")
+    all_parts = []
+    if days > 0: all_parts.append(f"{days}d")
+    if hours > 0: all_parts.append(f"{hours}h")
+    if minutes > 0: all_parts.append(f"{minutes}m")
+    if seconds > 0: all_parts.append(f"{seconds}s")
     
-    return " ".join(parts)
+    if not all_parts:
+        return "0s"
+        
+    # Return at most the first 2 significant non-zero parts
+    return " ".join(all_parts[:2])
 
 def register_filters(app):
     """Register custom filters with the Flask app."""
