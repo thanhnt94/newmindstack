@@ -45,10 +45,17 @@ class LearningTimer {
         
         // Nếu đang Idle mà có hành động -> Kết thúc thời gian Idle
         if (this.isIdle) {
-            const idleDuration = now - this.lastActivityTime;
-            this.totalIdleTimeMs += idleDuration;
+            // Khi bị coi là AFK, chúng ta chỉ "tặng" cho user 10s thời gian suy nghĩ (grace period)
+            // Thay vì lấy toàn bộ 20s threshold.
+            const totalGap = now - this.lastActivityTime;
+            const gracePeriodMs = 10000; // 10 giây
+            
+            // Thời gian Idle thực sự cần trừ đi = Tổng khoảng trống - 10s được tặng
+            const idleToSubtract = Math.max(0, totalGap - gracePeriodMs);
+            this.totalIdleTimeMs += idleToSubtract;
+            
             this.isIdle = false;
-            // console.log(`[Timer] Resume from idle. Idle duration: ${idleDuration}ms`);
+            // console.log(`[Timer] Resume from idle. Subtracted AFK: ${idleToSubtract}ms`);
         }
         
         this.lastActivityTime = now;
@@ -70,14 +77,24 @@ class LearningTimer {
         const now = Date.now();
         let totalElapsed = now - this.startTime;
         
-        // Nếu đang kết thúc ở trạng thái Idle, trừ đi phần thời gian Idle cuối cùng
-        let currentIdleBonus = 0;
+        // Nếu đang ở trạng thái Idle, chúng ta cũng chỉ tính 10s hoạt động từ lúc activity cuối
+        let currentIdleSubtract = 0;
         if (this.isIdle) {
-            currentIdleBonus = now - this.lastActivityTime;
+            const currentGap = now - this.lastActivityTime;
+            const gracePeriodMs = 10000;
+            currentIdleSubtract = Math.max(0, currentGap - gracePeriodMs);
         }
         
-        const activeDuration = totalElapsed - this.totalIdleTimeMs - currentIdleBonus;
+        const activeDuration = totalElapsed - this.totalIdleTimeMs - currentIdleSubtract;
         return Math.max(0, activeDuration);
+    }
+
+    getFormattedDuration() {
+        const ms = this.getDuration();
+        const totalSeconds = Math.floor(ms / 1000);
+        const minutes = Math.floor(totalSeconds / 60);
+        const seconds = totalSeconds % 60;
+        return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
     }
 }
 

@@ -709,6 +709,42 @@
                 window.location.href = sessionConfig.vocabDashboardUrl;
             });
     };
+
+    // [AFK DETECTION WIDGET] UI Update Logic
+    (function() {
+        const timerDisplay = document.getElementById('active-timer-display');
+        const timerFlybox = document.getElementById('learning-timer-flybox');
+        const timerIcon = document.getElementById('timer-icon');
+        const timerDot = document.getElementById('timer-dot');
+
+        if (!timerDisplay) return;
+
+        setInterval(() => {
+            if (!window.learningTimer) return;
+
+            // 1. Update text
+            timerDisplay.textContent = window.learningTimer.getFormattedDuration();
+
+            // 2. Handle Idle State Visuals
+            if (window.learningTimer.isIdle) {
+                timerFlybox.classList.remove('bg-white', 'border-slate-100');
+                timerFlybox.classList.add('bg-rose-50', 'border-rose-200');
+                timerIcon.classList.remove('text-indigo-500');
+                timerIcon.classList.add('text-rose-500');
+                timerDot.classList.remove('bg-indigo-500');
+                timerDot.classList.add('bg-rose-500');
+                timerDisplay.classList.add('text-rose-700');
+            } else {
+                timerFlybox.classList.remove('bg-rose-50', 'border-rose-200');
+                timerFlybox.classList.add('bg-white', 'border-slate-100');
+                timerIcon.classList.remove('text-rose-500');
+                timerIcon.classList.add('text-indigo-500');
+                timerDot.classList.remove('bg-rose-500');
+                timerDot.classList.add('bg-indigo-500');
+                timerDisplay.classList.remove('text-rose-700');
+            }
+        }, 500);
+    })();
 </script>
 
 <script src="{{ url_for('static', filename='aura_mobile/vocab_flashcard/js/session_manager.js') }}"></script>

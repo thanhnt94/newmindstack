@@ -57,8 +57,8 @@
                         </div>
                     </div>
 
-                    {# Top-Right: Unified Block (Item ID + Stats Detail Button) #}
-                    <div class="absolute top-2.5 right-2.5 pointer-events-auto z-30">
+                    {# Top-Right: Unified Block (Item ID + Stats Detail Button + Timer) #}
+                    <div class="absolute top-2.5 right-2.5 pointer-events-auto z-30 flex flex-col items-end gap-1.5">
                         <div
                             class="flex items-stretch badge-galaxy-glass-light rounded-full overflow-hidden group h-8 border border-indigo-600/30">
                             <div class="flex items-center pl-2 pr-1.5 badge-galaxy-label-outline h-full">
@@ -68,8 +68,16 @@
                             <button
                                 class="js-fc-stats-detail-overlay w-8 h-8 bg-violet-600 text-white flex items-center justify-center hover:bg-violet-700 transition-colors active:opacity-75 leading-none"
                                 title="Chi tiết thống kê">
-                                <i class="fas fa-chart-pie text-[11px] transform -translate-y-[0.5px]"></i>
+                                <i class="fas fa-chart-pie text-[11px] transform -translate-y-[1.5px]"></i>
                             </button>
+                        </div>
+
+                        {# [AFK DETECTION WIDGET] Integrated Timer #}
+                        <div id="learning-timer-flybox" 
+                            class="px-2 py-1 rounded-full badge-galaxy-glass-light flex items-center gap-1.5 transition-all duration-300 shadow-sm border border-indigo-100/50">
+                            <i class="fas fa-stopwatch text-[9px] text-indigo-500" id="timer-icon"></i>
+                            <span class="font-mono text-[10px] font-black text-slate-700" id="active-timer-display">00:00</span>
+                            <div class="w-1 h-1 rounded-full bg-indigo-500 animate-pulse" id="timer-dot"></div>
                         </div>
                     </div>
 

@@ -166,10 +166,15 @@ class LearningSessionService:
             delta = now - last
             delta_ms = int(delta.total_seconds() * 1000)
             
-            # AFK Threshold: 20 seconds
-            # If idle > 20s, we cap at 20s active time.
-            MAX_ACTIVE_MS = 20000
-            effective_duration_ms = min(delta_ms, MAX_ACTIVE_MS) if delta_ms > 0 else 0
+            # AFK Logic (Backend Protection)
+            # Threshold: 20s. If idle > 20s, we only grant 10s thinking time.
+            MAX_IDLE_THRESHOLD_MS = 20000
+            GRACE_PERIOD_MS = 10000
+            
+            if delta_ms > MAX_IDLE_THRESHOLD_MS:
+                effective_duration_ms = GRACE_PERIOD_MS
+            else:
+                effective_duration_ms = max(0, delta_ms)
             
             # Update last_activity to NOW for the next calculation
             session.last_activity = now
