@@ -117,6 +117,12 @@
             } else {
                 flipBtn.style.display = 'flex';
                 ratingBtns.classList.remove('show');
+                
+                // Reset button states for next card
+                allBtns.forEach(btn => {
+                    btn.classList.remove('selected', 'dimmed');
+                    btn.style.pointerEvents = '';
+                });
             }
         }
     });

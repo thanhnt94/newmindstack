@@ -44,6 +44,57 @@
         display: inline-block; /* Ensure transform works */
     }
 
+    /* Rating Button Enhancements */
+    .fc-rating-btn {
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .fc-rating-btn:active {
+        transform: scale(0.94) !important;
+    }
+
+    .fc-rating-btn.selected {
+        transform: scale(1.05) !important;
+        z-index: 10;
+        box-shadow: 0 0 20px currentColor !important;
+    }
+
+    .fc-rating-btn.dimmed {
+        opacity: 0.35 !important;
+        filter: grayscale(0.5) blur(0.5px) !important;
+        transform: scale(0.95) !important;
+    }
+
+    /* Shine effect animation */
+    .fc-rating-btn.selected::after {
+        content: "";
+        position: absolute;
+        top: -50%;
+        left: -50%;
+        width: 200%;
+        height: 200%;
+        background: linear-gradient(
+            45deg,
+            transparent 0%,
+            transparent 35%,
+            rgba(255, 255, 255, 0.4) 45%,
+            rgba(255, 255, 255, 0.6) 50%,
+            rgba(255, 255, 255, 0.4) 55%,
+            transparent 65%,
+            transparent 100%
+        );
+        transform: rotate(25deg);
+        animation: shine-sweep 0.6s ease-out forwards;
+        pointer-events: none;
+    }
+
+    @keyframes shine-sweep {
+        0% { transform: translateX(-100%) rotate(25deg); }
+        100% { transform: translateX(100%) rotate(25deg); }
+    }
+
     /* Premium Header Styling - Deep Galaxy Theme */
     .session-header-premium {
         position: relative;
