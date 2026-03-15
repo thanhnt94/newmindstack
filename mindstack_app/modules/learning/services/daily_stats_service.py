@@ -10,7 +10,8 @@ from __future__ import annotations
 
 from datetime import datetime, date, timedelta, timezone
 from typing import List, Dict, Optional
-from sqlalchemy import func, and_, extract
+from sqlalchemy import func, and_, extract, desc
+import pytz
 
 from mindstack_app.models import db, LearningSession
 # REFAC: Remove ItemMemoryState
@@ -23,12 +24,12 @@ class DailyStatsService:
     @classmethod
     def get_daily_stats(cls, user_id: int, target_date: Optional[date] = None) -> Dict:
         """
-        Get learning statistics for a specific date.
+        Get learning statistics for a specific UTC date.
         """
         if target_date is None:
-            target_date = date.today()
+            target_date = datetime.now(timezone.utc).date()
         
-        # Date boundaries (start of day to end of day) - ENSURE AWARE
+        # Date boundaries in UTC
         day_start = datetime.combine(target_date, datetime.min.time()).replace(tzinfo=timezone.utc)
         day_end = datetime.combine(target_date, datetime.max.time()).replace(tzinfo=timezone.utc)
         
@@ -43,7 +44,18 @@ class DailyStatsService:
         total_correct = sum(s.correct_count or 0 for s in sessions)
         total_incorrect = sum(s.incorrect_count or 0 for s in sessions)
         total_vague = sum(s.vague_count or 0 for s in sessions)
-        total_points = sum(s.points_earned or 0 for s in sessions)
+        
+        # 1.5. Points from ScoreLog (Source of Truth for gamification)
+        from mindstack_app.models import ScoreLog
+        total_points = (
+            db.session.query(func.sum(ScoreLog.score_change))
+            .filter(
+                ScoreLog.user_id == user_id,
+                ScoreLog.timestamp >= day_start,
+                ScoreLog.timestamp <= day_end
+            )
+            .scalar() or 0
+        )
         
         # NEW: Usage time from StudyLog
         from mindstack_app.models import StudyLog
@@ -116,10 +128,10 @@ class DailyStatsService:
     @classmethod
     def get_weekly_stats(cls, user_id: int, end_date: Optional[date] = None) -> List[Dict]:
         """
-        Get learning statistics for the last 7 days.
+        Get learning statistics for the last 7 UTC days.
         """
         if end_date is None:
-            end_date = date.today()
+            end_date = datetime.now(timezone.utc).date()
         
         weekly_stats = []
         for i in range(6, -1, -1):  # 6 days ago to today
@@ -227,6 +239,7 @@ class DailyStatsService:
         week_new = sum(d['new_items'] for d in weekly_stats)
         week_correct = sum(d['correct'] for d in weekly_stats)
         week_incorrect = sum(d['incorrect'] for d in weekly_stats)
+        week_points = sum(d['points'] for d in weekly_stats)
         week_accuracy = (week_correct / (week_correct + week_incorrect) * 100) if (week_correct + week_incorrect) > 0 else 0
         
         return {
@@ -239,6 +252,7 @@ class DailyStatsService:
                     'new_items': week_new,
                     'correct': week_correct,
                     'incorrect': week_incorrect,
+                    'points': week_points,
                     'accuracy': round(week_accuracy, 1)
                 }
             },

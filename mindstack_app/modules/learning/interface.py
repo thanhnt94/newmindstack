@@ -44,7 +44,7 @@ class LearningInterface:
 
     @staticmethod
     def get_daily_summary(user_id: int) -> Dict[str, Any]:
-        """Get daily stats summary."""
+        """Get daily stats summary based on UTC."""
         return DailyStatsService.get_summary(user_id)
 
     @staticmethod

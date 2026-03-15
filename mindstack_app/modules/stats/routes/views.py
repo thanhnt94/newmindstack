@@ -22,7 +22,7 @@ def dashboard():
     # Lấy tổng quan học tập từ LearningMetricsService -> LearningInterface
     summary = LearningInterface.get_user_learning_summary(current_user.user_id)
     
-    # NEW: Get daily summary for "Today" stats
+    # NEW: Get daily summary for "Today" stats (UTC)
     daily_summary = LearningInterface.get_daily_summary(current_user.user_id)
     
     # Map dữ liệu cho UI (Giữ nguyên cấu trúc cũ để tránh break UI)
@@ -46,7 +46,7 @@ def dashboard():
     }
     
     # NEW: Merge extended stats
-    extended_stats = LearningInterface.get_extended_dashboard_stats(current_user.user_id, user_timezone=current_user.timezone)
+    extended_stats = LearningInterface.get_extended_dashboard_stats(current_user.user_id)
     
     # Calculate 30-day score stats from chart data
     score_history = extended_stats.get('charts', {}).get('datasets', {}).get('scores', [])
