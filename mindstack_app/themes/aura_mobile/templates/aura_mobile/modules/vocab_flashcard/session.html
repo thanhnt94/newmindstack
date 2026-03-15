@@ -98,11 +98,18 @@
     /* Premium Header Styling - Deep Galaxy Theme */
     .session-header-premium {
         position: relative;
-        background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 50%, #db2777 100%);
-        overflow: hidden;
+        z-index: 50; /* Ensure header is above main content */
     }
     
-    .session-header-premium::before {
+    .session-header-bg {
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 50%, #db2777 100%);
+        overflow: hidden;
+        z-index: 0;
+    }
+    
+    .session-header-bg::before {
         content: "";
         position: absolute;
         inset: 0;
@@ -112,7 +119,7 @@
         pointer-events: none;
     }
 
-    .session-header-premium::after {
+    .session-header-bg::after {
         content: "";
         position: absolute;
         top: -50%;
@@ -288,6 +295,61 @@
         backdrop-filter: blur(4px);
     }
 
+    /* Stats Popover Styling */
+    .stats-popover {
+        position: absolute;
+        top: calc(100% + 8px);
+        right: 0;
+        width: 200px;
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(15px);
+        -webkit-backdrop-filter: blur(15px);
+        border: 1px solid rgba(255, 255, 255, 0.4);
+        border-radius: 16px;
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+        z-index: 1000;
+        padding: 12px;
+        display: none;
+        flex-direction: column;
+        gap: 8px;
+        transform-origin: top right;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        opacity: 0;
+        transform: scale(0.95);
+    }
+
+    .stats-popover.active {
+        display: flex;
+        opacity: 1;
+        transform: scale(1);
+    }
+
+    .stats-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        font-size: 11px;
+        color: #475569;
+        font-weight: 600;
+    }
+
+    .stats-row i {
+        width: 14px;
+        text-align: center;
+        margin-right: 4px;
+    }
+
+    .stats-value {
+        color: #1e293b;
+        font-family: monospace;
+        font-weight: 800;
+    }
+
+    .stats-divider {
+        height: 1px;
+        background: rgba(0, 0, 0, 0.05);
+        margin: 4px 0;
+    }
 </style>
 
 {% include _v ~ '/components/_markdown_assets.html' %}
@@ -309,7 +371,9 @@
         <header class="session-header">
             <div class="fc-header flex-col items-stretch !p-0">
                 {# --- Row 1: Badge + Title + Score (Premium) --- #}
-                <div class="session-header-premium flex items-center justify-between px-2 py-2">
+                <div class="session-header-premium relative px-2 py-2">
+                    <div class="session-header-bg"></div>
+                    <div class="flex items-center justify-between relative z-10 w-full">
                     {# Badge + Title #}
                     <div class="flex items-center gap-1.5 overflow-hidden flex-1 mr-2 relative z-10">
                         <span
@@ -322,13 +386,43 @@
                     </div>
 
                     {# Score Badge #}
-                    <div class="header-badge-glass flex-shrink-0 flex items-center gap-1 h-7 px-2 rounded-full relative z-10 !py-0">
+                    <div id="js-fc-score-badge-container" 
+                         class="header-badge-glass flex-shrink-0 flex items-center gap-1 h-7 px-2 rounded-full relative z-10 !py-0 cursor-pointer transition-transform active:scale-95"
+                         onclick="window.toggleStatsPopover(event)">
                         <i class="fa-solid fa-gem text-amber-300 text-[10px] drop-shadow-sm transform translate-y-[1px]"></i>
                         <span class="text-xs font-black text-white font-mono js-fc-score leading-none transform translate-y-[1px]">
                             {{ "{:,}".format(current_user.total_score if current_user.total_score is not none else 0) }}
                         </span>
+
+                        <!-- Stats Popover -->
+                        <div id="stats-popover" class="stats-popover">
+                            <div class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Hôm nay (UTC)</div>
+                            <div class="stats-row">
+                                <span><i class="fa-solid fa-gem text-amber-500"></i> Điểm XP</span>
+                                <span class="stats-value" id="pop-today-points">0</span>
+                            </div>
+                            <div class="stats-row">
+                                <span><i class="fa-solid fa-clock text-blue-500"></i> Thời gian</span>
+                                <span class="stats-value" id="pop-today-time">0m</span>
+                            </div>
+                            <div class="stats-row">
+                                <span><i class="fa-solid fa-seedling text-emerald-500"></i> Thẻ mới</span>
+                                <span class="stats-value" id="pop-today-new">0</span>
+                            </div>
+                            <div class="stats-row">
+                                <span><i class="fa-solid fa-rotate-left text-orange-500"></i> Ôn tập</span>
+                                <span class="stats-value" id="pop-today-reviewed">0</span>
+                            </div>
+                            <div class="stats-divider"></div>
+                            <div class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Tổng cộng</div>
+                            <div class="stats-row">
+                                <span><i class="fa-solid fa-hourglass-half text-indigo-500"></i> Tổng thời gian</span>
+                                <span class="stats-value" id="pop-total-time">0h</span>
+                            </div>
+                        </div>
                     </div>
                 </div>
+            </div>
 
                 {# --- Row 2: Stats (Mixed Glass) --- #}
                 <div class="stats-bar-galaxy">
@@ -569,30 +663,30 @@
 
 <script>
     // Define Jinja variables outside the config object to prevent the auto-formatter from inserting spaces into braces
-    const _userButtonCount = {{ user_button_count|default (4) }};
-    const _isAutoplaySession = {{ is_autoplay_session|default (false) | tojson }};
+    const _userButtonCount = {{ user_button_count|default(4) }};
+    const _isAutoplaySession = {{ is_autoplay_session|default(false)|tojson }};
     const _autoplayMode = "{{ autoplay_mode|default('') }}";
-    const _visualSettings = {{ (saved_visual_settings or { }) | tojson}};
-    const _autoSaveOn = {{ saved_auto_save|default (true) | tojson }};
-    const _currentUserTotalScore = {{ current_user.total_score |default (0) }};
-    const _scoreAgain = {{ config.SCORE_FSRS_AGAIN |default (1) }};
-    const _scoreHard = {{ config.SCORE_FSRS_HARD |default (5) }};
-    const _scoreGood = {{ config.SCORE_FSRS_GOOD |default (10) }};
-    const _scoreEasy = {{ config.SCORE_FSRS_EASY |default (15) }};
+    const _visualSettings = {{ (saved_visual_settings or {})|tojson }};
+    const _autoSaveOn = {{ saved_auto_save|default(true)|tojson }};
+    const _currentUserTotalScore = {{ current_user.total_score|default(0) }};
+    const _scoreAgain = {{ config.SCORE_FSRS_AGAIN|default(1) }};
+    const _scoreHard = {{ config.SCORE_FSRS_HARD|default(5) }};
+    const _scoreGood = {{ config.SCORE_FSRS_GOOD|default(10) }};
+    const _scoreEasy = {{ config.SCORE_FSRS_EASY|default(15) }};
 
     // Notification Configs
-    const _notifScoreDuration = {{ config.NOTIF_SCORE_DURATION |default (1500) }};
-    const _notifScorePosition = "{{ config.NOTIF_SCORE_POSITION |default('center') }}";
-    const _notifStreakDuration = {{ config.NOTIF_STREAK_DURATION |default (2000) }};
-    const _notifAchievementDuration = {{ config.NOTIF_ACHIEVEMENT_DURATION |default (5000) }};
-    const _dbSessionId = {{ db_session_id|default (0) }};
-    const _initialProcessedCount = {{ initial_processed_count|default (0) }};
-    const _initialCorrectCount = {{ initial_correct_count|default (0) }};
-    const _initialIncorrectCount = {{ initial_incorrect_count|default (0) }};
-    const _initialVagueCount = {{ initial_vague_count|default (0) }};
-    const _initialNewLearned = {{ initial_new_learned|default (0) }};
-    const _initialDueRemaining = {{ initial_due_remaining|default (0) }};
-    const _initialNextDueTimestamp = {{ initial_next_due_timestamp|tojson|default ('null') }};
+    const _notifScoreDuration = {{ config.NOTIF_SCORE_DURATION|default(1500) }};
+    const _notifScorePosition = "{{ config.NOTIF_SCORE_POSITION|default('center') }}";
+    const _notifStreakDuration = {{ config.NOTIF_STREAK_DURATION|default(2000) }};
+    const _notifAchievementDuration = {{ config.NOTIF_ACHIEVEMENT_DURATION|default(5000) }};
+    const _dbSessionId = {{ db_session_id|default(0) }};
+    const _initialProcessedCount = {{ initial_processed_count|default(0) }};
+    const _initialCorrectCount = {{ initial_correct_count|default(0) }};
+    const _initialIncorrectCount = {{ initial_incorrect_count|default(0) }};
+    const _initialVagueCount = {{ initial_vague_count|default(0) }};
+    const _initialNewLearned = {{ initial_new_learned|default(0) }};
+    const _initialDueRemaining = {{ initial_due_remaining|default(0) }};
+    const _initialNextDueTimestamp = {{ initial_next_due_timestamp|tojson|default('null') }};
 
     // [SSR] Initial Data
     window.initialFlashcardBatch = {{ (initial_batch or[]) | tojson }};
@@ -605,6 +699,7 @@
         regenerateAudioUrl: "{{ url_for('vocab_flashcard.api_regenerate_audio_from_content') }}",
         saveSettingsUrl: "{{ url_for('vocab_flashcard.api_save_flashcard_settings') }}",
         vocabDashboardUrl: "{{ url_for('vocab_flashcard.dashboard_home') }}",
+        getSessionStatsUrl: "{{ url_for('vocab_flashcard.api_get_session_stats_popup') }}",
         getNoteUrl: "{{ url_for('notes.get_note', reference_type='item', reference_id=0) }}",
         saveNoteUrl: "{{ url_for('notes.save_note', reference_type='item', reference_id=0) }}",
         editFlashcardUrlTemplate: "{{ url_for('content_management.edit_flashcard_item', set_id=0, item_id=0) }}",
@@ -616,8 +711,8 @@
         visualSettings: _visualSettings,
         autoSaveOn: _autoSaveOn,
         modeDisplayName: "{{ mode_display_text }}",
-        displaySettings: {{ (display_settings or { }) | tojson }},
-    dbSessionId: _dbSessionId,
+        displaySettings: {{ (display_settings or {}) | tojson }},
+        dbSessionId: _dbSessionId,
         initialProcessedCount: _initialProcessedCount,
         initialCorrectCount: _initialCorrectCount,
         initialIncorrectCount: _initialIncorrectCount,
@@ -625,18 +720,18 @@
         initialNewLearned: _initialNewLearned,
         initialDueRemaining: _initialDueRemaining,
         initialNextDueTimestamp: _initialNextDueTimestamp,
-                                scores: {
-        again: _scoreAgain,
+        scores: {
+            again: _scoreAgain,
             hard: _scoreHard,
-                good: _scoreGood,
-                    easy: _scoreEasy
-    },
-    notifications: {
-        score_duration: _notifScoreDuration,
+            good: _scoreGood,
+            easy: _scoreEasy
+        },
+        notifications: {
+            score_duration: _notifScoreDuration,
             score_position: _notifScorePosition,
-                streak_duration: _notifStreakDuration,
-                    achievement_duration: _notifAchievementDuration
-    }
+            streak_duration: _notifStreakDuration,
+            achievement_duration: _notifAchievementDuration
+        }
     };
 
 

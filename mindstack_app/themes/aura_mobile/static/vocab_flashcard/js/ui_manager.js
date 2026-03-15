@@ -1988,3 +1988,51 @@ document.addEventListener('notificationComplete', function () {
     }, 100); // Small delay to let card fully render
 });
 
+// --- Session Stats Popover ---
+
+window.toggleStatsPopover = async function(event) {
+    if (event) event.stopPropagation();
+    const popover = document.getElementById('stats-popover');
+    if (!popover) return;
+
+    if (popover.classList.contains('active')) {
+        popover.classList.remove('active');
+        return;
+    }
+
+    // Fetch stats
+    try {
+        const response = await fetch(FlashcardConfig.getSessionStatsUrl);
+        const data = await response.json();
+        if (data.success) {
+            const stats = data.stats;
+            document.getElementById('pop-today-points').textContent = '+' + stats.today_points;
+            
+            // Format time: today (minutes), total (hours)
+            const todayMin = Math.round(stats.today_time_ms / 60000);
+            document.getElementById('pop-today-time').textContent = todayMin + 'm';
+            
+            document.getElementById('pop-today-new').textContent = stats.today_new;
+            document.getElementById('pop-today-reviewed').textContent = stats.today_reviewed;
+            
+            const totalHours = (stats.total_time_ms / 3600000).toFixed(1);
+            document.getElementById('pop-total-time').textContent = totalHours + 'h';
+            
+            popover.classList.add('active');
+        }
+    } catch (error) {
+        console.error('Error fetching session stats:', error);
+    }
+};
+
+// Global click listener to close popover
+document.addEventListener('click', (event) => {
+    const popover = document.getElementById('stats-popover');
+    const container = document.getElementById('js-fc-score-badge-container');
+    if (popover && popover.classList.contains('active')) {
+        if (container && !container.contains(event.target)) {
+            popover.classList.remove('active');
+        }
+    }
+});
+

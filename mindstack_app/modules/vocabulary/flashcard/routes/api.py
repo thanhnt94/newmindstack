@@ -38,6 +38,7 @@ from mindstack_app.models import (
 # REFAC: Removed ItemMemoryState import
 from mindstack_app.modules.fsrs.interface import FSRSInterface
 from mindstack_app.modules.vocabulary.interface import VocabularyInterface
+from mindstack_app.modules.learning.interface import LearningInterface
 
 # Helper from views (could be moved to a shared logic file later)
 def _user_can_edit_flashcard(container_id: int) -> bool:
@@ -654,6 +655,37 @@ def preview_fsrs():
     previews = FSRSInterface.get_preview_intervals(current_user.user_id, item_id)
             
     return jsonify({'success': True, 'previews': previews})
+
+
+@blueprint.route('/api/session-stats')
+@login_required
+def api_get_session_stats_popup():
+    """
+    API for the pop-up stats in the session header.
+    Returns today's stats (UTC) and total study time.
+    """
+    try:
+        # 1. Today's stats from DailyStatsService via LearningInterface
+        # This uses UTC as requested
+        daily_summary = LearningInterface.get_daily_summary(current_user.user_id)
+        today = daily_summary.get('today', {})
+        
+        # 2. Total study time from LearningMetricsService via LearningInterface
+        overall_summary = LearningInterface.get_user_learning_summary(current_user.user_id)
+        
+        return jsonify({
+            'success': True,
+            'stats': {
+                'today_points': today.get('points', 0),
+                'today_time_ms': today.get('use_time_ms', 0),
+                'today_new': today.get('new_items', 0),
+                'today_reviewed': today.get('reviewed_items', 0),
+                'total_time_ms': overall_summary.get('total_use_time_ms', 0)
+            }
+        })
+    except Exception as e:
+        current_app.logger.error(f"Error fetching session stats: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
 
 
 # --- LEGACY COLLAB API (Removed as per user request to focus on individual learning) ---
