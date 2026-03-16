@@ -523,7 +523,7 @@ async function displayCurrentCard(force = false) {
     // Session Stats Update
     const historyCount = (window.sessionAnswerHistory ? window.sessionAnswerHistory.length : 0);
     const initialCount = (window.FlashcardConfig && window.FlashcardConfig.initialProcessedCount) ? window.FlashcardConfig.initialProcessedCount : 0;
-    sessionStatsLocal.processed = initialCount + historyCount + 1;
+    sessionStatsLocal.processed = initialCount + historyCount; // Only count completed reviews
     // sessionStatsLocal.total is updated from batch fetch
 
     window.flashcardSessionStats = {

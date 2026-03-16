@@ -917,7 +917,17 @@
     /**
      * Silent AJAX sync for SRS HUD stats
      */
-    window.syncSrsHUD = async function() {
+    let _lastSrsSyncTime = 0;
+    const SRS_SYNC_COOLDOWN = 5000; // 5 seconds cooldown
+
+    window.syncSrsHUD = async function(force = false) {
+        const now = Date.now();
+        if (!force && (now - _lastSrsSyncTime < SRS_SYNC_COOLDOWN)) {
+            console.log('[SRS Sync] Throttled (last sync < 5s ago)');
+            return;
+        }
+        _lastSrsSyncTime = now;
+
         const url = '/vocabulary/flashcard/api/sync_srs_stats';
         try {
             console.log('[SRS Sync] Fetching latest HUD stats...');
@@ -986,10 +996,14 @@
                 if (diff <= 0) {
                     clearInterval(_nextDueInterval);
                     timerEl.textContent = '00:00';
-                    console.log('[Timer] Expired. Triggering silent sync...');
-                    if (window.syncSrsHUD) {
-                        window.syncSrsHUD(); // Automatically pull new card counts
-                    }
+                    console.log('[Timer] Expired. Syncing in 1s...');
+                    
+                    // Add a small delay before syncing to account for server clock drift
+                    setTimeout(() => {
+                        if (window.syncSrsHUD) {
+                            window.syncSrsHUD(); 
+                        }
+                    }, 1000);
                     return;
                 }
 
