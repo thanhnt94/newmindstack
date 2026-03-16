@@ -317,8 +317,16 @@ async function ensureFlashcardBuffer(immediate = false) {
                 return;
             }
 
-            sessionStatsLocal.total = batch.total_items_in_session || sessionStatsLocal.total;
             if (batch.session_points !== undefined) sessionScore = batch.session_points;
+            
+            // [NEW] Sync SRS HUD stats if provided by batch fetch
+            if (typeof batch.due_remaining !== 'undefined') {
+                sessionStatsLocal.due_remaining = batch.due_remaining;
+            }
+            if (typeof batch.next_due_timestamp !== 'undefined') {
+                sessionStatsLocal.next_due_timestamp = batch.next_due_timestamp;
+            }
+            if (window.updateHubStats) window.updateHubStats();
 
             const existingIds = new Set(currentFlashcardBatch.map(i => i.item_id));
             const uniqueNewItems = newItems.filter(i => !existingIds.has(i.item_id));

@@ -328,8 +328,23 @@ def api_get_flashcard_batch():
             'session_total_answered': db_sess.correct_count + db_sess.incorrect_count + db_sess.vague_count,
             'session_points': db_sess.points_earned,
             'session_total_items': total_items,
-            'container_name': session_data.get('container_name', 'Học tập') # Or fetch fresh
+            'container_name': session_data.get('container_name', 'Học tập'), # Or fetch fresh
+            'due_remaining': db_sess.total_items - processed_count, # Default fallback
+            'next_due_timestamp': None
         }
+        
+        # [NEW] Precise SRS Sync for HUD
+        try:
+            from ..engine.algorithms import get_session_srs_counts
+            srs_counts = get_session_srs_counts(
+                current_user.user_id,
+                session_data.get('set_id'),
+                processed_ids=processed_ids
+            )
+            response['due_remaining'] = srs_counts['due_remaining']
+            response['next_due_timestamp'] = srs_counts.get('next_due_timestamp')
+        except Exception as s_err:
+            current_app.logger.warning(f"Error syncing SRS counts in batch: {s_err}")
         
         return jsonify(response)
     except Exception as e:

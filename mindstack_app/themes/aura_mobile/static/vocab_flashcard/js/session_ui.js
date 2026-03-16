@@ -918,38 +918,46 @@
         
         if (!dueTextEl || !timerEl) return;
         
-        if (!targetTimeStr) {
+        if (!targetTimeStr || typeof targetTimeStr !== 'string') {
             // Show due count
             dueTextEl.style.display = '';
             timerEl.classList.add('hidden');
             return;
         }
         
-        // Hide due text, show timer
-        dueTextEl.style.display = 'none';
-        timerEl.classList.remove('hidden');
-        
-        // Use naive UTC appended with Z to ensure proper browser parsing as UTC
-        const formattedTarget = targetTimeStr.endsWith('Z') ? targetTimeStr : targetTimeStr + 'Z';
-        const targetDate = new Date(formattedTarget).getTime();
-        
-        function updateTimer() {
-            const now = new Date().getTime();
-            const diff = targetDate - now;
-
-            if (diff <= 0) {
-                clearInterval(_nextDueInterval);
-                timerEl.textContent = 'Đã đến giờ!';
-                // Trigger refresh after 1 second to let user see "Đã đến giờ!"
-                setTimeout(() => {
-                    if (window.refreshFlashcardSession) {
-                        window.refreshFlashcardSession();
-                    } else {
-                        window.location.reload();
-                    }
-                }, 1000);
+        try {
+            // Hide due text, show timer
+            dueTextEl.style.display = 'none';
+            timerEl.classList.remove('hidden');
+            
+            // Use naive UTC appended with Z to ensure proper browser parsing as UTC
+            const formattedTarget = targetTimeStr.endsWith('Z') ? targetTimeStr : targetTimeStr + 'Z';
+            const targetDate = new Date(formattedTarget).getTime();
+            
+            if (isNaN(targetDate)) {
+                console.warn('[Timer] Invalid date:', targetTimeStr);
+                dueTextEl.style.display = '';
+                timerEl.classList.add('hidden');
                 return;
             }
+
+            function updateTimer() {
+                const now = new Date().getTime();
+                const diff = targetDate - now;
+
+                if (diff <= 0) {
+                    clearInterval(_nextDueInterval);
+                    timerEl.textContent = 'Đã đến giờ!';
+                    // Trigger refresh after 1 second to let user see "Đã đến giờ!"
+                    setTimeout(() => {
+                        if (window.refreshFlashcardSession) {
+                            window.refreshFlashcardSession();
+                        } else {
+                            window.location.reload();
+                        }
+                    }, 1000);
+                    return;
+                }
 
             const d = Math.floor(diff / (1000 * 60 * 60 * 24));
             const h = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
@@ -962,11 +970,16 @@
             str += String(m).padStart(2, '0') + ':';
             str += String(s).padStart(2, '0');
 
-            timerEl.textContent = str;
+                timerEl.textContent = str;
+            }
+
+            updateTimer();
+            _nextDueInterval = setInterval(updateTimer, 1000);
+        } catch (e) {
+            console.error('[Timer] Error initializing timer:', e);
+            dueTextEl.style.display = '';
+            timerEl.classList.add('hidden');
         }
-        
-        updateTimer();
-        _nextDueInterval = setInterval(updateTimer, 1000);
     }
     
     // Initial check for timer
