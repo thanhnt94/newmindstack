@@ -464,104 +464,6 @@
 
                         {# Action Buttons #}
                         <div class="flex items-center gap-0.5 flex-shrink-0 relative">
-                            {# ===== Session Settings Modal (Centered, Self-Contained) ===== #}
-                            <div id="session-settings-modal"
-                                class="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 backdrop-blur-sm transition-opacity duration-200 opacity-0 pointer-events-none"
-                                onclick="if(event.target===this) closeSettingsModal()">
-                                 <div class="premium-modal-glass rounded-2xl shadow-2xl w-80 p-5 transform transition-transform duration-200 scale-95"
-                                    id="session-settings-modal-content">
-                                    <div class="flex items-center justify-between mb-4">
-                                        <span class="text-xs font-black text-slate-700 uppercase tracking-widest">⚙️ Cài
-                                            đặt phiên học</span>
-                                        <button onclick="closeSettingsModal()"
-                                            class="w-7 h-7 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center hover:bg-slate-200 transition-colors">
-                                            <i class="fas fa-times text-xs"></i>
-                                        </button>
-                                    </div>
-                                    <div class="flex flex-col gap-2.5 max-h-[60vh] overflow-y-auto no-scrollbar">
-                                        {# Section: Audio #}
-                                        <div
-                                            class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-2 px-1">
-                                            Âm thanh</div>
-                                        <div
-                                            class="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-100">
-                                            <div class="flex items-center gap-2">
-                                                <i class="fas fa-volume-up text-blue-500 text-sm"></i>
-                                                <span class="text-sm font-bold text-slate-700">Mặt trước</span>
-                                            </div>
-                                            <button id="settings-modal-audio-front-toggle"
-                                                onclick="window.toggleSideAutoplay('front')"
-                                                class="relative w-11 h-6 rounded-full transition-colors duration-200 bg-slate-300">
-                                                <div
-                                                    class="absolute left-0.5 top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform duration-200">
-                                                </div>
-                                            </button>
-                                        </div>
-                                        <div
-                                            class="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-100">
-                                            <div class="flex items-center gap-2">
-                                                <i class="fas fa-volume-up text-rose-500 text-sm"></i>
-                                                <span class="text-sm font-bold text-slate-700">Mặt sau</span>
-                                            </div>
-                                            <button id="settings-modal-audio-back-toggle"
-                                                onclick="window.toggleSideAutoplay('back')"
-                                                class="relative w-11 h-6 rounded-full transition-colors duration-200 bg-slate-300">
-                                                <div
-                                                    class="absolute left-0.5 top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform duration-200">
-                                                </div>
-                                            </button>
-                                        </div>
-
-                                        {# Section: Media #}
-                                        <div
-                                            class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-2 px-1">
-                                            Hình ảnh & Ghi chú</div>
-                                        <div
-                                            class="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-100">
-                                            <div class="flex items-center gap-2">
-                                                <i class="fas fa-image text-emerald-500 text-sm"></i>
-                                                <span class="text-sm font-bold text-slate-700">Ảnh mặt trước</span>
-                                            </div>
-                                            <button id="settings-modal-img-front-toggle"
-                                                onclick="window.toggleVisualSetting('imgFront')"
-                                                class="relative w-11 h-6 rounded-full transition-colors duration-200 bg-slate-300">
-                                                <div
-                                                    class="absolute left-0.5 top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform duration-200">
-                                                </div>
-                                            </button>
-                                        </div>
-                                        <div
-                                            class="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-100">
-                                            <div class="flex items-center gap-2">
-                                                <i class="fas fa-image text-indigo-500 text-sm"></i>
-                                                <span class="text-sm font-bold text-slate-700">Ảnh mặt sau</span>
-                                            </div>
-                                            <button id="settings-modal-img-back-toggle"
-                                                onclick="window.toggleVisualSetting('imgBack')"
-                                                class="relative w-11 h-6 rounded-full transition-colors duration-200 bg-slate-300">
-                                                <div
-                                                    class="absolute left-0.5 top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform duration-200">
-                                                </div>
-                                            </button>
-                                        </div>
-                                        <div
-                                            class="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-100">
-                                            <div class="flex items-center gap-1.5">
-                                                <i class="fas fa-sticky-note text-amber-500 text-sm"></i>
-                                                <span class="text-sm font-bold text-slate-700">Ghi chú mặt sau</span>
-                                            </div>
-                                            <button id="settings-modal-note-back-toggle"
-                                                onclick="window.toggleVisualSetting('noteBack')"
-                                                class="relative w-11 h-6 rounded-full transition-colors duration-200 bg-slate-300">
-                                                <div
-                                                    class="absolute left-0.5 top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform duration-200">
-                                                </div>
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
                             <!-- Action Buttons -->
                             <button onclick="openSettingsModal()"
                                 class="w-7 h-7 rounded-full bg-slate-50 text-slate-500 flex items-center justify-center hover:bg-slate-100 transition-transform active:scale-90"
@@ -629,6 +531,104 @@
         <!-- Rating Buttons (shown on back) - dynamically populated by JavaScript -->
         <div class="fc-rating-btns js-fc-rating-btns" id="mobile-rating-btns">
             <!-- Buttons will be generated dynamically based on user_button_count -->
+        </div>
+    </div>
+
+    {# ===== Session Settings Modal (Centered, Root Level) ===== #}
+    <div id="session-settings-modal"
+        class="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 backdrop-blur-sm transition-opacity duration-200 opacity-0 pointer-events-none"
+        onclick="if(event.target===this) closeSettingsModal()">
+         <div class="premium-modal-glass rounded-2xl shadow-2xl w-80 p-5 transform transition-transform duration-200 scale-95"
+            id="session-settings-modal-content">
+            <div class="flex items-center justify-between mb-4">
+                <span class="text-xs font-black text-slate-700 uppercase tracking-widest">⚙️ Cài
+                    đặt phiên học</span>
+                <button onclick="closeSettingsModal()"
+                    class="w-7 h-7 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center hover:bg-slate-200 transition-colors">
+                    <i class="fas fa-times text-xs"></i>
+                </button>
+            </div>
+            <div class="flex flex-col gap-2.5 max-h-[60vh] overflow-y-auto no-scrollbar">
+                {# Section: Audio #}
+                <div
+                    class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-2 px-1">
+                    Âm thanh</div>
+                <div
+                    class="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-100">
+                    <div class="flex items-center gap-2">
+                        <i class="fas fa-volume-up text-blue-500 text-sm"></i>
+                        <span class="text-sm font-bold text-slate-700">Mặt trước</span>
+                    </div>
+                    <button id="settings-modal-audio-front-toggle"
+                        onclick="window.toggleSideAutoplay('front')"
+                        class="relative w-11 h-6 rounded-full transition-colors duration-200 bg-slate-300">
+                        <div
+                            class="absolute left-0.5 top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform duration-200">
+                        </div>
+                    </button>
+                </div>
+                <div
+                    class="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-100">
+                    <div class="flex items-center gap-2">
+                        <i class="fas fa-volume-up text-rose-500 text-sm"></i>
+                        <span class="text-sm font-bold text-slate-700">Mặt sau</span>
+                    </div>
+                    <button id="settings-modal-audio-back-toggle"
+                        onclick="window.toggleSideAutoplay('back')"
+                        class="relative w-11 h-6 rounded-full transition-colors duration-200 bg-slate-300">
+                        <div
+                            class="absolute left-0.5 top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform duration-200">
+                        </div>
+                    </button>
+                </div>
+
+                {# Section: Media #}
+                <div
+                    class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-2 px-1">
+                    Hình ảnh & Ghi chú</div>
+                <div
+                    class="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-100">
+                    <div class="flex items-center gap-2">
+                        <i class="fas fa-image text-emerald-500 text-sm"></i>
+                        <span class="text-sm font-bold text-slate-700">Ảnh mặt trước</span>
+                    </div>
+                    <button id="settings-modal-img-front-toggle"
+                        onclick="window.toggleVisualSetting('imgFront')"
+                        class="relative w-11 h-6 rounded-full transition-colors duration-200 bg-slate-300">
+                        <div
+                            class="absolute left-0.5 top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform duration-200">
+                        </div>
+                    </button>
+                </div>
+                <div
+                    class="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-100">
+                    <div class="flex items-center gap-2">
+                        <i class="fas fa-image text-indigo-500 text-sm"></i>
+                        <span class="text-sm font-bold text-slate-700">Ảnh mặt sau</span>
+                    </div>
+                    <button id="settings-modal-img-back-toggle"
+                        onclick="window.toggleVisualSetting('imgBack')"
+                        class="relative w-11 h-6 rounded-full transition-colors duration-200 bg-slate-300">
+                        <div
+                            class="absolute left-0.5 top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform duration-200">
+                        </div>
+                    </button>
+                </div>
+                <div
+                    class="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-100">
+                    <div class="flex items-center gap-1.5">
+                        <i class="fas fa-sticky-note text-amber-500 text-sm"></i>
+                        <span class="text-sm font-bold text-slate-700">Ghi chú mặt sau</span>
+                    </div>
+                    <button id="settings-modal-note-back-toggle"
+                        onclick="window.toggleVisualSetting('noteBack')"
+                        class="relative w-11 h-6 rounded-full transition-colors duration-200 bg-slate-300">
+                        <div
+                            class="absolute left-0.5 top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform duration-200">
+                        </div>
+                    </button>
+                </div>
+            </div>
         </div>
     </div>
 </div>
