@@ -940,6 +940,14 @@
             if (diff <= 0) {
                 clearInterval(_nextDueInterval);
                 timerEl.textContent = 'Đã đến giờ!';
+                // Trigger refresh after 1 second to let user see "Đã đến giờ!"
+                setTimeout(() => {
+                    if (window.refreshFlashcardSession) {
+                        window.refreshFlashcardSession();
+                    } else {
+                        window.location.reload();
+                    }
+                }, 1000);
                 return;
             }
 

@@ -884,6 +884,11 @@ window.updateFlashcardCard = updateFlashcardCard;
 window.displayCurrentCard = displayCurrentCard;
 window.ensureFlashcardBuffer = ensureFlashcardBuffer;
 window.syncSettingsToServer = syncSettingsToServer;
+window.refreshFlashcardSession = function () {
+    console.log('[Session] Quietly refreshing session state...');
+    isSessionEnding = false;
+    getNextFlashcardBatch();
+};
 
 // ── Driver session control ──────────────────────────────────────────
 /**
