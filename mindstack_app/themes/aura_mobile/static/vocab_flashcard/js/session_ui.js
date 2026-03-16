@@ -908,6 +908,44 @@
             window.updateStateBadge(stats.status);
         }
     }
+    window.updateHubStats = function() {
+        if (window.flashcardSessionStats) {
+            updateMobileStats(window.flashcardSessionStats);
+        }
+    };
+
+    /**
+     * Silent AJAX sync for SRS HUD stats
+     */
+    window.syncSrsHUD = async function() {
+        const url = '/vocabulary/flashcard/api/sync_srs_stats';
+        try {
+            console.log('[SRS Sync] Fetching latest HUD stats...');
+            const res = await fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+            if (!res.ok) throw new Error('HTTP ' + res.status);
+            
+            const data = await res.json();
+            if (data.success) {
+                console.log('[SRS Sync] Success:', data);
+                // Update global state in session_manager.js if possible
+                if (window.flashcardSessionStats) {
+                    window.flashcardSessionStats.due_remaining = data.due_remaining;
+                    window.flashcardSessionStats.next_due_timestamp = data.next_due_timestamp;
+                    window.flashcardSessionStats.session_score = data.session_points;
+                }
+                // Update UI
+                updateMobileStats({
+                    due_remaining: data.due_remaining,
+                    next_due_timestamp: data.next_due_timestamp,
+                    session_score: data.session_points,
+                    correct: data.session_correct_answers,
+                    incorrect: data.session_incorrect_answers
+                });
+            }
+        } catch (e) {
+            console.warn('[SRS Sync] Failed:', e);
+        }
+    };
 
     // [TIMER LOGIC]
     let _nextDueInterval = null;
@@ -947,15 +985,11 @@
 
                 if (diff <= 0) {
                     clearInterval(_nextDueInterval);
-                    timerEl.textContent = 'Đã đến giờ!';
-                    // Trigger refresh after 1 second to let user see "Đã đến giờ!"
-                    setTimeout(() => {
-                        if (window.refreshFlashcardSession) {
-                            window.refreshFlashcardSession();
-                        } else {
-                            window.location.reload();
-                        }
-                    }, 1000);
+                    timerEl.textContent = '00:00';
+                    console.log('[Timer] Expired. Triggering silent sync...');
+                    if (window.syncSrsHUD) {
+                        window.syncSrsHUD(); // Automatically pull new card counts
+                    }
                     return;
                 }
 

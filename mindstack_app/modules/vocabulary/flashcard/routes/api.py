@@ -467,6 +467,39 @@ def api_submit_flashcard_answer():
         'next_due_timestamp': srs_counts.get('next_due_timestamp')
     })
 
+@blueprint.route('/api/sync_srs_stats', methods=['GET'])
+@login_required
+def api_sync_srs_stats():
+    """API gọn nhẹ để đồng bộ HUD (số thẻ cần ôn, timer) mà không tải thẻ."""
+    if 'flashcard_session' not in session:
+        return jsonify({'success': False, 'message': 'Phiên học không hợp lệ.'}), 400
+
+    session_data = session['flashcard_session']
+    try:
+        db_id = int(session_data.get('db_session_id'))
+    except (TypeError, ValueError):
+        db_id = session_data.get('db_session_id')
+    
+    db_sess = SessionInterface.get_session_by_id(db_id)
+    if not db_sess:
+        return jsonify({'success': False, 'message': 'Không tìm thấy phiên học dữ liệu.'}), 404
+
+    from ..engine.algorithms import get_session_srs_counts
+    srs_counts = get_session_srs_counts(
+        current_user.user_id,
+        session_data.get('set_id'),
+        processed_ids=list(db_sess.processed_item_ids or [])
+    )
+
+    return jsonify({
+        'success': True,
+        'due_remaining': srs_counts['due_remaining'],
+        'next_due_timestamp': srs_counts.get('next_due_timestamp'),
+        'session_points': db_sess.points_earned,
+        'session_correct_answers': db_sess.correct_count,
+        'session_incorrect_answers': db_sess.incorrect_count
+    })
+
 @blueprint.route('/end_session_flashcard', methods=['POST'])
 @login_required
 def api_end_session_flashcard():
