@@ -918,26 +918,25 @@
      * Silent AJAX sync for SRS HUD stats
      */
     let _lastSrsSyncTime = 0;
-    const SRS_SYNC_COOLDOWN = 5000; // 5 seconds cooldown
+    const SRS_SYNC_COOLDOWN = 10000; // 10s cooldown for passive sync
+    let _srsPollingInterval = null;
 
     window.syncSrsHUD = async function(force = false) {
         const now = Date.now();
         if (!force && (now - _lastSrsSyncTime < SRS_SYNC_COOLDOWN)) {
-            console.log('[SRS Sync] Throttled (last sync < 5s ago)');
-            return;
+            return null;
         }
         _lastSrsSyncTime = now;
 
         const url = '/vocabulary/flashcard/api/sync_srs_stats';
         try {
-            console.log('[SRS Sync] Fetching latest HUD stats...');
+            console.log(`[SRS Sync] Fetching latest HUD stats... (force: ${force})`);
             const res = await fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
             if (!res.ok) throw new Error('HTTP ' + res.status);
             
             const data = await res.json();
-            if (data.success) {
-                console.log('[SRS Sync] Success:', data);
-                // Update global state in session_manager.js if possible
+            if (data && (data.success || typeof data.due_remaining !== 'undefined')) {
+                // Update global state
                 if (window.flashcardSessionStats) {
                     window.flashcardSessionStats.due_remaining = data.due_remaining;
                     window.flashcardSessionStats.next_due_timestamp = data.next_due_timestamp;
@@ -951,11 +950,22 @@
                     correct: data.session_correct_answers,
                     incorrect: data.session_incorrect_answers
                 });
+                return data;
             }
         } catch (e) {
             console.warn('[SRS Sync] Failed:', e);
         }
+        return null;
     };
+
+    // Background polling every 30 seconds
+    if (!_srsPollingInterval) {
+        _srsPollingInterval = setInterval(() => {
+            if (!document.hidden) {
+                window.syncSrsHUD(false); // Passive poll
+            }
+        }, 30000);
+    }
 
     // [TIMER LOGIC]
     let _nextDueInterval = null;
@@ -996,14 +1006,31 @@
                 if (diff <= 0) {
                     clearInterval(_nextDueInterval);
                     timerEl.textContent = '00:00';
-                    console.log('[Timer] Expired. Syncing in 1s...');
+                    timerEl.style.opacity = '0.5'; // Visual feedback of "syncing"
                     
-                    // Add a small delay before syncing to account for server clock drift
-                    setTimeout(() => {
-                        if (window.syncSrsHUD) {
-                            window.syncSrsHUD(); 
+                    console.log('[Timer] Expired. Initiating robust sync...');
+                    
+                    let retryCount = 0;
+                    const maxRetries = 10;
+                    
+                    async function pollOnExpiration() {
+                        const data = await window.syncSrsHUD(true); // Force sync
+                        
+                        // If cards are now due, HUD will be updated via updateMobileStats inside syncSrsHUD
+                        // If still 0 due remaining but timestamp is still in past, retry
+                        if (data && data.due_remaining === 0 && retryCount < maxRetries) {
+                            retryCount++;
+                            console.log(`[Timer] Retry sync ${retryCount}/${maxRetries}...`);
+                            setTimeout(pollOnExpiration, 3000); // Wait 3s before retry
+                        } else {
+                            timerEl.style.opacity = ''; // Restore opacity
+                            if (retryCount >= maxRetries) {
+                                console.warn('[Timer] Max retries reached, cards might not be ready on server yet.');
+                            }
                         }
-                    }, 1000);
+                    }
+                    
+                    pollOnExpiration();
                     return;
                 }
 
