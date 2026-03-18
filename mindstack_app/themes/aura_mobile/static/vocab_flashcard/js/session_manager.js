@@ -473,7 +473,8 @@ async function displayCurrentCard(force = false) {
                 difficulty: currentCardData.initial_stats.difficulty,
                 stability: currentCardData.initial_stats.stability,
                 retrievability: currentCardData.initial_stats.retrievability,
-                times_reviewed: currentCardData.initial_stats.times_reviewed
+                times_reviewed: currentCardData.initial_stats.times_reviewed,
+                recent_reviews: currentCardData.initial_stats.recent_reviews
             },
             srs_data: {
                 next_review: currentCardData.initial_stats.next_review || null
@@ -734,6 +735,12 @@ async function submitFlashcardAnswer(itemId, answer) {
         // Update HUD immediately for the card we just answered
         if (window.updateCardHudStats) {
             window.updateCardHudStats(data.statistics);
+        }
+
+        // [NEW] Update History Icons for THIS card (Card-Specific History Bar)
+        if (window.updateFlashcardStats) {
+            data.answer = answer; // Ensure answer is available for history bar update logic
+            window.updateFlashcardStats(data);
         }
 
         document.dispatchEvent(new CustomEvent('flashcardStatsUpdated', { detail: window.flashcardSessionStats }));

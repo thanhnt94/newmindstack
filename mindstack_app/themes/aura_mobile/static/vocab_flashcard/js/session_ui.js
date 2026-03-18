@@ -594,10 +594,66 @@
         }, 10);
     }
 
-    // Update history when new card is answered
-    document.addEventListener('flashcardStatsUpdated', function () {
-        renderSessionHistoryList();
-    });
+    // Update history when new card is answered (MOVED TO MAIN LISTENER AT LINE 749)
+
+    // Render compact history icons for the top-left bar
+    let _lastDisplayedCardHistory = [];
+
+    window.renderSessionHistoryIcons = function(explicitHistory = null, appendNewRating = null) {
+        // console.log('[FSRS UI] renderSessionHistoryIcons', { explicitHistory, appendNewRating });
+        const container = document.getElementById('js-fc-history-icons');
+        if (!container) return;
+
+        try {
+            if (explicitHistory) {
+                // Mapping backend format to consistent icons format
+                _lastDisplayedCardHistory = explicitHistory.map(item => ({
+                    user_answer_quality: item.user_answer_quality || item.rating || 3
+                }));
+            }
+
+            if (appendNewRating) {
+                const quality = typeof appendNewRating === 'number' ? appendNewRating : 
+                                { 'again': 1, 'fail': 1, 'hard': 2, 'good': 3, 'easy': 4 }[String(appendNewRating).toLowerCase()] || 3;
+                
+                _lastDisplayedCardHistory.push({ user_answer_quality: quality, isNew: true });
+            }
+
+            // Take last 10
+            const displayHistory = _lastDisplayedCardHistory.slice(-10);
+
+            if (displayHistory.length === 0) {
+                container.classList.add('hidden');
+                return;
+            }
+
+            container.classList.remove('hidden');
+
+            const ratingMap = {
+                1: { icon: 'fa-undo', color: 'bg-rose-500' },
+                2: { icon: 'fa-fire', color: 'bg-amber-500' },
+                3: { icon: 'fa-thumbs-up', color: 'bg-emerald-500' },
+                4: { icon: 'fa-smile', color: 'bg-indigo-500' }
+            };
+
+            container.innerHTML = displayHistory.map(item => {
+                const quality = item.user_answer_quality || 3;
+                const config = ratingMap[quality] || { icon: 'fa-circle', color: 'bg-slate-400' };
+                const highlightClass = item.isNew ? 'ring-2 ring-white scale-125 z-50 animate-pulse' : '';
+                
+                return `<div class="w-4 h-4 rounded-full ${config.color} flex items-center justify-center shadow-sm transition-all duration-300 ${highlightClass}">
+                            <i class="fas ${config.icon} text-white text-[7px]"></i>
+                        </div>`;
+            }).join('');
+
+            // Sudden pop animation for the whole bar
+            container.classList.remove('scale-100');
+            void container.offsetWidth;
+            container.classList.add('scale-100');
+        } catch (e) {
+            console.error('[FSRS UI] Error in renderSessionHistoryIcons:', e);
+        }
+    }
 
     // [REFACTOR] Update rating buttons with FSRS intervals via Backend API
 
@@ -707,6 +763,8 @@
     document.addEventListener('flashcardStatsUpdated', function (e) {
         if (e.detail) {
             updateMobileStats(e.detail);
+            renderSessionHistoryList();
+            // Removed redundant renderSessionHistoryIcons call that was causing session artifacts
         }
     });
 
@@ -1254,6 +1312,16 @@
 
             // (Tùy chọn) Gọi lại hàm updateStateBadge nếu cần đổi màu
             if (window.updateStateBadge) window.updateStateBadge(data.new_progress_status);
+        }
+
+        // [NEW] Update History Icons for THIS card
+        if (data.statistics && data.statistics.recent_reviews) {
+            window.renderSessionHistoryIcons(data.statistics.recent_reviews);
+        } else if (data.answer) {
+            // Evaluated card: Append the new rating to current card's history
+            window.renderSessionHistoryIcons(null, data.answer);
+        } else {
+            // Fallback for session-wide updates (don't clear, just preserve)
         }
     };
 

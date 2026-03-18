@@ -224,8 +224,11 @@ body.flashcard-session-active>main {
 .face {
     position: absolute;
     inset: 0;
-    /* Padding-top reduced to 48px to move content closer to the stats bar/toolbar */
-    padding: 0px 1.25rem 3rem 1.25rem;
+    /* Padding-top enforced to 100px to ensure it clears the 10-icon history bar and stats */
+    padding-top: 100px !important;
+    padding-left: 1.25rem;
+    padding-right: 1.25rem;
+    padding-bottom: 3.5rem;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
@@ -459,7 +462,7 @@ body.flashcard-session-active>main {
     flex: 1 1 auto;
     min-height: 0;
     padding: 0 0.85rem;
-    margin-top: 0;
+    margin-top: 30px !important;
     display: flex;
     flex-direction: column;
 }

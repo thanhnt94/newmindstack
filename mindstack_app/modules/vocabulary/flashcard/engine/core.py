@@ -391,7 +391,8 @@ class FlashcardEngine:
         })
 
         # Fetch recent logs for Sparkline/History View (limit to 50 is fine here)
-        logs = LearningHistoryInterface.get_item_history(item_id, user_id=user_id, limit=50)
+        # Filter by learning_mode='flashcard' to exclude MCQ or other mode results
+        logs = LearningHistoryInterface.get_item_history(item_id, user_id=user_id, limit=50, learning_mode='flashcard')
 
         review_qualities = []
         normalized_entries = []
