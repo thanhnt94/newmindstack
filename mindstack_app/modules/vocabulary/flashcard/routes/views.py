@@ -429,6 +429,21 @@ def flashcard_session(session_id):
         # Only use computed new_learned if no persisted value (first load)
         if initial_new_learned == 0 and srs_counts['new_learned'] > 0:
             initial_new_learned = srs_counts['new_learned']
+            
+        # [NEW] Calculate completion percentage stats for the container
+        initial_total_in_set = 0
+        initial_learned_in_set = 0
+        set_id = session_data.get('set_id')
+        if isinstance(set_id, int):
+            from mindstack_app.models import LearningItem
+            from mindstack_app.modules.fsrs.interface import FSRSInterface
+            initial_total_in_set = LearningItem.query.filter(
+                LearningItem.container_id == set_id,
+                LearningItem.item_type.in_(['FLASHCARD', 'VOCABULARY'])
+            ).count()
+            learned_ids = FSRSInterface.get_learned_item_ids_for_container(set_id, current_user.user_id)
+            initial_learned_in_set = len(learned_ids)
+            
     except Exception as e:
         current_app.logger.warning(f"Error calculating SRS counts: {e}")
 
@@ -452,6 +467,8 @@ def flashcard_session(session_id):
         initial_new_learned=initial_new_learned,
         initial_due_remaining=initial_due_remaining,
         initial_next_due_timestamp=initial_next_due_timestamp,
+        initial_total_in_set=initial_total_in_set if 'initial_total_in_set' in locals() else 0,
+        initial_learned_in_set=initial_learned_in_set if 'initial_learned_in_set' in locals() else 0,
     )
 
 

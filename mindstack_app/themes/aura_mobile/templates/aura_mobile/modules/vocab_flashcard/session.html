@@ -454,6 +454,12 @@
                                 <span class="font-bold font-mono text-xs js-fc-session-new">{{ initial_new_learned | default(0) }}</span>
                             </div>
 
+                            {# [NEW] Progress Percentage Pill #}
+                            <div class="stat-pill-galaxy flex-shrink-0 flex items-center gap-1 bg-indigo-500/10 border-indigo-500/30" title="Tiến độ hoàn thành">
+                                <i class="fas fa-chart-pie text-indigo-400 text-[10px]"></i>
+                                <span class="font-bold font-mono text-xs text-indigo-100 js-fc-session-progress-percent">0%</span>
+                            </div>
+
                             {# [NEW] Due Remaining Pill #}
                             <div class="stat-pill-galaxy flex-shrink-0 flex items-center gap-1 w-auto min-w-0" title="Cần ôn tập">
                                 <i class="fa-solid fa-clock-rotate-left text-orange-400 text-[10px]"></i>
@@ -628,6 +634,53 @@
                         </div>
                     </button>
                 </div>
+
+                {# Section: Display #}
+                <div
+                    class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-2 px-1">
+                    Hiển thị</div>
+                <div
+                    class="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-100">
+                    <div class="flex items-center gap-2">
+                        <i class="fas fa-stopwatch text-indigo-500 text-sm"></i>
+                        <span class="text-sm font-bold text-slate-700">Đồng hồ đếm giờ</span>
+                    </div>
+                    <button id="settings-modal-show-timer-toggle"
+                        onclick="window.toggleVisualSetting('showTimer')"
+                        class="relative w-11 h-6 rounded-full transition-colors duration-200 bg-slate-300">
+                        <div
+                            class="absolute left-0.5 top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform duration-200">
+                        </div>
+                    </button>
+                </div>
+                <div
+                    class="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-100">
+                    <div class="flex items-center gap-2">
+                        <i class="fas fa-history text-emerald-500 text-sm"></i>
+                        <span class="text-sm font-bold text-slate-700">Lịch sử đánh giá</span>
+                    </div>
+                    <button id="settings-modal-show-history-toggle"
+                        onclick="window.toggleVisualSetting('showHistory')"
+                        class="relative w-11 h-6 rounded-full transition-colors duration-200 bg-slate-300">
+                        <div
+                            class="absolute left-0.5 top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform duration-200">
+                        </div>
+                    </button>
+                </div>
+                <div
+                    class="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-100">
+                    <div class="flex items-center gap-2">
+                        <i class="fas fa-brain text-purple-500 text-sm"></i>
+                        <span class="text-sm font-bold text-slate-700">Thông số FSRS</span>
+                    </div>
+                    <button id="settings-modal-show-fsrs-toggle"
+                        onclick="window.toggleVisualSetting('showFsrs')"
+                        class="relative w-11 h-6 rounded-full transition-colors duration-200 bg-slate-300">
+                        <div
+                            class="absolute left-0.5 top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform duration-200">
+                        </div>
+                    </button>
+                </div>
             </div>
         </div>
     </div>
@@ -687,6 +740,8 @@
     const _initialNewLearned = {{ initial_new_learned|default(0) }};
     const _initialDueRemaining = {{ initial_due_remaining|default(0) }};
     const _initialNextDueTimestamp = {{ initial_next_due_timestamp|tojson|default('null') }};
+    const _initialTotalInSet = {{ initial_total_in_set|default(0) }};
+    const _initialLearnedInSet = {{ initial_learned_in_set|default(0) }};
 
     // [SSR] Initial Data
     window.initialFlashcardBatch = {{ (initial_batch or[]) | tojson }};
@@ -720,6 +775,8 @@
         initialNewLearned: _initialNewLearned,
         initialDueRemaining: _initialDueRemaining,
         initialNextDueTimestamp: _initialNextDueTimestamp,
+        initialTotalInSet: _initialTotalInSet,
+        initialLearnedInSet: _initialLearnedInSet,
         scores: {
             again: _scoreAgain,
             hard: _scoreHard,

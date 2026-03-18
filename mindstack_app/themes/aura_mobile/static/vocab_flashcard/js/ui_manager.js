@@ -9,6 +9,11 @@ let isBackImageHidden = false;
 let isBackNoteHidden = false;
 let showStats = true;
 
+// --- Display Visibility Toggles ---
+window.showTimer = true;
+window.showHistory = true;
+window.showFsrs = true;
+
 // --- Initialization ---
 
 function initUiSettings() {
@@ -41,6 +46,19 @@ function initUiSettings() {
         isFrontImageHidden = localStorage.getItem('fc_hide_img_front') === 'true' || isMediaHidden;
         isBackImageHidden = localStorage.getItem('fc_hide_img_back') === 'true' || isMediaHidden;
         isBackNoteHidden = localStorage.getItem('fc_hide_note_back') === 'true';
+
+        if (visualSettings.show_timer === undefined) {
+            const storedTimer = localStorage.getItem('fc_show_timer');
+            if (storedTimer !== null) window.showTimer = storedTimer === 'true';
+        }
+        if (visualSettings.show_history === undefined) {
+            const storedHistory = localStorage.getItem('fc_show_history');
+            if (storedHistory !== null) window.showHistory = storedHistory === 'true';
+        }
+        if (visualSettings.show_fsrs === undefined) {
+            const storedFsrs = localStorage.getItem('fc_show_fsrs');
+            if (storedFsrs !== null) window.showFsrs = storedFsrs === 'true';
+        }
 
     } catch (err) {
         console.warn('Không thể đọc localStorage:', err);
@@ -117,6 +135,9 @@ function initUiSettings() {
 
     // --- Init Gesture Handling ---
     if (window.initCardGestures) window.initCardGestures();
+
+    // Initialize visibility for timer, history, and FSRS stats
+    if (window.applyDisplaySettings) window.applyDisplaySettings();
 }
 
 // --- Flip Transformations ---
@@ -376,9 +397,19 @@ window.toggleVisualSetting = function (type) {
     } else if (type === 'noteBack') {
         isBackNoteHidden = !isBackNoteHidden;
         localStorage.setItem('fc_hide_note_back', isBackNoteHidden);
+    } else if (type === 'showTimer') {
+        window.showTimer = !window.showTimer;
+        localStorage.setItem('fc_show_timer', window.showTimer);
+    } else if (type === 'showHistory') {
+        window.showHistory = !window.showHistory;
+        localStorage.setItem('fc_show_history', window.showHistory);
+    } else if (type === 'showFsrs') {
+        window.showFsrs = !window.showFsrs;
+        localStorage.setItem('fc_show_fsrs', window.showFsrs);
     }
 
     applyMediaVisibility();
+    window.applyDisplaySettings();
 
     // Optional: Sync to server
     if (window.syncSettingsToServer) window.syncSettingsToServer();
@@ -391,7 +422,10 @@ window.syncSettingsModalUI = function () {
     const configs = [
         { id: 'settings-modal-img-front-toggle', active: !isFrontImageHidden },
         { id: 'settings-modal-img-back-toggle', active: !isBackImageHidden },
-        { id: 'settings-modal-note-back-toggle', active: !isBackNoteHidden }
+        { id: 'settings-modal-note-back-toggle', active: !isBackNoteHidden },
+        { id: 'settings-modal-show-timer-toggle', active: window.showTimer },
+        { id: 'settings-modal-show-history-toggle', active: window.showHistory },
+        { id: 'settings-modal-show-fsrs-toggle', active: window.showFsrs }
     ];
 
     configs.forEach(cfg => {
@@ -427,6 +461,39 @@ function setMediaHiddenState(hidden) {
 }
 
 // --- Content Synchronization ---
+
+window.applyDisplaySettings = function () {
+    const timer = document.getElementById('learning-timer-flybox');
+    const history = document.getElementById('js-fc-history-icons');
+    const fsrsContainers = document.querySelectorAll('.js-card-overlay-stats');
+
+    if (timer) {
+        if (window.showTimer) {
+            timer.classList.remove('opacity-0', 'pointer-events-none');
+            timer.style.display = '';
+        } else {
+            timer.classList.add('opacity-0', 'pointer-events-none');
+            timer.style.display = 'none';
+        }
+    }
+
+    if (history) {
+        // Since session_ui.js modifies the hidden class dynamically, we enforce display property
+        if (window.showHistory) {
+            history.style.display = '';
+        } else {
+            history.style.display = 'none';
+        }
+    }
+
+    fsrsContainers.forEach(el => {
+        if (window.showFsrs) {
+            el.classList.remove('hidden');
+        } else {
+            el.classList.add('hidden');
+        }
+    });
+};
 
 /**
  * Modal Handling

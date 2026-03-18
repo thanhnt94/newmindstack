@@ -852,9 +852,19 @@
     function updateMobileStats(stats) {
         if (!stats) return;
 
-        // 1. Session Progress (Removed as per user request to drop total_items in UI)
-        // Kept empty blocks here to avoid breaking downstream indices.
-
+        // 1. Session Progress Percentage (Based on Set Completion)
+        if (window.FlashcardConfig && window.FlashcardConfig.initialTotalInSet > 0) {
+            let totalInSet = window.FlashcardConfig.initialTotalInSet;
+            let learnedInSet = window.FlashcardConfig.initialLearnedInSet + (stats.new_learned || 0);
+            
+            // Cap at totalInSet
+            if (learnedInSet > totalInSet) learnedInSet = totalInSet;
+            
+            let percent = Math.round((learnedInSet / totalInSet) * 100);
+            if (percent > 100) percent = 100;
+            
+            document.querySelectorAll('.js-fc-session-progress-percent').forEach(el => el.textContent = percent + '%');
+        }
         // 2. Session Correct Count (Green Check)
         document.querySelectorAll('.js-fc-session-correct, #live-correct').forEach(el => {
             el.textContent = stats.correct || 0;
