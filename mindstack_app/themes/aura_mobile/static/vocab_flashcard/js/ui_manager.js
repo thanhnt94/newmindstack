@@ -2008,9 +2008,11 @@ window.toggleStatsPopover = async function(event) {
             const stats = data.stats;
             document.getElementById('pop-today-points').textContent = '+' + stats.today_points;
             
-            // Format time: today (minutes), total (hours)
-            const todayMin = Math.round(stats.today_time_ms / 60000);
-            document.getElementById('pop-today-time').textContent = todayMin + 'm';
+            // Format time: today (minutes + seconds), total (hours)
+            const totalSec = Math.floor(stats.today_time_ms / 1000);
+            const m = Math.floor(totalSec / 60);
+            const s = totalSec % 60;
+            document.getElementById('pop-today-time').textContent = m + 'm ' + s + 's';
             
             document.getElementById('pop-today-new').textContent = stats.today_new;
             document.getElementById('pop-today-reviewed').textContent = stats.today_reviewed;
