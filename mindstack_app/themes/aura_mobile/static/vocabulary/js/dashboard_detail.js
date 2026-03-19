@@ -233,7 +233,7 @@ document.addEventListener('DOMContentLoaded', function () {
             });
 
             // 3. Title display
-            document.querySelectorAll('.js-detail-title-hero').forEach(el => el.textContent = s.title);
+            document.querySelectorAll('.js-detail-title-hero, .js-detail-title-mini').forEach(el => el.textContent = s.title);
         }
 
 
@@ -663,6 +663,20 @@ document.addEventListener('DOMContentLoaded', function () {
         if (selectedSetId) loadSetDetail(selectedSetId, false, urlPage);
         showStep(currentActiveStep);
 
+        // [NEW] Add scroll listener for Immersive Big Header
+        const scrollContainer = document.getElementById('vocab-scroll-container');
+        const miniNav = document.getElementById('sticky-mini-nav');
+        if (scrollContainer && miniNav) {
+            scrollContainer.addEventListener('scroll', () => {
+                if (scrollContainer.scrollTop > 120) {
+                    miniNav.classList.remove('-translate-y-[120%]', 'opacity-0', 'pointer-events-none');
+                    miniNav.classList.add('translate-y-0', 'opacity-100', 'pointer-events-auto');
+                } else {
+                    miniNav.classList.add('-translate-y-[120%]', 'opacity-0', 'pointer-events-none');
+                    miniNav.classList.remove('translate-y-0', 'opacity-100', 'pointer-events-auto');
+                }
+            });
+        }
     }
 
     initialize();

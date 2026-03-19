@@ -121,59 +121,76 @@ render_unified_header with context %}
     <!-- Detail View - Unified -->
     <div id="detail-view-wrapper" class="js-detail-view-wrapper">
         <div id="step-detail" class="vocab-step active">
-            {% call render_unified_header(title='Tên bộ thẻ', score_overview=score_overview,
-            back_url='/learn/vocabulary/', hide_default_actions=True, hide_subtitle=True) %}
-            <a href="javascript:void(0)"
-                class="w-8 h-8 flex items-center justify-center rounded-full bg-white text-slate-500 border border-slate-100 shadow-sm js-edit-set-btn open-modal-btn"
-                title="Sửa bộ thẻ" style="display: none;">
-                <i class="fas fa-edit text-xs"></i>
-            </a>
-            <a href="{{ url_for('vocabulary.dashboard') }}"
-                class="w-8 h-8 flex items-center justify-center rounded-full bg-white text-slate-500 border border-slate-100 shadow-sm"
-                title="Trang chủ">
-                <i class="fas fa-home text-xs"></i>
-            </a>
-            {% endcall %}
+            
+            <!-- [NEW] Sticky Mini-Nav (Hidden by Default) -->
+            <div id="sticky-mini-nav" class="fixed top-0 left-0 right-0 z-[120] bg-white/95 backdrop-blur-md border-b border-slate-200/50 shadow-sm px-3.5 py-2.5 flex items-center justify-between transition-all duration-300 -translate-y-[120%] opacity-0 pointer-events-none">
+                <div class="flex items-center gap-3 min-w-0 flex-1 pr-2">
+                    <a href="/learn/vocabulary/" class="w-9 h-9 flex-shrink-0 rounded-full bg-slate-50 text-slate-500 flex items-center justify-center border border-slate-100 hover:text-indigo-600 hover:border-indigo-100 active:scale-95 transition-all">
+                        <i class="fas fa-arrow-left text-sm"></i>
+                    </a>
+                    <h1 class="text-[17px] font-extrabold text-slate-800 truncate tracking-tight js-detail-title-mini">Tên bộ thẻ</h1>
+                </div>
+                <!-- Right Actions -->
+                <div class="flex items-center gap-1.5 flex-shrink-0">
+                    <a href="javascript:void(0)" class="w-9 h-9 flex items-center justify-center rounded-full bg-white text-slate-500 hover:text-indigo-600 border border-slate-100 shadow-sm js-edit-set-btn open-modal-btn active:scale-95 transition-all" title="Sửa bộ thẻ" style="display: none;">
+                        <i class="fas fa-edit text-[13px]"></i>
+                    </a>
+                    <a href="{{ url_for('vocabulary.dashboard') }}" class="w-9 h-9 flex items-center justify-center rounded-full bg-white text-slate-500 hover:text-indigo-600 border border-slate-100 shadow-sm active:scale-95 transition-all" title="Trang chủ">
+                        <i class="fas fa-home text-[13px]"></i>
+                    </a>
+                </div>
+            </div>
 
-            <div class="vocab-scroll">
-                <!-- Clean Horizontal Hero Section (No Card Wrapper) -->
-                <div class="px-3 mb-6 mt-4">
-                    <div class="flex flex-row gap-5 items-stretch relative group">
+            <div class="vocab-scroll" id="vocab-scroll-container">
+                <!-- [NEW] Main Immersive Dashboard Header -->
+                <div class="relative bg-white pt-6 pb-7 px-4 shadow-[0_4px_30px_-10px_rgba(0,0,0,0.05)] border-b border-indigo-50/50 mb-0 z-50 rounded-b-3xl">
+                    <!-- Top Controls -->
+                    <div class="flex items-center justify-between mb-6">
+                        <a href="/learn/vocabulary/" class="w-10 h-10 flex items-center justify-center rounded-full bg-white text-slate-600 border border-slate-200 shadow-sm hover:bg-slate-50 hover:text-indigo-600 hover:border-indigo-100 active:scale-95 transition-all outline-none focus:outline-none">
+                            <i class="fas fa-arrow-left text-[15px]"></i>
+                        </a>
+                        <div class="flex items-center gap-2">
+                            <a href="javascript:void(0)" class="w-10 h-10 flex items-center justify-center rounded-full bg-white text-slate-500 hover:text-indigo-600 border border-slate-200 shadow-sm js-edit-set-btn open-modal-btn active:scale-95 transition-all" title="Sửa bộ thẻ" style="display: none;">
+                                <i class="fas fa-edit text-sm"></i>
+                            </a>
+                            <a href="{{ url_for('vocabulary.dashboard') }}" class="w-10 h-10 flex items-center justify-center rounded-full bg-white text-slate-500 hover:text-indigo-600 border border-slate-200 shadow-sm active:scale-95 transition-all" title="Trang chủ">
+                                <i class="fas fa-home text-sm"></i>
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- Big Hero Content -->
+                    <div class="flex flex-row gap-5 items-center relative group">
                         
-                        <!-- Left: 4:3 Cover Area with smart blur & placeholder -->
-                        <div class="relative w-28 sm:w-36 md:w-48 shrink-0 aspect-[4/3] rounded-2xl overflow-hidden flex items-center justify-center bg-slate-50 border border-slate-200/60 shadow-sm">
+                        <!-- Left: 1:1 Cover Area -->
+                        <div class="relative w-[100px] h-[100px] shrink-0 rounded-[1.25rem] overflow-hidden flex items-center justify-center bg-slate-50 border border-slate-200/60 shadow-sm transition-all duration-300">
                             
-                            <!-- Placeholder (Shows when no image) -->
-                            <div class="absolute inset-0 js-cover-placeholder flex items-center justify-center bg-gradient-to-br from-indigo-50/60 via-purple-50/40 to-blue-50/60 overflow-hidden">
+                            <!-- Placeholder -->
+                            <div class="absolute inset-0 js-cover-placeholder flex items-center justify-center bg-gradient-to-br from-indigo-50/80 via-purple-50/60 to-blue-50/80 overflow-hidden">
                                 <i class="fas fa-layer-group text-indigo-300 text-4xl opacity-50 drop-shadow-sm transform -rotate-6 transition-transform group-hover:rotate-0"></i>
-                                <!-- Decorative rings for placeholder -->
                                 <div class="absolute -top-6 -right-6 w-24 h-24 border-[6px] border-white/60 rounded-full"></div>
                                 <div class="absolute -bottom-8 -left-8 w-32 h-32 border-[6px] border-white/60 rounded-full"></div>
-                                <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-48 bg-white/40 blur-xl rounded-full"></div>
                             </div>
                             
-                            <!-- Blurred Background Layer -->
-                            <div class="absolute inset-0 js-detail-cover-blur blur-[12px] scale-[1.3] opacity-40 bg-cover bg-center transition-all duration-700 ease-out group-hover:scale-[1.35] group-hover:opacity-50"></div>
-                            
-                            <!-- Crisp Foreground Image -->
-                            <div class="absolute inset-0 z-10 js-detail-cover-main bg-contain bg-no-repeat bg-center transition-all duration-500 group-hover:scale-105"></div>
+                            <!-- Foreground Image -->
+                            <div class="absolute inset-0 z-10 js-detail-cover-main bg-cover bg-center transition-transform duration-500 group-hover:scale-105"></div>
                         </div>
 
                         <!-- Right: Details Area -->
                         <div class="flex-1 py-1 flex flex-col justify-center relative z-10 min-w-0 pr-1">
-                            <div class="flex items-center gap-1.5 mb-2.5 bg-white border border-slate-100 rounded-full px-1.5 py-1 w-max shadow-sm">
-                                <div class="w-[18px] h-[18px] rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center text-[9px] font-bold js-creator-avatar">{% if set_info and set_info.creator_name %}{{ set_info.creator_name[0] | upper }}{% else %}A{% endif %}</div>
-                                <span class="text-slate-500 font-bold text-[10px] tracking-wide js-creator-name pr-1.5">{% if set_info and set_info.creator_name %}{{ set_info.creator_name }}{% else %}Admin{% endif %}</span>
+                            <div class="flex items-center gap-1.5 mb-2 bg-indigo-50/60 border border-indigo-100/50 rounded-full px-2 py-1 w-max">
+                                <i class="fas fa-user-circle text-indigo-400 text-[11px]"></i>
+                                <span class="text-indigo-600 font-bold text-[10px] tracking-wide js-creator-name uppercase">Admin</span>
                             </div>
                             
                             <!-- Main Title & Desc -->
-                            <h2 class="text-[18px] md:text-2xl font-black text-slate-800 mb-1.5 leading-tight js-detail-title-hero truncate tracking-tight w-full" style="max-width: 100%;">Tên bộ thẻ</h2>
-                            <p class="text-slate-500 text-[12px] md:text-[14px] leading-relaxed line-clamp-3 font-medium js-detail-desc mb-0 p-0 pr-2">Mô tả bộ thẻ...</p>
+                            <h1 class="text-[20px] sm:text-[22px] md:text-3xl font-black text-slate-800 mb-1.5 leading-[1.2] js-detail-title-hero tracking-tight w-full break-words">Tên bộ thẻ</h1>
+                            <p class="text-slate-500 text-[13px] leading-relaxed line-clamp-2 font-medium js-detail-desc mb-0 p-0 pr-2">Mô tả bộ thẻ...</p>
                         </div>
                     </div>
                 </div>
 
-                <div class="vocab-detail-content px-2 pt-0" style="opacity: 0; transition: opacity 0.3s;">
+                <div class="vocab-detail-content px-2 pt-5" style="opacity: 0; transition: opacity 0.3s;">
 
                     {# ── Study Planner Widget (Clean) ── #}
                     {% if plan_status %}
