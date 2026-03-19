@@ -135,4 +135,5 @@ DEFAULT_MODULES: Iterable[ModuleDefinition] = (
     ModuleDefinition("mindstack_app.modules.content_generator", "blueprint", url_prefix="/admin/content-generator", display_name="Content Generator (AI/Audio)"),
     ModuleDefinition("mindstack_app.modules.fsrs", "fsrs_bp", url_prefix="/admin/fsrs", display_name="Thuật toán FSRS"),
     ModuleDefinition("mindstack_app.modules.access_control", "blueprint", display_name="Quản lý Truy cập"),
+    ModuleDefinition("mindstack_app.modules.study_planner", "study_planner_bp", url_prefix="/planner", display_name="Lập kế hoạch học tập"),
 )

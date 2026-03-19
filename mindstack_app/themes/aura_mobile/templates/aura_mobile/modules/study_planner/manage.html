@@ -1,0 +1,474 @@
+{# Study Planner Management Page - Premium Layout #}
+{% set _v = template_version or 'aura_mobile' %}
+{% extends _v ~ '/layouts/base.html' %}
+
+{% from _v ~ '/components/components/dashboard_header.html' import render_unified_header with context %}
+
+{% block title %}Kế hoạch học tập - {{ container.title }}{% endblock %}
+
+{% block head %}
+{{ super() }}
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+    body { font-family: 'Inter', sans-serif; background: #f8fafc; }
+    body>header, body>footer { display: none !important; }
+    body>main { padding: 0 !important; margin: 0 !important; max-width: none !important; }
+    
+    .vocab-scroll { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 1rem; padding-bottom: 6rem; width: 100%; }
+    
+    /* Premium Cards */
+    .premium-card { background: white; border: 1px solid rgba(226, 232, 240, 0.8); border-radius: 1.25rem; padding: 1.25rem; margin-bottom: 1rem; box-shadow: 0 4px 20px rgba(0,0,0,0.03); }
+    .premium-glass { background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.5); }
+    
+    /* Progress Bars */
+    .progress-track { height: 12px; border-radius: 999px; background: #f1f5f9; overflow: hidden; box-shadow: inset 0 1px 3px rgba(0,0,0,0.05); }
+    .progress-fill { height: 100%; border-radius: 999px; transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1); }
+    
+    /* Timeline */
+    .timeline-item { display: flex; gap: 1rem; padding: 0.75rem 0; border-bottom: 1px solid #f8fafc; position: relative; }
+    .timeline-item:last-child { border-bottom: none; }
+    .timeline-dot { width: 12px; height: 12px; border-radius: 50%; border: 2px solid white; box-shadow: 0 0 0 1px #e2e8f0; position: relative; top: 0.25rem; z-index: 2; flex-shrink: 0; }
+    .timeline-item::before { content: ''; position: absolute; left: 5px; top: 1.5rem; bottom: -0.5rem; width: 2px; background: #f1f5f9; z-index: 1; }
+    .timeline-item:last-child::before { display: none; }
+    
+    .dot-met { background: #10b981; box-shadow: 0 0 0 1px #10b981; }
+    .dot-missed { background: #ef4444; box-shadow: 0 0 0 1px #ef4444; }
+    .dot-partial { background: #f59e0b; box-shadow: 0 0 0 1px #f59e0b; }
+    .dot-today { background: #6366f1; box-shadow: 0 0 0 1px #6366f1; animation: pulse-ring 2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite; }
+    
+    @keyframes pulse-ring { 
+        0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.7); } 
+        70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(99, 102, 241, 0); } 
+        100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(99, 102, 241, 0); } 
+    }
+    
+    /* Motivation */
+    .motivation-banner { border-radius: 1.25rem; padding: 1.25rem; display: flex; align-items: center; gap: 1rem; position: relative; overflow: hidden; }
+    
+    /* Stat grid */
+    .stat-box { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 0.75rem; background: #f8fafc; border-radius: 1rem; border: 1px solid #f1f5f9; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="fixed inset-0 z-[100] bg-slate-50 flex flex-col overflow-hidden">
+    {% call render_unified_header(title='Lộ trình học tập', back_url=url_for('vocabulary.set_detail_page', set_id=container.container_id), hide_subtitle=True) %}
+    {% endcall %}
+
+    <div class="vocab-scroll">
+
+        {# === 1. Hero Set Info === #}
+        <div class="mb-5 p-4 bg-white rounded-2xl border border-slate-100 shadow-sm flex items-center gap-4">
+            <div class="w-14 h-14 shrink-0 rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 text-white flex items-center justify-center text-2xl shadow-lg shadow-indigo-500/20">
+                <i class="fas fa-layer-group"></i>
+            </div>
+            <div class="flex-1 min-w-0">
+                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Kế hoạch cho bộ thẻ</p>
+                <h2 class="text-base font-bold text-slate-800 leading-tight truncate">{{ container.title }}</h2>
+            </div>
+        </div>
+
+        {% if not plan %}
+        {# === NO PLAN: Create Form === #}
+        <div class="premium-card text-center py-10 px-6">
+            <div class="w-20 h-20 mx-auto mb-6 rounded-full bg-indigo-50 text-indigo-500 flex items-center justify-center text-3xl">
+                <i class="fas fa-calendar-plus"></i>
+            </div>
+            <h2 class="text-xl font-black text-slate-800 mb-2">Chưa có kế hoạch</h2>
+            <p class="text-sm text-slate-500 mb-8 leading-relaxed">Chọn ngày bạn muốn học hết toàn bộ thẻ mới trong bộ này. Hệ thống sẽ tính toán lộ trình chi tiết mỗi ngày cho bạn.</p>
+
+            <form id="create-plan-form" class="text-left">
+                <input type="hidden" name="container_id" value="{{ container.container_id }}">
+                <div class="mb-5">
+                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Ngày dự kiến hoàn thành</label>
+                    <input type="date" name="target_end_date" id="target-end-date" required
+                        class="w-full p-4 border border-slate-200 rounded-xl text-base font-semibold focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-slate-50 outline-none transition-all"
+                        min="">
+                </div>
+                
+                <div id="plan-preview" style="display:none;" class="mb-6 p-4 rounded-xl bg-indigo-50 border border-indigo-100 flex items-start gap-3">
+                    <i class="fas fa-magic text-indigo-500 text-lg mt-0.5"></i>
+                    <div>
+                        <p class="text-sm text-indigo-900 font-medium">Lộ trình ước tính</p>
+                        <p class="text-xs text-indigo-700 mt-1">Học liên tục trong <strong id="preview-days">--</strong> ngày, mỗi ngày học khoảng <strong id="preview-daily">--</strong> thẻ mới.</p>
+                    </div>
+                </div>
+                
+                <button type="submit" id="create-plan-btn"
+                    class="w-full py-4 bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white font-bold rounded-xl text-sm transition-colors shadow-lg shadow-indigo-500/30 flex items-center justify-center gap-2">
+                    <i class="fas fa-rocket"></i> Tạo lộ trình ngay
+                </button>
+            </form>
+        </div>
+
+        {% else %}
+        {# === HAS PLAN: Show Status === #}
+
+        {# 2. Motivation Banner #}
+        {% if status and status.motivation %}
+        <div class="motivation-banner mb-5 shadow-sm border
+            {% if status.motivation.tone == 'celebration' %}bg-gradient-to-r from-amber-50 to-yellow-100 border-amber-200
+            {% elif status.motivation.tone == 'excellent' %}bg-gradient-to-r from-rose-50 to-red-50 border-rose-200
+            {% elif status.motivation.tone == 'perfect' %}bg-gradient-to-r from-emerald-50 to-teal-50 border-emerald-200
+            {% elif status.motivation.tone == 'almost' %}bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200
+            {% else %}bg-white border-slate-200{% endif %}">
+            
+            <div class="text-4xl drop-shadow-sm">{{ status.motivation.emoji }}</div>
+            <div>
+                <p class="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-0.5">Thông điệp hôm nay</p>
+                <p class="text-sm font-bold text-slate-800 leading-snug">{{ status.motivation.message }}</p>
+            </div>
+        </div>
+        {% endif %}
+
+        {# 3. Smart Prediction #}
+        {% if status and status.prediction.predicted_end %}
+        <div class="premium-card bg-gradient-to-br from-indigo-900 to-indigo-700 border-none !p-0 overflow-hidden mb-5">
+            <div class="relative z-10 p-5">
+                <div class="flex items-center gap-2 mb-4">
+                    <div class="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-white backdrop-blur-sm">
+                        <i class="fas fa-robot text-sm"></i>
+                    </div>
+                    <span class="text-xs font-bold uppercase tracking-wider text-indigo-200">AI Dự báo hoàn thành</span>
+                </div>
+                
+                <div class="flex justify-between items-end gap-2">
+                    <div class="flex-1 min-w-0">
+                        <p class="text-indigo-200 text-xs mb-1">Dự báo thực tế (với tốc độ ~{{ status.prediction.avg_pace }} thẻ/ngày)</p>
+                        <div class="text-2xl font-black text-white truncate">{{ status.prediction.predicted_end }}</div>
+                    </div>
+                    
+                    <div class="text-right shrink-0">
+                        <p class="text-indigo-200 text-[10px] mb-1">Mục tiêu gốc: {{ plan.target_end_date }}</p>
+                        {% if status.prediction.days_difference and status.prediction.days_difference < 0 %}
+                        <div class="inline-flex items-center justify-center px-2.5 py-1.5 bg-emerald-400/20 text-emerald-300 rounded-lg text-xs font-bold border border-emerald-400/30 backdrop-blur-sm whitespace-nowrap">
+                            <i class="fas fa-sort-amount-up mr-1.5"></i> Sớm {{ status.prediction.days_difference | abs }} ngày
+                        </div>
+                        {% elif status.prediction.days_difference and status.prediction.days_difference > 0 %}
+                        <div class="inline-flex items-center justify-center px-2.5 py-1.5 bg-rose-400/20 text-rose-300 rounded-lg text-xs font-bold border border-rose-400/30 backdrop-blur-sm whitespace-nowrap">
+                            <i class="fas fa-exclamation-triangle mr-1.5"></i> Trễ {{ status.prediction.days_difference }} ngày
+                        </div>
+                        {% else %}
+                        <div class="inline-flex items-center justify-center px-2.5 py-1.5 bg-blue-400/20 text-blue-300 rounded-lg text-xs font-bold border border-blue-400/30 backdrop-blur-sm whitespace-nowrap">
+                            <i class="fas fa-check-circle mr-1.5"></i> Đúng tiến độ
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            <!-- Decorative circle -->
+            <div class="absolute -bottom-10 -right-10 w-40 h-40 bg-white/5 rounded-full blur-2xl pointer-events-none"></div>
+        </div>
+        {% endif %}
+
+        {# 4. Today's Progress #}
+        {% if status %}
+        <div class="premium-card">
+            <div class="flex justify-between items-end mb-3">
+                <div>
+                    <h3 class="text-sm font-bold text-slate-800 flex items-center gap-2">
+                        <i class="fas fa-calendar-day text-indigo-500"></i> Hôm nay
+                    </h3>
+                </div>
+                <div class="text-right">
+                    <span class="text-xs font-bold {% if status.today.progress_pct >= 100 %}text-emerald-500{% elif status.today.progress_pct >= 50 %}text-amber-500{% else %}text-indigo-500{% endif %}">
+                        {{ status.today.actual }} / {{ status.today.target }} thẻ
+                    </span>
+                </div>
+            </div>
+            
+            <div class="progress-track">
+                {% set pct = [status.today.progress_pct, 100] | min %}
+                <div class="progress-fill {% if pct >= 100 %}bg-emerald-500{% elif pct >= 50 %}bg-amber-500{% else %}bg-indigo-500{% endif %}" 
+                     style="width:{{ pct }}%;"></div>
+            </div>
+            <p class="text-right text-[10px] font-semibold text-slate-400 mt-1">{{ status.today.progress_pct }}%</p>
+        </div>
+        {% endif %}
+
+        {# 5. Visual Chart: Actual vs Expected #}
+        {% if status and history %}
+        <div class="premium-card">
+            <h3 class="text-sm font-bold text-slate-800 mb-4 flex items-center justify-between">
+                <span class="flex items-center gap-2">
+                    <i class="fas fa-chart-column text-indigo-500"></i> Mục tiêu vs Thực tế
+                </span>
+            </h3>
+            <div class="h-48 w-full relative">
+                <canvas id="planChart"></canvas>
+            </div>
+        </div>
+        {% endif %}
+
+        {# 6. Overall Progress Grid #}
+        {% if status %}
+        <div class="premium-card">
+            <h3 class="text-sm font-bold text-slate-800 mb-4 flex items-center gap-2">
+                <i class="fas fa-flag-checkered text-indigo-500"></i> Tổng quan kế hoạch
+            </h3>
+            
+            <div class="grid grid-cols-2 gap-3 mb-4">
+                <div class="stat-box">
+                    <div class="text-2xl font-black text-indigo-600 mb-0.5">{{ status.overall.learned_since_start }}<span class="text-xs text-slate-400 font-semibold ml-1">/{{ status.overall.items_to_learn }}</span></div>
+                    <div class="text-[10px] uppercase font-bold text-slate-400">Đã hoàn thành</div>
+                </div>
+                <div class="stat-box">
+                    <div class="text-2xl font-black text-rose-500 mb-0.5">{{ status.overall.remaining }}</div>
+                    <div class="text-[10px] uppercase font-bold text-slate-400">Cần học còn lại</div>
+                </div>
+                <div class="stat-box">
+                    <div class="text-2xl font-black text-emerald-500 mb-0.5">{{ status.overall.days_elapsed }}</div>
+                    <div class="text-[10px] uppercase font-bold text-slate-400">Ngày đã qua</div>
+                </div>
+                <div class="stat-box">
+                    <div class="text-2xl font-black text-amber-500 mb-0.5">{{ status.overall.days_left }}</div>
+                    <div class="text-[10px] uppercase font-bold text-slate-400">Ngày còn lại</div>
+                </div>
+            </div>
+            
+            <div class="progress-track !h-3">
+                <div class="progress-fill bg-indigo-600" style="width:{{ status.overall.progress_pct }}%;"></div>
+            </div>
+            <p class="text-center text-xs font-bold text-indigo-600 mt-2">Tổng {{ status.overall.progress_pct }}%</p>
+        </div>
+        {% endif %}
+
+        {# 7. Daily History Timeline #}
+        {% if history %}
+        <div class="premium-card">
+            <h3 class="text-sm font-bold text-slate-800 mb-4 flex items-center gap-2">
+                <i class="fas fa-history text-indigo-500"></i> Lịch sử học tập
+            </h3>
+            <div class="pl-2">
+                {% for log in history | reverse %}
+                <div class="timeline-item">
+                    <div class="timeline-dot {% if log.date == status.today.date %}dot-today{% elif log.is_met %}dot-met{% elif log.actual_new_cards > 0 %}dot-partial{% else %}dot-missed{% endif %}"></div>
+                    <div class="flex-1 min-w-0 pb-1">
+                        <div class="flex justify-between items-baseline mb-0.5">
+                            <span class="text-sm font-bold text-slate-700">{{ log.date }}</span>
+                            <span class="text-xs font-black {% if log.is_met %}text-emerald-500{% elif log.actual_new_cards > 0 %}text-amber-500{% else %}text-rose-500{% endif %}">
+                                {{ log.actual_new_cards }} / {{ log.target_new_cards }}
+                            </span>
+                        </div>
+                        <p class="text-[10px] text-slate-400 font-medium">
+                            {% if log.is_met %}Đạt mục tiêu 🎉{% elif log.actual_new_cards > 0 %}Chưa đủ mục tiêu{% else %}Bỏ lỡ{% endif %}
+                        </p>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        {# 8. Plan Actions #}
+        {% if plan and plan.status == 'active' %}
+        <div class="premium-card">
+            <h3 class="text-sm font-bold text-slate-800 mb-4 flex items-center gap-2">
+                <i class="fas fa-cog text-slate-400"></i> Quản lý
+            </h3>
+            <form id="update-plan-form" class="mb-4">
+                <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Đổi ngày mục tiêu</label>
+                <div class="flex gap-2">
+                    <input type="date" id="new-end-date" value="{{ plan.target_end_date }}"
+                        class="flex-1 p-3 border border-slate-200 rounded-xl text-sm font-semibold focus:ring-2 focus:ring-indigo-500 bg-slate-50 outline-none">
+                    <button type="submit" class="px-4 bg-slate-800 hover:bg-slate-900 text-white rounded-xl font-bold text-sm transition-colors shrink-0">Lưu</button>
+                </div>
+            </form>
+            <button id="cancel-plan-btn"
+                class="w-full py-3 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 rounded-xl font-bold text-sm transition-colors flex items-center justify-center gap-2">
+                <i class="fas fa-trash-alt"></i> Xóa kế hoạch
+            </button>
+        </div>
+        {% endif %}
+        {% endif %}
+
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const containerId = {{ container.container_id }};
+    const csrf = '{{ csrf_token() }}';
+    const headers = {'Content-Type': 'application/json', 'X-CSRFToken': csrf};
+    const showMsg = (msg, type) => { if (window.showFlashMessage) showFlashMessage(msg, type); else alert(msg); };
+
+    // Set min date for date pickers
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const minDate = tomorrow.toISOString().split('T')[0];
+    document.querySelectorAll('input[type="date"]').forEach(el => el.min = minDate);
+
+    // Preview calculation
+    const dateInput = document.getElementById('target-end-date');
+    if (dateInput) {
+        dateInput.addEventListener('change', () => {
+            const preview = document.getElementById('plan-preview');
+            const endDate = new Date(dateInput.value);
+            const today = new Date();
+            today.setHours(0,0,0,0);
+            const days = Math.ceil((endDate - today) / (1000*60*60*24));
+            if (days > 0) {
+                document.getElementById('preview-days').textContent = days;
+                document.getElementById('preview-daily').textContent = '...';
+                preview.style.display = 'flex';
+            } else {
+                preview.style.display = 'none';
+            }
+        });
+    }
+
+    // Create plan
+    const createForm = document.getElementById('create-plan-form');
+    if (createForm) {
+        createForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('create-plan-btn');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang tạo...';
+            try {
+                const res = await fetch('{{ url_for("study_planner.create_plan_api") }}', {
+                    method: 'POST', headers,
+                    body: JSON.stringify({
+                        container_id: containerId,
+                        target_end_date: document.getElementById('target-end-date').value
+                    })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    showMsg(data.message, 'success');
+                    setTimeout(() => location.reload(), 500);
+                } else {
+                    showMsg(data.message, 'danger');
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fas fa-rocket"></i> Tạo lộ trình ngay';
+                }
+            } catch(err) {
+                showMsg('Lỗi kết nối: ' + err, 'danger');
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-rocket"></i> Tạo lộ trình ngay';
+            }
+        });
+    }
+
+    // Update plan
+    const updateForm = document.getElementById('update-plan-form');
+    if (updateForm) {
+        updateForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            try {
+                const planId = {{ plan.plan_id if plan else 0 }};
+                const res = await fetch(`{{ url_for("study_planner.update_plan_api", plan_id=0) }}`.replace('0', planId), {
+                    method: 'PUT', headers,
+                    body: JSON.stringify({ target_end_date: document.getElementById('new-end-date').value })
+                });
+                const data = await res.json();
+                if (data.success) { showMsg(data.message, 'success'); setTimeout(() => location.reload(), 500); }
+                else showMsg(data.message, 'danger');
+            } catch(err) { showMsg('Lỗi: ' + err, 'danger'); }
+        });
+    }
+
+    // Cancel plan
+    const cancelBtn = document.getElementById('cancel-plan-btn');
+    if (cancelBtn) {
+        cancelBtn.addEventListener('click', async () => {
+            if (!confirm('Bạn có chắc chắn muốn xóa kế hoạch này? Tiến trình đã lưu sẽ bị mất.')) return;
+            try {
+                const planId = {{ plan.plan_id if plan else 0 }};
+                const res = await fetch(`{{ url_for("study_planner.cancel_plan_api", plan_id=0) }}`.replace('0', planId), {
+                    method: 'DELETE', headers
+                });
+                const data = await res.json();
+                if (data.success) { showMsg(data.message, 'success'); setTimeout(() => location.reload(), 500); }
+                else showMsg(data.message, 'danger');
+            } catch(err) { showMsg('Lỗi: ' + err, 'danger'); }
+        });
+    }
+
+    // Render Chart.js
+    {% if history %}
+    const canvas = document.getElementById('planChart');
+    if(canvas) {
+        const rawHistory = {{ history | tojson | safe }};
+        // We only want the last 14 days max to avoid squished charts on mobile
+        const recentHistory = rawHistory.slice(-14);
+        
+        const labels = recentHistory.map(l => {
+            const d = new Date(l.date);
+            return d.getDate() + '/' + (d.getMonth() + 1);
+        });
+        const targets = recentHistory.map(l => l.target_new_cards);
+        const actuals = recentHistory.map(l => l.actual_new_cards);
+        
+        const bgColors = recentHistory.map(l => {
+            if(l.is_met) return '#10b981'; // emerald-500
+            if(l.actual_new_cards > 0) return '#f59e0b'; // amber-500
+            const isToday = l.date === new Date().toISOString().split('T')[0];
+            return isToday ? '#e2e8f0' : '#ef4444'; // slate-200 (if today hasn't finished) or rose-500
+        });
+
+        const ctx = canvas.getContext('2d');
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [
+                    {
+                        type: 'line',
+                        label: 'Mục tiêu',
+                        data: targets,
+                        borderColor: '#6366f1',
+                        borderWidth: 2,
+                        borderDash: [5, 5],
+                        backgroundColor: 'transparent',
+                        tension: 0.3,
+                        pointBackgroundColor: '#6366f1',
+                        pointRadius: 3
+                    },
+                    {
+                        type: 'bar',
+                        label: 'Thực tế',
+                        data: actuals,
+                        backgroundColor: bgColors,
+                        borderRadius: 4,
+                        maxBarThickness: 32
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: { usePointStyle: true, boxWidth: 6, font: { family: 'Inter', size: 10 } }
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(15, 23, 42, 0.9)',
+                        titleFont: { family: 'Inter', size: 12 },
+                        bodyFont: { family: 'Inter', size: 12 },
+                        padding: 10,
+                        cornerRadius: 8,
+                        displayColors: true
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: { borderDash: [2, 4], color: '#f1f5f9', drawBorder: false },
+                        ticks: { precision: 0, font: { family: 'Inter', size: 10 }, color: '#94a3b8' }
+                    },
+                    x: {
+                        grid: { display: false, drawBorder: false },
+                        ticks: { font: { family: 'Inter', size: 10 }, color: '#94a3b8' }
+                    }
+                },
+                interaction: { mode: 'index', intersect: false }
+            }
+        });
+    }
+    {% endif %}
+});
+</script>
+{% endblock %}

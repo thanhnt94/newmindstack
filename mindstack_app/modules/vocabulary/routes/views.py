@@ -34,6 +34,14 @@ def set_detail_page(set_id):
         'total': score_data['total'],
         'active_days': weekly_active_days
     }
+
+    # Study Planner data
+    plan_status = None
+    try:
+        from mindstack_app.modules.study_planner.interface import StudyPlannerInterface
+        plan_status = StudyPlannerInterface.get_plan_summary(current_user.user_id, set_id)
+    except Exception:
+        pass  # Module may not be loaded yet
     
     return render_dynamic_template('modules/vocabulary/dashboard/detail.html', 
                           active_set_id=set_id, 
@@ -41,7 +49,8 @@ def set_detail_page(set_id):
                           set_id=set_id,
                           score_overview=score_overview,
                           set_info=detail.set_info,
-                          stats=detail.stats)
+                          stats=detail.stats,
+                          plan_status=plan_status)
 
 @blueprint.route('/modes/redirect/<int:set_id>')
 @login_required

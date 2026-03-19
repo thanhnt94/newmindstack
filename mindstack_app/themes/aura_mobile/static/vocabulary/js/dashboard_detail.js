@@ -200,27 +200,40 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
             });
 
-            // [FIX] Render Cover Image - Backend now returns full URL
-            document.querySelectorAll('.js-detail-cover').forEach(coverEl => {
-                var coverPath = s.cover_image || '';
-                if (coverPath) {
+            // [FIX] Render Cover Image - Support Advanced Blurred Background Layout
+            const coverPath = s.cover_image || '';
+            const hasCover = !!coverPath && coverPath.trim() !== '';
+
+            // 1. Crisp Foreground Image
+            document.querySelectorAll('.js-detail-cover-main').forEach(coverEl => {
+                if (hasCover) {
                     coverEl.style.backgroundImage = 'url(' + coverPath + ')';
-                    // [FORCE FIX] Use inline styles to guarantee containment
                     coverEl.style.backgroundSize = 'contain';
                     coverEl.style.backgroundRepeat = 'no-repeat';
                     coverEl.style.backgroundPosition = 'center';
-                    coverEl.style.backgroundColor = '#f1f5f9';
-                    coverEl.style.animation = 'none';
-                    coverEl.classList.add('has-image');
-                    coverEl.innerHTML = '';
+                    coverEl.style.backgroundColor = 'transparent';
+                    coverEl.style.opacity = '1';
                 } else {
                     coverEl.style.backgroundImage = '';
-                    coverEl.classList.remove('has-image');
-                    // Only add icon if it's the mobile container (has fa-book-open usually)
-                    // Or just standard icon.
-                    coverEl.innerHTML = '<i class="fas fa-book-open"></i>';
+                    coverEl.style.opacity = '0'; // Hide crisp layer so placeholder shows through
                 }
             });
+
+            // 2. Blurred Background Layer
+            document.querySelectorAll('.js-detail-cover-blur').forEach(coverEl => {
+                if (hasCover) {
+                    coverEl.style.backgroundImage = 'url(' + coverPath + ')';
+                    coverEl.style.backgroundSize = 'cover';
+                    coverEl.style.backgroundPosition = 'center';
+                    coverEl.style.opacity = '0.5';
+                } else {
+                    coverEl.style.backgroundImage = '';
+                    coverEl.style.opacity = '0';
+                }
+            });
+
+            // 3. Title display
+            document.querySelectorAll('.js-detail-title-hero').forEach(el => el.textContent = s.title);
         }
 
 
@@ -255,74 +268,62 @@ document.addEventListener('DOMContentLoaded', function () {
                     const fsrsState = item.state_label || 'New';
                     const nextReview = item.next_review || '-';
 
+                    // To exactly match his screenshot's "Learning" pill
+                    let stateColorClass = 'bg-blue-50 text-blue-600 border-blue-100';
+                    if (fsrsState === 'Review') stateColorClass = 'bg-emerald-50 text-emerald-600 border-emerald-100';
+                    if (fsrsState === 'Learning' || fsrsState === 'Relearning') stateColorClass = 'bg-indigo-50 text-indigo-600 border-indigo-100';
+                    if (fsrsState === 'New') stateColorClass = 'bg-slate-50 text-slate-600 border-slate-200';
+
                     listHtml += `
-                    <div class="group bg-white border border-slate-300 rounded-2xl hover:border-indigo-500 hover:shadow-xl transition-all duration-300 mb-4 relative overflow-hidden js-item-stats-trigger cursor-pointer ring-0 hover:ring-4 hover:ring-indigo-50/50 flex flex-col h-full" data-item-id="${item.item_id || item.id}">
-                        <!-- Compact Top Bar -->
-                        <div class="px-1.5 py-2 bg-slate-50 border-b border-slate-200 flex items-center justify-between gap-1">
-                            <div class="flex items-center gap-1">
-                                <span class="font-mono font-bold text-xs text-slate-500 w-6">#${index + 1}</span>
-                                <span class="px-1 py-0.5 bg-white border border-slate-300 rounded text-[10px] text-slate-600 font-mono shadow-sm">ID:${item.item_id || item.id}</span>
-                                <span class="text-[10px] font-bold text-indigo-700 bg-indigo-50 px-1 py-0.5 rounded-full border border-indigo-200">${fsrsState}</span>
+                    <div class="bg-white border border-slate-100 rounded-2xl shadow-[0_2px_8px_-2px_rgba(0,0,0,0.03)] hover:shadow-lg transition-all duration-300 mb-5 px-4 py-4 relative js-item-stats-trigger cursor-pointer flex flex-col group/card" data-item-id="${item.item_id || item.id}">
+                        
+                        <!-- Top status line -->
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="flex items-center gap-2">
+                                <span class="bg-slate-50 text-slate-400 px-1.5 py-0.5 rounded-lg text-[10px] font-bold border border-slate-100">#${index + 1}</span>
+                                <span class="px-2.5 py-0.5 rounded-lg text-[10px] font-bold border ${stateColorClass} uppercase tracking-tight">${fsrsState}</span>
                             </div>
                             
-                            <!-- Stats Compact Row -->
-                            <div class="flex items-center gap-1.5 text-[10px] font-bold text-slate-600">
-                                <div class="flex items-center gap-0.5" title="Khả năng nhớ (R)">
-                                    <span class="text-emerald-700 bg-emerald-50 px-1 py-0.5 rounded border border-emerald-200">${retrievability}</span>
-                                </div>
-                                <div class="w-px h-3 bg-slate-200"></div>
-                                <div class="flex items-center gap-0.5" title="Độ bền nhớ (S)">
-                                    <span class="text-indigo-700">S:${stability}</span>
-                                </div>
-                                <div class="flex items-center gap-0.5" title="Độ khó (D)">
-                                    <span class="text-orange-700">D:${difficulty}</span>
-                                </div>
-                                <div class="w-px h-3 bg-slate-200"></div>
-                                <div class="flex items-center gap-0.5" title="Số lần học">
-                                    <span class="text-slate-700">Reps:${item.repetitions || 0}</span>
-                                </div>
+                            <div class="flex items-center gap-2 text-[10px] font-bold text-slate-500 bg-slate-50/50 px-2.5 py-1 rounded-lg border border-slate-100/60">
+                                <div class="flex items-center gap-1" title="Khả năng nhớ (R)"><span class="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.3)]"></span> ${retrievability}</div>
+                                <div class="text-slate-200">|</div>
+                                <div title="Độ bền nhớ (S)"><span class="text-slate-400">S:</span>${stability}</div>
+                                <div class="text-slate-200">|</div>
+                                <div title="Độ khó (D)"><span class="text-slate-400">D:</span>${difficulty}</div>
+                                <div class="text-slate-200">|</div>
+                                <div title="Số lần học">R:${item.repetitions || 0}</div>
                             </div>
                         </div>
 
-                        <div class="p-3 flex-1 flex flex-col">
-                                <!-- Main Content Area -->
-                                <div class="flex flex-col gap-2 flex-1">
-                                    <!-- Front Side -->
-                                    <div class="flex flex-col relative">
-                                        <div class="absolute top-2 right-2 z-10">
-                                            ${statusBadge}
-                                        </div>
-                                        <div class="bg-gradient-to-br from-indigo-50/50 to-white border border-indigo-200 rounded-lg p-3 min-h-[50px] flex items-center shadow-sm relative overflow-hidden group-hover:border-indigo-300 transition-colors">
-                                           <div class="w-1 h-full absolute left-0 top-0 bg-indigo-500"></div>
-                                           <div class="text-base font-bold text-slate-900 leading-snug pl-2 w-full pr-14">${item.term}</div>
-                                        </div>
-                                    </div>
-                                    
-                                    <!-- Back Side -->
-                                    <div class="flex flex-col relative flex-1">
-                                        <div class="absolute top-2 right-2 z-10">
-                                            ${dueBadge}
-                                        </div>
-                                        <div class="bg-amber-50/40 border border-amber-200 rounded-lg p-3 min-h-[50px] flex items-center shadow-sm relative overflow-hidden group-hover:border-amber-300 transition-colors h-full">
-                                            <div class="w-1 h-full absolute left-0 top-0 bg-amber-400"></div>
-                                            <div class="text-sm font-medium text-slate-800 leading-relaxed pl-2 w-full pr-14 line-clamp-3" title="${item.definition}">${item.definition}</div>
-                                        </div>
-                                    </div>
+                        <!-- Main Content Area -->
+                        <div class="flex flex-col relative mb-4">
+                            
+                            <!-- Front Side -->
+                            <div class="relative">
+                                <div class="flex items-center justify-between mb-2">
+                                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">Mặt trước</p>
+                                    ${item.is_due ? '<span class="px-2 py-0.5 bg-rose-500 text-white text-[9px] font-black uppercase rounded shadow-sm tracking-widest ring-2 ring-rose-100">Ôn tập</span>' : ''}
                                 </div>
+                                <div class="text-[20px] font-black text-slate-800 leading-tight pl-3 border-l-[3px] border-indigo-500/80 group-hover/card:border-indigo-600 transition-colors">${item.term}</div>
+                            </div>
+                            
+                            <!-- Back Side -->
+                            <div class="bg-indigo-50/30 p-3.5 rounded-xl border border-indigo-100/40 mt-3.5 mx-0.5">
+                                <p class="text-[9px] font-bold text-indigo-400 uppercase tracking-widest mb-2 flex items-center gap-1.5"><i class="fas fa-lightbulb text-indigo-300"></i> Mặt sau</p>
+                                <div class="text-[14px] font-medium text-slate-600 leading-relaxed">${item.definition}</div>
+                            </div>
+                        </div>
 
-                                <!-- Compact Footer -->
-                                <div class="flex items-center justify-between mt-3 pt-2 border-t border-slate-200">
-                                    <div class="flex items-center gap-2 text-[10px] text-slate-600">
-                                        <i class="fas fa-history text-slate-400"></i>
-                                        <span>Review: <span class="font-bold text-slate-800">${nextReview}</span></span>
-                                    </div>
-
-                                    <div class="flex items-center gap-1.5">
-                                        ${item.has_ai ? '<i class="fas fa-robot text-purple-600 text-xs bg-purple-100 border border-purple-200 p-1 rounded"></i>' : ''}
-                                        ${item.has_note ? '<i class="fas fa-sticky-note text-yellow-600 text-xs bg-yellow-100 border border-yellow-200 p-1 rounded"></i>' : ''}
-                                        ${item.is_hard ? '<i class="fas fa-fire text-red-600 text-xs bg-red-100 border border-red-200 p-1 rounded"></i>' : ''}
-                                    </div>
-                                </div>
+                        <!-- Footer Info -->
+                        <div class="flex items-center justify-between mt-auto pt-1">
+                            <div class="flex items-center gap-2 text-[11px] font-bold text-slate-400 bg-white px-2 py-1 rounded-lg border border-slate-50">
+                                <i class="fas fa-history opacity-50"></i> ${nextReview}
+                            </div>
+                            <div class="flex items-center gap-2">
+                                ${item.has_ai ? '<div class="w-6 h-6 rounded-lg bg-white text-slate-300 flex items-center justify-center text-[10px] border border-slate-100"><i class="fas fa-robot"></i></div>' : ''}
+                                ${item.has_note ? '<div class="w-6 h-6 rounded-lg bg-white text-slate-300 flex items-center justify-center text-[10px] border border-slate-100"><i class="fas fa-sticky-note"></i></div>' : ''}
+                                ${item.is_hard ? '<div class="w-6 h-6 rounded-lg bg-red-50 text-red-500 flex items-center justify-center text-[10px] border border-red-100"><i class="fas fa-fire"></i></div>' : ''}
+                            </div>
                         </div>
                     </div>`;
                 });
@@ -410,18 +411,20 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
                 loadSetDetail(selectedSetId);
             }
-        } else if (e.target.classList.contains('js-filter-tab-btn')) {
-            // [NEW] Filter Tab Logic
-            const btn = e.target;
+        } else if (e.target.closest('.js-filter-tab-btn')) {
+            // [FIXED] Use closest() to catch clicks on inner spans
+            const btn = e.target.closest('.js-filter-tab-btn');
             const filterType = btn.dataset.filter;
 
-            // Update UI
+            // Update UI (Elegant Pills - Tight)
             document.querySelectorAll('.js-filter-tab-btn').forEach(b => {
-                // Reset to default inactive style
-                b.className = 'flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-all duration-200 text-slate-500 hover:text-indigo-600 js-filter-tab-btn';
+                const isActive = b.dataset.filter === filterType;
+                if (isActive) {
+                    b.className = 'whitespace-nowrap py-1 px-3 rounded-full text-[10px] font-bold transition-all duration-300 bg-indigo-600 text-white shadow-lg shadow-indigo-100 border-0 js-filter-tab-btn flex items-center gap-1.5';
+                } else {
+                    b.className = 'whitespace-nowrap py-1 px-3 rounded-full text-[10px] font-medium transition-all duration-300 bg-white text-slate-500 border border-slate-100 shadow-sm hover:border-indigo-100 hover:text-indigo-600 js-filter-tab-btn flex items-center gap-1.5';
+                }
             });
-            // Set active style
-            btn.className = 'flex-1 py-2 px-3 rounded-lg text-sm font-bold transition-all duration-200 text-indigo-700 bg-white shadow-sm js-filter-tab-btn';
 
             currentFilter = filterType;
             if (selectedSetId) {
@@ -624,12 +627,12 @@ document.addEventListener('DOMContentLoaded', function () {
         const urlParams = new URLSearchParams(window.location.search);
         if (urlParams.get('filter')) {
             currentFilter = urlParams.get('filter');
-            // Update filter tab UI to match
+            // Update filter tab UI to match (Elegant Pills - Tight)
             document.querySelectorAll('.js-filter-tab-btn').forEach(b => {
                 if (b.dataset.filter === currentFilter) {
-                    b.className = 'flex-1 py-2 px-3 rounded-lg text-sm font-bold transition-all duration-200 text-indigo-700 bg-white shadow-sm js-filter-tab-btn';
+                    b.className = 'whitespace-nowrap py-1 px-3 rounded-full text-[10px] font-bold transition-all duration-300 bg-indigo-600 text-white shadow-lg shadow-indigo-100 border-0 js-filter-tab-btn flex items-center gap-1.5';
                 } else {
-                    b.className = 'flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-all duration-200 text-slate-500 hover:text-indigo-600 js-filter-tab-btn';
+                    b.className = 'whitespace-nowrap py-1 px-3 rounded-full text-[10px] font-medium transition-all duration-300 bg-white text-slate-500 border border-slate-100 shadow-sm hover:border-indigo-100 hover:text-indigo-600 js-filter-tab-btn flex items-center gap-1.5';
                 }
             });
         }
@@ -643,14 +646,12 @@ document.addEventListener('DOMContentLoaded', function () {
     initialize();
     // --- Tab Logic ---
     window.switchDetailTab = function (tabName) {
-        // Update Tab Buttons
+        // Update Tab Buttons (Premium Navigation Style - Tight)
         document.querySelectorAll('#tab-btn-list, #tab-btn-stats').forEach(btn => {
             if (btn.id === 'tab-btn-' + tabName) {
-                btn.classList.add('text-indigo-600', 'border-indigo-600');
-                btn.classList.remove('text-slate-500', 'border-transparent');
+                btn.className = 'flex-1 py-1 rounded-lg text-[13px] font-bold transition-all duration-300 bg-white text-indigo-600 shadow-sm border-0 js-main-tab-btn';
             } else {
-                btn.classList.remove('text-indigo-600', 'border-indigo-600');
-                btn.classList.add('text-slate-500', 'border-transparent');
+                btn.className = 'flex-1 py-1 rounded-lg text-[13px] font-medium transition-all duration-300 text-slate-400 hover:text-indigo-600 border-0 js-main-tab-btn';
             }
         });
 
