@@ -900,6 +900,41 @@
                 el.textContent = sessionScore;
             }
         });
+
+        // [PROGRESS MODE] Update progress bar if active or nested
+        const progressPill = document.getElementById('js-fc-due-pill');
+        if (progressPill) {
+            const processed = stats.processed_count || 0;
+            const total = stats.total_count || 1;
+            const percent = Math.min(100, Math.round((processed / total) * 100));
+            
+            const countEl = progressPill.querySelector('.js-fc-progress-count');
+            if (countEl) countEl.textContent = `${processed}/${total}`;
+            
+            const percentEl = progressPill.querySelector('.js-fc-progress-percent');
+            if (percentEl) percentEl.textContent = `${percent}%`;
+            
+            const fillEl = progressPill.querySelector('.js-fc-progress-bar-fill');
+            if (fillEl) fillEl.style.width = `${percent}%`;
+        }
+
+        // [HEADER PROGRESS] Update top header progress bar (Overall Set Progress)
+        const headerContainer = document.getElementById('js-fc-header-interactive-container');
+        if (headerContainer && window.FlashcardConfig) {
+            const totalInSet = window.FlashcardConfig.initialTotalInSet || 1;
+            const learnedInSet = (window.FlashcardConfig.initialLearnedInSet || 0) + (stats.new_learned || 0);
+            const percent = Math.min(100, Math.round((learnedInSet / totalInSet) * 100));
+            
+            const countEl = headerContainer.querySelector('.js-fc-header-progress-count');
+            if (countEl) countEl.textContent = `${learnedInSet}/${totalInSet}`;
+            
+            const percentEl = headerContainer.querySelector('.js-fc-header-progress-percent');
+            if (percentEl) percentEl.textContent = `${percent}%`;
+            
+            const fillEl = headerContainer.querySelector('.js-fc-header-progress-fill');
+            if (fillEl) fillEl.style.width = `${percent}%`;
+        }
+
         _lastSessionScore = sessionScore;
 
         // [FIX] Update Global Score Header
@@ -1501,5 +1536,54 @@
     } else {
         enablePullToRefresh();
     }
+
+    // [UI-INTERACTIVE] Toggle Progress Mode on HUD Pills or Header Badge
+    document.addEventListener('click', function(e) {
+        // A. HUD Pill Toggle
+        const pill = e.target.closest('#js-fc-due-pill');
+        if (pill) {
+            pill.classList.toggle('mode-progress');
+            const countState = pill.querySelector('.js-fc-pill-state-count');
+            const progressState = pill.querySelector('.js-fc-pill-state-progress');
+            
+            if (pill.classList.contains('mode-progress')) {
+                countState.classList.add('hidden');
+                progressState.classList.remove('hidden');
+                if (window.flashcardSessionStats) updateMobileStats(window.flashcardSessionStats);
+            } else {
+                countState.classList.remove('hidden');
+                progressState.classList.add('hidden');
+            }
+            return; // Found a target
+        }
+
+        // B. Header Badge Toggle (FLASHCARD button at the top)
+        const headerBadge = e.target.closest('#js-fc-header-badge') || e.target.closest('.js-fc-header-state-progress');
+        if (headerBadge) {
+            const container = document.getElementById('js-fc-header-interactive-container');
+            const wrapper = e.target.closest('#js-fc-header-toggle-wrapper') || container?.querySelector('.relative.h-6.flex-shrink-0');
+            
+            if (container && wrapper) {
+                const normalState = container.querySelector('.js-fc-header-state-normal');
+                const progressState = container.querySelector('.js-fc-header-state-progress');
+                
+                const isShowingProgress = !progressState.classList.contains('hidden');
+                if (!isShowingProgress) {
+                    // SWITCH TO PROGRESS
+                    container.classList.add('js-header-is-progress');
+                    normalState.style.display = 'none';
+                    progressState.classList.remove('hidden');
+                    progressState.classList.add('flex');
+                    if (window.flashcardSessionStats) updateMobileStats(window.flashcardSessionStats);
+                } else {
+                    // SWITCH TO NORMAL
+                    container.classList.remove('js-header-is-progress');
+                    normalState.style.display = 'flex';
+                    progressState.classList.add('hidden');
+                    progressState.classList.remove('flex');
+                }
+            }
+        }
+    });
 
 })();

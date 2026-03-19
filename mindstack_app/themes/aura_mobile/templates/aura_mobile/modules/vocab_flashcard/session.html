@@ -179,8 +179,20 @@
     .stat-pill-galaxy {
         background: rgba(0, 0, 0, 0.03) !important;
         border: 1px solid rgba(0, 0, 0, 0.05) !important;
-        padding: 3px 5px !important; /* More compact */
+        padding: 2.5px 4px !important; /* Compact horizontal/vertical */
         border-radius: 8px !important;
+        gap: 2.5px !important; /* Narrower gap between icon and text */
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        position: relative;
+        overflow: hidden;
+    }
+
+    /* Progress Mode for Due Pill */
+    #js-fc-due-pill.mode-progress {
+        min-width: 90px !important;
+        padding: 0 !important;
+        border-color: rgba(251, 191, 36, 0.4) !important;
+        background: rgba(251, 191, 36, 0.05) !important;
     }
 
     .stat-pill-galaxy span {
@@ -373,22 +385,39 @@
                 {# --- Row 1: Badge + Title + Score (Premium) --- #}
                 <div class="session-header-premium relative px-2 py-2">
                     <div class="session-header-bg"></div>
-                    <div class="flex items-center justify-between relative z-10 w-full">
-                    {# Badge + Title #}
-                    <div class="flex items-center gap-1.5 overflow-hidden flex-1 mr-2 relative z-10">
-                        <span
-                            class="header-badge-glass flex-shrink-0 flex items-center gap-1 px-1.5 h-6 rounded-lg">
-                            <i class="fas fa-clone text-white text-[10px] transform translate-y-[1px]"></i>
-                            <span class="text-[9px] font-black text-white uppercase tracking-wider leading-none transform translate-y-[1px]">FLASHCARD</span>
-                        </span>
-                        <span class="text-sm font-bold text-white truncate js-fc-title"
-                            style="text-shadow: 0 1px 4px rgba(0,0,0,0.4);">{{ container_name }}</span>
-                    </div>
+                    <div class="flex items-center justify-between relative z-10 w-full" id="js-fc-header-row">
+                        {# Badge + Title (Interactive Container) #}
+                        <div class="flex items-center gap-2 overflow-hidden flex-1 mr-2 relative z-10" id="js-fc-header-interactive-container" style="min-height: 24px;">
+                            {# Left Part: Badge or Progress (Toggleable) #}
+                            <div class="relative h-6 flex-shrink-0 transition-all duration-300 w-auto" id="js-fc-header-toggle-wrapper">
+                                <!-- State 1: Normal (Badge) -->
+                                <div class="js-fc-header-state-normal flex items-center h-full transition-all duration-300">
+                                    <span id="js-fc-header-badge"
+                                        class="header-badge-glass flex-shrink-0 flex items-center gap-1 px-1.5 h-6 rounded-lg cursor-pointer hover:bg-white/20">
+                                        <i class="fas fa-clone text-white text-[10px] transform translate-y-[1px]"></i>
+                                        <span class="text-[9px] font-black text-white uppercase tracking-wider leading-none transform translate-y-[1px]">FLASHCARD</span>
+                                    </span>
+                                </div>
 
-                    {# Score Badge #}
-                    <div id="js-fc-score-badge-container" 
-                         class="header-badge-glass flex-shrink-0 flex items-center gap-1 h-7 px-2 rounded-full relative z-10 !py-0 cursor-pointer transition-transform active:scale-95"
-                         onclick="window.toggleStatsPopover(event)">
+                                <!-- State 2: Progress Bar (Inline) -->
+                                <div class="js-fc-header-state-progress hidden relative flex items-center justify-center h-6 bg-white/5 rounded-lg overflow-hidden border border-white/20 cursor-pointer transition-all duration-300 shadow-inner w-[110px]">
+                                    <div class="js-fc-header-progress-fill absolute inset-y-0 left-0 bg-gradient-to-r from-indigo-400/30 to-white/25 transition-all duration-500 shadow-[0_0_15px_rgba(255,255,255,0.1)]" style="width: 0%;"></div>
+                                    <div class="relative z-10 flex items-center justify-center text-[9px] font-black text-white gap-1 whitespace-nowrap px-2 w-full">
+                                        <span class="js-fc-header-progress-count">0/0</span>
+                                        <span class="js-fc-header-progress-percent">0%</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {# Right Part: Always Visible Title #}
+                            <span class="text-sm font-bold text-white truncate js-fc-title transition-all duration-300"
+                                style="text-shadow: 0 1px 4px rgba(0,0,0,0.4);">{{ container_name }}</span>
+                        </div>
+
+                        {# Score Badge #}
+                        <div id="js-fc-score-badge-container" 
+                             class="header-badge-glass flex-shrink-0 flex items-center gap-1 h-7 px-2 rounded-full relative z-10 !py-0 cursor-pointer transition-transform active:scale-95"
+                             onclick="window.toggleStatsPopover(event)">
                         <i class="fa-solid fa-gem text-amber-300 text-[10px] drop-shadow-sm transform translate-y-[1px]"></i>
                         <span class="text-xs font-black text-white font-mono js-fc-score leading-none transform translate-y-[1px]">
                             {{ "{:,}".format(current_user.total_score if current_user.total_score is not none else 0) }}
@@ -429,7 +458,7 @@
                     <div class="flex items-center justify-between px-2 py-1.5">
                         {# Stats Pills #}
                         <div id="fc-mobile-stats-pills"
-                            class="flex items-center gap-1 text-xs overflow-x-auto no-scrollbar transition-all duration-300">
+                            class="flex items-center gap-0.5 text-xs overflow-x-auto no-scrollbar transition-all duration-300">
                             {# Correct Pill #}
                             <div class="stat-pill-galaxy flex-shrink-0 flex items-center gap-1">
                                 <i class="fa-solid fa-check text-emerald-400 text-[10px]"></i>
@@ -454,17 +483,29 @@
                                 <span class="font-bold font-mono text-xs js-fc-session-new">{{ initial_new_learned | default(0) }}</span>
                             </div>
 
-                            {# [NEW] Progress Percentage Pill #}
-                            <div class="stat-pill-galaxy flex-shrink-0 flex items-center gap-1 bg-indigo-500/10 border-indigo-500/30" title="Tiến độ hoàn thành">
+                            {# [NEW] Progress Percentage Pill (Hidden by user request) #}
+                            <div class="stat-pill-galaxy flex-shrink-0 flex items-center gap-1 bg-indigo-500/10 border-indigo-500/30 hidden" title="Tiến độ hoàn thành">
                                 <i class="fas fa-chart-pie text-indigo-400 text-[10px]"></i>
                                 <span class="font-bold font-mono text-xs text-indigo-100 js-fc-session-progress-percent">0%</span>
                             </div>
 
-                            {# [NEW] Due Remaining Pill #}
-                            <div class="stat-pill-galaxy flex-shrink-0 flex items-center gap-1 w-auto min-w-0" title="Cần ôn tập">
-                                <i class="fa-solid fa-clock-rotate-left text-orange-400 text-[10px]"></i>
-                                <span id="fc-due-remaining-text" class="font-bold font-mono text-xs whitespace-nowrap js-fc-session-due">{{ initial_due_remaining | default(0) }}</span>
-                                <span id="fc-next-due-timer" class="font-bold font-mono text-xs whitespace-nowrap hidden"></span>
+                            {# Due Pill (Click to toggle Progress Bar) #}
+                            <div id="js-fc-due-pill" class="stat-pill-galaxy flex-shrink-0 flex items-center justify-center bg-amber-500/10 border-amber-500/30 cursor-pointer w-auto min-w-0" title="Cần ôn tập">
+                                <!-- State 1: Count (Icon + Number) -->
+                                <div class="js-fc-pill-state-count flex items-center gap-1">
+                                    <i class="fa-solid fa-layer-group text-amber-400 text-[10px]"></i>
+                                    <span id="fc-due-remaining-text" class="font-bold font-mono text-xs text-amber-100 js-fc-session-due">{{ initial_due_remaining | default(0) }}</span>
+                                    <span id="fc-next-due-timer" class="font-bold font-mono text-[10px] text-amber-400 hidden"></span>
+                                </div>
+                                
+                                <!-- State 2: Progress (Bar background) -->
+                                <div class="js-fc-pill-state-progress hidden absolute inset-0 flex items-center justify-center">
+                                    <div class="js-fc-progress-bar-fill absolute inset-y-0 left-0 bg-amber-400/30 transition-all duration-500" style="width: {{ (initial_processed_count|default(0) / initial_total_in_set|default(1) * 100)|round|int }}%;"></div>
+                                    <div class="relative flex items-center gap-1 font-mono font-bold text-[9px] text-amber-50 whitespace-nowrap px-1">
+                                        <span class="js-fc-progress-count">{{ initial_processed_count | default(0) }}/{{ initial_total_in_set | default(0) }}</span>
+                                        <span class="js-fc-progress-percent">{{ (initial_processed_count|default(0) / initial_total_in_set|default(1) * 100)|round|int }}%</span>
+                                    </div>
+                                </div>
                             </div>
                         </div>
 

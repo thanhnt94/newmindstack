@@ -430,11 +430,31 @@ def flashcard_session(session_id):
         if initial_new_learned == 0 and srs_counts['new_learned'] > 0:
             initial_new_learned = srs_counts['new_learned']
             
-        # [NEW] Calculate completion percentage stats for the container
+        # [NEW] Calculate completion percentage stats for the container/set(s)
         initial_total_in_set = 0
         initial_learned_in_set = 0
         set_id = session_data.get('set_id')
-        if isinstance(set_id, int):
+        
+        from mindstack_app.modules.vocabulary.interface import VocabularyInterface
+        
+        if set_id == 'all':
+            g_stats = VocabularyInterface.get_global_stats(current_user.user_id)
+            if g_stats:
+                initial_total_in_set = g_stats.get('total_cards', 0)
+                # For global 'all', 'learned' is the total number of items in FSRS memory
+                from mindstack_app.modules.fsrs.interface import FSRSInterface
+                f_stats = FSRSInterface.get_global_stats(current_user.user_id)
+                initial_learned_in_set = f_stats.get('total_cards', 0)
+        elif isinstance(set_id, (int, list)):
+            set_ids = [set_id] if isinstance(set_id, int) else set_id
+            for sid in set_ids:
+                s_stats = VocabularyInterface.get_full_stats(current_user.user_id, sid)
+                if s_stats:
+                    initial_total_in_set += s_stats.get('total_items', 0)
+                    initial_learned_in_set += s_stats.get('learned_items', 0)
+        
+        # [BACKUP] Fallback to direct query if interface failed (legacy)
+        if initial_total_in_set == 0 and isinstance(set_id, int):
             from mindstack_app.models import LearningItem
             from mindstack_app.modules.fsrs.interface import FSRSInterface
             initial_total_in_set = LearningItem.query.filter(
