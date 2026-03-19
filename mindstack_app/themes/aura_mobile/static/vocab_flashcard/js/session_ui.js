@@ -982,6 +982,11 @@
         }
     };
 
+    // [NEW] Automatic HUD Sync on Answer (Triggered by session_manager.js)
+    document.addEventListener('flashcardStatsUpdated', () => {
+        if (window.updateHubStats) window.updateHubStats();
+    });
+
     /**
      * Silent AJAX sync for SRS HUD stats
      */
