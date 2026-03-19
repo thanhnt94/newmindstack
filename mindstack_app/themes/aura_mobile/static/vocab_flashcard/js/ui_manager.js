@@ -1245,7 +1245,7 @@ function renderCardStatsHtml(stats, scoreChange = 0, cardContent = {}, isInitial
     const correctRateDisplay = typeof stats.correct_rate === 'number' ? Math.round(stats.correct_rate) : correctPercentDisplay;
     const repetitions = Number(stats.repetitions) || 0;
     const easinessFactor = typeof stats.easiness_factor === 'number' ? Number(stats.easiness_factor).toFixed(2) : '—';
-    const recentReviews = Array.isArray(stats.recent_reviews) ? [...stats.recent_reviews].slice(-10).reverse() : [];
+    const recentReviews = Array.isArray(stats.recent_reviews) ? [...stats.recent_reviews].slice(-10) : [];
     const recentReviewConfig = {
         'correct': { label: 'Nhớ', icon: 'fas fa-check-circle' },
         'vague': { label: 'Mơ hồ', icon: 'fas fa-adjust' },
@@ -1454,7 +1454,7 @@ function renderMobileCardStatsHtml(stats, scoreChange = 0, cardContent = {}, isI
     // Recent History Section
     let historyHtml = '';
     if (stats.recent_reviews && stats.recent_reviews.length > 0) {
-        const icons = stats.recent_reviews.slice().reverse().map((review, idx) => {
+        const icons = stats.recent_reviews.slice().map((review, idx) => {
             const isCorrect = review.result === 'correct';
             const isWrong = review.result === 'incorrect';
             const colorClass = isCorrect ? 'bg-emerald-500' : (isWrong ? 'bg-rose-500' : 'bg-slate-400');
@@ -1480,7 +1480,7 @@ function renderMobileCardStatsHtml(stats, scoreChange = 0, cardContent = {}, isI
                     <i class="fas fa-history text-xs text-slate-400"></i>
                     <span class="text-xs uppercase font-bold text-slate-400">Lịch sử thẻ này</span>
                 </div>
-                <div class="flex flex-wrap gap-1.5 direction-rtl">
+                <div class="flex flex-wrap gap-1.5">
                     ${icons}
                 </div>
             </div>`;

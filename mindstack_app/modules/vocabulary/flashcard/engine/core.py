@@ -398,6 +398,10 @@ class FlashcardEngine:
         normalized_entries = []
 
         if logs:
+            # [FIX] Reverse logs to be chronological [Oldest -> Newest] 
+            # This ensures streaks and history icons appear correctly.
+            logs.reverse() 
+            
             for log in logs:
                 quality = log.get('rating', 0)
                 timestamp = log.get('timestamp')
@@ -435,7 +439,7 @@ class FlashcardEngine:
             'current_streak': final_streak,
             'longest_streak': long_s,
             'has_real_reviews': bool(review_qualities),
-            'recent_reviews': normalized_entries[-20:],
+            'recent_reviews': normalized_entries[-10:], # Last 10 of chronological list are newest
             'rating_counts': {
                 1: review_qualities.count(1),
                 2: review_qualities.count(2),
