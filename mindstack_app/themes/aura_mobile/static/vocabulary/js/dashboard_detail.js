@@ -364,12 +364,34 @@ document.addEventListener('DOMContentLoaded', function () {
                     bar.classList.add('visible');
                 }
                 console.log('Pagination bar updated:', bar.id);
+                
+                // Normal Page Links
                 bar.querySelectorAll('a').forEach(link => {
                     link.onclick = (e) => {
                         e.preventDefault();
                         const url = new URL(link.href);
                         fetchCourseStatsPage(url.searchParams.get('page'));
                     };
+                });
+
+                // Jump to Page Handlers
+                bar.querySelectorAll('.js-jump-page-input').forEach(input => {
+                    input.addEventListener('keydown', (e) => {
+                        if (e.key === 'Enter') {
+                            e.preventDefault();
+                            const page = parseInt(input.value);
+                            if (page && page > 0) fetchCourseStatsPage(page);
+                        }
+                    });
+                });
+                bar.querySelectorAll('.js-jump-page-btn').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        const input = btn.previousElementSibling;
+                        if (input && input.classList.contains('js-jump-page-input')) {
+                            const page = parseInt(input.value);
+                            if (page && page > 0) fetchCourseStatsPage(page);
+                        }
+                    });
                 });
             });
         }

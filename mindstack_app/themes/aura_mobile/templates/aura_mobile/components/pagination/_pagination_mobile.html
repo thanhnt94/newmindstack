@@ -71,5 +71,16 @@ current_filter=None, base_url=None) %}
         <i class="fas fa-chevron-right text-sm"></i>
     </span>
     {% endif %}
+
+    {# Jump to Page Input #}
+    {% if pagination.pages > 1 %}
+    <div class="flex items-center gap-1 ml-1 bg-white rounded-xl border border-slate-200 shadow-sm p-1">
+        <input type="number" min="1" max="{{ pagination.pages }}" placeholder="Trang" 
+               class="w-[42px] h-8 text-center rounded-lg border-0 bg-slate-50 text-[11px] font-bold text-slate-600 focus:ring-2 focus:ring-indigo-500 outline-none p-0 js-jump-page-input transition-all">
+        <button type="button" class="w-8 h-8 flex items-center justify-center rounded-lg bg-indigo-50 text-indigo-600 hover:bg-indigo-100 js-jump-page-btn transition-colors" title="Chuyển trang">
+            <i class="fas fa-bolt text-[11px]"></i>
+        </button>
+    </div>
+    {% endif %}
 </div>
 {% endmacro %}
