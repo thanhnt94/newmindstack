@@ -17,20 +17,28 @@ def _render_pagination(set_id, stats_data, page, base_url=None):
         return ""
     
     # Handle different data structures for pagination
-    if 'pagination' in stats_data:
-        p = stats_data['pagination']
-        total_count = p.get('total', 0)
-        per_page = p.get('per_page', 12)
-    else:
-        # Fallback for dashboard API response structure
-        total_count = stats_data.get('total', 0)
-        per_page = stats_data.get('per_page', 10)
+    total_count = 0
+    per_page = 10
+
+    if isinstance(stats_data, dict):
+        if 'pagination' in stats_data:
+            p = stats_data['pagination']
+            if isinstance(p, dict):
+                total_count = p.get('total', 0)
+                per_page = p.get('per_page', 12)
+            else:
+                total_count = getattr(p, 'total', 0)
+                per_page = getattr(p, 'per_page', 12)
+        else:
+            total_count = stats_data.get('total', 0)
+            per_page = stats_data.get('per_page', 10)
+    elif hasattr(stats_data, 'pagination') and stats_data.pagination:
+        p = stats_data.pagination
+        total_count = getattr(p, 'total', 0)
+        per_page = getattr(p, 'per_page', 12)
         
     pages = int(math.ceil(total_count / float(per_page)))
     
-    if pages < 1:
-        return ""
-
     # Simple pagination object for template
     class SimplePagination:
         def __init__(self, current_page, total_pages):

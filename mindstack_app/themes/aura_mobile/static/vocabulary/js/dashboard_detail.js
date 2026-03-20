@@ -374,20 +374,18 @@ document.addEventListener('DOMContentLoaded', function () {
                     };
                 });
 
-                // Jump to Page Handlers
+                // Jump to Page Handlers (Supports both Select and Input)
                 bar.querySelectorAll('.js-jump-page-input').forEach(input => {
+                    // Trigger on change (for select dropdown)
+                    input.addEventListener('change', () => {
+                        const page = parseInt(input.value);
+                        if (page && page > 0) fetchCourseStatsPage(page);
+                    });
+
+                    // Legacy Enter key support
                     input.addEventListener('keydown', (e) => {
                         if (e.key === 'Enter') {
                             e.preventDefault();
-                            const page = parseInt(input.value);
-                            if (page && page > 0) fetchCourseStatsPage(page);
-                        }
-                    });
-                });
-                bar.querySelectorAll('.js-jump-page-btn').forEach(btn => {
-                    btn.addEventListener('click', () => {
-                        const input = btn.previousElementSibling;
-                        if (input && input.classList.contains('js-jump-page-input')) {
                             const page = parseInt(input.value);
                             if (page && page > 0) fetchCourseStatsPage(page);
                         }

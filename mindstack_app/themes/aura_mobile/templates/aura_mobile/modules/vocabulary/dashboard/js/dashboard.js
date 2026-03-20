@@ -448,7 +448,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
                         renderSets(data.sets);
 
-                        updatePagination(data.page, data.has_prev, data.has_next, data.total);
+                        updatePagination(data.page, data.has_prev, data.has_next, data.total, data.pagination_html);
 
                     } else {
 

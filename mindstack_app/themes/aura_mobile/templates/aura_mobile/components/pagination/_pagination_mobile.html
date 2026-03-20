@@ -6,76 +6,86 @@ current_filter=None, base_url=None) %}
 {% set endpoint = request.endpoint if (request and request.endpoint) else "" %}
 {% set view_args = request.view_args if request else {} %}
 
-<div class="flex justify-center items-center gap-2 pagination w-full">
-    {# Nút "Trang trước" #}
-    {% if pagination.has_prev %}
-    {% set prev_href = base_url ~ "?page=" ~ pagination.prev_num if base_url else "#" %}
-    {% if not base_url and endpoint %}
-    {% set prev_href = url_for(endpoint, container_type=(container_type or view_args.get('container_type')),
-    page=pagination.prev_num, q=search_query, search_field=search_field, filter=current_filter, set_id=set_id,
-    container_id=container_id) %}
-    {% endif %}
-    <a href="{{ prev_href }}" class="pagination-nav-btn">
-        <i class="fas fa-chevron-left text-sm"></i>
-    </a>
-    {% else %}
-    <button class="pagination-nav-btn" disabled>
-        <i class="fas fa-chevron-left text-sm"></i>
-    </button>
-    {% endif %}
-
-    {# Các nút số trang #}
-    <div class="pagination-pages">
-        {% for page_num in pagination.iter_pages(left_edge=1, right_edge=1, left_current=1, right_current=1) %}
-        {% if page_num %}
-        {% if page_num == pagination.page %}
-        <span class="page-num active">
-            {{ page_num }}
-        </span>
-        {% else %}
-        {% set page_href = base_url ~ "?page=" ~ page_num if base_url else "#" %}
+<div class="flex items-center px-3 pagination w-full h-full">
+    {# Left/Center Side: Navigation Controls (Centered in remaining space) #}
+    <div class="flex-1 flex justify-center items-center gap-1.5">
+        {# Nút "Trang trước" #}
+        {% if pagination.has_prev %}
+        {% set prev_href = base_url ~ "?page=" ~ pagination.prev_num if base_url else "#" %}
         {% if not base_url and endpoint %}
-        {% set page_href = url_for(endpoint, container_type=(container_type or view_args.get('container_type')),
-        page=page_num, q=search_query, search_field=search_field, filter=current_filter, set_id=set_id,
+        {% set prev_href = url_for(endpoint, container_type=(container_type or view_args.get('container_type')),
+        page=pagination.prev_num, q=search_query, search_field=search_field, filter=current_filter, set_id=set_id,
         container_id=container_id) %}
         {% endif %}
-        <a href="{{ page_href }}" class="page-num">
-            {{ page_num }}
+        <a href="{{ prev_href }}" class="pagination-nav-btn">
+            <i class="fas fa-chevron-left text-xs"></i>
         </a>
-        {% endif %}
         {% else %}
-        <span class="px-1 text-slate-300 text-xs">...</span>
+        <button class="pagination-nav-btn" disabled>
+            <i class="fas fa-chevron-left text-xs"></i>
+        </button>
         {% endif %}
-        {% endfor %}
+
+        {# Các nút số trang #}
+        <div class="pagination-pages">
+            {% for page_num in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+            {% if page_num %}
+                {# CHỈ hiển thị nếu là trang đầu, trang cuối, hoặc trang hiện tại #}
+                {% if page_num == 1 or page_num == pagination.pages or page_num == pagination.page %}
+                    {% if page_num == pagination.page %}
+                    <span class="page-num active">
+                        {{ page_num }}
+                    </span>
+                    {% else %}
+                    {% set page_href = base_url ~ "?page=" ~ page_num if base_url else "#" %}
+                    {% if not base_url and endpoint %}
+                    {% set page_href = url_for(endpoint, container_type=(container_type or view_args.get('container_type')),
+                    page=page_num, q=search_query, search_field=search_field, filter=current_filter, set_id=set_id,
+                    container_id=container_id) %}
+                    {% endif %}
+                    <a href="{{ page_href }}" class="page-num">
+                        {{ page_num }}
+                    </a>
+                    {% endif %}
+                {% endif %}
+            {% else %}
+                <span class="px-0.5 text-slate-300 text-[10px]">...</span>
+            {% endif %}
+            {% endfor %}
+        </div>
+
+        {# Nút "Trang sau" #}
+        {% if pagination.has_next %}
+        {% set next_href = base_url ~ "?page=" ~ pagination.next_num if base_url else "#" %}
+        {% if not base_url and endpoint %}
+        {% set next_href = url_for(endpoint, container_type=(container_type or view_args.get('container_type')),
+        page=pagination.next_num, q=search_query, search_field=search_field, filter=current_filter, set_id=set_id,
+        container_id=container_id) %}
+        {% endif %}
+        <a href="{{ next_href }}" class="pagination-nav-btn">
+            <i class="fas fa-chevron-right text-xs"></i>
+        </a>
+        {% else %}
+        <button class="pagination-nav-btn" disabled>
+            <i class="fas fa-chevron-right text-xs"></i>
+        </button>
+        {% endif %}
     </div>
 
-    {# Nút "Trang sau" #}
-    {% if pagination.has_next %}
-    {% set next_href = base_url ~ "?page=" ~ pagination.next_num if base_url else "#" %}
-    {% if not base_url and endpoint %}
-    {% set next_href = url_for(endpoint, container_type=(container_type or view_args.get('container_type')),
-    page=pagination.next_num, q=search_query, search_field=search_field, filter=current_filter, set_id=set_id,
-    container_id=container_id) %}
-    {% endif %}
-    <a href="{{ next_href }}" class="pagination-nav-btn">
-        <i class="fas fa-chevron-right text-sm"></i>
-    </a>
-    {% else %}
-    <button class="pagination-nav-btn" disabled>
-        <i class="fas fa-chevron-right text-sm"></i>
-    </button>
-    {% endif %}
-
-    {# Jump to Page Input - Always show for UI consistency #}
-    {% if pagination.pages >= 1 %}
-    <div class="flex items-center gap-2 ml-2 px-3 py-1 bg-white rounded-2xl border border-slate-200 shadow-sm h-[38px] min-w-[100px]">
-        <span class="text-[10px] font-black text-slate-400 uppercase tracking-tight">Trang</span>
-        <input type="number" min="1" max="{{ pagination.pages }}" 
-               class="w-[30px] bg-slate-50 rounded-lg border-0 text-[12px] font-black text-slate-700 focus:ring-0 p-0 text-center js-jump-page-input" 
-               value="{{ pagination.page }}">
-        <button type="button" class="w-7 h-7 flex items-center justify-center rounded-lg bg-indigo-600 text-white shadow-md shadow-indigo-100 js-jump-page-btn active:scale-95 transition-all" title="Chuyển trang">
-            <i class="fas fa-bolt text-[10px]"></i>
-        </button>
+    {# Right Side: Jump to Page Select #}
+    {% if pagination.pages and pagination.pages >= 1 %}
+    <div class="flex-shrink-0 flex items-center gap-1.5 ml-2">
+        <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Trang</span>
+        <div class="relative bg-white rounded-xl border border-slate-200 shadow-sm h-[32px] min-w-[50px] flex items-center overflow-hidden">
+            <select class="appearance-none bg-transparent border-0 text-[11px] font-black text-slate-700 focus:ring-0 p-0 pl-1 pr-3 w-full h-full js-jump-page-input outline-none cursor-pointer z-10 text-center" style="text-align-last: center;">
+                {% for p in range(1, pagination.pages + 1) %}
+                <option value="{{ p }}" {% if p == pagination.page %}selected{% endif %}>{{ p }}</option>
+                {% endfor %}
+            </select>
+            <div class="absolute right-1.5 top-1/2 -translate-y-1/2 pointer-events-none text-[7px] text-slate-300 z-0">
+                <i class="fas fa-chevron-down"></i>
+            </div>
+        </div>
     </div>
     {% endif %}
 </div>

@@ -106,7 +106,8 @@ class VocabularyService:
                 'has_next': pagination.has_next,
                 'has_prev': pagination.has_prev,
                 'total': pagination.total,
-                'page': page
+                'page': page,
+                'per_page': per_page
             }
         except Exception as e:
             current_app.logger.error(f"Error in get_vocabulary_sets: {e}")

@@ -2543,18 +2543,7 @@ render_unified_header with context %}
 
         <!-- Modern Pagination Bar -->
         <div id="mobile-pagination-bar" class="vocab-pagination-bar js-pagination-bar transition-all duration-500">
-            <!-- Initial content for first load -->
-            <div class="flex items-center gap-3">
-                <button class="pagination-nav-btn js-vocab-prev-page" disabled>
-                    <i class="fas fa-chevron-left text-xs"></i>
-                </button>
-                <div class="pagination-pages js-vocab-page-numbers">
-                    <span class="page-num active">1</span>
-                </div>
-                <button class="pagination-nav-btn js-vocab-next-page" disabled>
-                    <i class="fas fa-chevron-right text-xs"></i>
-                </button>
-            </div>
+            <!-- Content filled by dashboard.js via API pagination_html -->
         </div>
     </div>
 
