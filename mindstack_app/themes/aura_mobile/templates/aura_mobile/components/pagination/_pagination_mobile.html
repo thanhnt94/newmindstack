@@ -15,24 +15,21 @@ current_filter=None, base_url=None) %}
     page=pagination.prev_num, q=search_query, search_field=search_field, filter=current_filter, set_id=set_id,
     container_id=container_id) %}
     {% endif %}
-    <a href="{{ prev_href }}"
-        class="w-10 h-10 flex items-center justify-center rounded-xl bg-white border border-slate-200 text-slate-600 shadow-sm hover:bg-slate-50 active:scale-95 transition-all">
+    <a href="{{ prev_href }}" class="pagination-nav-btn">
         <i class="fas fa-chevron-left text-sm"></i>
     </a>
     {% else %}
-    <span
-        class="w-10 h-10 flex items-center justify-center rounded-xl bg-slate-50 border border-slate-100 text-slate-300 cursor-not-allowed">
+    <button class="pagination-nav-btn" disabled>
         <i class="fas fa-chevron-left text-sm"></i>
-    </span>
+    </button>
     {% endif %}
 
     {# Các nút số trang #}
-    <div class="flex items-center bg-white rounded-xl border border-slate-200 shadow-sm p-1">
+    <div class="pagination-pages">
         {% for page_num in pagination.iter_pages(left_edge=1, right_edge=1, left_current=1, right_current=1) %}
         {% if page_num %}
         {% if page_num == pagination.page %}
-        <span
-            class="w-9 h-9 flex items-center justify-center rounded-lg bg-blue-600 text-white font-bold text-sm shadow-sm mx-0.5">
+        <span class="page-num active">
             {{ page_num }}
         </span>
         {% else %}
@@ -42,13 +39,12 @@ current_filter=None, base_url=None) %}
         page=page_num, q=search_query, search_field=search_field, filter=current_filter, set_id=set_id,
         container_id=container_id) %}
         {% endif %}
-        <a href="{{ page_href }}"
-            class="w-9 h-9 flex items-center justify-center rounded-lg text-slate-600 hover:bg-slate-50 font-medium text-sm mx-0.5 transition-colors">
+        <a href="{{ page_href }}" class="page-num">
             {{ page_num }}
         </a>
         {% endif %}
         {% else %}
-        <span class="px-2 text-slate-300 text-xs">...</span>
+        <span class="px-1 text-slate-300 text-xs">...</span>
         {% endif %}
         {% endfor %}
     </div>
@@ -61,23 +57,21 @@ current_filter=None, base_url=None) %}
     page=pagination.next_num, q=search_query, search_field=search_field, filter=current_filter, set_id=set_id,
     container_id=container_id) %}
     {% endif %}
-    <a href="{{ next_href }}"
-        class="w-10 h-10 flex items-center justify-center rounded-xl bg-white border border-slate-200 text-slate-600 shadow-sm hover:bg-slate-50 active:scale-95 transition-all">
+    <a href="{{ next_href }}" class="pagination-nav-btn">
         <i class="fas fa-chevron-right text-sm"></i>
     </a>
     {% else %}
-    <span
-        class="w-10 h-10 flex items-center justify-center rounded-xl bg-slate-50 border border-slate-100 text-slate-300 cursor-not-allowed">
+    <button class="pagination-nav-btn" disabled>
         <i class="fas fa-chevron-right text-sm"></i>
-    </span>
+    </button>
     {% endif %}
 
     {# Jump to Page Input #}
-    {% if pagination.pages > 1 %}
-    <div class="flex items-center gap-1 ml-1 bg-white rounded-xl border border-slate-200 shadow-sm p-1">
+    {% if pagination.pages > 5 %}
+    <div class="flex items-center gap-1 ml-1 bg-white rounded-xl border border-slate-200 shadow-sm p-1 h-[36px]">
         <input type="number" min="1" max="{{ pagination.pages }}" placeholder="Trang" 
-               class="w-[42px] h-8 text-center rounded-lg border-0 bg-slate-50 text-[11px] font-bold text-slate-600 focus:ring-2 focus:ring-indigo-500 outline-none p-0 js-jump-page-input transition-all">
-        <button type="button" class="w-8 h-8 flex items-center justify-center rounded-lg bg-indigo-50 text-indigo-600 hover:bg-indigo-100 js-jump-page-btn transition-colors" title="Chuyển trang">
+               class="w-[42px] h-full text-center rounded-lg border-0 bg-slate-50 text-[11px] font-bold text-slate-600 focus:ring-2 focus:ring-indigo-500 outline-none p-0 js-jump-page-input transition-all">
+        <button type="button" class="w-7 h-7 flex items-center justify-center rounded-lg bg-indigo-50 text-indigo-600 hover:bg-indigo-100 js-jump-page-btn transition-colors" title="Chuyển trang">
             <i class="fas fa-bolt text-[11px]"></i>
         </button>
     </div>

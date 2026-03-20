@@ -141,6 +141,87 @@
     background: #f8fafc;
 }
 
+/* Updated Start Study Button - Lower height & No Icons */
+.js-start-learning {
+    height: 60px !important;
+    min-height: 60px !important;
+    margin-top: 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+    font-size: 16px !important;
+    font-weight: 800 !important;
+    letter-spacing: 0.05em !important;
+}
+
+.js-start-learning i {
+    display: none !important;
+}
+
+/* Global Pagination Bar Refinement */
+.vocab-pagination-bar {
+    height: 60px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    background: white !important;
+    border-top: 1px solid #e2e8f0 !important;
+    padding: 0 1rem !important;
+    gap: 1.25rem !important;
+    box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.05) !important;
+    z-index: 50 !important;
+}
+
+.pagination-nav-btn {
+    width: 36px !important;
+    height: 36px !important;
+    border-radius: 10px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    background: #f8fafc !important;
+    border: 1px solid #e2e8f0 !important;
+    color: #64748b !important;
+    transition: all 0.2s ease !important;
+}
+
+.pagination-nav-btn:active:not(:disabled) {
+    transform: scale(0.9) !important;
+    background: #f1f5f9 !important;
+}
+
+.pagination-nav-btn:disabled {
+    opacity: 0.4 !important;
+    cursor: not-allowed !important;
+}
+
+.pagination-pages {
+    display: flex !important;
+    align-items: center !important;
+    gap: 0.5rem !important;
+}
+
+.page-num {
+    width: 36px !important;
+    height: 36px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    font-size: 14px !important;
+    font-weight: 700 !important;
+    border-radius: 10px !important;
+    color: #64748b !important;
+    transition: all 0.2s ease !important;
+}
+
+.page-num.active {
+    background: #4f46e5 !important;
+    color: white !important;
+    box-shadow: 0 4px 10px rgba(79, 70, 229, 0.25) !important;
+}
+
 .vocab-detail-title {
     font-size: 1.5rem;
     font-weight: 800;

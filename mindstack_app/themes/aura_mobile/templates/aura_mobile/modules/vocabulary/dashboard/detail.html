@@ -439,36 +439,25 @@ render_unified_header with context %}
         <div class="fixed bottom-0 left-0 right-0 bg-white z-[110] flex flex-col items-stretch shadow-[0_-10px_40px_rgba(79,70,229,0.15)] rounded-none">
             
             <!-- [Pagination Row] Clean White Background -->
-            <div id="detail-pagination-bar" class="vocab-pagination-bar bg-white w-full flex items-center justify-between px-6 pt-3 pb-3 m-0 border-b border-indigo-100/50 relative z-20">
+            <div id="detail-pagination-bar" class="vocab-pagination-bar">
                 <!-- Placeholder, filled by dashboard_detail.js -->
-                <div class="flex justify-center items-center gap-2 pagination w-full m-0 p-0">
-                    <button class="w-10 h-10 flex items-center justify-center bg-white border border-slate-200 text-slate-400 cursor-not-allowed m-0 rounded-lg">
+                <div class="pagination-pages w-full justify-center">
+                    <button class="pagination-nav-btn" disabled>
                         <i class="fas fa-chevron-left text-sm"></i>
                     </button>
-                    <div class="flex items-center bg-white border border-slate-200 rounded-lg p-0.5 m-0">
-                        <span class="w-9 h-9 flex items-center justify-center bg-indigo-600 text-white font-bold text-sm m-0 rounded-md">1</span>
+                    <div class="pagination-pages">
+                        <span class="page-num active">1</span>
                     </div>
-                    <button class="w-10 h-10 flex items-center justify-center bg-white border border-slate-200 text-slate-400 cursor-not-allowed m-0 rounded-lg">
+                    <button class="pagination-nav-btn" disabled>
                         <i class="fas fa-chevron-right text-sm"></i>
                     </button>
                 </div>
             </div>
 
-            <!-- [Start Study] True Full-Width LARGE Button (No Gap, Study Icon Background) -->
-            <button class="w-full h-[72px] bg-indigo-600 text-white font-black text-base shadow-none hover:bg-indigo-700 active:scale-[0.98] transition-all duration-300 flex items-center justify-center relative overflow-hidden js-start-learning rounded-none border-0 z-10 m-0">
-                
-                <!-- Large Faint Study-Related Background Icons -->
-                <i class="fas fa-rocket absolute -right-6 -bottom-8 text-[140px] text-white/10 -rotate-12 pointer-events-none select-none z-0"></i>
-                <i class="fas fa-book-reader absolute -left-8 -top-8 text-[100px] text-white/5 rotate-12 pointer-events-none select-none z-0"></i>
-
+            <!-- [Start Study] True Full-Width LARGE Button (Clean - No Icons) -->
+            <button class="w-full h-[60px] bg-indigo-600 text-white font-black text-base shadow-none hover:bg-indigo-700 active:scale-[0.98] transition-all duration-300 flex items-center justify-center relative overflow-hidden js-start-learning rounded-none border-0 z-10 m-0">
                 <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:animate-shimmer pointer-events-none z-0"></div>
-                
-                <!-- Centered Left Icon (Brain for Learning) -->
-                <div class="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center shadow-inner group-hover:bg-white/30 transition-all border border-white/20 backdrop-blur-md relative z-10 mr-3">
-                    <i class="fas fa-brain text-[18px]"></i>
-                </div>
-                
-                <span class="tracking-widest uppercase font-black text-[17px] relative z-10">Bắt đầu học ngay</span>
+                <span class="tracking-widest uppercase font-black text-[16px] relative z-10">Bắt đầu học ngay</span>
             </button>
         </div>
         
