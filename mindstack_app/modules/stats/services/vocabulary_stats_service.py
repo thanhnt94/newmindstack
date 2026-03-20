@@ -537,7 +537,16 @@ class VocabularyStatsService:
             base_query = base_query.order_by(LearningItem.order_in_container.asc(), LearningItem.item_id.asc())
 
         total_items = base_query.count()
+        import math
+        max_pages = max(1, math.ceil(total_items / float(per_page)))
+        if page > max_pages:
+            page = max_pages
+
         pagination = base_query.paginate(page=page, per_page=per_page, error_out=False)
+        if not pagination.items and total_items > 0:
+            # Fallback if somehow still empty but has items
+            pass
+        
         if not pagination.items: return {'items': [], 'pagination': {'total': total_items, 'page': page, 'per_page': per_page, 'pages': pagination.pages}, 'learned_count': 0}
         
         item_ids = [item.item_id for item in pagination.items]

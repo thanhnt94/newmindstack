@@ -107,6 +107,33 @@ render_unified_header with context %}
     .js-word-list>div {
         margin-bottom: 0 !important;
     }
+
+    /* Main Tabs (v5 - Clean Underline Style) */
+    .vocab-main-tab {
+        flex: 1;
+        padding: 0.875rem 0.5rem;
+        text-align: center;
+        font-size: 13px;
+        font-weight: 900;
+        color: #94a3b8;
+        cursor: pointer;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        background: transparent;
+        border: none;
+        border-bottom: 3.5px solid transparent;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+    }
+
+    .vocab-main-tab.active {
+        color: #4f46e5;
+        border-bottom-color: #4f46e5;
+        background: linear-gradient(180deg, transparent 80%, rgba(79, 70, 229, 0.04) 100%);
+    }
+
+    .vocab-main-tab:not(.active):hover {
+        color: #64748b;
+    }
 </style>
 <link rel="stylesheet" href="{{ url_for('aura_mobile.static', filename='vocabulary/css/dashboard.css') }}">
 <link rel="stylesheet" href="{{ url_for('aura_mobile.static', filename='vocabulary/css/dashboard_detail.css') }}">
@@ -233,11 +260,11 @@ render_unified_header with context %}
                             </div>
                             <div class="flex-1 min-w-0 leading-tight">
                                 <h3 class="text-[10px] font-bold text-amber-500 uppercase tracking-widest mb-1 flex items-center gap-1.5">
-                                    <span class="animate-pulse w-1.5 h-1.5 bg-amber-500 rounded-full"></span> Đang học dở
+                                    <span class="animate-pulse w-1.5 h-1.5 bg-amber-500 rounded-full"></span> ĐANG HỌC DỞ
                                 </h3>
-                                <p class="text-slate-800 text-[13px] font-bold truncate">
-                                    Tiếp tục phiên học <span class="js-active-mode-name text-slate-500 font-medium text-xs ml-0.5"></span>
-                                </p>
+                                <div class="js-active-mode-name text-slate-800 text-[18px] font-black truncate leading-none">
+                                    <!-- Mode name only -->
+                                </div>
                             </div>
                             <button class="js-resume-session shrink-0 w-10 h-10 bg-amber-500 hover:bg-amber-600 active:scale-95 text-white rounded-full transition-all shadow-md shadow-amber-500/20 flex items-center justify-center">
                                 <i class="fas fa-play text-xs ml-0.5"></i>
@@ -247,40 +274,40 @@ render_unified_header with context %}
 
 
 
-                    <!-- Premium Segmented Navigation Tabs -->
-                    <div class="px-3 mb-6 mt-4">
-                        <div class="flex p-0.5 bg-slate-100/40 rounded-xl border border-slate-200/30 shadow-inner">
+                    <!-- Premium Full-Width Tabs (v6 Compact Style) -->
+                    <div class="bg-white border-b border-slate-100 shadow-sm mb-3">
+                        <div class="flex w-full">
                             <button
-                                class="flex-1 py-1 rounded-lg text-[13px] font-bold transition-all duration-300 bg-white text-indigo-600 shadow-sm border-0 js-main-tab-btn"
+                                class="vocab-main-tab flex-1 py-3 text-[13px] font-black tracking-tight transition-all duration-300 active"
                                 onclick="switchDetailTab('list')" id="tab-btn-list">
-                                Thẻ từ
+                                THẺ TỪ
                             </button>
                             <button
-                                class="flex-1 py-1 rounded-lg text-[13px] font-medium transition-all duration-300 text-slate-400 hover:text-indigo-600 border-0 js-main-tab-btn"
+                                class="vocab-main-tab flex-1 py-3 text-[13px] font-black tracking-tight transition-all duration-300 text-slate-400"
                                 onclick="switchDetailTab('stats')" id="tab-btn-stats">
-                                Thống kê
+                                THỐNG KÊ
                             </button>
                         </div>
                     </div>
 
                     <!-- Tab Content: Vocabulary List -->
                     <div id="tab-content-list">
-                        <!-- Elegant Filter Pills -->
-                        <div class="mx-3 mb-3 flex overflow-x-auto no-scrollbar gap-1.5 py-0.5">
+                        <!-- Sleek Sub-Tab Filter Pills (v6) -->
+                        <div class="mx-3 mb-2 flex overflow-x-auto no-scrollbar gap-1.5 py-1">
                             <button
-                                class="whitespace-nowrap py-1 px-3 rounded-full text-[10px] font-bold transition-all duration-300 bg-indigo-600 text-white shadow-lg shadow-indigo-100 border-0 js-filter-tab-btn flex items-center gap-1.5"
+                                class="whitespace-nowrap py-1 px-3.5 rounded-full text-[10px] font-black transition-all duration-300 bg-indigo-600 text-white shadow-sm border-0 js-filter-tab-btn flex items-center gap-1.5"
                                 data-filter="all">
-                                <span>Tất cả</span> <span class="js-filter-count-all opacity-80 font-mono font-bold"></span>
+                                <span>TẤT CẢ</span> <span class="js-filter-count-all opacity-80 font-mono text-[9px]"></span>
                             </button>
                             <button
-                                class="whitespace-nowrap py-1 px-3 rounded-full text-[10px] font-medium transition-all duration-300 bg-white text-slate-500 border border-slate-100 shadow-sm hover:border-indigo-100 hover:text-indigo-600 js-filter-tab-btn flex items-center gap-1.5"
+                                class="whitespace-nowrap py-1 px-3.5 rounded-full text-[10px] font-bold transition-all duration-300 bg-white text-slate-400 border border-slate-100 shadow-sm hover:border-indigo-100 hover:text-indigo-600 js-filter-tab-btn flex items-center gap-1.5"
                                 data-filter="learned">
-                                <span>Đã học</span> <span class="js-filter-count-learned opacity-60 font-mono font-medium"></span>
+                                <span>ĐÃ HỌC</span> <span class="js-filter-count-learned opacity-60 font-mono text-[9px]"></span>
                             </button>
                             <button
-                                class="whitespace-nowrap py-1 px-3 rounded-full text-[10px] font-medium transition-all duration-300 bg-white text-slate-500 border border-slate-100 shadow-sm hover:border-indigo-100 hover:text-indigo-600 js-filter-tab-btn flex items-center gap-1.5"
+                                class="whitespace-nowrap py-1 px-3.5 rounded-full text-[10px] font-bold transition-all duration-300 bg-white text-slate-400 border border-slate-100 shadow-sm hover:border-indigo-100 hover:text-indigo-600 js-filter-tab-btn flex items-center gap-1.5"
                                 data-filter="due">
-                                <span>Cần ôn</span> <span class="js-filter-count-due opacity-60 font-mono font-medium"></span>
+                                <span>CẦN ÔN</span> <span class="js-filter-count-due opacity-60 font-mono text-[9px]"></span>
                             </button>
                         </div>
 
@@ -303,18 +330,20 @@ render_unified_header with context %}
 
                 <!-- Tab Content: Statistics -->
                 <div id="tab-content-stats" class="hidden px-2 pb-24">
-                    <!-- [NEW] Stats Sub-tabs Navigation -->
-                    <div class="flex p-1 bg-slate-100 rounded-xl mb-6 shadow-sm border border-slate-200/50">
-                        <button
-                            class="flex-1 py-2 px-3 rounded-lg text-sm font-bold transition-all duration-200 text-indigo-700 bg-white shadow-sm js-stats-subtab-btn"
-                            onclick="switchStatsSubTab('leaderboard')" data-subtab="leaderboard">
-                            Xếp hạng
-                        </button>
-                        <button
-                            class="flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-all duration-200 text-slate-500 hover:text-indigo-600 js-stats-subtab-btn"
-                            onclick="switchStatsSubTab('personal')" data-subtab="personal">
-                            Cá nhân
-                        </button>
+                    <!-- Sleek Stats Sub-tabs (v6) -->
+                    <div class="mx-2 mb-4">
+                        <div class="flex p-1 bg-slate-50 rounded-2xl border border-slate-100 shadow-sm">
+                            <button
+                                class="flex-1 py-1.5 px-3 rounded-xl text-[12px] font-black transition-all duration-300 text-indigo-700 bg-white shadow-sm js-stats-subtab-btn"
+                                onclick="switchStatsSubTab('leaderboard')" data-subtab="leaderboard">
+                                XẾP HẠNG
+                            </button>
+                            <button
+                                class="flex-1 py-1.5 px-3 rounded-xl text-[12px] font-bold transition-all duration-300 text-slate-400 hover:text-indigo-600 js-stats-subtab-btn"
+                                onclick="switchStatsSubTab('personal')" data-subtab="personal">
+                                CÁ NHÂN
+                            </button>
+                        </div>
                     </div>
 
                     <!-- SUBTAB: Leaderboard -->

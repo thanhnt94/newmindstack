@@ -66,13 +66,15 @@ current_filter=None, base_url=None) %}
     </button>
     {% endif %}
 
-    {# Jump to Page Input #}
-    {% if pagination.pages > 5 %}
-    <div class="flex items-center gap-1 ml-1 bg-white rounded-xl border border-slate-200 shadow-sm p-1 h-[36px]">
-        <input type="number" min="1" max="{{ pagination.pages }}" placeholder="Trang" 
-               class="w-[42px] h-full text-center rounded-lg border-0 bg-slate-50 text-[11px] font-bold text-slate-600 focus:ring-2 focus:ring-indigo-500 outline-none p-0 js-jump-page-input transition-all">
-        <button type="button" class="w-7 h-7 flex items-center justify-center rounded-lg bg-indigo-50 text-indigo-600 hover:bg-indigo-100 js-jump-page-btn transition-colors" title="Chuyển trang">
-            <i class="fas fa-bolt text-[11px]"></i>
+    {# Jump to Page Input - Always show for UI consistency #}
+    {% if pagination.pages >= 1 %}
+    <div class="flex items-center gap-2 ml-2 px-3 py-1 bg-white rounded-2xl border border-slate-200 shadow-sm h-[38px] min-w-[100px]">
+        <span class="text-[10px] font-black text-slate-400 uppercase tracking-tight">Trang</span>
+        <input type="number" min="1" max="{{ pagination.pages }}" 
+               class="w-[30px] bg-slate-50 rounded-lg border-0 text-[12px] font-black text-slate-700 focus:ring-0 p-0 text-center js-jump-page-input" 
+               value="{{ pagination.page }}">
+        <button type="button" class="w-7 h-7 flex items-center justify-center rounded-lg bg-indigo-600 text-white shadow-md shadow-indigo-100 js-jump-page-btn active:scale-95 transition-all" title="Chuyển trang">
+            <i class="fas fa-bolt text-[10px]"></i>
         </button>
     </div>
     {% endif %}

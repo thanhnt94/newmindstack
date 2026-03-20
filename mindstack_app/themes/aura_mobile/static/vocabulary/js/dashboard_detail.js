@@ -438,13 +438,13 @@ document.addEventListener('DOMContentLoaded', function () {
             const btn = e.target.closest('.js-filter-tab-btn');
             const filterType = btn.dataset.filter;
 
-            // Update UI (Elegant Pills - Tight)
+            // Update UI (Sleek Level 2 - v6)
             document.querySelectorAll('.js-filter-tab-btn').forEach(b => {
                 const isActive = b.dataset.filter === filterType;
                 if (isActive) {
-                    b.className = 'whitespace-nowrap py-1 px-3 rounded-full text-[10px] font-bold transition-all duration-300 bg-indigo-600 text-white shadow-lg shadow-indigo-100 border-0 js-filter-tab-btn flex items-center gap-1.5';
+                    b.className = 'whitespace-nowrap py-1 px-3.5 rounded-full text-[10px] font-black transition-all duration-300 bg-indigo-600 text-white shadow-sm border-0 js-filter-tab-btn flex items-center gap-1.5';
                 } else {
-                    b.className = 'whitespace-nowrap py-1 px-3 rounded-full text-[10px] font-medium transition-all duration-300 bg-white text-slate-500 border border-slate-100 shadow-sm hover:border-indigo-100 hover:text-indigo-600 js-filter-tab-btn flex items-center gap-1.5';
+                    b.className = 'whitespace-nowrap py-1 px-3.5 rounded-full text-[10px] font-bold transition-all duration-300 bg-white text-slate-400 border border-slate-100 shadow-sm hover:border-indigo-100 hover:text-indigo-600 js-filter-tab-btn flex items-center gap-1.5';
                 }
             });
 
@@ -470,7 +470,12 @@ document.addEventListener('DOMContentLoaded', function () {
                 if (data.has_active) {
                     banner.style.display = 'block';
                     const nameEl = banner.querySelector('.js-active-mode-name');
-                    if (nameEl) nameEl.textContent = data.active_mode_display || data.active_mode;
+                    if (nameEl) {
+                        let modeName = data.active_mode_display || data.active_mode || '';
+                        // Strip prefix if present
+                        modeName = modeName.replace('Từ vựng > ', '').replace('Vocabulary > ', '');
+                        nameEl.textContent = modeName.toUpperCase();
+                    }
                     const resumeBtn = banner.querySelector('.js-resume-session');
                     if (resumeBtn) resumeBtn.onclick = () => window.location.href = data.resume_url;
                 } else {
@@ -649,12 +654,12 @@ document.addEventListener('DOMContentLoaded', function () {
         const urlParams = new URLSearchParams(window.location.search);
         if (urlParams.get('filter')) {
             currentFilter = urlParams.get('filter');
-            // Update filter tab UI to match (Elegant Pills - Tight)
+            // Update filter tab UI to match (Sleek Level 2 - v6)
             document.querySelectorAll('.js-filter-tab-btn').forEach(b => {
                 if (b.dataset.filter === currentFilter) {
-                    b.className = 'whitespace-nowrap py-1 px-3 rounded-full text-[10px] font-bold transition-all duration-300 bg-indigo-600 text-white shadow-lg shadow-indigo-100 border-0 js-filter-tab-btn flex items-center gap-1.5';
+                    b.className = 'whitespace-nowrap py-1 px-3.5 rounded-full text-[10px] font-black transition-all duration-300 bg-indigo-600 text-white shadow-sm border-0 js-filter-tab-btn flex items-center gap-1.5';
                 } else {
-                    b.className = 'whitespace-nowrap py-1 px-3 rounded-full text-[10px] font-medium transition-all duration-300 bg-white text-slate-500 border border-slate-100 shadow-sm hover:border-indigo-100 hover:text-indigo-600 js-filter-tab-btn flex items-center gap-1.5';
+                    b.className = 'whitespace-nowrap py-1 px-3.5 rounded-full text-[10px] font-bold transition-all duration-300 bg-white text-slate-400 border border-slate-100 shadow-sm hover:border-indigo-100 hover:text-indigo-600 js-filter-tab-btn flex items-center gap-1.5';
                 }
             });
         }
@@ -682,12 +687,14 @@ document.addEventListener('DOMContentLoaded', function () {
     initialize();
     // --- Tab Logic ---
     window.switchDetailTab = function (tabName) {
-        // Update Tab Buttons (Premium Navigation Style - Tight)
-        document.querySelectorAll('#tab-btn-list, #tab-btn-stats').forEach(btn => {
+        // Update Tab Buttons (v5 Style Toggling)
+        document.querySelectorAll('.vocab-main-tab').forEach(btn => {
             if (btn.id === 'tab-btn-' + tabName) {
-                btn.className = 'flex-1 py-1 rounded-lg text-[13px] font-bold transition-all duration-300 bg-white text-indigo-600 shadow-sm border-0 js-main-tab-btn';
+                btn.classList.add('active');
+                btn.classList.remove('text-slate-400');
             } else {
-                btn.className = 'flex-1 py-1 rounded-lg text-[13px] font-medium transition-all duration-300 text-slate-400 hover:text-indigo-600 border-0 js-main-tab-btn';
+                btn.classList.remove('active');
+                btn.classList.add('text-slate-400');
             }
         });
 
@@ -715,14 +722,14 @@ document.addEventListener('DOMContentLoaded', function () {
     window.switchStatsSubTab = function (subTab) {
         console.log("Switching Stats Subtab:", subTab);
 
-        // Update sub-tab buttons
+        // Update sub-tab buttons (v6 Compact Toggling)
         document.querySelectorAll('.js-stats-subtab-btn').forEach(btn => {
             if (btn.dataset.subtab === subTab) {
-                btn.classList.add('bg-white', 'text-indigo-700', 'shadow-sm', 'font-bold');
-                btn.classList.remove('text-slate-500', 'font-medium');
+                btn.classList.add('active', 'bg-white', 'text-indigo-700', 'shadow-sm', 'font-black');
+                btn.classList.remove('text-slate-400', 'font-bold');
             } else {
-                btn.classList.remove('bg-white', 'text-indigo-700', 'shadow-sm', 'font-bold');
-                btn.classList.add('text-slate-500', 'font-medium');
+                btn.classList.remove('active', 'bg-white', 'text-indigo-700', 'shadow-sm', 'font-black');
+                btn.classList.add('text-slate-400', 'font-bold');
             }
         });
 

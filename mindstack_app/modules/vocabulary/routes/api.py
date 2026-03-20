@@ -11,17 +11,24 @@ from mindstack_app.modules.vocabulary.flashcard.interface import FlashcardInterf
 from mindstack_app.modules.AI.interface import AIInterface
 from mindstack_app.services.template_service import TemplateService
 
-def _render_pagination(set_id, stats_data, page):
+def _render_pagination(set_id, stats_data, page, base_url=None):
     """Render pagination HTML for AJAX response."""
-    if not stats_data or 'pagination' not in stats_data:
+    if not stats_data:
         return ""
     
-    p = stats_data['pagination']
-    total_count = p.get('total', 0)
-    per_page = p.get('per_page', 12)
+    # Handle different data structures for pagination
+    if 'pagination' in stats_data:
+        p = stats_data['pagination']
+        total_count = p.get('total', 0)
+        per_page = p.get('per_page', 12)
+    else:
+        # Fallback for dashboard API response structure
+        total_count = stats_data.get('total', 0)
+        per_page = stats_data.get('per_page', 10)
+        
     pages = int(math.ceil(total_count / float(per_page)))
     
-    if pages <= 1:
+    if pages < 1:
         return ""
 
     # Simple pagination object for template
@@ -34,7 +41,7 @@ def _render_pagination(set_id, stats_data, page):
             self.prev_num = current_page - 1
             self.next_num = current_page + 1
 
-        def iter_pages(self, left_edge=2, left_current=2, right_current=5, right_edge=2):
+        def iter_pages(self, left_edge=2, left_current=2, right_current=3, right_edge=2):
             last = 0
             for num in range(1, self.pages + 1):
                 if num <= left_edge or \
@@ -51,7 +58,13 @@ def _render_pagination(set_id, stats_data, page):
     try:
         # Use a string template to call the macro
         pagination_template_path = f"{version}/components/pagination/_pagination_mobile.html"
-        base_url = f"/learn/vocabulary/api/set/{set_id}"
+        
+        if not base_url:
+            if set_id:
+                base_url = f"/learn/vocabulary/api/set/{set_id}"
+            else:
+                base_url = "/learn/vocabulary/api/sets"
+                
         tmpl = """
         {% from path import render_pagination_mobile with context %}
         {{ render_pagination_mobile(pagination, set_id=set_id, base_url=base_url) }}
@@ -90,8 +103,14 @@ def api_get_sets():
             search=search,
             page=page
         )
+        
+        # Add pagination HTML for the dashboard
+        # Using a dummy set_id=0 or None to indicate global/dashboard context
+        pagination_html = _render_pagination(None, result, page)
+        
         return jsonify({
             'success': True,
+            'pagination_html': pagination_html,
             **result
         })
     except Exception as e:

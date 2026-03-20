@@ -61,6 +61,12 @@ class VocabularyService:
                     UserContainerState.is_favorite == True
                 )
             
+            # Cap page to max available pages
+            total_count = query.count()
+            max_pages = max(1, math.ceil(total_count / float(per_page)))
+            if page > max_pages:
+                page = max_pages
+
             pagination = query.order_by(LearningContainer.updated_at.desc()).paginate(
                 page=page, per_page=per_page, error_out=False
             )
