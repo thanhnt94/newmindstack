@@ -2,6 +2,10 @@
 {% block title %}Phòng: {{ room.name }} - WatchTogether{% endblock %}
 
 {% block content %}
+<!-- Plyr & HLS.js dependencies -->
+<link rel="stylesheet" href="https://cdn.plyr.io/3.7.8/plyr.css" />
+<script src="https://cdn.plyr.io/3.7.8/plyr.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/hls.js@1"></script>
 <div class="h-[100dvh] flex flex-col font-sans overflow-hidden bg-[#0f172a]">
     
     <!-- Premium Header -->
@@ -65,7 +69,7 @@
         <div class="w-full flex-none md:flex-1 bg-black flex flex-col z-10 min-h-0">
             <!-- 16:9 Aspect Ratio on Mobile, Flex Fill on Desktop -->
             <div class="relative w-full aspect-video md:aspect-auto md:flex-1 group">
-                <div id="player" class="absolute inset-0 w-full h-full"></div>
+                <video id="player" class="absolute inset-0 w-full h-full" playsinline controls></video>
                 {% if not is_host and not (user and room.allow_guest_control) %}
                 <div id="player-blocker" class="absolute inset-0 z-40 bg-transparent cursor-not-allowed hidden" oncontextmenu="return false;"></div>
                 {% endif %}
@@ -189,74 +193,131 @@
         }
     });
 
+    
     let player;
+    let hls; // Keep Hls.js instance globally to destroy it when changing videos
     let isPlayerReady = false;
     let ignoreNextEvent = false;
 
-    var tag = document.createElement('script');
-    tag.src = "https://www.youtube.com/iframe_api";
-    var firstScriptTag = document.getElementsByTagName('script')[0];
-    firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+    // Detect Source Type
+    function getSourceConfig(sourceStr) {
+        if (!sourceStr) return null;
+        const isYoutube = sourceStr.length === 11 || sourceStr.includes('youtube.com') || sourceStr.includes('youtu.be');
+        const isM3U8 = sourceStr.toLowerCase().includes('.m3u8');
+        
+        if (isYoutube) {
+            let ytId = sourceStr;
+            try {
+                if(sourceStr.includes('v=')) ytId = new URLSearchParams(new URL(sourceStr).search).get('v');
+                else if(sourceStr.includes('youtu.be/')) ytId = sourceStr.split('youtu.be/')[1].split('?')[0];
+            } catch(e) {}
+            return { provider: 'youtube', type: 'video', src: ytId };
+        } else if (isM3U8) {
+            return { provider: 'html5', type: 'application/x-mpegURL', src: sourceStr };
+        } else {
+            return { provider: 'html5', type: 'video/mp4', src: sourceStr };
+        }
+    }
 
-    window.onYouTubeIframeAPIReady = function() {
-        player = new YT.Player('player', {
-            height: '100%',
-            width: '100%',
-            videoId: CONFIG.initialVideoId,
-            playerVars: {
-                'playsinline': 1,
-                'autoplay': 0, 
-                'controls': isSyncMaster ? 1 : 0, 
-                'disablekb': isSyncMaster ? 0 : 1, 
-                'fs': 1, 
-                'rel': 0,
-                'modestbranding': 1
-            },
-            events: {
-                'onReady': onPlayerReady,
-                'onStateChange': onPlayerStateChange
+    function initPlayer() {
+        // Initialize Plyr
+        player = new Plyr('#player', {
+            controls: isSyncMaster ? ['play-large', 'play', 'progress', 'current-time', 'duration', 'mute', 'volume', 'fullscreen'] : ['fullscreen'],
+            keyboard: { focused: isSyncMaster, global: isSyncMaster },
+            youtube: { noCookie: false, rel: 0, showinfo: 0, iv_load_policy: 3, modestbranding: 1 }
+        });
+
+        player.on('ready', () => {
+            isPlayerReady = true;
+            if (CONFIG.initialTime > 0) player.currentTime = CONFIG.initialTime;
+            
+            if(CONFIG.isHost) {
+                appendMessage('system', 'Hệ thống', 'Bạn là Host. Quyền điều khiển là của bạn.');
+            } else if (CONFIG.allowGuestControl) {
+                appendMessage('system', 'Hệ thống', 'Phòng cho phép ai cũng có quyền điều khiển.');
+            } else {
+                if(blocker) blocker.classList.remove('hidden');
+                appendMessage('system', 'Hệ thống', 'Chế độ xem an toàn: Chỉ Host mới có quyền Play/Pause.');
+            }
+            
+            if (isSyncMaster) {
+                // Heartbeat sync
+                setInterval(forceSync, 5000);
             }
         });
-    }
 
-    function onPlayerReady(event) {
-        isPlayerReady = true;
-        if(CONFIG.initialTime > 0) {
-            player.seekTo(CONFIG.initialTime, true);
-        }
-        
-        if(CONFIG.isHost) {
-            appendMessage('system', 'Hệ thống', 'Bạn là Host. Quyền điều khiển là của bạn.');
-        } else if (CONFIG.allowGuestControl) {
-            appendMessage('system', 'Hệ thống', 'Phòng cho phép ai cũng có quyền điều khiển.');
-        } else {
-            if(blocker) blocker.classList.remove('hidden');
-            appendMessage('system', 'Hệ thống', 'Chế độ xem an toàn: Chỉ Host mới có quyền Play/Pause.');
-        }
-
-        if (isSyncMaster) {
-            setInterval(forceSync, 5000);
-        }
-    }
-
-    function onPlayerStateChange(event) {
-        if(!isSyncMaster) return; 
-
-        if(ignoreNextEvent) {
-            ignoreNextEvent = false;
-            return;
-        }
-
-        if (event.data == YT.PlayerState.PLAYING) {
+        player.on('play', () => {
+            if(!isSyncMaster) return;
+            if(ignoreNextEvent) { ignoreNextEvent = false; return; }
             emitSync('playing');
-        } else if (event.data == YT.PlayerState.PAUSED) {
+        });
+
+        player.on('pause', () => {
+            if(!isSyncMaster) return;
+            if(ignoreNextEvent) { ignoreNextEvent = false; return; }
             emitSync('paused');
+        });
+
+        player.on('seeked', () => {
+            if(!isSyncMaster) return;
+            if(ignoreNextEvent) { ignoreNextEvent = false; return; }
+            // Play status is maintained automatically, but we send a playing generic sync to update time
+            emitSync(player.playing ? 'playing' : 'paused');
+        });
+
+        loadVideoSource(CONFIG.initialVideoId, CONFIG.initialTime);
+    }
+
+    function loadVideoSource(sourceStr, startTime = 0) {
+        if (!player) return;
+        const cfg = getSourceConfig(sourceStr);
+        if(!cfg) return;
+
+        if (hls) {
+            hls.destroy();
+            hls = null;
+        }
+
+        if (cfg.provider === 'youtube') {
+            player.source = { type: 'video', sources: [{ src: cfg.src, provider: 'youtube' }] };
+            player.once('ready', () => { if(startTime > 0) player.currentTime = startTime; });
+        } else if (cfg.type === 'application/x-mpegURL') {
+            // HLS Stream
+            if (Hls.isSupported()) {
+                hls = new Hls();
+                hls.loadSource(cfg.src);
+                hls.attachMedia(player.media);
+                window.hls = hls; // debug
+                player.once('canplay', () => { if(startTime > 0) player.currentTime = startTime; });
+            } else {
+                // Fallback for native Safari
+                player.source = { type: 'video', sources: [{ src: cfg.src, type: 'application/x-mpegURL' }] };
+            }
+        } else {
+            // Standard MP4
+            player.source = { type: 'video', sources: [{ src: cfg.src, type: 'video/mp4' }] };
+            player.once('canplay', () => { if(startTime > 0) player.currentTime = startTime; });
         }
     }
+
+    // Replace window onload or run init directly
+    document.addEventListener('DOMContentLoaded', () => {
+        initPlayer();
+    });
+    
+    // Override socket event for video change
+    socket.off('video_changed'); // Remove old handler cleanly if testing locally without reload
+    socket.on('video_changed', (data) => {
+        if(player && data.video_id) {
+            CONFIG.initialVideoId = data.video_id;
+            let startSeconds = data.start_time || 0;
+            loadVideoSource(data.video_id, startSeconds);
+        }
+    });
 
     function emitSync(state) {
         if(!isPlayerReady) return;
-        const time = player.getCurrentTime();
+        const time = player.currentTime;
         socket.emit('sync_state', {
             room_id: CONFIG.roomId,
             state: state,
@@ -268,7 +329,7 @@
 
     window.forceSync = function() {
         if(!isSyncMaster || !isPlayerReady) return;
-        const state = (player.getPlayerState() == YT.PlayerState.PLAYING) ? 'playing' : 'paused';
+        const state = player.playing ? 'playing' : 'paused';
         emitSync(state);
     }
 
@@ -283,34 +344,47 @@
         const action = data.state;
         const time = data.time;
 
-        const currentTime = player.getCurrentTime();
+        const currentTime = player.currentTime;
         if (Math.abs(currentTime - time) > 2.0 && Math.abs(lastSeekTime - time) > 1.0) {
              ignoreNextEvent = true;
-             player.seekTo(time, true);
+             player.currentTime = time;
              lastSeekTime = time;
         }
 
-        if (action === 'playing' && player.getPlayerState() !== YT.PlayerState.PLAYING) {
+        if (action === 'playing' && !player.playing) {
             ignoreNextEvent = true;
-            player.playVideo();
-        } else if (action === 'paused' && player.getPlayerState() !== YT.PlayerState.PAUSED) {
+            let playPromise = player.play();
+            if (playPromise !== undefined) {
+                playPromise.catch(error => {
+                    console.log("Autoplay prevented:", error);
+                });
+            }
+        } else if (action === 'paused' && player.playing) {
             ignoreNextEvent = true;
-            player.pauseVideo();
+            player.pause();
         }
     });
 
-    document.getElementById('chat-input').addEventListener('keypress', function (e) {
+    // Fix Engagement Tracking for Plyr
+    setInterval(() => {
+        {% if user %}
+        if (player && player.playing) {
+            socket.emit('watch_heartbeat', { user_id: {{ user.id }} });
+        }
+        {% endif %}
+    }, 60000);
+document.getElementById('chat-input').addEventListener('keypress', function (e) {
         if (e.key === 'Enter') {
             const input = document.getElementById('chat-input');
             const message = input.value.trim();
             if (message) {
                 let video_id = null;
                 let timestamp = null;
-                if(player && typeof player.getCurrentTime === 'function') {
+                if(player && player.media) {
                     try {
-                        let vd = player.getVideoData();
-                        video_id = vd ? vd.video_id : CONFIG.initialVideoId;
-                        timestamp = Math.floor(player.getCurrentTime());
+                        let vd = CONFIG.initialVideoId;
+                        video_id = CONFIG.initialVideoId;
+                        timestamp = Math.floor(player.currentTime);
                     } catch(e) {}
                 }
                 
@@ -393,11 +467,11 @@
         if (message) {
             let video_id = null;
             let timestamp = null;
-            if(player && typeof player.getCurrentTime === 'function') {
+            if(player && player.media) {
                 try {
-                    let vd = player.getVideoData();
-                    video_id = vd ? vd.video_id : CONFIG.initialVideoId;
-                    timestamp = Math.floor(player.getCurrentTime());
+                    let vd = CONFIG.initialVideoId;
+                    video_id = CONFIG.initialVideoId;
+                    timestamp = Math.floor(player.currentTime);
                 } catch(e) {}
             }
             
@@ -426,7 +500,7 @@
     // Engagement Tracking
     setInterval(() => {
         {% if user %}
-        if (player && player.getPlayerState() == YT.PlayerState.PLAYING) {
+        if (player && player.playing) {
             socket.emit('watch_heartbeat', { user_id: {{ user.id }} });
         }
         {% endif %}
@@ -434,15 +508,6 @@
 
     // Host Video Changing
     {% if is_host %}
-    function extractVid(v) {
-        if(!v) return null;
-        let id = v;
-        try {
-            if(v.includes('v=')) id = new URLSearchParams(new URL(v).search).get('v');
-            else if(v.includes('youtu.be/')) id = v.split('youtu.be/')[1].split('?')[0];
-        } catch(e) {}
-        return id;
-    }
     
     window.changeVideo = function(inputId = 'new-video-id') {
         const input = document.getElementById(inputId);
@@ -450,16 +515,8 @@
         let videoId = input.value.trim();
         if (!videoId) return;
 
-        let match = videoId.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([^&?]+)/);
-        if (match && match[1]) {
-            socket.emit('change_video', { room_id: CONFIG.roomId, video_id: match[1], start_time: 0, is_host: {{ 'true' if is_host else 'false' }} });
-            input.value = '';
-        } else if (videoId.length === 11) {
-             socket.emit('change_video', { room_id: CONFIG.roomId, video_id: videoId, start_time: 0, is_host: {{ 'true' if is_host else 'false' }} });
-             input.value = '';
-        } else {
-             alert('Link hoặc ID Youtube không hợp lệ');
-        }
+        socket.emit('change_video', { room_id: CONFIG.roomId, video_id: videoId, start_time: 0, is_host: {{ 'true' if is_host else 'false' }} });
+        input.value = '';
     }
 
     window.jumpToContext = function(vid, time) {
@@ -473,8 +530,8 @@
                 is_host: isHostStr 
             });
         } else {
-            if(player && player.seekTo) {
-               player.seekTo(time, true);
+            if(player && player.media) {
+               player.currentTime = time;
             }
             socket.emit('sync_state', {
                 room_id: CONFIG.roomId,
@@ -485,7 +542,7 @@
             });
         }
     }
-    {% endif %}
+{% endif %}
 </script>
 
 {% if is_host %}
