@@ -2,6 +2,17 @@
 {% block title %}Phòng: {{ room.name }} - WatchTogether{% endblock %}
 
 {% block content %}
+<style>
+    /* Force Plyr wrapper to fill the aspect-ratio parent entirely, fixing HTML5 black screen bugs */
+    #player-container .plyr {
+        position: absolute !important;
+        top: 0;
+        left: 0;
+        width: 100% !important;
+        height: 100% !important;
+    }
+</style>
+
 <!-- Plyr & HLS.js dependencies -->
 <link rel="stylesheet" href="https://cdn.plyr.io/3.7.8/plyr.css" />
 <script src="https://cdn.plyr.io/3.7.8/plyr.js"></script>
@@ -262,14 +273,19 @@
         }
     }
 
-    function initPlayer(provider = 'youtube') {
+    function initPlayer(provider = 'youtube', src = null) {
         if(player) {
             try { player.destroy(); } catch(e) {}
         }
         
         const container = document.getElementById('player-container');
         if(container) {
-            container.innerHTML = `<video id="player" class="absolute inset-0 w-full h-full" playsinline controls></video>`;
+            if (provider === 'youtube') {
+                const embedAttr = src ? `data-plyr-embed-id="${src}"` : '';
+                container.innerHTML = `<div id="player" class="absolute inset-0 w-full h-full" data-plyr-provider="youtube" ${embedAttr}></div>`;
+            } else {
+                container.innerHTML = `<video id="player" class="absolute inset-0 w-full h-full" playsinline controls></video>`;
+            }
         }
         
         let options = {
@@ -328,12 +344,10 @@
         const cfg = getSourceConfig(sourceStr);
         if(!cfg) return;
 
-        // If provider changes between HTML5 and Youtube, we MUST tear down Plyr completely
-        // to erase the IFrame or Native <video> mutations.
-        if (cfg.provider !== currentProvider || !player) {
-            currentProvider = cfg.provider;
-            initPlayer(cfg.provider);
-        }
+        // Force teardown on EVERY video change to completely avoid Plyr iframe caching bugs
+        // especially when switching between different YouTube videos.
+        currentProvider = cfg.provider;
+        initPlayer(cfg.provider, cfg.src);
 
         if (hls) {
             hls.destroy();
@@ -341,7 +355,7 @@
         }
 
         if (cfg.provider === 'youtube') {
-            player.source = { type: 'video', sources: [{ src: cfg.src, provider: 'youtube' }] };
+            // Source is already assigned via data-plyr-embed-id, simply wait for ready
             player.once('ready', () => { if(startTime > 0) player.currentTime = startTime; });
         } else if (cfg.type === 'application/x-mpegURL') {
             // HLS Stream
@@ -381,7 +395,7 @@
         if (isSyncMaster) {
             setInterval(forceSync, 5000);
         }
-        
+        loadVideoSource(CONFIG.initialVideoId, CONFIG.initialTime);
     });
     
     // Override socket event for video change
