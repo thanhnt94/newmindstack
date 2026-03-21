@@ -1,0 +1,276 @@
+{% extends "watchtogether/wt_base.html" %}
+{% block title %}Phòng: {{ room.name }} - WatchTogether{% endblock %}
+
+{% block content %}
+<div class="h-screen flex flex-col font-sans overflow-hidden bg-[#0f172a]">
+    
+    <div class="flex-none bg-slate-800/90 backdrop-blur-xl border-b border-slate-700/50 px-4 py-3 flex items-center justify-between z-50">
+        <div class="flex items-center gap-3">
+            <a href="/watchtogether/" class="w-8 h-8 rounded-lg bg-slate-700 flex items-center justify-center text-slate-300 hover:text-white transition-colors">
+                <i class="fa-solid fa-chevron-left text-sm"></i>
+            </a>
+            <div>
+                <h1 class="text-sm font-bold text-white max-w-[150px] md:max-w-xs truncate">{{ room.name }}</h1>
+                <p class="text-[10px] text-slate-400 font-medium">Host: <span class="text-indigo-400 font-bold">{{ host.username }}</span></p>
+            </div>
+        </div>
+        
+        <div class="flex items-center gap-3">
+            <button onclick="copyInviteLink()" class="flex items-center gap-2 px-3 py-1.5 bg-indigo-500/20 text-indigo-400 rounded-lg text-xs font-bold hover:bg-indigo-500/30 transition-colors">
+                <i class="fa-solid fa-link"></i> Mời
+            </button>
+            <div class="w-8 h-8 rounded-full bg-slate-700 border-2 border-slate-600 flex items-center justify-center text-xs font-bold text-white shadow-lg relative group cursor-help">
+                {{ user.username[0]|upper }}
+                <div class="absolute -bottom-8 right-0 w-max px-2 py-1 bg-black/80 text-white text-[10px] rounded opacity-0 group-hover:opacity-100 transition-opacity z-50 pointer-events-none">
+                    Bạn là: {{ user.username }} {{ "(Host)" if is_host else "" }}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="flex-1 flex flex-col md:flex-row min-h-0 overflow-hidden relative">
+        <div class="flex-1 bg-black flex flex-col relative z-10 w-full min-h-[40vh] md:min-h-0">
+            {% if not is_host %}
+            <div id="player-blocker" class="absolute inset-0 z-40 bg-transparent cursor-not-allowed hidden" oncontextmenu="return false;"></div>
+            {% endif %}
+            
+            <div id="player" class="w-full h-full flex-1"></div>
+            
+            {% if is_host %}
+            <div class="absolute top-2 right-2 z-50 flex gap-2">
+                 <button onclick="forceSync()" class="px-3 py-1.5 bg-rose-500/80 backdrop-blur text-white text-[10px] font-bold uppercase tracking-wider rounded border border-white/20 hover:bg-rose-500 transition-colors shadow-lg">
+                     <i class="fa-solid fa-rotate-right mr-1"></i> Ép đồng bộ
+                 </button>
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="w-full md:w-80 lg:w-96 bg-slate-900 border-t md:border-t-0 md:border-l border-slate-800 flex flex-col z-20 flex-none h-[40vh] md:h-auto">
+            <div class="px-4 py-2 bg-slate-800/50 border-b border-slate-800 flex items-center justify-between shadow-sm">
+                <span class="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
+                    <span id="conn-dot" class="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
+                    Trạng thái kết nối
+                </span>
+                <span id="conn-text" class="text-[10px] font-bold text-amber-500">Đang kết nối...</span>
+            </div>
+
+            <div id="chat-box" class="flex-1 overflow-y-auto p-4 space-y-3 scroll-smooth">
+            </div>
+
+            <div class="p-4 bg-slate-800/80 backdrop-blur-md border-t border-slate-700">
+                <form id="chat-form" class="flex gap-2" onsubmit="sendChat(event)">
+                    <input type="text" id="chat-input" class="flex-1 bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-indigo-500 transition-colors" placeholder="Nhập tin nhắn..." autocomplete="off">
+                    <button type="submit" class="w-12 h-11 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl flex items-center justify-center transition-colors shadow-md">
+                        <i class="fa-solid fa-paper-plane text-sm"></i>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const CONFIG = {
+        roomId: "{{ room.id }}",
+        isHost: {{ "true" if is_host else "false" }},
+        username: "{{ user.username }}",
+        initialVideoId: "{{ room.current_video_id or 'dQw4w9WgXcQ' }}",
+        initialTime: {{ room.current_time or 0 }},
+        initialPlaying: {{ "true" if room.is_playing else "false" }}
+    };
+
+    const chatBox = document.getElementById('chat-box');
+    const connDot = document.getElementById('conn-dot');
+    const connText = document.getElementById('conn-text');
+    const blocker = document.getElementById('player-blocker');
+
+    const socketUrl = window.location.protocol + '//' + window.location.host + '/watchtogether';
+    const socket = io(socketUrl, { path: '/watchtogether/socket.io' });
+
+    socket.on('connect', () => {
+        connDot.className = "w-2 h-2 rounded-full bg-emerald-500";
+        connText.className = "text-[10px] font-bold text-emerald-500";
+        connText.textContent = "Đã kết nối";
+        socket.emit('join', { room_id: CONFIG.roomId, username: CONFIG.username });
+    });
+
+    socket.on('disconnect', () => {
+        connDot.className = "w-2 h-2 rounded-full bg-rose-500";
+        connText.className = "text-[10px] font-bold text-rose-500";
+        connText.textContent = "Mất kết nối";
+    });
+
+    socket.on('system_message', (data) => {
+        appendMessage('system', 'Hệ thống', data.msg);
+    });
+
+    socket.on('chat_message', (data) => {
+        appendMessage('user', data.username, data.message);
+    });
+
+    let player;
+    let isPlayerReady = false;
+    let ignoreNextEvent = false;
+
+    var tag = document.createElement('script');
+    tag.src = "https://www.youtube.com/iframe_api";
+    var firstScriptTag = document.getElementsByTagName('script')[0];
+    firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+
+    window.onYouTubeIframeAPIReady = function() {
+        player = new YT.Player('player', {
+            height: '100%',
+            width: '100%',
+            videoId: CONFIG.initialVideoId,
+            playerVars: {
+                'playsinline': 1,
+                'autoplay': 0, 
+                'controls': CONFIG.isHost ? 1 : 0, 
+                'disablekb': CONFIG.isHost ? 0 : 1, 
+                'fs': 1, 
+                'rel': 0,
+                'modestbranding': 1
+            },
+            events: {
+                'onReady': onPlayerReady,
+                'onStateChange': onPlayerStateChange
+            }
+        });
+    }
+
+    function onPlayerReady(event) {
+        isPlayerReady = true;
+        if(CONFIG.initialTime > 0) {
+            player.seekTo(CONFIG.initialTime, true);
+        }
+        
+        if(CONFIG.isHost) {
+            appendMessage('system', 'Hệ thống', 'Bạn là Host. Bấm Play để bắt đầu (và cấp quyền Autoplay trên Browser).');
+        } else {
+            if(blocker) blocker.classList.remove('hidden');
+            appendMessage('system', 'Hệ thống', 'Bạn đang xem. Chỉ Host mới có quyền điều khiển video.');
+        }
+
+        if (CONFIG.isHost) {
+            setInterval(forceSync, 5000);
+        }
+    }
+
+    function onPlayerStateChange(event) {
+        if(!CONFIG.isHost) return; 
+
+        if(ignoreNextEvent) {
+            ignoreNextEvent = false;
+            return;
+        }
+
+        if (event.data == YT.PlayerState.PLAYING) {
+            emitSync('playing');
+        } else if (event.data == YT.PlayerState.PAUSED) {
+            emitSync('paused');
+        }
+    }
+
+    function emitSync(state) {
+        if(!isPlayerReady) return;
+        const time = player.getCurrentTime();
+        socket.emit('sync_state', {
+            room_id: CONFIG.roomId,
+            state: state,
+            time: time,
+            video_id: CONFIG.initialVideoId,
+            is_host: CONFIG.isHost
+        });
+    }
+
+    window.forceSync = function() {
+        if(!CONFIG.isHost || !isPlayerReady) return;
+        const state = (player.getPlayerState() == YT.PlayerState.PLAYING) ? 'playing' : 'paused';
+        emitSync(state);
+    }
+
+    socket.on('request_sync_from_host', () => {
+        if(CONFIG.isHost) forceSync();
+    });
+
+    let lastSeekTime = 0;
+    socket.on('receive_state', (data) => {
+        if(!isPlayerReady) return;
+        
+        const action = data.state;
+        const time = data.time;
+
+        const currentTime = player.getCurrentTime();
+        if (Math.abs(currentTime - time) > 2.0 && Math.abs(lastSeekTime - time) > 1.0) {
+             ignoreNextEvent = true;
+             player.seekTo(time, true);
+             lastSeekTime = time;
+        }
+
+        if (action === 'playing' && player.getPlayerState() !== YT.PlayerState.PLAYING) {
+            ignoreNextEvent = true;
+            player.playVideo();
+        } else if (action === 'paused' && player.getPlayerState() !== YT.PlayerState.PAUSED) {
+            ignoreNextEvent = true;
+            player.pauseVideo();
+        }
+    });
+
+    window.sendChat = function(e) {
+        e.preventDefault();
+        const input = document.getElementById('chat-input');
+        const text = input.value.trim();
+        if(!text) return;
+
+        socket.emit('chat_message', {
+            room_id: CONFIG.roomId,
+            username: CONFIG.username,
+            message: text
+        });
+        
+        appendMessage('me', 'Bạn', text);
+        input.value = '';
+    }
+
+    function appendMessage(type, user, text) {
+        const div = document.createElement('div');
+        div.className = "flex flex-col animate-fade-in";
+        
+        if (type === 'system') {
+            div.innerHTML = `<div class="mx-auto bg-slate-800/80 px-3 py-1 rounded-full border border-slate-700">
+                <p class="text-[10px] text-slate-400 font-bold">${text}</p>
+            </div>`;
+        } else if (type === 'me') {
+            div.innerHTML = `
+                <div class="self-end max-w-[85%]">
+                    <div class="bg-indigo-600 text-white px-4 py-2.5 rounded-2xl rounded-tr-sm shadow-md text-sm leading-relaxed">${escapeHtml(text)}</div>
+                </div>`;
+        } else {
+            div.innerHTML = `
+                <div class="self-start max-w-[85%]">
+                    <p class="text-[10px] font-bold text-slate-400 ml-2 mb-1">${escapeHtml(user)}</p>
+                    <div class="bg-slate-800 text-slate-200 px-4 py-2.5 rounded-2xl rounded-tl-sm shadow-md border border-slate-700 text-sm leading-relaxed">${escapeHtml(text)}</div>
+                </div>`;
+        }
+        
+        chatBox.appendChild(div);
+        chatBox.scrollTop = chatBox.scrollHeight;
+    }
+
+    function escapeHtml(unsafe) {
+        return unsafe.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+    }
+
+    window.copyInviteLink = function() {
+        const url = window.location.href;
+        navigator.clipboard.writeText(url).then(() => {
+            appendMessage('system', 'Hệ thống', 'Đã copy link mời vào clipboard!');
+        });
+    }
+</script>
+
+<style>
+@keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+.animate-fade-in { animation: fadeIn 0.2s ease-out forwards; }
+</style>
+{% endblock %}
