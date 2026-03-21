@@ -178,8 +178,9 @@ def api_get_set_detail(set_id):
         page = request.args.get('page', 1, type=int)
         sort_by = request.args.get('sort', 'default')
         filter_mode = request.args.get('filter', 'all')
+        q = request.args.get('q')
         
-        result = VocabularyService.get_set_detail(current_user.user_id, set_id, page=page, sort_by=sort_by, filter_mode=filter_mode)
+        result = VocabularyService.get_set_detail(current_user.user_id, set_id, page=page, sort_by=sort_by, filter_mode=filter_mode, q=q)
         
         pagination_html = _render_pagination(set_id, result.stats, page)
         

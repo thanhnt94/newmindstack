@@ -176,7 +176,25 @@ render_unified_header with context %}
                         <a href="/learn/vocabulary/" class="w-10 h-10 flex items-center justify-center rounded-full bg-white text-slate-600 border border-slate-200 shadow-sm hover:bg-slate-50 hover:text-indigo-600 hover:border-indigo-100 active:scale-95 transition-all outline-none focus:outline-none">
                             <i class="fas fa-arrow-left text-[15px]"></i>
                         </a>
-                        <div class="flex items-center gap-2">
+
+                        <!-- Compact Middle Search Bar (Stretched) -->
+                        <div class="flex-1 mx-3">
+                            <div class="relative group">
+                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <i class="fas fa-search text-slate-300 text-[11px] group-focus-within:text-indigo-400 transition-colors"></i>
+                                </div>
+                                <input type="text" 
+                                    id="detail-header-search"
+                                    class="w-full bg-slate-50/80 border border-slate-100 rounded-full pl-8 pr-9 py-1.5 text-[12px] font-medium text-slate-700 placeholder:text-slate-400 focus:ring-2 focus:ring-indigo-100/50 focus:bg-white focus:border-indigo-200 transition-all outline-none" 
+                                    placeholder="Tìm kiếm..."
+                                    autocomplete="off">
+                                <button id="clear-search-btn" class="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-300 hover:text-slate-400 active:text-indigo-500 transition-colors hidden" title="Xóa tìm kiếm">
+                                    <i class="fas fa-times-circle text-[14px]"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center gap-2 pr-0">
                             <a href="javascript:void(0)" class="w-10 h-10 flex items-center justify-center rounded-full bg-white text-slate-500 hover:text-indigo-600 border border-slate-200 shadow-sm js-edit-set-btn open-modal-btn active:scale-95 transition-all" title="Sửa bộ thẻ" style="display: none;">
                                 <i class="fas fa-edit text-sm"></i>
                             </a>

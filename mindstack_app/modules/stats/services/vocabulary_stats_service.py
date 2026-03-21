@@ -517,11 +517,14 @@ class VocabularyStatsService:
         }
 
     @staticmethod
-    def get_course_overview_stats(user_id: int, container_id: int, page: int = 1, per_page: int = 12, sort_by: str = 'default', filter_mode: str = 'all') -> dict:
+    def get_course_overview_stats(user_id: int, container_id: int, page: int = 1, per_page: int = 12, sort_by: str = 'default', filter_mode: str = 'all', q: str = None) -> dict:
         base_query = LearningItem.query.filter(
             LearningItem.container_id == container_id,
             LearningItem.item_type.in_(['FLASHCARD', 'VOCABULARY'])
         )
+        
+        if q:
+            base_query = base_query.filter(LearningItem.search_text.ilike(f"%{q}%"))
 
         # [NEW] Apply Filter First
         if filter_mode in ['learned', 'due']:

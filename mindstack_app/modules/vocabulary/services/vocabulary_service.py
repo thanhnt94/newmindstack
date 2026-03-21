@@ -114,7 +114,7 @@ class VocabularyService:
             raise e
 
     @staticmethod
-    def get_set_detail(user_id: int, set_id: int, page: int = 1, sort_by: str = 'default', filter_mode: str = 'all') -> VocabSetDetailDTO:
+    def get_set_detail(user_id: int, set_id: int, page: int = 1, sort_by: str = 'default', filter_mode: str = 'all', q: str = None) -> VocabSetDetailDTO:
         """Get comprehensive details and stats for a set."""
         container = LearningContainer.query.get_or_404(set_id)
         card_count = LearningItem.query.filter(
@@ -124,7 +124,7 @@ class VocabularyService:
         creator = User.query.get(container.creator_user_id)
         
         # Stats delegated to Stats module
-        course_stats = StatsInterface.get_vocab_set_overview_stats(user_id, set_id, page, 12, sort_by=sort_by, filter_mode=filter_mode)
+        course_stats = StatsInterface.get_vocab_set_overview_stats(user_id, set_id, page, 12, sort_by=sort_by, filter_mode=filter_mode, q=q)
         
         user_obj = User.query.get(user_id)
         user_role = user_obj.user_role if user_obj else 'user'

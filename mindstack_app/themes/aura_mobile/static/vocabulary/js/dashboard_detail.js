@@ -73,8 +73,9 @@ document.addEventListener('DOMContentLoaded', function () {
         selectedSetId = setId;
         currentStatsPage = page;
 
-        // [UPDATED] Pass sort and filter param
-        const searchQ = document.getElementById('searchInput')?.value || '';
+        // [UPDATED] Pass sort and filter param and search query
+        const searchQ = document.getElementById('detail-header-search')?.value || 
+                        document.getElementById('searchInput')?.value || '';
         return fetch('/learn/vocabulary/api/set/' + setId + '?page=' + page + '&sort=' + currentSort + '&filter=' + currentFilter + '&q=' + encodeURIComponent(searchQ))
             .then(r => r.json())
             .then(data => {
@@ -962,6 +963,42 @@ document.addEventListener('DOMContentLoaded', function () {
 
             if (selectedSetId) {
                 fetchSetLeaderboard(selectedSetId, btn.dataset.tf);
+            }
+        }
+    });
+
+    // --- [NEW] Detail Search Logic ---
+    let searchTimeout = null;
+    document.addEventListener('input', function (e) {
+        if (e.target.id === 'detail-header-search') {
+            const query = e.target.value.trim();
+            
+            // Toggle clear button
+            const clearBtn = document.getElementById('clear-search-btn');
+            if (clearBtn) {
+                if (query.length > 0) clearBtn.classList.remove('hidden');
+                else clearBtn.classList.add('hidden');
+            }
+
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => {
+                if (selectedSetId) {
+                    console.log("Searching for:", query);
+                    loadSetDetail(selectedSetId, false, 1);
+                }
+            }, 500); // 500ms debounce
+        }
+    });
+
+    document.addEventListener('click', function (e) {
+        const clearBtn = e.target.closest('#clear-search-btn');
+        if (clearBtn) {
+            const searchInput = document.getElementById('detail-header-search');
+            if (searchInput) {
+                searchInput.value = '';
+                clearBtn.classList.add('hidden');
+                searchInput.focus();
+                if (selectedSetId) loadSetDetail(selectedSetId, false, 1);
             }
         }
     });
