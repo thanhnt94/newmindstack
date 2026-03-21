@@ -38,10 +38,12 @@ def on_join(data):
     try:
         chat_history = db_session.query(WTChatMessage).filter_by(room_id=room_id).order_by(WTChatMessage.created_at.desc()).limit(50).all()
         chat_data = [{
+            'id': msg.id,
             'username': msg.username, 
             'message': msg.message, 
             'video_id': msg.video_id, 
             'timestamp': msg.timestamp,
+            'reactions': msg.reactions or '{}',
             'created_at': msg.created_at.isoformat() + 'Z' if msg.created_at else None
         } for msg in reversed(chat_history)]
         emit('chat_history', chat_data)
@@ -173,8 +175,56 @@ def on_chat_message(data):
             print(f"Error saving chat: {e}")
 
         emit('chat_message', {
+            'id': msg.id if 'msg' in locals() else None,
             'username': username, 
             'message': message,
             'video_id': video_id,
-            'timestamp': timestamp
+            'timestamp': timestamp,
+            'reactions': '{}'
         }, to=room_id)
+
+@socketio.on('add_reaction', namespace='/watchtogether')
+def on_add_reaction(data):
+    room_id = data.get('room_id')
+    message_id = data.get('message_id')
+    emoji = data.get('emoji')
+    username = data.get('username')
+    
+    if not all([room_id, message_id, emoji, username]):
+        return
+        
+    from .models import WTChatMessage
+    from .database import db_session
+    import json
+    
+    msg = db_session.query(WTChatMessage).filter_by(id=message_id, room_id=room_id).first()
+    if msg:
+        try:
+            reactions = json.loads(msg.reactions) if msg.reactions else {}
+        except:
+            reactions = {}
+            
+        if emoji not in reactions:
+            reactions[emoji] = []
+            
+        if username in reactions[emoji]:
+            reactions[emoji].remove(username)
+            if not reactions[emoji]:
+                del reactions[emoji]
+        else:
+            for e, users in reactions.items():
+                if username in users:
+                    users.remove(username)
+            reactions = {k: v for k, v in reactions.items() if v}
+            
+            if emoji not in reactions:
+                reactions[emoji] = []
+            reactions[emoji].append(username)
+            
+        new_rx = json.dumps(reactions)
+        msg.reactions = new_rx
+        try:
+            db_session.commit()
+            emit('reaction_updated', {'message_id': message_id, 'reactions': new_rx}, to=room_id)
+        except:
+            db_session.rollback()

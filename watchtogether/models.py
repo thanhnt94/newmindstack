@@ -52,6 +52,7 @@ class WTChatMessage(Base):
     message = Column(String(1000), nullable=False)
     video_id = Column(String(50), nullable=True)
     timestamp = Column(Integer, nullable=True)
+    reactions = Column(String(1000), default='{}')
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
 class WTVideoHistory(Base):

@@ -68,7 +68,7 @@
         <!-- Video Player Fill Container -->
         <div class="w-full flex-none md:flex-1 bg-black flex flex-col z-10 min-h-0">
             <!-- 16:9 Aspect Ratio on Mobile, Flex Fill on Desktop -->
-            <div class="relative w-full aspect-video md:aspect-auto md:flex-1 group">
+            <div id="player-container" class="relative w-full aspect-video md:aspect-auto md:flex-1 group">
                 <video id="player" class="absolute inset-0 w-full h-full" playsinline controls></video>
                 {% if not is_host and not (user and room.allow_guest_control) %}
                 <div id="player-blocker" class="absolute inset-0 z-40 bg-transparent cursor-not-allowed hidden" oncontextmenu="return false;"></div>
@@ -107,11 +107,20 @@
 
             <div class="p-4 bg-slate-800/80 backdrop-blur-md border-t border-slate-700 flex-none z-10 pb-[calc(1rem+env(safe-area-inset-bottom))]">
                 {% if user %}
-                <form id="chat-form" class="flex gap-2" onsubmit="sendChat(event)">
-                    <input type="text" id="chat-input" class="flex-1 bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-indigo-500 transition-colors" placeholder="Nhập tin nhắn..." autocomplete="off">
+                <form id="chat-form" class="flex gap-2 relative" onsubmit="sendChat(event)">
+                    <div class="relative flex-1">
+                        <input type="text" id="chat-input" class="w-full bg-slate-900 border border-slate-700 rounded-xl pl-4 pr-10 py-2.5 text-sm text-white focus:outline-none focus:border-indigo-500 transition-colors" placeholder="Nhập tin nhắn..." autocomplete="off">
+                        <button type="button" onclick="toggleEmojiPicker()" class="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center text-slate-400 hover:text-amber-400 transition-colors text-lg" title="Thêm cảm xúc">
+                            <i class="fa-regular fa-face-smile"></i>
+                        </button>
+                    </div>
                     <button type="submit" class="w-12 h-11 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl flex items-center justify-center transition-colors shadow-md flex-none">
                         <i class="fa-solid fa-paper-plane text-sm"></i>
                     </button>
+                    
+                    <!-- Emoji Picker Popup -->
+                    <div id="emoji-picker" class="hidden absolute bottom-full mb-2 right-12 bg-slate-800 border border-slate-700 rounded-xl shadow-2xl p-3 z-[100] animate-fade-in w-64">
+                    </div>
                 </form>
                 {% else %}
                 <div class="flex flex-col items-center justify-center gap-2 py-1">
@@ -123,6 +132,17 @@
         </div>
     </div>
 </div>
+
+
+        <!-- Global Reaction Picker -->
+        <div id="msg-react-picker" class="hidden fixed bg-slate-800 border border-slate-700 rounded-full shadow-2xl px-3 py-2 z-[100] animate-fade-in flex gap-2 text-2xl" onmouseleave="this.classList.add('hidden')">
+            <span class="cursor-pointer hover:scale-125 hover:-translate-y-1 transition-all" onclick="sendReaction(currentReactMsgId, '👍')">👍</span>
+            <span class="cursor-pointer hover:scale-125 hover:-translate-y-1 transition-all" onclick="sendReaction(currentReactMsgId, '❤️')">❤️</span>
+            <span class="cursor-pointer hover:scale-125 hover:-translate-y-1 transition-all" onclick="sendReaction(currentReactMsgId, '😂')">😂</span>
+            <span class="cursor-pointer hover:scale-125 hover:-translate-y-1 transition-all" onclick="sendReaction(currentReactMsgId, '😮')">😮</span>
+            <span class="cursor-pointer hover:scale-125 hover:-translate-y-1 transition-all" onclick="sendReaction(currentReactMsgId, '😢')">😢</span>
+            <span class="cursor-pointer hover:scale-125 hover:-translate-y-1 transition-all" onclick="sendReaction(currentReactMsgId, '😡')">😡</span>
+        </div>
 
 <script>
     const CONFIG = {
@@ -166,17 +186,40 @@
     });
 
     socket.on('system_message', (data) => {
-        appendMessage('system', 'Hệ thống', data.msg);
+        appendMessage(null, 'system', 'Hệ thống', data.msg);
     });
 
     socket.on('chat_message', (data) => {
-        appendMessage('user', data.username, data.message, data.video_id, data.timestamp, data.created_at);
+        appendMessage(data.id, 'user', data.username, data.message, data.video_id, data.timestamp, data.created_at, data.reactions);
     });
     
     socket.on('chat_history', (msgs) => {
-        msgs.forEach(m => appendMessage('user', m.username, m.message, m.video_id, m.timestamp, m.created_at));
-        appendMessage('system', 'Hệ thống', 'Đã tải lịch sử trò chuyện.');
+        msgs.forEach(m => appendMessage(m.id, 'user', m.username, m.message, m.video_id, m.timestamp, m.created_at, m.reactions));
+        appendMessage(null, 'system', 'Hệ thống', 'Đã tải lịch sử trò chuyện.');
     });
+    
+    socket.on('reaction_updated', (data) => {
+        if(data.message_id) {
+            renderReactions(data.message_id, data.reactions);
+        }
+    });
+
+    window.renderReactions = function(msg_id, rxString) {
+        const container = document.getElementById('rx-' + msg_id);
+        if (!container) return;
+        try {
+            let rxObject = typeof rxString === 'string' ? JSON.parse(rxString) : rxString;
+            let html = '';
+            for (const [emoji, users] of Object.entries(rxObject)) {
+                if (users.length > 0) {
+                    const iReacted = users.includes(CONFIG.username);
+                    const bgClass = iReacted ? 'bg-indigo-500/90 border-indigo-400 text-white' : 'bg-slate-700/90 border-slate-600 text-slate-200';
+                    html += `<div title="${users.join(', ')}" class="${bgClass} px-1.5 py-0.5 rounded-full text-[10px] font-bold shadow-sm whitespace-nowrap border flex items-center gap-1 cursor-pointer hover:scale-110 transition-transform" onclick="sendReaction('${msg_id}', '${emoji}')"><span>${emoji}</span><span>${users.length}</span></div>`;
+                }
+            }
+            container.innerHTML = html;
+        } catch(e) {}
+    }
     
     socket.on('presence_update', (data) => {
         const el = document.getElementById('room-presence');
@@ -219,13 +262,24 @@
         }
     }
 
-    function initPlayer() {
-        // Initialize Plyr
-        player = new Plyr('#player', {
+    function initPlayer(provider = 'youtube') {
+        if(player) {
+            try { player.destroy(); } catch(e) {}
+        }
+        
+        const container = document.getElementById('player-container');
+        if(container) {
+            container.innerHTML = `<video id="player" class="absolute inset-0 w-full h-full" playsinline controls></video>`;
+        }
+        
+        let options = {
             controls: isSyncMaster ? ['play-large', 'play', 'progress', 'current-time', 'duration', 'mute', 'volume', 'fullscreen'] : ['fullscreen'],
-            keyboard: { focused: isSyncMaster, global: isSyncMaster },
-            youtube: { noCookie: false, rel: 0, showinfo: 0, iv_load_policy: 3, modestbranding: 1 }
-        });
+            keyboard: { focused: isSyncMaster, global: isSyncMaster }
+        };
+        if (provider === 'youtube') {
+            options.youtube = { noCookie: false, rel: 0, showinfo: 0, iv_load_policy: 3, modestbranding: 1 };
+        }
+        player = new Plyr('#player', options);
 
         player.on('ready', () => {
             isPlayerReady = true;
@@ -265,13 +319,21 @@
             emitSync(player.playing ? 'playing' : 'paused');
         });
 
-        loadVideoSource(CONFIG.initialVideoId, CONFIG.initialTime);
+        
     }
 
+    let currentProvider = 'youtube';
+
     function loadVideoSource(sourceStr, startTime = 0) {
-        if (!player) return;
         const cfg = getSourceConfig(sourceStr);
         if(!cfg) return;
+
+        // If provider changes between HTML5 and Youtube, we MUST tear down Plyr completely
+        // to erase the IFrame or Native <video> mutations.
+        if (cfg.provider !== currentProvider || !player) {
+            currentProvider = cfg.provider;
+            initPlayer(cfg.provider);
+        }
 
         if (hls) {
             hls.destroy();
@@ -284,11 +346,18 @@
         } else if (cfg.type === 'application/x-mpegURL') {
             // HLS Stream
             if (Hls.isSupported()) {
+                const nativeVideo = document.getElementById('player');
                 hls = new Hls();
                 hls.loadSource(cfg.src);
-                hls.attachMedia(player.media);
+                hls.attachMedia(nativeVideo);
                 window.hls = hls; // debug
-                player.once('canplay', () => { if(startTime > 0) player.currentTime = startTime; });
+                hls.on(Hls.Events.MANIFEST_PARSED, function() {
+                    if(startTime > 0) nativeVideo.currentTime = startTime;
+                    if(player && !player.playing && isSyncMaster) {
+                         // Livestreams often need explicit play
+                         player.play().catch(e => console.log(e));
+                    }
+                });
             } else {
                 // Fallback for native Safari
                 player.source = { type: 'video', sources: [{ src: cfg.src, type: 'application/x-mpegURL' }] };
@@ -300,9 +369,19 @@
         }
     }
 
-    // Replace window onload or run init directly
+    // Initialize initial provider state based on Config
+    (() => {
+        const initialCfg = getSourceConfig(CONFIG.initialVideoId);
+        if(initialCfg) currentProvider = initialCfg.provider;
+    })();
+
     document.addEventListener('DOMContentLoaded', () => {
-        initPlayer();
+        // Master interval should be started OUTSIDE of Player Init 
+        // to prevent duplicate intervals upon player rebuild
+        if (isSyncMaster) {
+            setInterval(forceSync, 5000);
+        }
+        
     });
     
     // Override socket event for video change
@@ -400,10 +479,11 @@ document.getElementById('chat-input').addEventListener('keypress', function (e) 
         }
     });
 
-    function appendMessage(type, sender, text, video_id=null, timestamp=null, created_at=null) {
-        const chatBox = document.getElementById('chat-box'); // Changed from 'chat-messages' to 'chat-box'
+    function appendMessage(msg_id, type, sender, text, video_id=null, timestamp=null, created_at=null, reactions='{}') {
+        const chatBox = document.getElementById('chat-box'); 
         const div = document.createElement('div');
-        div.className = "mb-3 text-[13px] leading-relaxed break-words animate-fade-in";
+        div.className = "mb-4 text-[13px] leading-relaxed break-words animate-fade-in flex w-full";
+        if(msg_id) div.id = 'msg-wrapper-' + msg_id;
         
         let realTimeStr = '';
         if (created_at) {
@@ -412,7 +492,7 @@ document.getElementById('chat-input').addEventListener('keypress', function (e) 
         } else {
             realTimeStr = new Date().toLocaleTimeString('vi-VN', {hour: '2-digit', minute:'2-digit'});
         }
-        let realTimeBadge = `<span class="text-[10px] text-slate-500 font-medium ml-2">${realTimeStr}</span>`;
+        let realTimeBadge = `<span class="text-[10px] text-slate-500 font-medium">${realTimeStr}</span>`;
         
         let timeBadge = '';
         if(timestamp !== null && timestamp >= 0) {
@@ -427,36 +507,54 @@ document.getElementById('chat-input').addEventListener('keypress', function (e) 
                 ? `onclick="jumpToContext('${safeVideoId}', ${timestamp})"` 
                 : `onclick="alert('Chỉ Host hoặc khách được cấp quyền mới có thể đổi video và tua.')"`;
                 
-            timeBadge = `<span class="ml-1 text-[10px] bg-slate-800 text-indigo-300 px-1 py-0.5 rounded border border-slate-700 cursor-pointer hover:bg-indigo-600 hover:text-white transition-all shadow-sm" ${clickAttr} title="Lúc gửi đang xem Video: ${safeVideoId} ở phút ${m}:${s}"><i class="fa-regular fa-clock"></i> ${m}:${s}</span>`;
+            timeBadge = `<span class="text-[10px] bg-slate-800 text-indigo-300 px-1 py-0.5 rounded border border-slate-700 cursor-pointer hover:bg-indigo-600 hover:text-white transition-all shadow-sm" ${clickAttr} title="Lúc gửi đang xem Video: ${safeVideoId} ở phút ${m}:${s}"><i class="fa-regular fa-clock"></i> ${m}:${s}</span>`;
         }
 
         if (type === 'system') {
-            div.innerHTML = `<div class="flex gap-2 items-start opacity-80 mix-blend-screen"><div class="w-5 h-5 rounded-full bg-indigo-500/20 flex items-center justify-center text-indigo-400 shrink-0 border border-indigo-500/30 font-black text-[10px]">i</div> <span class="bg-indigo-500/10 text-indigo-300 px-2 py-0.5 rounded-md text-[10px] font-bold border border-indigo-500/20 uppercase tracking-widest">Hệ thống</span> <span class="text-indigo-200 italic text-xs mt-0.5">${escapeHtml(text)}</span></div>`;
+            div.className = "mb-3 text-[13px] leading-relaxed break-words animate-fade-in flex w-full justify-center";
+            div.innerHTML = `<div class="flex gap-2 items-center opacity-80 mix-blend-screen bg-indigo-500/5 px-3 py-1.5 rounded-full border border-indigo-500/10"><div class="w-4 h-4 rounded-full bg-indigo-500/20 flex items-center justify-center text-indigo-400 shrink-0 border border-indigo-500/30 font-black text-[9px]">i</div> <span class="text-indigo-200 italic text-[11px]">${escapeHtml(text)}</span></div>`;
         } else {
+            const isMe = (sender === CONFIG.username);
             const avatarChar = sender.charAt(0).toUpperCase();
-            // Deterministic color based on name length so the same user has the same color
+            
             const colors = ['from-indigo-500 to-purple-600', 'from-emerald-500 to-teal-600', 'from-rose-500 to-pink-600', 'from-amber-500 to-orange-600', 'from-cyan-500 to-blue-600'];
             const color = colors[sender.length % colors.length];
             
+            const alignmentClass = isMe ? 'justify-end' : 'justify-start';
+            const flexRowClass = isMe ? 'flex-row-reverse' : 'flex-row';
+            const bubbleBg = isMe ? 'bg-indigo-600 text-white border-indigo-500 shadow-md' : 'bg-slate-800 text-slate-200 border-slate-700/50 shadow';
+            const borderRadius = isMe ? 'rounded-2xl rounded-tr-sm' : 'rounded-2xl rounded-tl-sm';
+            
+            let headerElements = isMe ? `${timeBadge} ${realTimeBadge}` : `<span class="font-bold text-indigo-300 text-xs">${escapeHtml(sender)}</span> ${realTimeBadge} ${timeBadge}`;
+
+            let reactBtn = msg_id ? `<button onclick="openReactionMenu(this, '${msg_id}')" class="react-btn absolute ${isMe ? '-left-8' : '-right-8'} top-1/2 -translate-y-1/2 w-6 h-6 bg-slate-700 hover:bg-slate-600 rounded-full text-slate-300 flex items-center justify-center opacity-0 group-hover/bubble:opacity-100 transition-opacity shadow cursor-pointer z-10"><i class="fa-regular fa-face-smile text-[10px]"></i></button>` : '';
+            let rxContainer = msg_id ? `<div id="rx-${msg_id}" class="absolute -bottom-3 ${isMe ? 'right-2 flex-row-reverse' : 'left-2 flex-row'} flex gap-1 z-20"></div>` : '';
+
+            div.className = `mb-4 text-[13px] leading-relaxed break-words animate-fade-in w-full flex ${alignmentClass}`;
             div.innerHTML = `
-                <div class="flex items-start gap-2 group">
-                    <div class="w-7 h-7 rounded-full bg-gradient-to-tr ${color} flex items-center justify-center text-white text-[11px] font-black shadow-sm shrink-0 mt-0.5 ring-1 ring-slate-800">
+                <div class="flex items-end gap-2 group ${flexRowClass} max-w-[85%]">
+                    <div class="w-7 h-7 rounded-full bg-gradient-to-tr ${color} flex items-center justify-center text-white text-[11px] font-black shadow-sm shrink-0 ring-1 ring-slate-800 mb-1">
                         ${escapeHtml(avatarChar)}
                     </div>
-                    <div class="flex flex-col max-w-[85%]">
-                        <div class="flex items-baseline gap-1.5 mb-0.5">
-                            <span class="font-bold text-indigo-300 text-xs">${escapeHtml(sender)}</span>
-                            ${realTimeBadge}
-                            ${timeBadge}
+                    <div class="flex flex-col ${isMe ? 'items-end' : 'items-start'}">
+                        <div class="flex items-center gap-1.5 mb-1 px-1">
+                            ${headerElements}
                         </div>
-                        <div class="bg-slate-800 text-slate-200 px-3.5 py-2 rounded-xl rounded-tl-sm w-fit shadow border border-slate-700/50 text-[13px] leading-relaxed group-hover:bg-slate-750 transition-colors">
-                            ${escapeHtml(text)}
+                        <div class="relative group/bubble inline-block">
+                            <div class="${bubbleBg} px-3.5 py-2.5 ${borderRadius} border text-[13px] leading-relaxed transition-colors group-hover/bubble:brightness-110">
+                                ${escapeHtml(text)}
+                            </div>
+                            ${reactBtn}
+                            ${rxContainer}
                         </div>
                     </div>
                 </div>
             `;
         }
         chatBox.appendChild(div);
+        if(msg_id && reactions) {
+            renderReactions(msg_id, reactions);
+        }
         chatBox.scrollTop = chatBox.scrollHeight;
     }
 
@@ -485,6 +583,63 @@ document.getElementById('chat-input').addEventListener('keypress', function (e) 
             input.value = '';
         }
     }
+
+    
+
+    // --- Emoji & Reaction Pickers ---
+    const EMOJIS = ['😀','😂','🥰','😎','🤔','😢','😡','👍','👎','❤️','🔥','🎉','🤝','🙏','👀','💯','✨','🎵'];
+    window.toggleEmojiPicker = function() {
+        const picker = document.getElementById('emoji-picker');
+        if (picker.classList.contains('hidden')) {
+            let html = '';
+            EMOJIS.forEach(e => {
+                html += `<span class="cursor-pointer hover:scale-125 transition-transform" onclick="insertEmoji('${e}')">${e}</span>`;
+            });
+            picker.innerHTML = `<div class="flex flex-wrap gap-2.5 text-2xl">${html}</div>`;
+            picker.classList.remove('hidden');
+        } else {
+            picker.classList.add('hidden');
+        }
+    }
+    window.insertEmoji = function(e) {
+        const input = document.getElementById('chat-input');
+        input.value += e;
+        input.focus();
+    }
+    document.addEventListener('click', (e) => {
+        if(!e.target.closest('#chat-form')) {
+            const picker = document.getElementById('emoji-picker');
+            if(picker) picker.classList.add('hidden');
+        }
+        if(!e.target.closest('#msg-react-picker') && !e.target.closest('.react-btn')) {
+            const rPicker = document.getElementById('msg-react-picker');
+            if(rPicker) rPicker.classList.add('hidden');
+        }
+    });
+
+    let currentReactMsgId = null;
+    window.openReactionMenu = function(btn, msgId) {
+        currentReactMsgId = msgId;
+        const picker = document.getElementById('msg-react-picker');
+        const rect = btn.getBoundingClientRect();
+        const chatSidebarRect = document.getElementById('chat-sidebar').getBoundingClientRect();
+        
+        picker.style.top = (rect.top - 45) + 'px';
+        let leftPos = rect.left - 80;
+        if (leftPos < chatSidebarRect.left + 10) leftPos = chatSidebarRect.left + 10;
+        picker.style.left = leftPos + 'px';
+        
+        picker.classList.remove('hidden');
+    }
+    
+    window.sendReaction = function(msgId, emoji) {
+        if (!msgId) return;
+        socket.emit('add_reaction', { room_id: CONFIG.roomId, message_id: msgId, emoji: emoji, username: CONFIG.username });
+        const picker = document.getElementById('msg-react-picker');
+        if(picker) picker.classList.add('hidden');
+    }
+    // --- End Pickers ---
+
 
     function escapeHtml(unsafe) {
         return unsafe.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
