@@ -183,6 +183,11 @@ def api_get_set_detail(set_id):
         
         pagination_html = _render_pagination(set_id, result.stats, page)
         
+        # [NEW] Get the first item's ID in this set to calculate absolute sequence
+        from mindstack_app.models import LearningItem, db
+        from sqlalchemy import func
+        min_item_id = db.session.query(func.min(LearningItem.item_id)).filter(LearningItem.container_id == set_id).scalar() or 0
+
         set_data = result.set_info.__dict__.copy()
         if '_sa_instance_state' in set_data:
             del set_data['_sa_instance_state']
@@ -194,7 +199,8 @@ def api_get_set_detail(set_id):
             'course_stats': result.stats, # Alias for compatible JS
             'capabilities': result.capabilities,
             'can_edit': result.can_edit,
-            'pagination_html': pagination_html
+            'pagination_html': pagination_html,
+            'min_item_id': min_item_id
         })
     except Exception as e:
         current_app.logger.error(f"Error getting set detail API for set {set_id}: {e}")

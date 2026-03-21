@@ -14,6 +14,7 @@ document.addEventListener('DOMContentLoaded', function () {
     let selectedFlashcardMode = null;
     let currentSort = 'default'; // [NEW] Sort state
     let currentFilter = 'all'; // [NEW] Filter state
+    let minItemId = 0; // [NEW] Base ID for sequence calculation
 
     // [NEW] URL State Sync Helper
     function updateUrlState() {
@@ -80,6 +81,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 console.log('API Response for set detail:', data);
                 if (data.success) {
                     selectedSetData = data.set;
+                    minItemId = data.min_item_id || 0; // [NEW] Save base ID
                     renderSetDetail(data.set, data.course_stats, false, data.pagination_html);
 
                     // [NEW] Update Mode Visibility based on Set Capabilities
@@ -177,6 +179,10 @@ document.addEventListener('DOMContentLoaded', function () {
 
                     const progressPercent = stats.total_count ? Math.round((stats.learned_count / stats.total_count) * 100) : 0;
                     document.querySelectorAll('.js-header-progress-percent').forEach(el => el.textContent = progressPercent + '%');
+
+                    // [FIXED] Update Header Summary Stats - Always use container card_count for total
+                    document.querySelectorAll('.js-detail-total-cards').forEach(el => el.textContent = s.card_count || 0);
+                    document.querySelectorAll('.js-detail-learned-cards').forEach(el => el.textContent = stats.learned_count || 0);
                 } catch (e) {
                     console.error("Error rendering stats:", e);
                 }
@@ -252,6 +258,8 @@ document.addEventListener('DOMContentLoaded', function () {
                 const iconClass = (active, colorClass) => `flex items-center justify-center w-7 h-7 rounded-lg transition-colors ${active ? colorClass + ' shadow-sm' : 'bg-slate-50 text-slate-300'}`;
 
                 sortedItems.forEach((item, index) => {
+                    const absIndex = (item.item_id || item.id) - minItemId + 1;
+                    
                     let statusBadge = '';
                     if (item.status === 'new') {
                         statusBadge = '<span class="px-2 py-0.5 bg-blue-50 text-blue-600 text-[10px] font-bold uppercase rounded-md tracking-wider border border-blue-100">New</span>';
@@ -280,7 +288,7 @@ document.addEventListener('DOMContentLoaded', function () {
                         <!-- Top status line -->
                         <div class="flex items-center justify-between mb-4">
                             <div class="flex items-center gap-2">
-                                <span class="bg-slate-50 text-slate-400 px-1.5 py-0.5 rounded-lg text-[10px] font-bold border border-slate-100">#${index + 1}</span>
+                                <span class="bg-slate-50 text-slate-400 px-1.5 py-0.5 rounded-lg text-[10px] font-bold border border-slate-100">#${absIndex}</span>
                                 <span class="px-2.5 py-0.5 rounded-lg text-[10px] font-bold border ${stateColorClass} uppercase tracking-tight">${fsrsState}</span>
                             </div>
                             
