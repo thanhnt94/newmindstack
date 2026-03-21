@@ -21,4 +21,11 @@ def create_app(config_class=Config) -> Flask:
     with app.app_context():
         bootstrap_system(app)
         
+    # 4. Khởi chạy WatchTogether module (hỗ trợ production wsgi tự nạp module con)
+    try:
+        from watchtogether import setup_watchtogether
+        setup_watchtogether(app)
+    except Exception as e:
+        print(f"[Core] WatchTogether module skipped or failed: {e}")
+        
     return app
