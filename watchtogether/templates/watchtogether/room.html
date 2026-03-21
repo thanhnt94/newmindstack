@@ -299,6 +299,28 @@
 
         player.on('ready', () => {
             isPlayerReady = true;
+            
+            // --- Autoplay Livestream Logic ---
+            setTimeout(() => {
+                if(!player.playing) {
+                    let playPromise = player.play();
+                    if(playPromise !== undefined && typeof playPromise.catch === 'function') {
+                        playPromise.catch(() => {
+                            player.muted = true;
+                            player.play();
+                        });
+                    } else {
+                        // If Plymouth doesn't return a promise (sometimes on YouTube)
+                        setTimeout(() => {
+                            if(!player.playing) {
+                                player.muted = true;
+                                player.play();
+                            }
+                        }, 500);
+                    }
+                }
+            }, 300);
+            
             if (CONFIG.initialTime > 0) player.currentTime = CONFIG.initialTime;
             
             if(CONFIG.isHost) {
