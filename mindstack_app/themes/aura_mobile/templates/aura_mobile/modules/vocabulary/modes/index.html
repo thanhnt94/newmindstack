@@ -31,7 +31,7 @@
     }
 
     .dashboard-header-content h1 {
-        font-size: 2.25rem !important;
+        font-size: 1.75rem !important; /* Giảm size một chút cho di động */
         font-weight: 900 !important;
         letter-spacing: -0.05em !important;
         margin-top: 0.5rem !important;
@@ -39,6 +39,10 @@
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
         line-height: 1.2 !important;
+        word-break: break-word; /* Đảm bảo ngắt dòng nếu tên bộ thẻ quá dài */
+        max-width: 90%;
+        margin-left: auto;
+        margin-right: auto;
     }
 
     /* Hide redundant sub-text in header */
@@ -49,19 +53,21 @@
     }
 
     .modes-wrapper {
+        width: 100%;
         max-width: 520px;
         margin: 0 auto;
-        padding: 1.5rem 1.25rem 120px !important; 
+        padding: 1.5rem 1rem 120px !important; 
+        box-sizing: border-box;
     }
 
     .selection-prompt {
         text-align: center;
         color: #94a3b8;
         font-weight: 800;
-        font-size: 0.75rem;
+        font-size: 0.7rem;
         text-transform: uppercase;
         letter-spacing: 0.2em;
-        margin-bottom: 2rem;
+        margin-bottom: 1.5rem;
         animation: fadeIn 1s ease-out;
     }
 
@@ -74,22 +80,23 @@
     .bento-grid {
         display: grid;
         grid-template-columns: repeat(2, 1fr);
-        gap: 1.25rem;
+        gap: 0.75rem;
         width: 100%;
+        box-sizing: border-box;
     }
 
     .bento-card {
-        aspect-ratio: 1 / 1;
         background: var(--ms-card);
-        border-radius: 36px;
+        border-radius: 28px; /* Bo tròn vừa phải cho di động */
         display: flex;
         flex-direction: column;
         align-items: center;
         justify-content: center;
         text-align: center;
-        padding: 1.5rem;
+        padding: 1rem 0.5rem; /* Giảm padding ngang tối đa */
+        min-width: 0; /* Cho phép co lại dưới kích thước content */
         border: 2px solid transparent !important;
-        box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.08);
+        box-shadow: 0 8px 20px -8px rgba(0, 0, 0, 0.08);
         transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         position: relative;
         cursor: pointer;
@@ -99,41 +106,52 @@
         animation: cardEntrance 0.6s ease-out forwards;
     }
 
+    @media (min-width: 400px) {
+        .bento-card {
+            aspect-ratio: 1 / 1;
+            padding: 1.25rem;
+            border-radius: 32px;
+        }
+    }
+
     @keyframes cardEntrance {
         to { opacity: 1; transform: translateY(0); }
     }
 
-    .bento-card:nth-child(1) { animation-delay: 0.05s; }
-    .bento-card:nth-child(2) { animation-delay: 0.1s; }
-    .bento-card:nth-child(3) { animation-delay: 0.15s; }
-    .bento-card:nth-child(4) { animation-delay: 0.2s; }
-    .bento-card:nth-child(5) { animation-delay: 0.25s; }
-    .bento-card:nth-child(6) { animation-delay: 0.3s; }
+    /* Animation Delays ... */
 
     .bento-card:hover {
-        transform: translateY(-12px);
+        transform: translateY(-8px);
         border-color: var(--btn-color) !important;
-        box-shadow: 0 25px 50px -15px var(--btn-shadow) !important;
+        box-shadow: 0 20px 40px -12px var(--btn-shadow) !important;
     }
 
     .bento-card:active {
-        transform: scale(0.94);
-        transition: all 0.1s;
+        transform: scale(0.95);
     }
 
     .bento-icon {
-        width: 68px;
-        height: 68px;
-        border-radius: 22px;
+        width: 52px;
+        height: 52px;
+        border-radius: 18px;
         background: var(--btn-grad);
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 1.85rem;
+        font-size: 1.5rem;
         color: white;
-        margin-bottom: 1.25rem;
-        box-shadow: 0 15px 25px -10px var(--btn-shadow);
+        margin-bottom: 0.75rem;
+        box-shadow: 0 10px 15px -5px var(--btn-shadow);
         transition: all 0.3s ease;
+    }
+
+    @media (min-width: 400px) {
+        .bento-icon {
+            width: 64px;
+            height: 64px;
+            font-size: 1.75rem;
+            margin-bottom: 1rem;
+        }
     }
 
     .bento-card:hover .bento-icon {
