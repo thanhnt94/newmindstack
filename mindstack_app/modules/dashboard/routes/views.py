@@ -4,7 +4,6 @@ from .. import blueprint
 from ..services.dashboard_service import DashboardService
 
 @blueprint.route('/')
-@blueprint.route('/dashboard')
 @login_required
 def dashboard():
     """Trang dashboard tổng quan của người dùng."""

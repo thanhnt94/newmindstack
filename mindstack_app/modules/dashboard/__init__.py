@@ -7,6 +7,7 @@ module_metadata = {
     'name': 'Bảng điều khiển',
     'icon': 'home',
     'category': 'System',
+    'url_prefix': '/dashboard',
     'enabled': True
 }
 
