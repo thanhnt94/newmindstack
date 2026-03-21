@@ -100,32 +100,32 @@ Modern Glassmorphism & High-Density Insights
                 </button>
             </div>
 
-            {# Quick Info Capsules #}
+            {# Quick Info Capsules (Shrunk v2) #}
             <div class="flex flex-wrap justify-center gap-1 py-1">
                 {# 1. Total XP #}
-                <div class="flex items-center gap-1 bg-white/60 backdrop-blur-md px-2 py-1 rounded-xl border border-white/40 shadow-soft flex-shrink-0 cursor-help transition-transform active:scale-95" data-tooltip="Tổng XP tích lũy">
-                    <div class="w-6 h-6 rounded-lg bg-amber-50 text-amber-500 flex items-center justify-center text-xs"><i class="fa-solid fa-gem"></i></div>
-                    <span class="text-sm font-extrabold text-slate-800">{{ "{:,}".format(score_overview.total|int) }}</span>
+                <div class="flex items-center gap-1 bg-white/60 backdrop-blur-md px-1.5 py-0.5 rounded-lg border border-white/40 shadow-soft flex-shrink-0 cursor-help transition-transform active:scale-95" data-tooltip="Tổng XP tích lũy">
+                    <div class="w-5 h-5 rounded-[6px] bg-amber-50 text-amber-500 flex items-center justify-center text-[10px]"><i class="fa-solid fa-gem"></i></div>
+                    <span class="text-[12px] font-extrabold text-slate-800">{{ "{:,}".format(score_overview.total|int) }}</span>
                 </div>
                 {# 2. Today XP #}
-                <div class="flex items-center gap-1 bg-white/60 backdrop-blur-md px-2 py-1 rounded-xl border border-white/40 shadow-soft flex-shrink-0 cursor-help transition-transform active:scale-95" data-tooltip="Điểm kiếm được hôm nay">
-                    <div class="w-6 h-6 rounded-lg bg-sky-50 text-sky-500 flex items-center justify-center text-xs"><i class="fa-solid fa-bolt"></i></div>
-                    <span class="text-sm font-extrabold text-slate-800">{{ score_overview.today }}</span>
+                <div class="flex items-center gap-1 bg-white/60 backdrop-blur-md px-1.5 py-0.5 rounded-lg border border-white/40 shadow-soft flex-shrink-0 cursor-help transition-transform active:scale-95" data-tooltip="Điểm kiếm được hôm nay">
+                    <div class="w-5 h-5 rounded-[6px] bg-sky-50 text-sky-500 flex items-center justify-center text-[10px]"><i class="fa-solid fa-bolt"></i></div>
+                    <span class="text-[12px] font-extrabold text-slate-800">{{ score_overview.today }}</span>
                 </div>
                 {# 3. Streak #}
-                <div class="flex items-center gap-1 bg-white/60 backdrop-blur-md px-2 py-1 rounded-xl border border-white/40 shadow-soft flex-shrink-0 cursor-help transition-transform active:scale-95" data-tooltip="Chuỗi ngày học liên tiếp">
-                    <div class="w-6 h-6 rounded-lg bg-orange-50 text-orange-500 flex items-center justify-center text-xs"><i class="fa-solid fa-fire animate-pulse-slow"></i></div>
-                    <span class="text-sm font-extrabold text-slate-800">{{ score_overview.active_days }}</span>
+                <div class="flex items-center gap-1 bg-white/60 backdrop-blur-md px-1.5 py-0.5 rounded-lg border border-white/40 shadow-soft flex-shrink-0 cursor-help transition-transform active:scale-95" data-tooltip="Chuỗi ngày học liên tiếp">
+                    <div class="w-5 h-5 rounded-[6px] bg-orange-50 text-orange-500 flex items-center justify-center text-[10px]"><i class="fa-solid fa-fire animate-pulse-slow"></i></div>
+                    <span class="text-[12px] font-extrabold text-slate-800">{{ score_overview.active_days }}</span>
                 </div>
                 {# 4. Total Reps Today #}
-                <div class="flex items-center gap-1 bg-white/60 backdrop-blur-md px-2 py-1 rounded-xl border border-white/40 shadow-soft flex-shrink-0 cursor-help transition-transform active:scale-95" data-tooltip="Số lượt học trong ngày">
-                    <div class="w-6 h-6 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center text-xs"><i class="fa-solid fa-check-double"></i></div>
-                    <span class="text-sm font-extrabold text-slate-800">{{ score_overview.total_reps_today }}</span>
+                <div class="flex items-center gap-1 bg-white/60 backdrop-blur-md px-1.5 py-0.5 rounded-lg border border-white/40 shadow-soft flex-shrink-0 cursor-help transition-transform active:scale-95" data-tooltip="Số lượt học trong ngày">
+                    <div class="w-5 h-5 rounded-[6px] bg-indigo-50 text-indigo-600 flex items-center justify-center text-[10px]"><i class="fa-solid fa-check-double"></i></div>
+                    <span class="text-[12px] font-extrabold text-slate-800">{{ score_overview.total_reps_today }}</span>
                 </div>
                 {# 5. New Items Today #}
-                <div class="flex items-center gap-1 bg-white/60 backdrop-blur-md px-2 py-1 rounded-xl border border-white/40 shadow-soft flex-shrink-0 cursor-help transition-transform active:scale-95" data-tooltip="Thẻ mới bắt đầu hôm nay">
-                    <div class="w-6 h-6 rounded-lg bg-emerald-50 text-emerald-500 flex items-center justify-center text-xs"><i class="fa-solid fa-plus"></i></div>
-                    <span class="text-sm font-extrabold text-slate-800">{{ score_overview.new_items_today }}</span>
+                <div class="flex items-center gap-1 bg-white/60 backdrop-blur-md px-1.5 py-0.5 rounded-lg border border-white/40 shadow-soft flex-shrink-0 cursor-help transition-transform active:scale-95" data-tooltip="Thẻ mới bắt đầu hôm nay">
+                    <div class="w-5 h-5 rounded-[6px] bg-emerald-50 text-emerald-500 flex items-center justify-center text-[10px]"><i class="fa-solid fa-plus"></i></div>
+                    <span class="text-[12px] font-extrabold text-slate-800">{{ score_overview.new_items_today }}</span>
                 </div>
             </div>
 
