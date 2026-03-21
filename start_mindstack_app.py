@@ -16,8 +16,4 @@ if __name__ == '__main__':
     if sys.platform == 'win32':
         asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
         
-    # Hook WatchTogether module explicitly alongside the monolithic core
-    from watchtogether import setup_watchtogether
-    setup_watchtogether(app)
-        
     app.run(host='0.0.0.0', port=5000, debug=True)

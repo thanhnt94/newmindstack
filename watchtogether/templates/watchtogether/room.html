@@ -2,68 +2,119 @@
 {% block title %}Phòng: {{ room.name }} - WatchTogether{% endblock %}
 
 {% block content %}
-<div class="h-screen flex flex-col font-sans overflow-hidden bg-[#0f172a]">
+<div class="h-[100dvh] flex flex-col font-sans overflow-hidden bg-[#0f172a]">
     
-    <div class="flex-none bg-slate-800/90 backdrop-blur-xl border-b border-slate-700/50 px-4 py-3 flex items-center justify-between z-50">
-        <div class="flex items-center gap-3">
-            <a href="/watchtogether/" class="w-8 h-8 rounded-lg bg-slate-700 flex items-center justify-center text-slate-300 hover:text-white transition-colors">
-                <i class="fa-solid fa-chevron-left text-sm"></i>
+    <!-- Premium Header -->
+    <div class="flex-none bg-[#0f172a]/95 backdrop-blur-xl border-b border-slate-800 px-4 py-2.5 flex items-center justify-between z-50">
+        
+        <!-- Left: Branding & Info -->
+        <div class="flex items-center gap-4">
+            <a href="/watchtogether/" class="w-8 h-8 flex items-center justify-center rounded-full bg-slate-800 hover:bg-indigo-600 text-slate-400 hover:text-white transition-all duration-300 border border-slate-700 shadow-sm" title="Về trang chủ">
+                <i class="fa-solid fa-house text-xs"></i>
             </a>
-            <div>
-                <h1 class="text-sm font-bold text-white max-w-[150px] md:max-w-xs truncate">{{ room.name }}</h1>
-                <p class="text-[10px] text-slate-400 font-medium">Host: <span class="text-indigo-400 font-bold">{{ host.username }}</span></p>
+            
+            <div class="w-px h-6 bg-slate-800 hidden md:block"></div>
+            
+            <div class="flex items-center gap-3">
+                <h1 class="text-sm font-black text-white max-w-[150px] md:max-w-xs truncate tracking-tight">{{ room.name }}</h1>
+                <div class="hidden sm:flex items-center gap-1.5 px-2 py-0.5 rounded bg-indigo-500/10 border border-indigo-500/20">
+                    <i class="fa-solid fa-crown text-[8px] text-amber-400"></i>
+                    <span class="text-[10px] font-bold text-indigo-300">{{ host.username }}</span>
+                </div>
+                {% if is_host %}
+                <button onclick="document.getElementById('edit-room-modal').classList.remove('hidden')" class="w-7 h-7 flex items-center justify-center rounded-full text-slate-400 hover:text-white hover:bg-slate-800 transition-colors" title="Cài đặt phòng">
+                    <i class="fa-solid fa-gear text-[11px]"></i>
+                </button>
+                {% endif %}
             </div>
         </div>
         
+        <!-- Right: Controls -->
         <div class="flex items-center gap-3">
-            <button onclick="copyInviteLink()" class="flex items-center gap-2 px-3 py-1.5 bg-indigo-500/20 text-indigo-400 rounded-lg text-xs font-bold hover:bg-indigo-500/30 transition-colors">
-                <i class="fa-solid fa-link"></i> Mời
+            
+            {% if is_host %}
+            <button onclick="forceSync()" class="hidden md:flex bg-rose-600/90 hover:bg-rose-500 text-white text-[10px] uppercase font-black px-3 h-8 rounded-full transition-all duration-300 tracking-wider shadow border border-rose-500/50 items-center gap-1.5 ring-1 ring-rose-500/20 shadow-rose-500/20" title="Ép tất cả mọi người đồng bộ tới vị trí của bạn">
+                <i class="fa-solid fa-rotate-right text-[10px]"></i> Đồng bộ
             </button>
-            <div class="w-8 h-8 rounded-full bg-slate-700 border-2 border-slate-600 flex items-center justify-center text-xs font-bold text-white shadow-lg relative group cursor-help">
-                {{ user.username[0]|upper }}
-                <div class="absolute -bottom-8 right-0 w-max px-2 py-1 bg-black/80 text-white text-[10px] rounded opacity-0 group-hover:opacity-100 transition-opacity z-50 pointer-events-none">
-                    Bạn là: {{ user.username }} {{ "(Host)" if is_host else "" }}
+            <div class="hidden md:flex items-center bg-slate-900 border border-slate-700 rounded-full h-8 overflow-hidden shadow-inner group focus-within:border-indigo-500 focus-within:ring-1 focus-within:ring-indigo-500/50 transition-all">
+                <div class="px-3 text-slate-500 text-xs flex items-center justify-center border-r border-slate-800"><i class="fa-brands fa-youtube group-focus-within:text-red-500 transition-colors"></i></div>
+                <input type="text" id="new-video-id" placeholder="Dán link hoặc ID Youtube..." class="bg-transparent text-white text-xs px-3 py-1 outline-none w-36 focus:w-56 transition-all duration-300 placeholder:text-slate-600">
+                <button onclick="changeVideo()" class="bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] uppercase font-black px-4 h-full transition-colors tracking-wider">Đổi</button>
+            </div>
+            {% endif %}
+            
+            <button onclick="copyInviteLink()" class="w-8 h-8 flex items-center justify-center rounded-full bg-slate-800 hover:bg-indigo-600 text-slate-300 hover:text-white transition-all duration-300 border border-slate-700 shadow-sm" title="Sao chép link mời bạn bè">
+                <i class="fa-solid fa-link text-xs"></i>
+            </button>
+            
+            <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-600 flex items-center justify-center text-xs font-black text-white shadow-lg ring-2 ring-[#0f172a] relative group hover:scale-105 transition-transform cursor-help">
+                {{ user.username[0]|upper if user else "?" }}
+                <div class="absolute -bottom-10 right-0 w-max px-3 py-2 bg-slate-800 text-slate-200 text-[10px] font-bold rounded-lg opacity-0 group-hover:opacity-100 transition-opacity z-50 pointer-events-none border border-slate-700 shadow-xl">
+                    <span class="text-white">{{ user.username if user else "Khách Vãng Lai" }}</span>
+                    {{ " • Host" if is_host else "" }}
+                    {{ " • Quyền Play/Pause" if user and not is_host and room.allow_guest_control else "" }}
+                    {{ " • Chỉ xem" if not user else "" }}
                 </div>
             </div>
+            
         </div>
     </div>
 
-    <div class="flex-1 flex flex-col md:flex-row min-h-0 overflow-hidden relative">
-        <div class="flex-1 bg-black flex flex-col relative z-10 w-full min-h-[40vh] md:min-h-0">
-            {% if not is_host %}
-            <div id="player-blocker" class="absolute inset-0 z-40 bg-transparent cursor-not-allowed hidden" oncontextmenu="return false;"></div>
-            {% endif %}
-            
-            <div id="player" class="w-full h-full flex-1"></div>
+    <div class="flex-1 flex flex-col md:flex-row overflow-hidden relative bg-[#111827] min-h-0">
+        <!-- Video Player Fill Container -->
+        <div class="w-full flex-none md:flex-1 bg-black flex flex-col z-10 min-h-0">
+            <!-- 16:9 Aspect Ratio on Mobile, Flex Fill on Desktop -->
+            <div class="relative w-full aspect-video md:aspect-auto md:flex-1 group">
+                <div id="player" class="absolute inset-0 w-full h-full"></div>
+                {% if not is_host and not (user and room.allow_guest_control) %}
+                <div id="player-blocker" class="absolute inset-0 z-40 bg-transparent cursor-not-allowed hidden" oncontextmenu="return false;"></div>
+                {% endif %}
+            </div>
             
             {% if is_host %}
-            <div class="absolute top-2 right-2 z-50 flex gap-2">
-                 <button onclick="forceSync()" class="px-3 py-1.5 bg-rose-500/80 backdrop-blur text-white text-[10px] font-bold uppercase tracking-wider rounded border border-white/20 hover:bg-rose-500 transition-colors shadow-lg">
-                     <i class="fa-solid fa-rotate-right mr-1"></i> Ép đồng bộ
-                 </button>
+            <!-- Mobile Controls Bar -->
+            <div class="md:hidden flex items-center p-2 gap-2 bg-[#0f172a] border-b border-t border-slate-800 shadow-md">
+                <div class="flex-1 flex items-center bg-slate-900 border border-slate-700 rounded-lg h-9 overflow-hidden shadow-inner focus-within:border-indigo-500 focus-within:ring-1 focus-within:ring-indigo-500/50 transition-all">
+                    <div class="px-2.5 text-slate-500 text-xs flex items-center justify-center border-r border-slate-800"><i class="fa-brands fa-youtube"></i></div>
+                    <input type="text" id="new-video-id-mobile" placeholder="Dán link Youtube..." class="bg-transparent text-white text-xs px-2 outline-none w-full placeholder:text-slate-600">
+                    <button onclick="changeVideo('new-video-id-mobile')" class="bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] uppercase font-black px-3 h-full transition-colors tracking-wider whitespace-nowrap">Đổi</button>
+                </div>
+                <button onclick="forceSync()" class="bg-rose-600 hover:bg-rose-500 text-white text-[10px] uppercase font-black px-3 h-9 rounded-lg shadow flex items-center gap-1">
+                    <i class="fa-solid fa-rotate-right"></i> Đồng bộ
+                </button>
             </div>
             {% endif %}
         </div>
-
-        <div class="w-full md:w-80 lg:w-96 bg-slate-900 border-t md:border-t-0 md:border-l border-slate-800 flex flex-col z-20 flex-none h-[40vh] md:h-auto">
-            <div class="px-4 py-2 bg-slate-800/50 border-b border-slate-800 flex items-center justify-between shadow-sm">
-                <span class="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
-                    <span id="conn-dot" class="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
-                    Trạng thái kết nối
-                </span>
-                <span id="conn-text" class="text-[10px] font-bold text-amber-500">Đang kết nối...</span>
+        
+        <!-- Chat Sidebar -->
+        <div class="w-full md:w-80 lg:w-96 bg-[#111827] border-t md:border-t-0 md:border-l border-slate-800 flex flex-col z-20 flex-1 md:flex-none shadow-2xl relative transition-all duration-300 min-h-0" id="chat-sidebar">
+            <div class="px-4 py-3 border-b border-slate-800 bg-[#0f172a] shadow-sm z-10 flex items-center justify-between flex-none">
+                <div class="flex items-center gap-2">
+                    <div id="conn-dot" class="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)] animate-pulse"></div>
+                    <span id="conn-text" class="text-[10px] font-bold text-emerald-500 uppercase">Đã kết nối</span>
+                </div>
+                <div class="text-[10px] text-slate-400 font-medium tracking-wide" id="room-presence">
+                    👥 Cập nhật...
+                </div>
             </div>
 
-            <div id="chat-box" class="flex-1 overflow-y-auto p-4 space-y-3 scroll-smooth">
+            <div id="chat-box" class="flex-1 overflow-y-auto p-4 space-y-3 scroll-smooth min-h-0">
             </div>
 
-            <div class="p-4 bg-slate-800/80 backdrop-blur-md border-t border-slate-700">
+            <div class="p-4 bg-slate-800/80 backdrop-blur-md border-t border-slate-700 flex-none z-10 pb-[calc(1rem+env(safe-area-inset-bottom))]">
+                {% if user %}
                 <form id="chat-form" class="flex gap-2" onsubmit="sendChat(event)">
                     <input type="text" id="chat-input" class="flex-1 bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-indigo-500 transition-colors" placeholder="Nhập tin nhắn..." autocomplete="off">
-                    <button type="submit" class="w-12 h-11 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl flex items-center justify-center transition-colors shadow-md">
+                    <button type="submit" class="w-12 h-11 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl flex items-center justify-center transition-colors shadow-md flex-none">
                         <i class="fa-solid fa-paper-plane text-sm"></i>
                     </button>
                 </form>
+                {% else %}
+                <div class="flex flex-col items-center justify-center gap-2 py-1">
+                    <p class="text-xs text-slate-400 font-medium">Bạn đang ở chế độ Xem Tàng Hình.</p>
+                    <a href="/watchtogether/login" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-lg transition-colors shadow-md">Đăng nhập để Chat</a>
+                </div>
+                {% endif %}
             </div>
         </div>
     </div>
@@ -72,12 +123,15 @@
 <script>
     const CONFIG = {
         roomId: "{{ room.id }}",
-        isHost: {{ "true" if is_host else "false" }},
-        username: "{{ user.username }}",
+        isHost: {% if is_host %}true{% else %}false{% endif %},
+        allowGuestControl: {% if user and room.allow_guest_control %}true{% else %}false{% endif %},
+        username: "{{ user.username if user else 'Khách Vãng Lai' }}",
         initialVideoId: "{{ room.current_video_id or 'dQw4w9WgXcQ' }}",
         initialTime: {{ room.current_time or 0 }},
-        initialPlaying: {{ "true" if room.is_playing else "false" }}
+        initialPlaying: {% if room.is_playing %}true{% else %}false{% endif %}
     };
+    
+    const isSyncMaster = CONFIG.isHost || CONFIG.allowGuestControl;
 
     const chatBox = document.getElementById('chat-box');
     const connDot = document.getElementById('conn-dot');
@@ -91,7 +145,11 @@
         connDot.className = "w-2 h-2 rounded-full bg-emerald-500";
         connText.className = "text-[10px] font-bold text-emerald-500";
         connText.textContent = "Đã kết nối";
-        socket.emit('join', { room_id: CONFIG.roomId, username: CONFIG.username });
+        socket.emit('join', { 
+            room_id: CONFIG.roomId, 
+            username: CONFIG.username, 
+            user_id: {% if user %}{{ user.id }}{% else %}null{% endif %} 
+        });
     });
 
     socket.on('disconnect', () => {
@@ -105,7 +163,27 @@
     });
 
     socket.on('chat_message', (data) => {
-        appendMessage('user', data.username, data.message);
+        appendMessage('user', data.username, data.message, data.video_id, data.timestamp, data.created_at);
+    });
+    
+    socket.on('chat_history', (msgs) => {
+        msgs.forEach(m => appendMessage('user', m.username, m.message, m.video_id, m.timestamp, m.created_at));
+        appendMessage('system', 'Hệ thống', 'Đã tải lịch sử trò chuyện.');
+    });
+    
+    socket.on('presence_update', (data) => {
+        const el = document.getElementById('room-presence');
+        if (el) {
+            el.innerHTML = `👥 <b class="text-white">${data.total}</b> tham gia (${data.members} T.Viên, ${data.guests} Khách)`;
+        }
+    });
+    
+    socket.on('video_changed', (data) => {
+        if(player && data.video_id) {
+            CONFIG.initialVideoId = data.video_id;
+            let startSeconds = data.start_time || 0;
+            player.loadVideoById({videoId: data.video_id, startSeconds: startSeconds});
+        }
     });
 
     let player;
@@ -125,8 +203,8 @@
             playerVars: {
                 'playsinline': 1,
                 'autoplay': 0, 
-                'controls': CONFIG.isHost ? 1 : 0, 
-                'disablekb': CONFIG.isHost ? 0 : 1, 
+                'controls': isSyncMaster ? 1 : 0, 
+                'disablekb': isSyncMaster ? 0 : 1, 
                 'fs': 1, 
                 'rel': 0,
                 'modestbranding': 1
@@ -145,19 +223,21 @@
         }
         
         if(CONFIG.isHost) {
-            appendMessage('system', 'Hệ thống', 'Bạn là Host. Bấm Play để bắt đầu (và cấp quyền Autoplay trên Browser).');
+            appendMessage('system', 'Hệ thống', 'Bạn là Host. Quyền điều khiển là của bạn.');
+        } else if (CONFIG.allowGuestControl) {
+            appendMessage('system', 'Hệ thống', 'Phòng cho phép ai cũng có quyền điều khiển.');
         } else {
             if(blocker) blocker.classList.remove('hidden');
-            appendMessage('system', 'Hệ thống', 'Bạn đang xem. Chỉ Host mới có quyền điều khiển video.');
+            appendMessage('system', 'Hệ thống', 'Chế độ xem an toàn: Chỉ Host mới có quyền Play/Pause.');
         }
 
-        if (CONFIG.isHost) {
+        if (isSyncMaster) {
             setInterval(forceSync, 5000);
         }
     }
 
     function onPlayerStateChange(event) {
-        if(!CONFIG.isHost) return; 
+        if(!isSyncMaster) return; 
 
         if(ignoreNextEvent) {
             ignoreNextEvent = false;
@@ -184,13 +264,13 @@
     }
 
     window.forceSync = function() {
-        if(!CONFIG.isHost || !isPlayerReady) return;
+        if(!isSyncMaster || !isPlayerReady) return;
         const state = (player.getPlayerState() == YT.PlayerState.PLAYING) ? 'playing' : 'paused';
         emitSync(state);
     }
 
     socket.on('request_sync_from_host', () => {
-        if(CONFIG.isHost) forceSync();
+        if(isSyncMaster) forceSync();
     });
 
     let lastSeekTime = 0;
@@ -216,45 +296,117 @@
         }
     });
 
+    document.getElementById('chat-input').addEventListener('keypress', function (e) {
+        if (e.key === 'Enter') {
+            const input = document.getElementById('chat-input');
+            const message = input.value.trim();
+            if (message) {
+                let video_id = null;
+                let timestamp = null;
+                if(player && typeof player.getCurrentTime === 'function') {
+                    try {
+                        let vd = player.getVideoData();
+                        video_id = vd ? vd.video_id : CONFIG.initialVideoId;
+                        timestamp = Math.floor(player.getCurrentTime());
+                    } catch(e) {}
+                }
+                
+                socket.emit('chat_message', { 
+                    room_id: CONFIG.roomId, 
+                    username: CONFIG.username, 
+                    message: message,
+                    video_id: video_id,
+                    timestamp: timestamp
+                });
+                input.value = '';
+            }
+        }
+    });
+
+    function appendMessage(type, sender, text, video_id=null, timestamp=null, created_at=null) {
+        const chatBox = document.getElementById('chat-box'); // Changed from 'chat-messages' to 'chat-box'
+        const div = document.createElement('div');
+        div.className = "mb-3 text-[13px] leading-relaxed break-words animate-fade-in";
+        
+        let realTimeStr = '';
+        if (created_at) {
+            let d = new Date(created_at);
+            realTimeStr = d.toLocaleTimeString('vi-VN', {hour: '2-digit', minute:'2-digit'});
+        } else {
+            realTimeStr = new Date().toLocaleTimeString('vi-VN', {hour: '2-digit', minute:'2-digit'});
+        }
+        let realTimeBadge = `<span class="text-[10px] text-slate-500 font-medium ml-2">${realTimeStr}</span>`;
+        
+        let timeBadge = '';
+        if(timestamp !== null && timestamp >= 0) {
+            let m = Math.floor(timestamp/60);
+            let s = Math.floor(timestamp%60).toString().padStart(2, '0');
+            const isGuestAllowed = {{ 'true' if room.allow_guest_control else 'false' }};
+            const isHost = {{ 'true' if is_host else 'false' }};
+            const canControl = isHost || (isGuestAllowed && {{ 'true' if user else 'false' }});
+            
+            let safeVideoId = video_id || CONFIG.initialVideoId;
+            const clickAttr = canControl 
+                ? `onclick="jumpToContext('${safeVideoId}', ${timestamp})"` 
+                : `onclick="alert('Chỉ Host hoặc khách được cấp quyền mới có thể đổi video và tua.')"`;
+                
+            timeBadge = `<span class="ml-1 text-[10px] bg-slate-800 text-indigo-300 px-1 py-0.5 rounded border border-slate-700 cursor-pointer hover:bg-indigo-600 hover:text-white transition-all shadow-sm" ${clickAttr} title="Lúc gửi đang xem Video: ${safeVideoId} ở phút ${m}:${s}"><i class="fa-regular fa-clock"></i> ${m}:${s}</span>`;
+        }
+
+        if (type === 'system') {
+            div.innerHTML = `<div class="flex gap-2 items-start opacity-80 mix-blend-screen"><div class="w-5 h-5 rounded-full bg-indigo-500/20 flex items-center justify-center text-indigo-400 shrink-0 border border-indigo-500/30 font-black text-[10px]">i</div> <span class="bg-indigo-500/10 text-indigo-300 px-2 py-0.5 rounded-md text-[10px] font-bold border border-indigo-500/20 uppercase tracking-widest">Hệ thống</span> <span class="text-indigo-200 italic text-xs mt-0.5">${escapeHtml(text)}</span></div>`;
+        } else {
+            const avatarChar = sender.charAt(0).toUpperCase();
+            // Deterministic color based on name length so the same user has the same color
+            const colors = ['from-indigo-500 to-purple-600', 'from-emerald-500 to-teal-600', 'from-rose-500 to-pink-600', 'from-amber-500 to-orange-600', 'from-cyan-500 to-blue-600'];
+            const color = colors[sender.length % colors.length];
+            
+            div.innerHTML = `
+                <div class="flex items-start gap-2 group">
+                    <div class="w-7 h-7 rounded-full bg-gradient-to-tr ${color} flex items-center justify-center text-white text-[11px] font-black shadow-sm shrink-0 mt-0.5 ring-1 ring-slate-800">
+                        ${escapeHtml(avatarChar)}
+                    </div>
+                    <div class="flex flex-col max-w-[85%]">
+                        <div class="flex items-baseline gap-1.5 mb-0.5">
+                            <span class="font-bold text-indigo-300 text-xs">${escapeHtml(sender)}</span>
+                            ${realTimeBadge}
+                            ${timeBadge}
+                        </div>
+                        <div class="bg-slate-800 text-slate-200 px-3.5 py-2 rounded-xl rounded-tl-sm w-fit shadow border border-slate-700/50 text-[13px] leading-relaxed group-hover:bg-slate-750 transition-colors">
+                            ${escapeHtml(text)}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        chatBox.appendChild(div);
+        chatBox.scrollTop = chatBox.scrollHeight;
+    }
+
     window.sendChat = function(e) {
         e.preventDefault();
         const input = document.getElementById('chat-input');
-        const text = input.value.trim();
-        if(!text) return;
-
-        socket.emit('chat_message', {
-            room_id: CONFIG.roomId,
-            username: CONFIG.username,
-            message: text
-        });
-        
-        appendMessage('me', 'Bạn', text);
-        input.value = '';
-    }
-
-    function appendMessage(type, user, text) {
-        const div = document.createElement('div');
-        div.className = "flex flex-col animate-fade-in";
-        
-        if (type === 'system') {
-            div.innerHTML = `<div class="mx-auto bg-slate-800/80 px-3 py-1 rounded-full border border-slate-700">
-                <p class="text-[10px] text-slate-400 font-bold">${text}</p>
-            </div>`;
-        } else if (type === 'me') {
-            div.innerHTML = `
-                <div class="self-end max-w-[85%]">
-                    <div class="bg-indigo-600 text-white px-4 py-2.5 rounded-2xl rounded-tr-sm shadow-md text-sm leading-relaxed">${escapeHtml(text)}</div>
-                </div>`;
-        } else {
-            div.innerHTML = `
-                <div class="self-start max-w-[85%]">
-                    <p class="text-[10px] font-bold text-slate-400 ml-2 mb-1">${escapeHtml(user)}</p>
-                    <div class="bg-slate-800 text-slate-200 px-4 py-2.5 rounded-2xl rounded-tl-sm shadow-md border border-slate-700 text-sm leading-relaxed">${escapeHtml(text)}</div>
-                </div>`;
+        const message = input.value.trim();
+        if (message) {
+            let video_id = null;
+            let timestamp = null;
+            if(player && typeof player.getCurrentTime === 'function') {
+                try {
+                    let vd = player.getVideoData();
+                    video_id = vd ? vd.video_id : CONFIG.initialVideoId;
+                    timestamp = Math.floor(player.getCurrentTime());
+                } catch(e) {}
+            }
+            
+            socket.emit('chat_message', { 
+                room_id: CONFIG.roomId, 
+                username: CONFIG.username, 
+                message: message,
+                video_id: video_id,
+                timestamp: timestamp
+            });
+            input.value = '';
         }
-        
-        chatBox.appendChild(div);
-        chatBox.scrollTop = chatBox.scrollHeight;
     }
 
     function escapeHtml(unsafe) {
@@ -267,7 +419,166 @@
             appendMessage('system', 'Hệ thống', 'Đã copy link mời vào clipboard!');
         });
     }
+
+    // Engagement Tracking
+    setInterval(() => {
+        {% if user %}
+        if (player && player.getPlayerState() == YT.PlayerState.PLAYING) {
+            socket.emit('watch_heartbeat', { user_id: {{ user.id }} });
+        }
+        {% endif %}
+    }, 60000);
+
+    // Host Video Changing
+    {% if is_host %}
+    function extractVid(v) {
+        if(!v) return null;
+        let id = v;
+        try {
+            if(v.includes('v=')) id = new URLSearchParams(new URL(v).search).get('v');
+            else if(v.includes('youtu.be/')) id = v.split('youtu.be/')[1].split('?')[0];
+        } catch(e) {}
+        return id;
+    }
+    
+    window.changeVideo = function(inputId = 'new-video-id') {
+        const input = document.getElementById(inputId);
+        if (!input) return;
+        let videoId = input.value.trim();
+        if (!videoId) return;
+
+        let match = videoId.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([^&?]+)/);
+        if (match && match[1]) {
+            socket.emit('change_video', { room_id: CONFIG.roomId, video_id: match[1], start_time: 0, is_host: {{ 'true' if is_host else 'false' }} });
+            input.value = '';
+        } else if (videoId.length === 11) {
+             socket.emit('change_video', { room_id: CONFIG.roomId, video_id: videoId, start_time: 0, is_host: {{ 'true' if is_host else 'false' }} });
+             input.value = '';
+        } else {
+             alert('Link hoặc ID Youtube không hợp lệ');
+        }
+    }
+
+    window.jumpToContext = function(vid, time) {
+        if (!vid) return;
+        const isHostStr = {{ 'true' if is_host else 'false' }};
+        if (vid !== CONFIG.initialVideoId) {
+            socket.emit('change_video', { 
+                room_id: CONFIG.roomId, 
+                video_id: vid, 
+                start_time: time,
+                is_host: isHostStr 
+            });
+        } else {
+            if(player && player.seekTo) {
+               player.seekTo(time, true);
+            }
+            socket.emit('sync_state', {
+                room_id: CONFIG.roomId,
+                state: 'playing',
+                time: time,
+                video_id: vid,
+                is_host: isHostStr
+            });
+        }
+    }
+    {% endif %}
 </script>
+
+{% if is_host %}
+<!-- Edit Room Modal -->
+<div id="edit-room-modal" class="hidden fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-700 rounded-3xl p-6 md:p-8 max-w-md w-full shadow-2xl relative">
+        <button onclick="document.getElementById('edit-room-modal').classList.add('hidden')" class="absolute top-4 right-4 text-slate-400 hover:text-white bg-slate-800 hover:bg-rose-500 w-8 h-8 rounded-full flex items-center justify-center transition-colors">
+            <i class="fa-solid fa-xmark"></i>
+        </button>
+        
+        <h2 class="text-2xl font-black text-white mb-6 flex items-center gap-3">
+            <i class="fa-solid fa-sliders text-indigo-400"></i> Tuỳ chỉnh phòng
+        </h2>
+        
+        <div id="edit-room-msg" class="hidden mb-4 p-3 rounded-lg text-xs font-bold border"></div>
+        
+        <form id="edit-room-form" class="space-y-4">
+            <div>
+                <label class="block text-slate-400 text-[10px] uppercase font-bold tracking-wider mb-2 ml-1">Đổi Tên Phòng</label>
+                <input type="text" id="edit-room-name" value="{{ room.name }}" class="w-full bg-slate-800/50 border border-slate-700 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-indigo-500 transition-colors">
+            </div>
+            
+            <div>
+                <label class="block text-slate-400 text-[10px] uppercase font-bold tracking-wider mb-2 ml-1">Mật khẩu (Xoá trống để bỏ pass)</label>
+                <input type="text" id="edit-room-password" value="{{ room.password or '' }}" placeholder="Để trống nếu không khoá" class="w-full bg-slate-800/50 border border-slate-700 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-indigo-500 transition-colors">
+            </div>
+            
+            <div class="bg-slate-800/50 border border-slate-700 rounded-xl p-4 flex flex-col gap-3">
+                <label class="flex items-center gap-3 cursor-pointer group">
+                    <input type="checkbox" id="edit-is-public" class="w-5 h-5 rounded border-slate-600 text-indigo-500 focus:ring-0 cursor-pointer bg-slate-900" {% if room.is_public %}checked{% endif %}>
+                    <span class="text-sm font-bold text-slate-200 group-hover:text-white transition-colors">Phòng Công Khai (Hiển thị ở màn hình chính)</span>
+                </label>
+                
+                <label class="flex items-center gap-3 cursor-pointer group">
+                    <input type="checkbox" id="edit-allow-guest" class="w-5 h-5 rounded border-slate-600 text-indigo-500 focus:ring-0 cursor-pointer bg-slate-900" {% if room.allow_guest_control %}checked{% endif %}>
+                    <div>
+                        <span class="block text-sm font-bold text-slate-200 group-hover:text-white transition-colors">Cấp quyền Play/Pause cho Khách</span>
+                        <span class="block text-[10px] text-slate-400 mt-0.5 leading-tight">Mặc định tính năng Tua/Chuyển video bị khoá. Nếu tích chọn, Khách Vãng Lai vẫn không có quyền, chỉ có người đã Login mới có quyền.</span>
+                    </div>
+                </label>
+            </div>
+            
+            <button type="submit" class="w-full mt-4 px-6 py-4 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl shadow-lg transition-all active:scale-95 flex items-center justify-center gap-2">
+                <i class="fa-solid fa-floppy-disk"></i> Lưu thay đổi
+            </button>
+        </form>
+    </div>
+</div>
+
+<script>
+    document.getElementById('edit-room-form').onsubmit = async function(e) {
+        e.preventDefault();
+        const btn = this.querySelector('button[type="submit"]');
+        const msg = document.getElementById('edit-room-msg');
+        
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang xử lý...';
+        btn.disabled = true;
+        
+        const payload = {
+            name: document.getElementById('edit-room-name').value,
+            password: document.getElementById('edit-room-password').value,
+            is_public: document.getElementById('edit-is-public').checked,
+            allow_guest_control: document.getElementById('edit-allow-guest').checked
+        };
+        
+        try {
+            const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
+            const res = await fetch('/watchtogether/api/room/{{ room.id }}/update', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken
+                },
+                body: JSON.stringify(payload)
+            });
+            
+            const data = await res.json();
+            if(data.success) {
+                msg.textContent = "Đã lưu! Trang sẽ tự tải lại để cập nhật...";
+                msg.className = "mb-4 p-3 rounded-lg text-xs font-bold border bg-emerald-500/10 border-emerald-500/30 text-emerald-400 block";
+                setTimeout(() => window.location.reload(), 1500);
+            } else {
+                msg.textContent = data.error || "Có lỗi xảy ra";
+                msg.className = "mb-4 p-3 rounded-lg text-xs font-bold border bg-rose-500/10 border-rose-500/30 text-rose-400 block";
+                btn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Lưu thay đổi';
+                btn.disabled = false;
+            }
+        } catch(err) {
+            msg.textContent = "Lỗi mạng.";
+            msg.className = "mb-4 p-3 rounded-lg text-xs font-bold border bg-rose-500/10 border-rose-500/30 text-rose-400 block";
+            btn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Lưu thay đổi';
+            btn.disabled = false;
+        }
+    }
+</script>
+{% endif %}
 
 <style>
 @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }

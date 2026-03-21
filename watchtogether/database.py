@@ -2,8 +2,9 @@ import os
 from sqlalchemy import create_engine
 from sqlalchemy.orm import declarative_base, scoped_session, sessionmaker
 
-project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-db_path = os.path.join(project_root, 'instance', 'watchtogether.sqlite')
+# repo_root is c:\Code\MindStack (3 levels up from this file)
+repo_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+db_path = os.path.join(repo_root, 'database', 'watchtogether.sqlite')
 os.makedirs(os.path.dirname(db_path), exist_ok=True)
 
 engine = create_engine(f'sqlite:///{db_path}', connect_args={'check_same_thread': False})

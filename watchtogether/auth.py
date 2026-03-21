@@ -1,7 +1,20 @@
-from flask import request, session, jsonify
+from flask import request, session, jsonify, abort
+from functools import wraps
 from . import blueprint
 from .models import WTUser
 from .database import db_session
+
+def admin_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        user_id = session.get('wt_user_id')
+        if not user_id:
+            return abort(401)
+        user = WTUser.query.get(user_id)
+        if not user or not getattr(user, 'is_admin', False):
+            return abort(403)
+        return f(*args, **kwargs)
+    return decorated_function
 
 @blueprint.route('/api/login', methods=['POST'])
 def api_login():
@@ -40,11 +53,14 @@ def api_register():
     session.modified = True
     return jsonify({'success': True, 'username': user.username})
 
-@blueprint.route('/api/logout', methods=['POST'])
+@blueprint.route('/api/logout', methods=['POST', 'GET'])
 def api_logout():
     session.pop('wt_user_id', None)
     session.pop('wt_username', None)
     session.modified = True
+    if request.method == 'GET':
+        from flask import redirect, url_for
+        return redirect(url_for('watchtogether.index'))
     return jsonify({'success': True})
 
 @blueprint.route('/api/me', methods=['GET'])
