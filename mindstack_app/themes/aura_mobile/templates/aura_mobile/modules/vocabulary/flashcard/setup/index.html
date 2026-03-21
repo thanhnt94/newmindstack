@@ -1,4 +1,4 @@
-{# Flashcard Setup Template - Premium Bento Sync v8.0 #}
+{# Flashcard Setup Template - Premium Bento Sync v8.4 #}
 {% set _v = template_version or 'aura_mobile' %}
 {% extends _v ~ '/layouts/base.html' %}
 {% from _v ~ '/components/components/dashboard_header.html' import render_dashboard_header %}
@@ -9,48 +9,58 @@
 {{ super() }}
 <style>
     :root {
-        --ms-primary: #10b981; /* Emerald for Flashcards */
+        --ms-primary: #10b981;
         --ms-bg: #f8fafc;
         --ms-card: #ffffff;
     }
 
     body {
         background: var(--ms-bg);
-        overflow-x: hidden;
     }
 
-    /* Override Header to Center and Simplify */
-    .dashboard-header-content {
-        text-align: center !important;
+    /* TRIỆT ĐỂ: Cố định Header trên đỉnh màn hình */
+    .mobile-header {
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        width: 100% !important;
+        z-index: 9999 !important;
+        background: rgba(255, 255, 255, 0.98) !important;
+        backdrop-filter: blur(15px) !important;
+        -webkit-backdrop-filter: blur(15px) !important;
+        border-bottom: 1px solid rgba(0,0,0,0.05) !important;
+        box-shadow: 0 4px 15px -5px rgba(0,0,0,0.05) !important;
+        height: 60px !important;
         display: flex !important;
-        flex-direction: column !important;
         align-items: center !important;
-        justify-content: center !important;
-        padding-top: 1.5rem !important;
-        padding-bottom: 1rem !important;
+        padding: 0 1rem !important;
     }
 
-    .dashboard-header-content h1 {
-        font-size: 2.25rem !important;
-        font-weight: 900 !important;
-        letter-spacing: -0.05em !important;
-        margin-top: 0.5rem !important;
-        background: linear-gradient(135deg, #0f172a 0%, #10b981 100%);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        line-height: 1.2 !important;
+    /* Tinh chỉnh tiêu đề trong Header cố định */
+    .mobile-header h1 {
+        font-size: 1.1rem !important;
+        font-weight: 800 !important;
+        color: #1e293b !important;
+        text-align: center !important;
+        flex: 1 !important;
+        margin: 0 !important;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
     }
 
-    /* Hide redundant sub-text in header */
-    .dashboard-header-content p, 
-    .dashboard-header-content .text-xs,
-    .dashboard-header-content .flex.items-center.gap-2 {
-        display: none !important;
+    .js-mobile-subtitle { display: none !important; }
+
+    /* Container cho nội dung cuộn */
+    .wizard-container {
+        padding-top: 75px !important; /* Tạo khoảng trống để không bị Header che */
+        max-width: 520px;
+        margin: 0 auto;
+        box-sizing: border-box;
     }
 
     .setup-wrapper {
-        max-width: 520px;
-        margin: 0 auto;
         padding: 1.5rem 1.25rem 180px !important; 
     }
 
@@ -58,267 +68,180 @@
         text-align: center;
         color: #94a3b8;
         font-weight: 800;
-        font-size: 0.75rem;
+        font-size: 0.7rem;
         text-transform: uppercase;
         letter-spacing: 0.2em;
         margin-bottom: 2rem;
-        animation: fadeIn 1s ease-out;
     }
 
-    @keyframes fadeIn {
-        from { opacity: 0; transform: translateY(-10px); }
-        to { opacity: 1; transform: translateY(0); }
-    }
-
-    /* Bento Grid Styling */
+    /* Bento Grid */
     .bento-grid {
         display: grid;
         grid-template-columns: repeat(2, 1fr);
-        gap: 1.25rem;
+        gap: 1rem;
         width: 100%;
     }
 
     .bento-card {
         aspect-ratio: 1 / 1;
         background: var(--ms-card);
-        border-radius: 36px;
+        border-radius: 32px;
         display: flex;
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        text-align: center;
-        padding: 1.25rem;
+        padding: 1rem;
         border: 2px solid transparent !important;
-        box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.08);
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
         transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         position: relative;
         cursor: pointer;
-        -webkit-tap-highlight-color: transparent;
+        /* Animation này chỉ áp dụng cho card, không ảnh hưởng header */
         opacity: 0;
-        transform: translateY(20px);
-        animation: cardEntrance 0.6s ease-out forwards;
+        transform: translateY(15px);
+        animation: cardEntrance 0.5s ease-out forwards;
     }
 
-    .bento-card.selected {
-        border-color: var(--btn-color) !important;
-        background: var(--btn-light);
-        transform: scale(1.05);
-        box-shadow: 0 20px 40px -15px var(--btn-shadow) !important;
-        z-index: 10;
-    }
-
-    @keyframes cardEntrance {
-        to { opacity: 1; transform: translateY(0); }
-    }
-
+    @keyframes cardEntrance { to { opacity: 1; transform: translateY(0); } }
     .bento-card:nth-child(1) { animation-delay: 0.05s; }
     .bento-card:nth-child(2) { animation-delay: 0.1s; }
     .bento-card:nth-child(3) { animation-delay: 0.15s; }
     .bento-card:nth-child(4) { animation-delay: 0.2s; }
+    .bento-card:nth-child(5) { animation-delay: 0.25s; }
 
-    .bento-card:active:not(.disabled) {
-        transform: scale(0.94);
-        transition: all 0.1s;
+    .bento-card.selected {
+        border-color: var(--btn-color) !important;
+        background: var(--btn-light) !important;
+        transform: scale(1.05);
+        box-shadow: 0 15px 35px -10px var(--btn-shadow) !important;
+        z-index: 10;
     }
 
     .bento-icon {
-        width: 60px;
-        height: 60px;
-        border-radius: 20px;
+        width: 56px;
+        height: 56px;
+        border-radius: 18px;
         background: var(--btn-grad);
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 1.6rem;
+        font-size: 1.5rem;
         color: white;
-        margin-bottom: 1rem;
-        box-shadow: 0 12px 20px -8px var(--btn-shadow);
-        transition: all 0.3s ease;
+        margin-bottom: 0.75rem;
+        box-shadow: 0 10px 15px -5px var(--btn-shadow);
     }
 
-    .selected .bento-icon {
-        transform: scale(1.1) rotate(-5deg);
-    }
-
-    .bento-title {
-        font-size: 1rem;
-        font-weight: 800;
-        color: #0f172a;
-        letter-spacing: -0.02em;
-    }
-
-    .bento-desc {
-        font-size: 0.7rem;
-        color: #64748b;
-        font-weight: 600;
-        margin-top: 0.35rem;
-        line-height: 1.2;
-    }
+    .bento-title { font-size: 1rem; font-weight: 800; color: #0f172a; }
+    .bento-desc { font-size: 0.65rem; color: #64748b; margin-top: 0.25rem; font-weight: 600; }
 
     .card-badge {
         position: absolute;
-        top: 14px;
-        right: 14px;
+        top: 12px;
+        right: 12px;
         background: var(--btn-color);
-        width: 24px;
-        height: 24px;
+        width: 20px;
+        height: 20px;
         border-radius: 50%;
         display: flex;
         align-items: center;
         justify-content: center;
         color: white;
-        font-size: 0.7rem;
-        opacity: 0;
+        font-size: 0.6rem;
         transform: scale(0);
-        transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        transition: 0.3s;
     }
+    .selected .card-badge { transform: scale(1); }
 
-    .selected .card-badge {
-        opacity: 1;
-        transform: scale(1);
-    }
+    /* Colors */
+    .m-new { --btn-color: #3b82f6; --btn-grad: linear-gradient(135deg, #3b82f6, #60a5fa); --btn-shadow: rgba(59, 130, 246, 0.3); --btn-light: #eff6ff; }
+    .m-sequential { --btn-color: #10b981; --btn-grad: linear-gradient(135deg, #10b981, #34d399); --btn-shadow: rgba(16, 185, 129, 0.3); --btn-light: #f0fdf4; }
+    .m-review { --btn-color: #4f46e5; --btn-grad: linear-gradient(135deg, #6366f1, #818cf8); --btn-shadow: rgba(99, 102, 241, 0.3); --btn-light: #f5f3ff; }
+    .m-hard { --btn-color: #ef4444; --btn-grad: linear-gradient(135deg, #ef4444, #f87171); --btn-shadow: rgba(239, 68, 68, 0.3); --btn-light: #fef2f2; }
+    .m-random { --btn-color: #f59e0b; --btn-grad: linear-gradient(135deg, #f59e0b, #fbbf24); --btn-shadow: rgba(245, 158, 11, 0.3); --btn-light: #fffbeb; }
 
-    /* Mode Colors */
-    .m-sequential { --btn-color: #10b981; --btn-grad: linear-gradient(135deg, #10b981, #34d399); --btn-shadow: rgba(16, 185, 129, 0.4); --btn-light: #f0fdf4; }
-    .m-review { --btn-color: #4f46e5; --btn-grad: linear-gradient(135deg, #6366f1, #818cf8); --btn-shadow: rgba(99, 102, 241, 0.4); --btn-light: #f5f3ff; }
-    .m-hard { --btn-color: #ef4444; --btn-grad: linear-gradient(135deg, #ef4444, #f87171); --btn-shadow: rgba(239, 68, 68, 0.4); --btn-light: #fef2f2; }
-    .m-random { --btn-color: #f59e0b; --btn-grad: linear-gradient(135deg, #f59e0b, #fbbf24); --btn-shadow: rgba(245, 158, 11, 0.4); --btn-light: #fffbeb; }
+    .disabled { opacity: 0.4 !important; filter: grayscale(1); pointer-events: none; }
 
-    .disabled {
-        opacity: 0.4 !important;
-        filter: grayscale(1);
-        cursor: not-allowed !important;
-        pointer-events: none;
-    }
-
-    /* Config Area */
+    /* Footer */
     .wizard-footer {
-        padding: 1.5rem;
-        background: rgba(255, 255, 255, 0.8);
+        padding: 1.25rem;
+        background: rgba(255, 255, 255, 0.85);
         backdrop-filter: blur(20px);
         -webkit-backdrop-filter: blur(20px);
         border-top: 1px solid rgba(0,0,0,0.05);
         position: fixed;
-        bottom: 0;
-        left: 0;
-        right: 0;
-        z-index: 100;
+        bottom: 0; left: 0; right: 0;
+        z-index: 1000;
         display: flex;
         flex-direction: column;
-        gap: 1.25rem;
-    }
-
-    .config-toggles {
-        display: flex;
-        justify-content: center;
         gap: 1rem;
     }
 
+    .config-toggles { display: flex; gap: 0.75rem; }
     .toggle-chip {
-        flex: 1;
-        padding: 0.75rem;
-        background: white;
-        border-radius: 20px;
-        border: 1px solid #e2e8f0;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 0.5rem;
-        font-size: 0.8rem;
-        font-weight: 700;
-        color: #64748b;
-        cursor: pointer;
-        transition: all 0.2s;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+        flex: 1; padding: 0.75rem; background: white; border-radius: 18px; border: 1px solid #e2e8f0;
+        display: flex; align-items: center; justify-content: center; gap: 0.5rem;
+        font-size: 0.75rem; font-weight: 700; color: #64748b; cursor: pointer; transition: 0.2s;
     }
-
-    .toggle-chip.active {
-        background: #10b981;
-        color: white;
-        border-color: #10b981;
-        box-shadow: 0 8px 16px -4px rgba(16, 185, 129, 0.3);
-    }
+    .toggle-chip.active { background: #10b981; color: white; border-color: #10b981; }
 
     .btn-start {
-        width: 100%;
-        padding: 1.15rem;
-        border-radius: 24px;
-        background: #10b981;
-        color: white;
-        font-size: 1.1rem;
-        font-weight: 900;
-        border: none;
-        box-shadow: 0 12px 24px -6px rgba(16, 185, 129, 0.4);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 0.75rem;
-        cursor: pointer;
-        transition: all 0.3s;
+        width: 100%; padding: 1.1rem; border-radius: 22px; background: #10b981; color: white;
+        font-size: 1.05rem; font-weight: 900; border: none; box-shadow: 0 10px 20px -5px rgba(16, 185, 129, 0.4);
+        display: flex; align-items: center; justify-content: center; gap: 0.75rem;
     }
-
-    .btn-start:active { transform: scale(0.96); }
-    .btn-start:disabled { opacity: 0.6; filter: grayscale(0.5); }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="wizard-container">
-    {% call render_dashboard_header(title=container_title, subtitle='') %}
-    {% endcall %}
+{# 1. HEADER CỐ ĐỊNH (PHẢI Ở NGOÀI CÙNG) #}
+{% call render_dashboard_header(title=container_title, subtitle='', show_home=True) %}{% endcall %}
 
+{# 2. CONTAINER NỘI DUNG CUỘN #}
+<div class="wizard-container">
     <div class="setup-wrapper">
         <div class="selection-prompt">Hãy lựa chọn chế độ</div>
         
         <div class="bento-grid">
-            <!-- Sequential -->
+            <div class="bento-card m-new {% if mode_counts.new == 0 %}disabled{% endif %}" data-value="new_only">
+                <div class="bento-icon"><i class="fas fa-plus-circle"></i></div>
+                <span class="bento-title">Học mới</span>
+                <span class="bento-desc">{{ mode_counts.new }} thẻ chưa học</span>
+                <div class="card-badge"><i class="fas fa-check"></i></div>
+            </div>
             <div class="bento-card m-sequential selected" data-value="sequential">
                 <div class="bento-icon"><i class="fas fa-seedling"></i></div>
                 <span class="bento-title">Tuần tự</span>
                 <span class="bento-desc">{{ mode_counts.new }} mới + {{ mode_counts.due }} cũ</span>
                 <div class="card-badge"><i class="fas fa-check"></i></div>
             </div>
-
-            <!-- Review -->
             <div class="bento-card m-review {% if mode_counts.learned == 0 %}disabled{% endif %}" data-value="all_review">
                 <div class="bento-icon"><i class="fas fa-history"></i></div>
                 <span class="bento-title">Ôn tập</span>
-                <span class="bento-desc">{{ mode_counts.learned }} từ đã học</span>
+                <span class="bento-desc">{{ mode_counts.learned }} đã học</span>
                 <div class="card-badge"><i class="fas fa-check"></i></div>
             </div>
-
-            <!-- Hard -->
             <div class="bento-card m-hard {% if mode_counts.hard == 0 %}disabled{% endif %}" data-value="hard_only">
                 <div class="bento-icon"><i class="fas fa-fire-alt"></i></div>
                 <span class="bento-title">Từ khó</span>
                 <span class="bento-desc">{{ mode_counts.hard }} từ hay sai</span>
                 <div class="card-badge"><i class="fas fa-check"></i></div>
             </div>
-
-            <!-- Random -->
             <div class="bento-card m-random {% if mode_counts.total == 0 %}disabled{% endif %}" data-value="random">
                 <div class="bento-icon"><i class="fas fa-random"></i></div>
                 <span class="bento-title">Ngẫu nhiên</span>
-                <span class="bento-desc">{{ mode_counts.total }} từ tổng cộng</span>
+                <span class="bento-desc">{{ mode_counts.total }} tổng số</span>
                 <div class="card-badge"><i class="fas fa-check"></i></div>
             </div>
         </div>
     </div>
 
-    <!-- Footer Action -->
+    {# 3. FOOTER CỐ ĐỊNH #}
     <div class="wizard-footer">
         <div class="config-toggles">
-            <div class="toggle-chip active" id="toggle-image">
-                <i class="fas fa-image"></i> Hiện ảnh
-            </div>
-            <div class="toggle-chip" id="toggle-audio">
-                <i class="fas fa-volume-up"></i> Tự phát loa
-            </div>
+            <div class="toggle-chip active" id="toggle-image"><i class="fas fa-image"></i> Hiện ảnh</div>
+            <div class="toggle-chip" id="toggle-audio"><i class="fas fa-volume-up"></i> Tự phát loa</div>
         </div>
-
-        <button class="btn-start" id="start-btn">
-            Bắt đầu học ngay <i class="fas fa-rocket"></i>
-        </button>
+        <button class="btn-start" id="start-btn">Bắt đầu học ngay <i class="fas fa-rocket"></i></button>
     </div>
 </div>
 {% endblock %}
@@ -329,7 +252,6 @@
     (function () {
         const setId = Number("{{ set_id }}");
         const savedSettings = {{ saved_settings | tojson }} || {};
-        
         let selectedMode = 'sequential';
         let isAutoplay = Boolean(savedSettings.autoplay);
         let isShowImage = savedSettings.show_image !== undefined ? Boolean(savedSettings.show_image) : true;
@@ -339,20 +261,13 @@
         const toggleImage = document.getElementById('toggle-image');
         const toggleAudio = document.getElementById('toggle-audio');
 
-        // Initialize Settings UI
         if (isAutoplay) toggleAudio.classList.add('active');
         if (!isShowImage) toggleImage.classList.remove('active');
 
-        // Initialize Mode Selection
         let firstValid = document.querySelector('.bento-card:not(.disabled)');
-        if (firstValid) {
-            selectMode(firstValid);
-        } else {
-            startBtn.disabled = true;
-            startBtn.innerHTML = "Không có từ nào để học";
-        }
+        if (firstValid) selectMode(firstValid);
+        else { startBtn.disabled = true; startBtn.innerHTML = "Không có từ nào để học"; }
 
-        // Event: Mode Selection
         cards.forEach(card => {
             if (card.classList.contains('disabled')) return;
             card.addEventListener('click', () => selectMode(card));
@@ -364,34 +279,16 @@
             selectedMode = el.dataset.value;
         }
 
-        // Event: Toggles
-        toggleImage.addEventListener('click', () => {
-            isShowImage = !isShowImage;
-            toggleImage.classList.toggle('active', isShowImage);
-        });
+        toggleImage.addEventListener('click', () => { isShowImage = !isShowImage; toggleImage.classList.toggle('active', isShowImage); });
+        toggleAudio.addEventListener('click', () => { isAutoplay = !isAutoplay; toggleAudio.classList.toggle('active', isAutoplay); });
 
-        toggleAudio.addEventListener('click', () => {
-            isAutoplay = !isAutoplay;
-            toggleAudio.classList.toggle('active', isAutoplay);
-        });
-
-        // Start Session
         startBtn.addEventListener('click', () => {
-            const payload = {
-                set_id: setId,
-                visual_settings: {
-                    autoplay: isAutoplay,
-                    show_image: isShowImage
-                }
-            };
-
             startBtn.disabled = true;
             startBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang khởi tạo...';
-
             fetch("{{ url_for('vocab_flashcard.api_save_flashcard_settings') }}", {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token() }}' },
-                body: JSON.stringify(payload)
+                body: JSON.stringify({ set_id: setId, visual_settings: { autoplay: isAutoplay, show_image: isShowImage } })
             })
             .then(r => r.json())
             .then(data => {
@@ -399,16 +296,8 @@
                     let url = `{{ url_for('vocab_flashcard.start_flashcard_session_by_id', set_id=set_id, mode='placeholder') }}`.replace('placeholder', selectedMode);
                     url += `?autoplay=${isAutoplay}&show_image=${isShowImage}`;
                     window.location.href = url;
-                } else {
-                    alert('Lỗi: ' + data.message);
-                    startBtn.disabled = false;
-                    startBtn.innerHTML = 'Bắt đầu học ngay <i class="fas fa-rocket"></i>';
-                }
-            })
-            .catch(err => {
-                startBtn.disabled = false;
-                startBtn.innerHTML = 'Bắt đầu học ngay <i class="fas fa-rocket"></i>';
-            });
+                } else { alert('Lỗi: ' + data.message); startBtn.disabled = false; }
+            }).catch(() => { startBtn.disabled = false; });
         });
     })();
 </script>
