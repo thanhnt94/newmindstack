@@ -63,6 +63,60 @@ CORE_SETTING_FIELDS: list[dict[str, object]] = [
         "default": 5000,
         "group": "notification",
     },
+    {
+        "key": "AUTH_PROVIDER",
+        "label": "Nhà cung cấp xác thực",
+        "data_type": "string",
+        "placeholder": "central",
+        "description": "Chọn phương thức xác thực: 'local' (nội bộ) hoặc 'central' (SSO/Centralized).",
+        "default": "central",
+        "group": "auth",
+    },
+    {
+        "key": "CENTRAL_AUTH_SERVER_ADDRESS",
+        "label": "Địa chỉ máy chủ CentralAuth",
+        "data_type": "string",
+        "placeholder": "http://127.0.0.1:5001",
+        "description": "Địa chỉ duy nhất của hệ thống xác thực tập trung. Các thông số khác sẽ được tự động nhận diện.",
+        "default": "http://127.0.0.1:5001",
+        "group": "sso",
+    },
+    {
+        "key": "CENTRAL_AUTH_API_URL",
+        "label": "Auth Center API (Nâng cao)",
+        "data_type": "string",
+        "placeholder": "http://127.0.0.1:5001",
+        "description": "URL API (Hệ thống tự động điền qua Discovery).",
+        "default": "http://127.0.0.1:5001",
+        "group": "sso-advanced",
+    },
+    {
+        "key": "CENTRAL_SSO_WEB_URL",
+        "label": "Auth Center Web (Nâng cao)",
+        "data_type": "string",
+        "placeholder": "http://127.0.0.1:5001",
+        "description": "URL Web (Hệ thống tự động điền qua Discovery).",
+        "default": "http://127.0.0.1:5001",
+        "group": "sso-advanced",
+    },
+    {
+        "key": "CENTRAL_AUTH_CLIENT_ID",
+        "label": "Client ID",
+        "data_type": "string",
+        "placeholder": "mindstack_app",
+        "description": "Mã định danh ứng dụng đăng ký tại Auth Center.",
+        "default": "mindstack_app",
+        "group": "sso",
+    },
+    {
+        "key": "CENTRAL_AUTH_CLIENT_SECRET",
+        "label": "Client Secret",
+        "data_type": "string",
+        "placeholder": "secret_key",
+        "description": "Mã bí mật dùng để xác thực giữa MindStack và Auth Center.",
+        "default": "",
+        "group": "sso",
+    },
 ]
 
 CORE_SETTING_GROUPS = {
@@ -75,6 +129,21 @@ CORE_SETTING_GROUPS = {
         "label": "Thông báo & Hiệu ứng",
         "icon": "fas fa-bell",
         "description": "Điều chỉnh thời gian và vị trí hiển thị các thông báo UI.",
+    },
+    "auth": {
+        "label": "Xác thực & Bảo mật",
+        "icon": "fas fa-shield-alt",
+        "description": "Quản lý phương thức đăng nhập và các tham số bảo mật.",
+    },
+    "sso": {
+        "label": "Cấu hình SSO (Auth Center)",
+        "icon": "fas fa-key",
+        "description": "Thiết lập kết nối với hệ thống xác thực tập trung (Chỉ cần 1 URL).",
+    },
+    "sso-advanced": {
+        "label": "SSO Nâng cao (Tự động)",
+        "icon": "fas fa-tools",
+        "description": "Các thông số kỹ thuật được hệ thống tự động nhận diện.",
     },
 }
 

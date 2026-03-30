@@ -5,6 +5,7 @@ from sqlalchemy import nullslast
 from sqlalchemy.orm.attributes import flag_modified
 from datetime import datetime, timedelta
 import os
+import requests
 from uuid import uuid4
 from werkzeug.utils import secure_filename, safe_join
 
@@ -442,6 +443,23 @@ def delete_media_item():
 
 # --- System Settings Views ---
 
+@blueprint.route('/settings/auth', methods=['GET'])
+def manage_auth_settings():
+    """
+    Dedicated page for SSO and Authentication settings.
+    """
+    grouped_settings = get_grouped_core_settings()
+    auth_groups = {
+        'auth': grouped_settings.get('auth'),
+        'sso': grouped_settings.get('sso')
+    }
+    
+    return render_template(
+        'admin/modules/admin/auth_settings.html',
+        auth_groups=auth_groups,
+        active_page='auth_settings'
+    )
+
 @blueprint.route('/settings', methods=['GET', 'POST'])
 def manage_system_settings():
     """
@@ -531,6 +549,8 @@ def update_core_settings():
     """Cập nhật nhanh các cấu hình vận hành quan trọng."""
     updated_count = 0
     pending_logs: list[tuple[str, object, object]] = []
+    
+    redirect_target = request.args.get('redirect_to', 'system')
 
     for field in CORE_SETTING_FIELDS:
         key = field["key"]
@@ -546,7 +566,8 @@ def update_core_settings():
             validate_setting_value(parsed_value, data_type, key=key)
         except ValueError as exc:
             flash(str(exc), 'danger')
-            return redirect(url_for('admin.manage_system_settings'))
+            target_url = url_for('admin.manage_auth_settings') if redirect_target == 'auth' else url_for('admin.manage_system_settings')
+            return redirect(target_url)
 
         setting = AppSettings.query.get(key)
         old_value = setting.value if setting else None
@@ -578,7 +599,76 @@ def update_core_settings():
     else:
         flash('Không có thay đổi nào được ghi nhận.', 'info')
 
+    if redirect_target == 'auth':
+        return redirect(url_for('admin.manage_auth_settings'))
     return redirect(url_for('admin.manage_system_settings'))
+
+@blueprint.route('/settings/test-auth', methods=['POST'])
+def test_auth_connection():
+    """
+    Perform Auto-Discovery and test connection.
+    If successful, automatically saves the settings to the database.
+    """
+    server_address = request.json.get('CENTRAL_AUTH_SERVER_ADDRESS')
+    client_id = request.json.get('CENTRAL_AUTH_CLIENT_ID')
+    client_secret = request.json.get('CENTRAL_AUTH_CLIENT_SECRET')
+
+    if not server_address or not client_id or not client_secret:
+        return jsonify({"success": False, "error": "Vui lòng nhập đầy đủ Địa chỉ máy chủ, Client ID và Client Secret."}), 400
+
+    base_url = server_address.rstrip('/')
+    discovery_url = f"{base_url}/api/auth/discovery"
+
+    try:
+        # 1. Perform Auto-Discovery
+        discovery_response = requests.get(discovery_url, timeout=5)
+        if discovery_response.status_code != 200:
+            return jsonify({
+                "success": False, 
+                "error": f"Không thể lấy thông tin Discovery từ máy chủ (HTTP {discovery_response.status_code})."
+            }), 400
+            
+        discovery_data = discovery_response.json()
+        # V2 Endpoints: authorization_endpoint, token_endpoint, verify_endpoint
+        api_url = base_url # Usually the base
+        web_url = base_url # Default fallback
+        
+        # In our CentralAuth implementation, verify_endpoint is /api/auth/verify-token
+        # and login_endpoint (web) is /api/auth/login
+        actual_web_url = discovery_data.get('authorization_endpoint', '').split('/api/auth/login')[0].rstrip('/') or base_url
+        actual_api_url = discovery_data.get('verify_endpoint', '').split('/api/auth/verify-token')[0].rstrip('/') or base_url
+
+        # 2. Validate Client Credentials via the discovered API
+        validate_url = f"{actual_api_url}/api/auth/validate-client"
+        response = requests.post(
+            validate_url,
+            json={"client_id": client_id, "client_secret": client_secret},
+            timeout=10
+        )
+        
+        if response.status_code == 200:
+            data = response.json()
+            
+            # 3. AUTO-SAVE: Automatically persist all settings to Database
+            AppSettings.set('CENTRAL_AUTH_SERVER_ADDRESS', server_address)
+            AppSettings.set('CENTRAL_AUTH_API_URL', actual_api_url)
+            AppSettings.set('CENTRAL_SSO_WEB_URL', actual_web_url)
+            AppSettings.set('CENTRAL_AUTH_CLIENT_ID', client_id)
+            AppSettings.set('CENTRAL_AUTH_CLIENT_SECRET', client_secret)
+            AppSettings.set('AUTH_PROVIDER', 'central') # Switch to SSO automatically
+            
+            return jsonify({
+                "success": True, 
+                "message": f"Kết nối thành công với '{data.get('client_name')}'! Cấu hình đã được tự động lưu và kích hoạt SSO."
+            })
+        else:
+            error_data = response.json() if response.status_code != 404 else {"error": "Endpoint xác thực không tồn tại."}
+            return jsonify({"success": False, "error": error_data.get('error', 'Lỗi xác thực.')}), response.status_code
+
+    except requests.exceptions.ConnectionError:
+        return jsonify({"success": False, "error": "Không thể kết nối đến máy chủ. Kiểm tra địa chỉ IP/Domain."}), 503
+    except Exception as e:
+        return jsonify({"success": False, "error": f"Lỗi hệ thống: {str(e)}"}), 500
 
 
 @blueprint.route('/settings/create', methods=['POST'])

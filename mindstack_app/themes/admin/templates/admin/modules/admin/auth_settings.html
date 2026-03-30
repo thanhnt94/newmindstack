@@ -1,0 +1,150 @@
+{% extends "admin/modules/admin/admin_layout.html" %}
+{% set active_page = 'auth_settings' %}
+
+{% block title %}Cấu hình SSO & Xác thực{% endblock %}
+{% block page_title %}Xác thực & Central SSO{% endblock %}
+{% block page_subtitle %}Quản lý kết nối giữa Mindstack và Auth Center để hỗ trợ đăng nhập tập trung.{% endblock %}
+
+{% block content %}
+<div class="data-card">
+    <div class="data-card-header px-6 py-5">
+        <h2 class="text-xl font-semibold text-slate-900">Thiết lập Auth Provider</h2>
+        <p class="text-sm text-slate-500 mt-1">Cấu hình các tham số cần thiết để kết nối với hệ thống Central Auth.</p>
+    </div>
+    <div class="px-6 py-6">
+        <form action="{{ url_for('admin.update_core_settings', redirect_to='auth') }}" method="post" class="space-y-6">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+            {% for group_key, group in auth_groups.items() %}
+            <div class="border border-slate-200 rounded-lg bg-white overflow-hidden">
+                <div class="px-5 py-4 bg-gradient-to-r from-slate-50 to-slate-100 border-b border-slate-200">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-lg bg-indigo-100 flex items-center justify-center">
+                            <i class="{{ group.icon }} text-indigo-600"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-semibold text-slate-900">{{ group.label }}</h3>
+                            <p class="text-xs text-slate-500">{{ group.description }}</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="p-5 grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {% for field in group.fields %}
+                    <div class="border border-slate-100 rounded-lg p-4 bg-slate-50/40 hover:bg-slate-50 transition">
+                        <div class="flex items-start justify-between gap-2">
+                            <div class="flex-1">
+                                <p class="text-sm font-semibold text-slate-900">{{ field.label }}</p>
+                                <p class="text-xs text-slate-500 mt-0.5">{{ field.description }}</p>
+                            </div>
+                            <span class="text-[10px] font-semibold px-2 py-0.5 rounded bg-slate-200 text-slate-600">{{
+                                field.data_type|upper }}</span>
+                        </div>
+                        <div class="mt-3">
+                            {% if field.key == 'AUTH_PROVIDER' %}
+                            <select name="{{ field.key }}" class="w-full rounded-md border-slate-200 text-sm">
+                                <option value="local" {% if field.value == 'local' %}selected{% endif %}>Local (Nội bộ)</option>
+                                <option value="central" {% if field.value == 'central' %}selected{% endif %}>Central (SSO)</option>
+                            </select>
+                            {% elif 'SECRET' in field.key.upper() %}
+                            <div class="relative" x-data="{ show: false }">
+                                <input :type="show ? 'text' : 'password'" name="{{ field.key }}" value="{{ field.value }}"
+                                    class="w-full rounded-md border-slate-200 text-sm pr-10" placeholder="{{ field.placeholder }}"
+                                    required>
+                                <button type="button" @click="show = !show" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                                    <i class="fas" :class="show ? 'fa-eye-slash' : 'fa-eye'"></i>
+                                </button>
+                            </div>
+                            {% else %}
+                            <input name="{{ field.key }}" value="{{ field.value }}"
+                                class="w-full rounded-md border-slate-200 text-sm" placeholder="{{ field.placeholder }}"
+                                required>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endfor %}
+
+            <div class="flex justify-end pt-2 gap-3">
+                <button type="button" id="test-auth-btn"
+                    class="inline-flex items-center gap-2 bg-slate-100 text-slate-700 px-5 py-2.5 rounded-md border border-slate-200 hover:bg-slate-200 transition">
+                    <i class="fas fa-plug"></i> Kiểm tra kết nối
+                </button>
+                <button type="submit"
+                    class="inline-flex items-center gap-2 bg-indigo-600 text-white px-5 py-2.5 rounded-md shadow hover:bg-indigo-700 transition">
+                    <i class="fas fa-save"></i> Lưu cấu hình Auth
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+document.getElementById('test-auth-btn').addEventListener('click', async function() {
+    const btn = this;
+    const originalContent = btn.innerHTML;
+    
+    // Get values from form fields
+    const server_address = document.querySelector('input[name="CENTRAL_AUTH_SERVER_ADDRESS"]').value;
+    const client_id = document.querySelector('input[name="CENTRAL_AUTH_CLIENT_ID"]').value;
+    const client_secret = document.querySelector('input[name="CENTRAL_AUTH_CLIENT_SECRET"]').value;
+
+    // UI Feedback: Loading
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Đang tự động cấu hình...';
+    btn.classList.add('opacity-75', 'cursor-not-allowed');
+
+    try {
+        const response = await fetch("{{ url_for('admin.test_auth_connection') }}", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': "{{ csrf_token() }}"
+            },
+            body: JSON.stringify({
+                CENTRAL_AUTH_SERVER_ADDRESS: server_address,
+                CENTRAL_AUTH_CLIENT_ID: client_id,
+                CENTRAL_AUTH_CLIENT_SECRET: client_secret
+            })
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            alert("✅ " + result.message);
+            // Auto-refresh to show newly saved settings
+            window.location.reload();
+        } else {
+            alert("❌ Lỗi: " + (result.error || "Không thể kết nối."));
+        }
+    } catch (error) {
+        alert("❌ Lỗi hệ thống: " + error.message);
+    } finally {
+        // Restore button state
+        btn.disabled = false;
+        btn.innerHTML = originalContent;
+        btn.classList.remove('opacity-75', 'cursor-not-allowed');
+    }
+});
+</script>
+
+<div class="data-card mt-8">
+    <div class="data-card-header px-6 py-5 border-l-4 border-amber-500">
+        <h2 class="text-xl font-semibold text-slate-900">Hướng dẫn kết nối</h2>
+    </div>
+    <div class="px-6 py-6 text-sm text-slate-600 space-y-3">
+        <p>Để Mindstack có thể sử dụng Auth Center làm hệ thống đăng nhập tập trung:</p>
+        <ul class="list-disc list-inside space-y-2">
+            <li>Đảm bảo <strong>Auth Center API URL</strong> là địa chỉ mà server Mindstack có thể gọi tới (Internal network).</li>
+            <li><strong>Auth Center Web URL</strong> là địa chỉ mà người dùng truy cập từ trình duyệt.</li>
+            <li>Đăng ký Mindstack trong danh sách Clients của Auth Center để lấy <strong>Client ID</strong> và <strong>Client Secret</strong>.</li>
+            <li>Sau khi thay đổi, hệ thống sẽ tự động ưu tiên dữ liệu từ Database thay vì file <code>.env</code>.</li>
+        </ul>
+        <div class="mt-4 p-4 bg-amber-50 rounded-lg border border-amber-100 flex gap-3">
+            <i class="fas fa-exclamation-triangle text-amber-500 mt-1"></i>
+            <p class="text-amber-800 text-xs"><strong>Lưu ý:</strong> Nếu cấu hình sai và không thể đăng nhập, hãy sử dụng đường dẫn <code>/auth/emergency-login</code> hoặc chỉnh sửa trực tiếp trong bảng <code>app_settings</code> của database.</p>
+        </div>
+    </div>
+</div>
+{% endblock %}

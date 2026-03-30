@@ -13,3 +13,4 @@ module_metadata = {
 
 def setup_module(app):
     from . import routes
+    app.logger.info("Emergency Login URL: http://localhost:5000/auth/emergency-login")

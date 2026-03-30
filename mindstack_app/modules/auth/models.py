@@ -26,11 +26,13 @@ class User(UserMixin, db.Model):
     email = db.Column(db.String(120), unique=True, nullable=False)
     password_hash = db.Column(db.String(256), nullable=False)
     user_role = db.Column(db.String(50), default=ROLE_FREE, nullable=False)
+    full_name = db.Column(db.String(255), nullable=True)
     total_score = db.Column(db.Integer, default=0)
     last_seen = db.Column(db.DateTime(timezone=True))
     timezone = db.Column(db.String(50), default='UTC')
     telegram_chat_id = db.Column(db.String(100), nullable=True, unique=True)
-    avatar_url = db.Column(db.String(255), nullable=True) 
+    avatar_url = db.Column(db.String(255), nullable=True)
+    central_auth_id = db.Column(db.String(255), unique=True, index=True, nullable=True)
     
     last_preferences = db.Column(JSON, default=dict)
 
@@ -47,6 +49,14 @@ class User(UserMixin, db.Model):
         if self.avatar_url:
             if self.avatar_url.startswith(('http://', 'https://')):
                 return self.avatar_url
+            
+            # If CentralAuth is the provider and it's a relative path from there
+            from flask import current_app
+            if self.avatar_url.startswith('/static/uploads/avatars/'):
+                base_url = current_app.config.get('CENTRAL_AUTH_API_URL', '')
+                if base_url:
+                    return f"{base_url.rstrip('/')}{self.avatar_url}"
+                
             return url_for('media_uploads', filename=self.avatar_url)
         return None
 

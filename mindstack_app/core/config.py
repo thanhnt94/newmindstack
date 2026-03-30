@@ -10,16 +10,21 @@ load_dotenv()
 # File này nằm ở mindstack_app/core/ nên cần đi lên 3 cấp
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
 
-# Đường dẫn đến file database SQLite
-DATABASE_PATH = os.path.join(BASE_DIR, "database", "mindstack_new.db")
+# Đường dẫn đến file database SQLite tại thư mục Storage chung
+DATABASE_PATH = os.path.join(BASE_DIR, "Storage", "database", "Mindstack.db")
 
 class Config:
     """Cấu hình ứng dụng Mindstack."""
     
+    # Security Configuration
     SECRET_KEY = os.environ.get('SECRET_KEY')
     if not SECRET_KEY:
         # Fallback for development, though env is preferred
         SECRET_KEY = 'dev-secret-key-replace-in-production'
+    
+    SESSION_COOKIE_NAME = 'mindstack_session'
+
+    WTF_CSRF_TIME_LIMIT = None  # Disable CSRF token expiration for troubleshooting
 
     SQLALCHEMY_DATABASE_URI = os.environ.get('SQLALCHEMY_DATABASE_URI') or f'sqlite:///{DATABASE_PATH}'
     SQLALCHEMY_ENGINE_OPTIONS = {
@@ -43,6 +48,13 @@ class Config:
     VAPID_PRIVATE_KEY = os.environ.get('VAPID_PRIVATE_KEY')
     VAPID_PUBLIC_KEY = os.environ.get('VAPID_PUBLIC_KEY')
     VAPID_EMAIL = os.environ.get('VAPID_EMAIL')
+
+    # Auth Provider Configuration
+    AUTH_PROVIDER = os.environ.get('AUTH_PROVIDER', 'local')
+    CENTRAL_AUTH_API_URL = os.environ.get('CENTRAL_AUTH_API_URL')
+    CENTRAL_SSO_WEB_URL = os.environ.get('CENTRAL_SSO_WEB_URL')
+    CENTRAL_AUTH_CLIENT_ID = os.environ.get('CENTRAL_AUTH_CLIENT_ID')
+    CENTRAL_AUTH_CLIENT_SECRET = os.environ.get('CENTRAL_AUTH_CLIENT_SECRET')
 
     @classmethod
     def init_app(cls, app):

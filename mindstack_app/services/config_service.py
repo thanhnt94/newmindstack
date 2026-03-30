@@ -83,14 +83,19 @@ class ConfigService:
         if not force and self._last_loaded and (now - self._last_loaded) < timedelta(seconds=self.ttl_seconds):
             return
 
-        # Load all non-template settings (template settings are loaded separately by TemplateService)
-        settings = AppSettings.query.filter(AppSettings.category != 'template').all()
-        for setting in settings:
-            if setting.key.upper() in SENSITIVE_SETTING_KEYS:
-                current_app.logger.info("Bỏ qua cấu hình nhạy cảm %s từ DB", setting.key)
-                continue
+        try:
+            # Load all non-template settings (template settings are loaded separately by TemplateService)
+            settings = AppSettings.query.filter(AppSettings.category != 'template').all()
+            for setting in settings:
+                if setting.key.upper() in SENSITIVE_SETTING_KEYS:
+                    current_app.logger.info("Bỏ qua cấu hình nhạy cảm %s từ DB", setting.key)
+                    continue
 
-            self.app.config[setting.key] = self._parse_value(setting)
+                self.app.config[setting.key] = self._parse_value(setting)
+        except Exception as e:
+            current_app.logger.error(f"ConfigService Error: Failed to load settings from DB. {e}")
+            # Fallback is handled by the app's default core/defaults.py being already in app.config
+            pass
 
         self._last_loaded = now
 

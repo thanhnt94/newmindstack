@@ -62,6 +62,11 @@
                                     tz_label }}</option>
                                 {% endfor %}
                             </select>
+                            {% elif field.key == 'AUTH_PROVIDER' %}
+                            <select name="{{ field.key }}" class="w-full rounded-md border-slate-200 text-sm">
+                                <option value="local" {% if field.value == 'local' %}selected{% endif %}>Local (Nội bộ)</option>
+                                <option value="central" {% if field.value == 'central' %}selected{% endif %}>Central (SSO)</option>
+                            </select>
                             {% elif field.data_type == 'int' %}
                             <input type="number" name="{{ field.key }}" value="{{ field.value }}"
                                 class="w-full rounded-md border-slate-200 text-sm" placeholder="{{ field.placeholder }}"

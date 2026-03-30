@@ -43,6 +43,13 @@ def view_profile():
 
 @blueprint.route('/edit', methods=['GET', 'POST'])
 def edit_profile():
+    # If SSO is enabled, redirect to central profile manager
+    auth_provider = AuthInterface.get_config('AUTH_PROVIDER', 'local')
+    if auth_provider == 'central':
+        central_url = AuthInterface.get_config('CENTRAL_SSO_WEB_URL')
+        if central_url:
+            return redirect(f"{central_url.rstrip('/')}/user/profile")
+
     user = current_user
     ProfileEditForm = AuthInterface.get_profile_edit_form_class()
     form = ProfileEditForm(obj=user)
@@ -68,6 +75,13 @@ def edit_profile():
 
 @blueprint.route('/change-password', methods=['GET', 'POST'])
 def change_password():
+    # If SSO is enabled, redirect to central profile manager
+    auth_provider = AuthInterface.get_config('AUTH_PROVIDER', 'local')
+    if auth_provider == 'central':
+        central_url = AuthInterface.get_config('CENTRAL_SSO_WEB_URL')
+        if central_url:
+            return redirect(f"{central_url.rstrip('/')}/user/profile")
+
     ChangePasswordForm = AuthInterface.get_change_password_form_class()
     form = ChangePasswordForm()
     if form.validate_on_submit():
