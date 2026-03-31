@@ -99,3 +99,14 @@ class UserSession(db.Model):
     current_quiz_batch_size = db.Column(db.Integer, default=10)
     flashcard_button_count = db.Column(db.Integer, default=3)
     last_updated = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+
+class UserSSOSession(db.Model):
+    """
+    Explicitly tracks active server-side sessions for a user in MindStack SSO.
+    Used for implementing Back-channel Logout by deleting session records.
+    """
+    __tablename__ = 'user_sso_sessions'
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.user_id'), nullable=False)
+    session_id = db.Column(db.String(255), unique=True, nullable=False)
+    created_at = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))

@@ -23,6 +23,12 @@ class Config:
         SECRET_KEY = 'dev-secret-key-replace-in-production'
     
     SESSION_COOKIE_NAME = 'mindstack_session'
+    
+    # Session Configuration
+    SESSION_TYPE = 'sqlalchemy'
+    SESSION_SQLALCHEMY_TABLE = 'sessions'
+    SESSION_PERMANENT = True
+    PERMANENT_SESSION_LIFETIME = 30 * 24 * 60 * 60 # 30 Days
 
     WTF_CSRF_TIME_LIMIT = None  # Disable CSRF token expiration for troubleshooting
 

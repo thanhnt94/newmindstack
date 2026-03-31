@@ -21,11 +21,27 @@ def create_app(config_class=Config) -> Flask:
     with app.app_context():
         bootstrap_system(app)
         
+    # 3.1 NEW: Server-side Session Management (After DB is initialized in bootstrap)
+    from flask_session import Session
+    app.config['SESSION_SQLALCHEMY'] = db
+    Session(app)
+    
+    # 3.2 Ensure all tables exist (including new SSO session tables)
+    with app.app_context():
+        db.create_all()
+        
     # 4. Khởi chạy WatchTogether module (hỗ trợ production wsgi tự nạp module con)
     try:
         from watchtogether import setup_watchtogether
         setup_watchtogether(app)
     except Exception as e:
         print(f"[Core] WatchTogether module skipped or failed: {e}")
+        
+    # STRICT ADMIN BYPASS: Standard Local Auth Only
+    from flask import redirect, url_for, session
+    @app.route('/admin')
+    def root_admin_redirect():
+        session.clear() # Force clear for a clean local login
+        return redirect(url_for('auth.admin_login'))
         
     return app
