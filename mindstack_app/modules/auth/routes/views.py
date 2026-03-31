@@ -39,13 +39,19 @@ def admin_login():
             
         if user and user.check_password(form.password.data) and user.user_role == User.ROLE_ADMIN:
             login_user(user, remember=form.remember_me.data)
-            return redirect(url_for('dashboard.dashboard'))
+            
+            # Harmonize with IPTV/PodLearn: Redirect to Admin Dashboard by default
+            next_page = request.args.get('next')
+            if not next_page or next_page == url_for('landing.index'):
+                next_page = url_for('admin.admin_dashboard')
+                
+            return redirect(next_page)
         
         flash('Sai thông tin hoặc bạn không có quyền Admin.', 'danger')
 
-    # Clear session to prevent any stale SSO state on GET
-    from flask import session
-    session.clear()
+    # The following code was removed as it cleared the session and invalidated CSRF tokens
+    # from flask import session
+    # session.clear()
     return render_dynamic_template('modules/auth/login/login.html', form=form, is_admin_login=True)
 
 @blueprint.route('/login', methods=['GET', 'POST'])
@@ -54,9 +60,12 @@ def login():
         flash('Chức năng đăng nhập hiện đang tạm khóa.', 'info')
         return redirect(url_for('landing.index'))
 
-    # Simple SSO handoff: Only if central is enabled
+    # Simple SSO handoff: Only if central is enabled AND we aren't coming from a failure or requesting local
     auth_provider = AuthService.get_config('AUTH_PROVIDER', 'local')
-    if request.method == 'GET' and auth_provider == 'central' and request.endpoint == 'auth.login':
+    sso_failed = request.args.get('sso_failed') == '1'
+    is_local = request.args.get('local') == '1'
+    
+    if request.method == 'GET' and auth_provider == 'central' and request.endpoint == 'auth.login' and not sso_failed and not is_local:
         return redirect(url_for('auth_center.login'))
 
     if current_user.is_authenticated:

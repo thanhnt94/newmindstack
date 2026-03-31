@@ -25,13 +25,26 @@
                     class="px-1.5 py-0.5 bg-white/20 backdrop-blur-sm text-white text-[10px] font-bold rounded -translate-y-0.5">3.0</span>
             </div>
         </div>
+        
+        {% if is_admin_login %}
+        <div class="inline-flex items-center gap-2 px-3 py-1 bg-rose-500/20 border border-rose-500/30 rounded-full mb-4">
+            <span class="relative flex h-2 w-2">
+                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+                <span class="relative inline-flex rounded-full h-2 w-2 bg-rose-500"></span>
+            </span>
+            <span class="text-[10px] font-black text-rose-100 uppercase tracking-widest">Emergency Admin Portal</span>
+        </div>
+        <h1 class="text-3xl font-black text-white mb-2">Local Admin Access</h1>
+        <p class="text-white/70 text-base">SSO is bypassed. Internal credentials only.</p>
+        {% else %}
         <h1 class="text-3xl font-black text-white mb-2">Chào mừng trở lại!</h1>
         <p class="text-white/70 text-base">Đăng nhập để tiếp tục học tập</p>
+        {% endif %}
     </div>
 
     {# Form Container #}
     <div class="flex-1 bg-white rounded-t-[2rem] px-6 py-8">
-        <form action="{{ url_for('auth.login') }}" method="post" class="space-y-5">
+        <form action="" method="post" class="space-y-5">
             {{ form.csrf_token }}
 
             {# Username #}

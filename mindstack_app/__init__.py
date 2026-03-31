@@ -38,10 +38,11 @@ def create_app(config_class=Config) -> Flask:
         print(f"[Core] WatchTogether module skipped or failed: {e}")
         
     # STRICT ADMIN BYPASS: Standard Local Auth Only
-    from flask import redirect, url_for, session
-    @app.route('/admin')
-    def root_admin_redirect():
-        session.clear() # Force clear for a clean local login
-        return redirect(url_for('auth.admin_login'))
-        
+    # --- ECOSYSTEM HEALTH CHECK ---
+    from flask import jsonify
+    @app.route('/api/health')
+    def api_health():
+        """Public endpoint for CentralAuth health checks."""
+        return jsonify({"status": "online", "service": "mindstack"})
+
     return app

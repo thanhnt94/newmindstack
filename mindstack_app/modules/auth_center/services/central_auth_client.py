@@ -35,9 +35,12 @@ class CentralAuthClient:
         if not self.api_url:
             return False
         try:
-            response = requests.get(f"{self.api_url}/api/auth/health", timeout=2)
+            # Increased timeout to 5s to account for local dev latency
+            response = requests.get(f"{self.api_url}/api/auth/health", timeout=5)
             return response.status_code == 200
-        except requests.exceptions.RequestException:
+        except requests.exceptions.RequestException as e:
+            if current_app:
+                current_app.logger.warning(f"CentralAuth Health Check failed: {e}")
             return False
 
     def verify_token(self, token):

@@ -56,7 +56,7 @@ class Config:
     VAPID_EMAIL = os.environ.get('VAPID_EMAIL')
 
     # Auth Provider Configuration
-    AUTH_PROVIDER = os.environ.get('AUTH_PROVIDER', 'local')
+    AUTH_PROVIDER = os.environ.get('AUTH_PROVIDER', 'central')
     CENTRAL_AUTH_API_URL = os.environ.get('CENTRAL_AUTH_API_URL')
     CENTRAL_SSO_WEB_URL = os.environ.get('CENTRAL_SSO_WEB_URL')
     CENTRAL_AUTH_CLIENT_ID = os.environ.get('CENTRAL_AUTH_CLIENT_ID')

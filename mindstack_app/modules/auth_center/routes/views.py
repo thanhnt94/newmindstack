@@ -18,7 +18,7 @@ def login():
         return redirect(client.get_login_url(callback_url))
     else:
         flash('Central Auth server is unreachable. Please login locally.', 'warning')
-        return redirect(url_for('auth.login'))
+        return redirect(url_for('auth.login', sso_failed=1))
 
 @blueprint.route('/callback')
 def callback():
