@@ -55,12 +55,42 @@ class FlashcardEngine:
                 qb.filter_by_containers(s_ids)
 
             # Apply Mode Filter
-            mode_obj = get_flashcard_mode_by_id(mode)
-            if mode_obj and hasattr(qb, mode_obj.filter_method):
-                filter_func = getattr(qb, mode_obj.filter_method)
-                filter_func()
+            # [DEBUG] Force check mode from DB if possible
+            db_mode = None
+            if db_session_id:
+                from mindstack_app.modules.session.interface import SessionInterface
+                db_sess = SessionInterface.get_session_by_id(db_session_id) 
+                if db_sess:
+                    db_mode = db_sess.mode_config_id
+                    session_params = db_sess.session_data or {}
+                    consecutive_reviews = session_params.get('consecutive_reviews', 0)
+                    
+                    # Log to terminal for user to see
+                    print(f"\n>>> [CORE ENGINE] ID: {db_session_id} | DB MODE: {db_mode} | REVIEWS: {consecutive_reviews}")
+                    
+                    if db_mode == 'adaptive_flow':
+                        mode = 'adaptive_flow' # Override with DB truth
+                        if consecutive_reviews >= 5:
+                            print(">>> [CORE ENGINE] THRESHOLD REACHED! Filtering NEW cards only.")
+                            qb.filter_new_only()
+                        else:
+                            qb.filter_due_only()
+                    # Fallback to New if no Due cards are available
+                    if qb.get_query().count() == 0:
+                        # Reset QueryBuilder to clear 'due' filter but keep containers
+                        qb = FlashcardQueryBuilder(user_id)
+                        if set_id == 'all':
+                            qb.filter_by_containers(get_accessible_flashcard_set_ids(user_id))
+                        else:
+                            qb.filter_by_containers(set_id if isinstance(set_id, list) else [int(set_id)])
+                        qb.filter_new_only()
             else:
-                qb.filter_mixed()
+                mode_obj = get_flashcard_mode_by_id(mode)
+                if mode_obj and hasattr(qb, mode_obj.filter_method):
+                    filter_func = getattr(qb, mode_obj.filter_method)
+                    filter_func()
+                else:
+                    qb.filter_mixed()
             
             # Exclude processed
             qb.exclude_items(processed_ids)
@@ -180,15 +210,20 @@ class FlashcardEngine:
                       update_srs: bool = True,
                       duration_ms: int = 0, user_answer_text: str = None,
                       session_id: int = None, container_id: int = None,
-                      learning_mode: str = None):
+                      learning_mode: str = None) -> Tuple[int, int, str, str, dict, dict, int]:
         """
         Process a flashcard answer.
+        Returns: (score_change, new_total, result_type, state_name, item_stats, srs_data, new_consecutive_reviews)
         """
+        # [DEBUG]
+        print(f"\n>>> [API SUBMIT] Session: {session_id} | Mode: {learning_mode} | Item: {item_id}")
+
         item = LearningItem.query.get(item_id)
         if not item:
-            return 0, current_user_total_score, 'error', "Error: Item not found", None, None
+            return 0, current_user_total_score, 'error', "Error: Item not found", None, None, 0
 
         is_all_review = (mode == 'all_review')
+        new_consecutive_reviews = 0
 
         # Determine result type (Spec: >= 2 is a pass/correct for session tracking)
         if quality >= 2:
@@ -256,6 +291,26 @@ class FlashcardEngine:
                 'scheduled_days': current_ivl,
                 'next_review': srs_result.next_review.isoformat() if srs_result.next_review else None
             }
+
+            # [Adaptive Flow] Calculate new counter
+            new_consecutive_reviews = 0
+            if session_id:
+                try:
+                    from mindstack_app.modules.session.interface import SessionInterface
+                    db_sess = SessionInterface.get_session_by_id(session_id)
+                    if db_sess:
+                        extra = db_sess.session_data or {}
+                        # If repetitions == 1, it's a NEW card being learned for the first time
+                        if state_record and state_record.repetitions == 1:
+                            new_consecutive_reviews = 0
+                        else:
+                            # It's a review (due card)
+                            new_consecutive_reviews = extra.get('consecutive_reviews', 0) + 1
+                        
+                        current_app.logger.info(f"[ADAPTIVE FLOW] Answer processed for user {user_id}. Item {item_id}, Reps: {state_record.repetitions if state_record else 'N/A'}, New counter: {new_consecutive_reviews}")
+                except Exception as sexc:
+                    current_app.logger.warning(f"Error calculating Adaptive Flow counter: {sexc}")
+                    new_consecutive_reviews = 0
         else:
             # No SRS update
             state_record = FSRSInterface.get_item_state(user_id, item_id)
@@ -312,7 +367,7 @@ class FlashcardEngine:
 
         item_stats = cls.get_item_statistics(user_id, item_id)
 
-        return score_change, new_total_score, result_type, {0: 'new', 1: 'learning', 2: 'review', 3: 'relearning'}.get(state_record.state, 'new'), item_stats, srs_data
+        return score_change, new_total_score, result_type, {0: 'new', 1: 'learning', 2: 'review', 3: 'relearning'}.get(state_record.state, 'new'), item_stats, srs_data, new_consecutive_reviews
 
     @staticmethod
     def get_item_statistics(user_id: int, item_id: int) -> dict:

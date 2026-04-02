@@ -58,6 +58,11 @@ class FlashcardQueryBuilder:
         self._query = FsrsInterface.apply_memory_filter(self._query, self.user_id, 'mixed')
         return self
 
+    def filter_adaptive_flow(self):
+        """Adaptive Flow: Base on available items, selection logic handled by Engine."""
+        self._query = FsrsInterface.apply_memory_filter(self._query, self.user_id, 'available')
+        return self
+
     def filter_sequential(self):
         """Sequential order for available (due/new) items."""
         # Reuse 'available' filter but override ordering

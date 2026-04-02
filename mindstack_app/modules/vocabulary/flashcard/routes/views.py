@@ -116,6 +116,8 @@ def start_flashcard_session_all(mode):
         mode = 'srs'
     elif mode == 'review':
         mode = 'srs'
+    elif mode == 'adaptive_flow':
+        mode = 'adaptive_flow'
     elif mode == 'cram':
         pass  # Keep as 'cram'
     else:
@@ -173,7 +175,8 @@ def start_flashcard_session_multi(mode):
         return redirect(url_for('vocabulary.dashboard'))
 
     # [DYNAMIC SRS] No pre-counting. Session is open-ended.
-    mode = 'srs'
+    if mode not in ('cram', 'adaptive_flow'):
+        mode = 'srs'
 
     # Create DB Session using Driver API
     from mindstack_app.modules.session.interface import SessionInterface
@@ -225,6 +228,8 @@ def start_flashcard_session_by_id(set_id, mode):
         mode = 'srs'
     elif mode == 'review':
         mode = 'srs'
+    elif mode == 'adaptive_flow':
+        mode = 'adaptive_flow'
     elif mode == 'cram':
         pass  # Keep as 'cram'
     else:
@@ -564,7 +569,7 @@ def start():
     data = request.values or {}
     
     set_ids_str = data.get('set_ids', '')
-    mode = 'srs'
+    mode = data.get('mode', 'srs')
     
     # Parse set IDs
     if set_ids_str == 'all':
@@ -604,7 +609,7 @@ def start():
         user_id=current_user.user_id,
         container_id=container_id,
         learning_mode='flashcard',
-        settings={'filter': 'srs', 'set_ids': set_ids}
+        settings={'filter': mode, 'set_ids': set_ids}
     )
     
     if db_sess:

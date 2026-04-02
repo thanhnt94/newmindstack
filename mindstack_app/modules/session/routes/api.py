@@ -299,7 +299,7 @@ def api_get_next_interaction(session_id):
         # [FIX] Handle dynamic SRS modes:
         # For dynamic modes (srs, mixed, due, new, etc.), keep queue EMPTY.
         # VocabularyDriver.get_next_interaction() will do a fresh FSRS query.
-        DYNAMIC_FILTERS = {'srs', 'mixed', 'mixed_srs', 'due', 'new', 'review', 'available'}
+        DYNAMIC_FILTERS = {'srs', 'mixed', 'mixed_srs', 'due', 'new', 'review', 'available', 'adaptive_flow'}
         current_filter = persisted_settings.get('filter', '')
         
         if current_filter in DYNAMIC_FILTERS:

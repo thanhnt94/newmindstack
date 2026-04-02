@@ -122,7 +122,7 @@ def get_flashcard_mode_counts(user_id, set_id, context='vocab'):
     
     for mode in registered_modes:
         count = 0
-        if mode.id in ['srs', 'mixed_srs']:
+        if mode.id in ['srs', 'mixed_srs', 'adaptive_flow']:
             count = srs_count
         elif mode.id == 'new':
             count = new_count

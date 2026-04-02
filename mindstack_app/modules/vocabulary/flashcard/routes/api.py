@@ -402,7 +402,7 @@ def api_submit_flashcard_answer():
     )
     
     # 3. Call Stateless Engine with "Clean" duration
-    score_change, new_total, result_type, new_status, item_stats, srs_data = FlashcardEngine.process_answer(
+    score_change, new_total, result_type, new_status, item_stats, srs_data, new_consecutive_reviews = FlashcardEngine.process_answer(
         user_id=current_user.user_id,
         item_id=item_id,
         quality=user_answer_quality,
@@ -441,9 +441,15 @@ def api_submit_flashcard_answer():
         session_data.get('set_id'),
         processed_ids=list(db_sess.processed_item_ids or [])
     )
-    # Persist new_learned_count in DB session_data (survives across devices)
+    # Persist new_learned_count and consecutive_reviews in DB session_data (survives across devices)
     extra = db_sess.session_data or {}
     extra['new_learned_count'] = srs_counts['new_learned']
+    
+    # [FIX] Consolidated update for consecutive_reviews to avoid race conditions
+    if session_data.get('mode') == 'adaptive_flow':
+        extra['consecutive_reviews'] = new_consecutive_reviews
+        current_app.logger.info(f"[ADAPTIVE FLOW] Saved consecutive_reviews={new_consecutive_reviews} for session {db_id}")
+    
     db_sess.session_data = extra
     flag_modified(db_sess, 'session_data')
     from mindstack_app.models import db

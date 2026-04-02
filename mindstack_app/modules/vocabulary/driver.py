@@ -93,7 +93,7 @@ class VocabularyDriver(BaseSessionDriver):
         if fsrs_filter == 'cram':
             fsrs_filter = 'review'
         
-        if fsrs_filter in ['srs', 'mixed', 'mixed_srs', 'due', 'new', 'review', 'available']:
+        if fsrs_filter in ['srs', 'mixed', 'mixed_srs', 'due', 'new', 'review', 'available', 'adaptive_flow']:
             current_app.logger.info(f"[VOCAB_DRIVER] Applying DB Filter (DYNAMIC): {fsrs_filter}")
             print(f" [VOCAB_DRIVER] Applying DB Filter (DYNAMIC): {fsrs_filter}")
             
@@ -157,7 +157,7 @@ class VocabularyDriver(BaseSessionDriver):
         elif remaining:
             next_item_id = remaining[0]
             is_last = len(remaining) == 1
-        elif state.settings.get('filter') in ['due', 'new', 'review', 'available', 'srs', 'mixed', 'mixed_srs']:
+        elif state.settings.get('filter') in ['due', 'new', 'review', 'available', 'srs', 'mixed', 'mixed_srs', 'adaptive_flow']:
             # DYNAMIC FETCH: Fallback to FlashcardEngine to fetch the next best item if queue is empty
             from mindstack_app.modules.vocabulary.flashcard.engine.core import FlashcardEngine
             set_ids_override = state.settings.get('set_ids')
@@ -174,6 +174,7 @@ class VocabularyDriver(BaseSessionDriver):
                 set_id=target_set_ids,
                 mode=fetch_mode,
                 processed_ids=state.processed_ids,
+                db_session_id=state.session_id, # [FIX] Pass session ID for Adaptive Flow
                 batch_size=1
             )
             
@@ -204,7 +205,7 @@ class VocabularyDriver(BaseSessionDriver):
 
         # [FIX] Improve progress info for dynamic SRS
         # If dynamic, the 'total' should reflect the actual number of due/available cards
-        is_dynamic = state.settings.get('filter') in ['srs', 'mixed', 'mixed_srs', 'due', 'new', 'review', 'available']
+        is_dynamic = state.settings.get('filter') in ['srs', 'mixed', 'mixed_srs', 'due', 'new', 'review', 'available', 'adaptive_flow']
         
         current_pos = len(state.processed_ids) + 1
         total_items = state.total_items
@@ -311,6 +312,35 @@ class VocabularyDriver(BaseSessionDriver):
                 mode=state.mode,
                 container_id=state.container_id,
             )
+            
+            # [Adaptive Flow] Update counter in Session database
+            if state.session_id:
+                try:
+                    from mindstack_app.core.extensions import db
+                    from mindstack_app.modules.session.interface import SessionInterface
+                    db_sess = SessionInterface.get_session_by_id(state.session_id)
+                    if db_sess and db_sess.mode_config_id == 'adaptive_flow':
+                        # [FIX] Ensure we have fresh data after previous FSRS commit
+                        db.session.refresh(db_sess)
+                        
+                        extra = db_sess.session_data or {}
+                        if srs_result.repetitions == 1:
+                            extra['consecutive_reviews'] = 0
+                        else:
+                            extra['consecutive_reviews'] = extra.get('consecutive_reviews', 0) + 1
+                        
+                        db_sess.session_data = extra
+                        from sqlalchemy.orm.attributes import flag_modified
+                        flag_modified(db_sess, 'session_data')
+                        
+                        from mindstack_app.core.extensions import db
+                        db.session.add(db_sess)
+                        db.session.commit()
+                        
+                        print(f" [VOCAB_DRIVER] Item: {item_id} | Reps: {srs_result.repetitions} | Counter: {extra['consecutive_reviews']} (SAVED)")
+                except Exception as sexc:
+                    print(f" [VOCAB_DRIVER] Error updating counter: {sexc}")
+
             current_app.logger.info(f"[VOCAB_DRIVER] FSRS Update Success: Stb={srs_result.stability}, Due={srs_result.next_review}")
 
             # [Step 4] Recording (Deep Analytics)

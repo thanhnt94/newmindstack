@@ -27,6 +27,14 @@ VOCAB_MODES = [
         color='blue',
         filter_method='filter_new_only',
         description='Chỉ hiển thị các thẻ chưa từng học, đẩy thẻ theo thứ tự tuần tự.'
+    ),
+    FlashcardMode(
+        id='adaptive_flow',
+        label='Adaptive Flow (Cân bằng)',
+        icon='fa-layer-group',
+        color='indigo',
+        filter_method='filter_adaptive_flow',
+        description='Sau mỗi 20 thẻ ôn tập cũ, hệ thống sẽ đẩy 1 thẻ mới để tránh Review Hell.'
     )
 ]
 
