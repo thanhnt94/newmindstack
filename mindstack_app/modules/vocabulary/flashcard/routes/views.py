@@ -126,13 +126,15 @@ def start_flashcard_session_all(mode):
     # Determine learning_mode for Session
     session_learning_mode = 'cram' if mode_param == 'cram' else 'flashcard'
 
+    adaptive_gap = request.args.get('adaptive_gap', 5)
+    
     # Create DB Session using Driver API
     from mindstack_app.modules.session.interface import SessionInterface
     db_sess, driver_state = SessionInterface.start_driven_session(
         user_id=current_user.user_id,
         container_id='all',
         learning_mode=session_learning_mode,
-        settings={'filter': mode_param, 'mode_config_id': mode}
+        settings={'filter': mode_param, 'mode_config_id': mode, 'adaptive_gap': adaptive_gap}
     )
     
     if db_sess:
@@ -181,11 +183,12 @@ def start_flashcard_session_multi(mode):
     # Create DB Session using Driver API
     from mindstack_app.modules.session.interface import SessionInterface
     container_id = set_ids[0] if isinstance(set_ids, list) and len(set_ids) > 0 else set_ids
+    adaptive_gap = request.args.get('adaptive_gap', 5)
     db_sess, driver_state = SessionInterface.start_driven_session(
         user_id=current_user.user_id,
         container_id=container_id,
         learning_mode='flashcard',
-        settings={'filter': 'srs', 'mode_config_id': mode, 'set_ids': set_ids}
+        settings={'filter': 'srs', 'mode_config_id': mode, 'set_ids': set_ids, 'adaptive_gap': adaptive_gap}
     )
     
     if db_sess:
@@ -240,11 +243,13 @@ def start_flashcard_session_by_id(set_id, mode):
     # Create DB Session using Driver API
     from mindstack_app.modules.session.interface import SessionInterface
     
+    adaptive_gap = request.args.get('adaptive_gap', 5)
+    
     db_sess, driver_state = SessionInterface.start_driven_session(
         user_id=current_user.user_id,
         container_id=set_id,
         learning_mode=session_learning_mode,
-        settings={'filter': mode_param, 'mode_config_id': mode}
+        settings={'filter': mode_param, 'mode_config_id': mode, 'adaptive_gap': adaptive_gap}
     )
     
     if db_sess:
@@ -605,11 +610,14 @@ def start():
     session['flashcard_visual_settings'] = visual_settings
     session.modified = True
 
+    # [NEW] Capture adaptive flow gap
+    adaptive_gap = data.get('adaptive_gap', 5)
+    
     db_sess, driver_state = SessionInterface.start_driven_session(
         user_id=current_user.user_id,
         container_id=container_id,
         learning_mode='flashcard',
-        settings={'filter': mode, 'set_ids': set_ids}
+        settings={'filter': mode, 'set_ids': set_ids, 'adaptive_gap': adaptive_gap}
     )
     
     if db_sess:

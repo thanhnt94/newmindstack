@@ -324,6 +324,10 @@ class VocabularyDriver(BaseSessionDriver):
                         db.session.refresh(db_sess)
                         
                         extra = db_sess.session_data or {}
+                        # [NEW] Get customizable gap from settings
+                        settings = extra.get('settings', {})
+                        adaptive_gap = int(settings.get('adaptive_gap', 5))
+                        
                         if srs_result.repetitions == 1:
                             extra['consecutive_reviews'] = 0
                         else:
@@ -337,7 +341,7 @@ class VocabularyDriver(BaseSessionDriver):
                         db.session.add(db_sess)
                         db.session.commit()
                         
-                        print(f" [VOCAB_DRIVER] Item: {item_id} | Reps: {srs_result.repetitions} | Counter: {extra['consecutive_reviews']} (SAVED)")
+                        print(f" [VOCAB_DRIVER] Item: {item_id} | Reps: {srs_result.repetitions} | Counter: {extra['consecutive_reviews']}/{adaptive_gap} (SAVED)")
                 except Exception as sexc:
                     print(f" [VOCAB_DRIVER] Error updating counter: {sexc}")
 

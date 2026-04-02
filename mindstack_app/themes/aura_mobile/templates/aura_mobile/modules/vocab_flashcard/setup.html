@@ -277,6 +277,18 @@
         {% endfor %}
     </div>
 
+    <!-- [NEW] Adaptive Flow Configuration -->
+    <div id="adaptive-config-panel" class="mb-4 bg-emerald-50 p-4 rounded-2xl border border-emerald-100 flex items-center justify-between" style="display: none;">
+        <div>
+            <h4 class="font-bold text-emerald-900 text-sm">Cài đặt Adaptive Flow</h4>
+            <p class="text-xs text-emerald-700">Số câu ôn tập trước khi có 1 từ mới</p>
+        </div>
+        <div class="flex items-center gap-2">
+            <input type="number" id="adaptive-gap-input" value="5" min="1" max="50" 
+                   class="w-16 p-2 rounded-xl border-2 border-emerald-200 text-center font-bold text-emerald-700 focus:border-emerald-500 focus:outline-none">
+        </div>
+    </div>
+
     <!-- Spacer for fixed footer -->
     <div class="h-24"></div>
 
@@ -329,8 +341,7 @@
     // Load saved settings if any (simple)
     {% if saved_settings %}
     try {
-        const saved = {{ saved_settings | tojson
-    }};
+        const saved = {{ saved_settings | tojson }};
     if (saved.show_image !== undefined) settings.show_image = saved.show_image;
     if (saved.show_note !== undefined) settings.show_note = saved.show_note;
 
@@ -417,6 +428,14 @@
         el.classList.add('selected');
 
         selectedModeId = modeId;
+        
+        // [NEW] Show adaptive config if selected
+        const adaptivePanel = document.getElementById('adaptive-config-panel');
+        if (modeId === 'adaptive_flow') {
+            adaptivePanel.style.display = 'flex';
+        } else {
+            adaptivePanel.style.display = 'none';
+        }
 
         // Enable button
         const btn = document.getElementById('start-btn');
@@ -444,6 +463,8 @@
                 visual_settings: settings
             })
         }).finally(() => {
+            const adaptiveGap = document.getElementById('adaptive-gap-input').value || 5;
+
             // 2. Redirect
             let url = "{{ url_for('vocab_flashcard.start_flashcard_session_by_id', set_id=0, mode='MODE') }}"
                 .replace('0', setIdentifier)
@@ -451,6 +472,7 @@
 
             // Append explicit params
             url += `?autoplay_front=${settings.autoplay_front}&autoplay_back=${settings.autoplay_back}&show_image=${settings.show_image}&show_note=${settings.show_note}`;
+            url += `&adaptive_gap=${adaptiveGap}`;
 
             window.location.href = url;
         });

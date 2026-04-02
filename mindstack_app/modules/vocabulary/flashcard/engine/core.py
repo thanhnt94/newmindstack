@@ -65,13 +65,17 @@ class FlashcardEngine:
                     session_params = db_sess.session_data or {}
                     consecutive_reviews = session_params.get('consecutive_reviews', 0)
                     
+                    # [NEW] Get customizable gap from settings
+                    settings = session_params.get('settings', {})
+                    adaptive_gap = int(settings.get('adaptive_gap', 5))
+                    
                     # Log to terminal for user to see
-                    print(f"\n>>> [CORE ENGINE] ID: {db_session_id} | DB MODE: {db_mode} | REVIEWS: {consecutive_reviews}")
+                    print(f"\n>>> [CORE ENGINE] ID: {db_session_id} | MODE: {db_mode} | REVIEWS: {consecutive_reviews}/{adaptive_gap}")
                     
                     if db_mode == 'adaptive_flow':
                         mode = 'adaptive_flow' # Override with DB truth
-                        if consecutive_reviews >= 5:
-                            print(">>> [CORE ENGINE] THRESHOLD REACHED! Filtering NEW cards only.")
+                        if consecutive_reviews >= adaptive_gap:
+                            print(f">>> [CORE ENGINE] THRESHOLD {adaptive_gap} REACHED! Filtering NEW cards only.")
                             qb.filter_new_only()
                         else:
                             qb.filter_due_only()
