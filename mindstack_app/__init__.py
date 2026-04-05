@@ -37,13 +37,7 @@ def create_app(config_class=Config) -> Flask:
             config_service.ensure_defaults(config_service._default_settings_payload)
             config_service.load_settings(force=True)
         
-    # 4. Khởi chạy WatchTogether module (hỗ trợ production wsgi tự nạp module con)
-    try:
-        from watchtogether import setup_watchtogether
-        setup_watchtogether(app)
-    except Exception as e:
-        print(f"[Core] WatchTogether module skipped or failed: {e}")
-        
+
     # STRICT ADMIN BYPASS: Standard Local Auth Only
     # --- ECOSYSTEM HEALTH CHECK ---
     from flask import jsonify
