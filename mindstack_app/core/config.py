@@ -40,8 +40,8 @@ class Config:
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
     ITEMS_PER_PAGE = 12
-    UPLOAD_FOLDER = os.path.join(BASE_DIR, "Storage" "MindStack", 'uploads')
-    BACKUP_FOLDER = os.path.join(BASE_DIR, "Storage" "MindStack", 'backups')
+    UPLOAD_FOLDER = os.path.join(BASE_DIR, "Storage", "MindStack", 'uploads')
+    BACKUP_FOLDER = os.path.join(BASE_DIR, "Storage", "MindStack", 'backups')
 
     FLASHCARD_AUDIO_CACHE_DIR = os.path.join(UPLOAD_FOLDER, 'flashcard', 'audio', 'cache')
     FLASHCARD_IMAGE_CACHE_DIR = os.path.join(UPLOAD_FOLDER, 'flashcard', 'images', 'cache')
