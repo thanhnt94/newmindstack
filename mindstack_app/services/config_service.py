@@ -25,27 +25,31 @@ class ConfigService:
     def ensure_defaults(self, defaults: Iterable[dict[str, object]]) -> None:
         """Đảm bảo các cấu hình mặc định tồn tại trong cơ sở dữ liệu."""
 
-        created = False
-        for payload in defaults:
-            key = str(payload.get("key", "")).strip()
-            if not key:
-                continue
+        try:
+            created = False
+            for payload in defaults:
+                key = str(payload.get("key", "")).strip()
+                if not key:
+                    continue
 
-            if AppSettings.query.get(key):
-                continue
+                if AppSettings.query.get(key):
+                    continue
 
-            setting = AppSettings(
-                key=key,
-                value=payload.get("value"),
-                category=payload.get("category", "system"),
-                data_type=str(payload.get("data_type") or "string"),
-                description=payload.get("description"),
-            )
-            db.session.add(setting)
-            created = True
+                setting = AppSettings(
+                    key=key,
+                    value=payload.get("value"),
+                    category=payload.get("category", "system"),
+                    data_type=str(payload.get("data_type") or "string"),
+                    description=payload.get("description"),
+                )
+                db.session.add(setting)
+                created = True
 
-        if created:
-            db.session.commit()
+            if created:
+                db.session.commit()
+        except Exception as e:
+            current_app.logger.warning(f"Bỏ qua ensure_defaults do DB chưa sẵn sàng: {e}")
+            db.session.rollback()
 
     def _parse_value(self, setting: AppSettings) -> Any:
         """Parse setting value using ConfigParser logic."""
@@ -275,5 +279,8 @@ def init_config_service(app, ttl_seconds: int = 30) -> ConfigService:
     with app.app_context():
         service.ensure_defaults(_default_settings(app))
         service.load_settings(force=True)
+
+    # Đăng ký hàm ensure_defaults có thể chạy lại
+    service._default_settings_payload = _default_settings(app)
 
     return service

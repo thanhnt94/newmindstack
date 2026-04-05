@@ -62,7 +62,7 @@ class TemplateService:
     }
 
     # Default version fallback
-    DEFAULT_VERSION = 'v3'
+    DEFAULT_VERSION = 'aura_mobile'
 
     @classmethod
     def get_available_global_versions(cls) -> List[str]:
@@ -73,7 +73,7 @@ class TemplateService:
             
         versions = []
         for item in os.listdir(themes_root):
-            if os.path.isdir(os.path.join(themes_root, item)) and item != 'admin' and not item.startswith('.'):
+            if os.path.isdir(os.path.join(themes_root, item)) and item not in ('admin', '__pycache__') and not item.startswith('.'):
                 versions.append(item)
         
         return sorted(versions) if versions else [cls.DEFAULT_VERSION]
