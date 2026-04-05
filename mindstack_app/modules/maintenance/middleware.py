@@ -19,8 +19,8 @@ def register_maintenance_middleware(app):
             if current_user.is_authenticated and current_user.user_role == 'admin':
                 return
             
-            # Bypass for Admin URLs, Auth URLs, and Static files
-            bypass_prefixes = ['/admin', '/auth', '/static', '/api/auth']
+            # Bypass for Admin URLs, Auth URLs, Static files, and Internal APIs
+            bypass_prefixes = ['/admin', '/auth', '/static', '/api/auth', '/api/health', '/api/sso-internal']
             if any(request.path.startswith(prefix) for prefix in bypass_prefixes):
                 return
             
