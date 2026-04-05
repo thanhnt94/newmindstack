@@ -19,7 +19,6 @@ DEFAULT_APP_CONFIGS = {
     'AUTH_MIN_PASSWORD_LENGTH': 8,
     'AUTH_PROVIDER': 'central',
     'CENTRAL_AUTH_API_URL': 'http://127.0.0.1:5000',
-    'CENTRAL_SSO_WEB_URL': 'http://127.0.0.1:5000',
     
     # --- Gamification: FSRS (Fixed Point Model) ---
     'SCORE_FSRS_AGAIN': 1,
