@@ -46,4 +46,31 @@ def create_app(config_class=Config) -> Flask:
         """Public endpoint for CentralAuth health checks."""
         return jsonify({"status": "online", "service": "mindstack"})
 
+    @app.route('/api/sso-internal/user-list', methods=['POST'])
+    def internal_user_list():
+        """
+        Internal API for CentralAuth to scan and sync users.
+        Protected by Client Secret verification.
+        """
+        from flask import request
+        secret_header = request.headers.get('X-Client-Secret')
+        configured_secret = app.config.get('CENTRAL_AUTH_CLIENT_SECRET')
+
+        if not secret_header or secret_header != configured_secret:
+            return jsonify({"error": "Unauthorized"}), 401
+
+        from mindstack_app.models.user import User
+        users = User.query.all()
+        
+        user_list = []
+        for user in users:
+            user_list.append({
+                "username": user.username,
+                "email": user.email,
+                "full_name": getattr(user, 'full_name', user.username),
+                "central_auth_id": user.central_auth_id
+            })
+            
+        return jsonify({"users": user_list}), 200
+
     return app

@@ -111,28 +111,3 @@ def backchannel_logout():
         current_app.logger.error(f"MindStack SLO Error: {e}")
         return jsonify({"error": str(e)}), 500
 
-@blueprint.route('/api/sso/internal/user-list', methods=['POST'])
-def internal_user_list():
-    """
-    Internal API for CentralAuth to scan and sync users.
-    Protected by Client Secret verification.
-    """
-    secret_header = request.headers.get('X-Client-Secret')
-    configured_secret = current_app.config.get('CENTRAL_AUTH_CLIENT_SECRET')
-
-    if not secret_header or secret_header != configured_secret:
-        return jsonify({"error": "Unauthorized"}), 401
-
-    from mindstack_app.modules.auth.models import User
-    users = User.query.all()
-    
-    user_list = []
-    for user in users:
-        user_list.append({
-            "username": user.username,
-            "email": user.email,
-            "full_name": user.full_name,
-            "central_auth_id": user.central_auth_id
-        })
-        
-    return jsonify({"users": user_list}), 200
