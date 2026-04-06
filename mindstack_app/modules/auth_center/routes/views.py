@@ -1,9 +1,9 @@
 from flask import redirect, url_for, request, flash, current_app, session, jsonify
 from flask_login import login_user, current_user
+from mindstack_app.core.extensions import db, csrf_protect
 from .. import blueprint
 from ..services.sso_service import SSOService
-from mindstack_app.modules.auth.models import UserSSOSession
-from mindstack_app.core.extensions import db
+from mindstack_app.modules.auth.models import User, UserSSOSession
 import jwt
 import time
 
@@ -111,3 +111,78 @@ def backchannel_logout():
         current_app.logger.error(f"MindStack SLO Error: {e}")
         return jsonify({"error": str(e)}), 500
 
+
+# --- INTERNAL SSO SYNC API ---
+
+@blueprint.route('/api/sso-internal/user-list', methods=['POST'])
+@csrf_protect.exempt
+def internal_user_list():
+    """Returns a list of all local users for CentralAuth synchronization auditing."""
+    secret = request.headers.get('X-Client-Secret')
+    if secret != current_app.config.get('CENTRAL_AUTH_CLIENT_SECRET'):
+        return jsonify({"error": "Unauthorized"}), 401
+        
+    users = User.query.all()
+    user_data = []
+    for u in users:
+        user_data.append({
+            "id": u.user_id,
+            "username": u.username,
+            "email": u.email,
+            "full_name": u.full_name,
+            "central_auth_id": u.central_auth_id
+        })
+    return jsonify({"users": user_data}), 200
+
+@blueprint.route('/api/sso-internal/link-user', methods=['POST'])
+@csrf_protect.exempt
+def internal_link_user():
+    """Links a local user to a CentralAuth UUID. Supports Admin Push-Back."""
+    secret = request.headers.get('X-Client-Secret')
+    if secret != current_app.config.get('CENTRAL_AUTH_CLIENT_SECRET'):
+        return jsonify({"error": "Unauthorized"}), 401
+        
+    data = request.get_json()
+    email = data.get('email')
+    ca_id = data.get('central_auth_id')
+    username = data.get('username')
+    full_name = data.get('full_name')
+    is_admin_sync = data.get('is_admin_sync', False)
+    
+    if not ca_id:
+        return jsonify({"error": "Missing central_auth_id"}), 400
+
+    target_user = None
+
+    # 1. Admin Push-back logic
+    if is_admin_sync:
+        # Target local ID 1
+        target_user = User.query.get(1)
+        if target_user:
+            # Check if already linked to someone else
+            if target_user.central_auth_id and target_user.central_auth_id != ca_id:
+                return jsonify({"error": "Local ID 1 is already linked to a different CentralAuth account"}), 409
+            
+            # Perform Push-back (Overwrite local admin identity)
+            target_user.username = username or target_user.username
+            target_user.email = email or target_user.email
+            target_user.full_name = full_name or target_user.full_name
+            target_user.central_auth_id = ca_id
+            db.session.commit()
+            return jsonify({"status": "success", "message": f"Admin identity pushed back to local ID 1 ({target_user.username})"}), 200
+
+    # 2. Standard linking logic
+    if not target_user:
+        target_user = User.query.filter_by(email=email).first()
+    
+    if not target_user and not is_admin_sync:
+        # Try finding by username as fallback
+        target_user = User.query.filter_by(username=username).first()
+
+    if target_user:
+        target_user.central_auth_id = ca_id
+        if full_name: target_user.full_name = full_name
+        db.session.commit()
+        return jsonify({"status": "success", "message": f"User {target_user.username} linked to CentralAuth ID {ca_id}"}), 200
+    
+    return jsonify({"error": "User not found for linking"}), 404
