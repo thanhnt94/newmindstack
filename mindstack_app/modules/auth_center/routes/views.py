@@ -28,7 +28,7 @@ def callback():
     """
     code = request.args.get('code')
     if not code:
-        flash('Xác thực SSO thất bại: Không tìm thấy mã xác thực (code).', 'danger')
+        # Redirect silently to login if accessed directly without a code
         return redirect(url_for('auth.login'))
         
     user = SSOService.handle_callback(code)
